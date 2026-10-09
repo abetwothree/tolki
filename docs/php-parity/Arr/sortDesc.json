@@ -1,0 +1,293 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::sortDesc numeric comparison",
+            "php": "Arr::sortDesc([1,10,9])",
+            "value": [
+                10,
+                9,
+                1
+            ]
+        },
+        {
+            "label": "sortDesc overrides an explicit \"asc\" direction",
+            "php": "Arr::sortDesc($u, [[\"age\",\"asc\"]])",
+            "value": [
+                {
+                    "age": 10
+                },
+                {
+                    "age": 2
+                }
+            ]
+        },
+        {
+            "label": "Arr::sortDesc orders numeric strings numerically",
+            "php": "Arr::sortDesc([\"9\",\"10\",\"1\",5])",
+            "value": [
+                "10",
+                "9",
+                5,
+                "1"
+            ]
+        },
+        {
+            "label": "sortDesc-rows-natural",
+            "php": "Arr::sortDesc(['a'=>['name'=>'Chair'],'b'=>['name'=>'Desk']])",
+            "value": {
+                "b": {
+                    "name": "Desk"
+                },
+                "a": {
+                    "name": "Chair"
+                }
+            }
+        },
+        {
+            "label": "sortDesc-rows-natural-keys",
+            "php": "array_keys(...)",
+            "value": [
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "sortDesc-scalar-keys",
+            "php": "array_keys(Arr::sortDesc(['c'=>3,'a'=>1,'b'=>2]))",
+            "value": [
+                "c",
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "sortDesc-rows-list-dot-key",
+            "php": "array_values(Arr::sortDesc([['meta'=>['k'=>1]],['meta'=>['k'=>2]]], 'meta.k'))",
+            "value": [
+                {
+                    "meta": {
+                        "k": 2
+                    }
+                },
+                {
+                    "meta": {
+                        "k": 1
+                    }
+                }
+            ]
+        },
+        {
+            "label": "sortDesc-out-of-order-ties",
+            "php": "Arr::sortDesc([2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']], 'n')",
+            "value": [
+                [
+                    2,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "p"
+                        ]
+                    ]
+                ],
+                [
+                    0,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "q"
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            "n",
+                            0
+                        ],
+                        [
+                            "id",
+                            "r"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "sortDesc-out-of-order-ties-callback-order",
+            "php": "Arr::sortDesc([2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']], fn ($v, $k) => $v['n']) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "sortDesc-mixed-callback-order",
+            "php": "Arr::sortDesc(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => $v) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "sortDesc-out-of-order-loose-ties",
+            "php": "Arr::sortDesc([2 => '1', 0 => 1, 1 => '01'])",
+            "value": [
+                [
+                    2,
+                    "1"
+                ],
+                [
+                    0,
+                    1
+                ],
+                [
+                    1,
+                    "01"
+                ]
+            ]
+        },
+        {
+            "label": "sortDesc-out-of-order-ties-descriptor",
+            "php": "Arr::sortDesc([2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']], [['n', 'asc']])",
+            "value": [
+                [
+                    2,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "p"
+                        ]
+                    ]
+                ],
+                [
+                    0,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "q"
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            "n",
+                            0
+                        ],
+                        [
+                            "id",
+                            "r"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "sortDesc-collision-loose-ties",
+            "php": "Arr::sortDesc([1 => '1', 0 => 1, '1' => '01'])",
+            "value": [
+                [
+                    1,
+                    "01"
+                ],
+                [
+                    0,
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "sortDesc-out-of-order-rows-by-path",
+            "php": "Arr::sortDesc([2 => ['n' => 0], 0 => ['n' => 1]], 'n')",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            "n",
+                            1
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            "n",
+                            0
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "sortDesc-out-of-order-rows-by-descriptor",
+            "php": "Arr::sortDesc([2 => ['n' => 0], 0 => ['n' => 1]], [['n', 'asc']])",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            "n",
+                            1
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            "n",
+                            0
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-sortByDesc-bool-comparator",
+            "php": "sortByDesc() and Arr::sortDesc() with a comparator answering a bool, which the descending direction never reverses",
+            "value": {
+                "sortByDesc": [
+                    1,
+                    2,
+                    3
+                ],
+                "Arr::sortDesc list": {
+                    "1": 1,
+                    "2": 2,
+                    "0": 3
+                },
+                "Arr::sortDesc keyed": {
+                    "a": 1,
+                    "b": 2,
+                    "c": 3
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,53 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-H-when-php-falsy-values",
+            "php": "[when('0', ...) === $c, when([], ...) === $c]",
+            "value": [
+                true,
+                true
+            ]
+        },
+        {
+            "label": "C32-H-when-null-callback-throws",
+            "php": "(new Collection([1]))->when(true, null)",
+            "threw": "Error",
+            "message": "Value of type null is not callable"
+        },
+        {
+            "label": "C32-H-when-unless-null-callback-untaken",
+            "php": "[$c->when(false, null) === $c, $c->unless(true, null) === $c]",
+            "value": [
+                true,
+                true
+            ]
+        },
+        {
+            "label": "C32-H-when-default-receives-value",
+            "php": "(new Collection([1]))->when(0, fn () => 'cb', fn ($c, $v) => var_export($v, true))",
+            "value": "0"
+        },
+        {
+            "label": "C32-H-when-callback-returns-scalar",
+            "php": "[when(true, fn () => false), when(true, fn () => 42)]",
+            "value": [
+                false,
+                42
+            ]
+        },
+        {
+            "label": "C32-H-when-closure-value",
+            "php": "(new Collection([1, 2]))->when(fn ($c) => $c->count(), fn ($c, $v) => $v * 10)",
+            "value": 20
+        },
+        {
+            "label": "C32-H-when-callable-string-value-not-invoked",
+            "php": "(new Collection([1]))->when('strlen', fn ($c, $v) => $v)",
+            "value": "strlen"
+        }
+    ]
+}

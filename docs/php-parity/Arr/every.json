@@ -1,0 +1,100 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "callback-key every",
+            "php": "Arr::every([1 => \"a\", \"x\" => \"b\"], $cb)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "every-out-of-order-callback-order",
+            "php": "Arr::every([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => true) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "every-out-of-order-early-exit-callback-order",
+            "php": "Arr::every([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => false) => keys seen",
+            "value": [
+                2
+            ]
+        },
+        {
+            "label": "every-mixed-callback-order",
+            "php": "Arr::every(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => true) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "every-numeric-string-keys-callback-order",
+            "php": "Arr::every(['2' => 'c', '0' => 'a'], fn ($v, $k) => true) => keys seen, with deprecations",
+            "value": {
+                "result": [
+                    2,
+                    0
+                ],
+                "deprecations": []
+            }
+        },
+        {
+            "label": "every-true-key-callback-order",
+            "php": "Arr::every([true => 'a'], fn ($v, $k) => true) => keys seen, with deprecations",
+            "value": {
+                "result": [
+                    1
+                ],
+                "deprecations": []
+            }
+        },
+        {
+            "label": "every-null-key-callback-order",
+            "php": "Arr::every([null => 'a'], fn ($v, $k) => true) => keys seen, with deprecations",
+            "value": {
+                "result": [
+                    ""
+                ],
+                "deprecations": [
+                    "Using null as an array offset is deprecated, use an empty string instead"
+                ]
+            }
+        },
+        {
+            "label": "every-float-key-callback-order",
+            "php": "Arr::every([1.5 => 'a'], fn ($v, $k) => true) => keys seen, with deprecations",
+            "value": {
+                "result": [
+                    1
+                ],
+                "deprecations": [
+                    "Implicit conversion from float 1.5 to int loses precision"
+                ]
+            }
+        },
+        {
+            "label": "every-collision-callback-pairs",
+            "php": "Arr::every([1 => 'a', 0 => 'z', '1' => 'b'], fn ($v, $k) => true) => [key, value] seen",
+            "value": [
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    0,
+                    "z"
+                ]
+            ]
+        }
+    ]
+}

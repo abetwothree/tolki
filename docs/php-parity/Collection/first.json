@@ -1,0 +1,56 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "order-first",
+            "php": "collect(base)->first()",
+            "value": "c"
+        },
+        {
+            "label": "order-first-callback",
+            "php": "collect(base)->first(fn ($v) => $v !== 'c')",
+            "value": "a"
+        },
+        {
+            "label": "order-first-callback-key-order",
+            "php": "$c = collect(base); $c->first(recording $key)",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "order-first-no-match-default",
+            "php": "collect(base)->first(fn ($v) => false, 'fallback')",
+            "value": "fallback"
+        },
+        {
+            "label": "C32-C-ordered-first-last-callback-php-truthiness",
+            "php": "(new Collection([2 => 'a', 0 => 'b']))->first($cb) / last($cb), $cb answering '0', [] and new DateTime('@0')",
+            "value": {
+                "first": [
+                    null,
+                    null,
+                    "a"
+                ],
+                "last": [
+                    null,
+                    null,
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "C32-C-first-empty-no-default",
+            "php": "(new Collection([]))->first() / (new Collection([\"a\" => null]))->first(null, \"d\")",
+            "value": [
+                null,
+                null
+            ]
+        }
+    ]
+}

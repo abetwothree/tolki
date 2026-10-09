@@ -1,0 +1,265 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "X19 combine on matching counts",
+            "php": "collect(['a','b','c'])->combine([1,2,3])",
+            "value": {
+                "a": 1,
+                "b": 2,
+                "c": 3
+            }
+        },
+        {
+            "label": "C10 combine list keys, offset values",
+            "php": "(new Collection(['name', 'family']))->combine([1 => 'taylor', 2 => 'otwell'])->toArray()",
+            "value": {
+                "name": "taylor",
+                "family": "otwell"
+            }
+        },
+        {
+            "label": "C11 combine offset keys, list values",
+            "php": "(new Collection([1 => 'name', 2 => 'family']))->combine(['taylor', 'otwell'])->toArray()",
+            "value": {
+                "name": "taylor",
+                "family": "otwell"
+            }
+        },
+        {
+            "label": "C12 combine offset both",
+            "php": "(new Collection([1 => 'name', 2 => 'family']))->combine([2 => 'taylor', 3 => 'otwell'])->toArray()",
+            "value": {
+                "name": "taylor",
+                "family": "otwell"
+            }
+        },
+        {
+            "label": "C13 combine lists -> int keys",
+            "php": "(new Collection([1, 2, 3]))->combine([4, 5, 6])->toArray()",
+            "value": {
+                "1": 4,
+                "2": 5,
+                "3": 6
+            }
+        },
+        {
+            "label": "D5 combine null/bool/float keys",
+            "php": "(new Collection(['k' => null|true|false|1.5|'7']))->combine([1])->all(), keyed 'null','true','false','float','numstr'",
+            "value": {
+                "null": {
+                    "": 1
+                },
+                "true": {
+                    "1": 1
+                },
+                "false": {
+                    "": 1
+                },
+                "float": {
+                    "1.5": 1
+                },
+                "numstr": {
+                    "7": 1
+                }
+            }
+        },
+        {
+            "label": "combine-float-keys",
+            "php": "@(new Collection([INF, -INF, NAN, -0.0, 1.5, -1.5, 1e21, 1.5e300, 1.5e-7, 0.00001, 0.0001, 0.1 + 0.2, 1 / 3, 10000000000000.5, 10000000000001.5, 5e-324, 99999999999999.98]))->combine(range(1, 17)): the keys",
+            "value": [
+                "INF",
+                "-INF",
+                "NAN",
+                "-0",
+                "1.5",
+                "-1.5",
+                "1.0E+21",
+                "1.5E+300",
+                "1.5E-7",
+                "1.0E-5",
+                "0.0001",
+                "0.3",
+                "0.33333333333333",
+                10000000000000,
+                10000000000002,
+                "4.9406564584125E-324",
+                "1.0E+14"
+            ]
+        },
+        {
+            "label": "combine-large-int-key",
+            "php": "(new Collection([4611686018427387904, -7]))->combine([1, 2]): each key as [type, string]",
+            "value": [
+                [
+                    "integer",
+                    "4611686018427387904"
+                ],
+                [
+                    "integer",
+                    "-7"
+                ]
+            ]
+        },
+        {
+            "label": "combine-list-keyed-values",
+            "php": "(new Collection([1, 2]))->combine(['a' => 'x', 'b' => 'y']) and ->combine(new Collection(['a' => 'x', 'b' => 'y']))",
+            "value": {
+                "keyed": {
+                    "1": "x",
+                    "2": "y"
+                },
+                "collection": {
+                    "1": "x",
+                    "2": "y"
+                }
+            }
+        },
+        {
+            "label": "combine-collection-values",
+            "php": "(new Collection(['a', 'b']))->combine(new Collection(['x', 'y']))",
+            "value": {
+                "a": "x",
+                "b": "y"
+            }
+        },
+        {
+            "label": "d7-combine-scalar-backing",
+            "php": "(new Collection(5))->combine(['x']), (new Collection('k'))->combine(['x']) and (new Collection(null))->combine([])",
+            "value": {
+                "int": {
+                    "5": "x"
+                },
+                "string": {
+                    "k": "x"
+                },
+                "null": []
+            }
+        },
+        {
+            "label": "d7-combine-traversable-backing",
+            "php": "(new Collection(new ArrayIterator(['k1', 'k2'])))->combine(['x', 'y'])",
+            "value": {
+                "k1": "x",
+                "k2": "y"
+            }
+        },
+        {
+            "label": "d6-combine-key-cast-minus-zero-and-1e19",
+            "php": "(new Collection([-0.0, 1e19]))->combine([1, 2]): the keys as PHP stores them",
+            "value": [
+                [
+                    "string",
+                    "-0"
+                ],
+                [
+                    "string",
+                    "1.0E+19"
+                ]
+            ]
+        },
+        {
+            "label": "combine-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->combine(['x', 'y', 'z'])",
+            "value": [
+                [
+                    "c",
+                    "x"
+                ],
+                [
+                    "a",
+                    "y"
+                ],
+                [
+                    "b",
+                    "z"
+                ]
+            ]
+        },
+        {
+            "label": "combine-mixed",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->combine(['p', 'q', 'r'])",
+            "value": [
+                [
+                    1,
+                    "p"
+                ],
+                [
+                    2,
+                    "q"
+                ],
+                [
+                    3,
+                    "r"
+                ]
+            ]
+        },
+        {
+            "label": "combine-out-of-order-values-operand",
+            "php": "(new Collection(['p', 'q', 'r']))->combine([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": [
+                [
+                    "p",
+                    "c"
+                ],
+                [
+                    "q",
+                    "a"
+                ],
+                [
+                    "r",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "combine-collision",
+            "php": "(new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->combine(['p', 'q'])",
+            "value": [
+                [
+                    "c",
+                    "p"
+                ],
+                [
+                    "b",
+                    "q"
+                ]
+            ]
+        },
+        {
+            "label": "combine-fewer-values",
+            "php": "(new Collection([1, 2]))->combine([3])->all()",
+            "threw": "ValueError",
+            "message": "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements"
+        },
+        {
+            "label": "combine-more-values",
+            "php": "(new Collection([1]))->combine([2, 3])->all()",
+            "threw": "ValueError",
+            "message": "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements"
+        },
+        {
+            "label": "C32-F-combine-null-operand-on-empty",
+            "php": "collect([])->combine(null)",
+            "value": []
+        },
+        {
+            "label": "C32-F-combine-null-operand-throws",
+            "php": "collect(['a'])->combine(null)",
+            "threw": "ValueError",
+            "message": "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements"
+        },
+        {
+            "label": "C32-F-combine-int-key-order",
+            "php": "(new Collection([3, 1, 2]))->combine(['c', 'a', 'b'])->keys()",
+            "value": [
+                3,
+                1,
+                2
+            ]
+        }
+    ]
+}

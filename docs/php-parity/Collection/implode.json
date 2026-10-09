@@ -1,0 +1,109 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "implode-out-of-order",
+            "php": "collect(base)->implode('-')",
+            "value": "c-a-b"
+        },
+        {
+            "label": "implode-out-of-order-pluck",
+            "php": "collect([2 => ['n' => 'c'], 0 => ['n' => 'a']])->implode('n', '-')",
+            "value": "c-a"
+        },
+        {
+            "label": "implode-out-of-order-callback",
+            "php": "collect(base)->implode(fn ($v) => strtoupper($v), '-')",
+            "value": "C-A-B"
+        },
+        {
+            "label": "C32-H-implode-class-instances-by-key",
+            "php": "(new Collection([new C32HUser('foo'), new C32HUser('bar')]))->implode('email', ',')",
+            "value": "foo,bar"
+        },
+        {
+            "label": "C32-H-implode-tostring-objects-are-plucked",
+            "php": "(new Collection([new C32HToString('a'), new C32HToString('b')]))->implode(',')",
+            "value": ""
+        },
+        {
+            "label": "C32-H-implode-scalar-casts",
+            "php": "(new Collection([true, false, null, 1.0, 2.50, 0]))->implode(',')",
+            "value": "1,,,1,2.5,0"
+        },
+        {
+            "label": "C32-H-implode-missing-key",
+            "php": "(new Collection([['a' => 1], ['b' => 2]]))->implode('a', ',')",
+            "value": "1,"
+        },
+        {
+            "label": "C32-H-implode-nested-collections-by-key",
+            "php": "(new Collection([new Collection(['a' => 'x']), new Collection(['a' => 'y'])]))->implode('a', ',')",
+            "value": "x,y"
+        },
+        {
+            "label": "C32-H-implode-collection-rows-by-backing",
+            "php": "c32c_rows(list | keyed)->implode('k', ',')",
+            "value": {
+                "list": "b,a,b",
+                "keyed": "b,a,b"
+            }
+        },
+        {
+            "label": "C32-H-implode-float-casts",
+            "php": "(new Collection([0.1 + 0.2, 1.0, 1e25, -0.0]))->implode(',')",
+            "value": "0.3,1,1.0E+25,-0"
+        },
+        {
+            "label": "C32-H-implode-callback-casts",
+            "php": "(new Collection([1, 2]))->implode(fn ($v) => $v > 1, ',')",
+            "value": ",1"
+        },
+        {
+            "label": "C32-H-implode-date-items-are-plucked",
+            "php": "(new Collection([new DateTime('@0'), new DateTime('@1')]))->implode(', ')",
+            "value": ""
+        },
+        {
+            "label": "C32-H-implode-array-pieces",
+            "php": "@implode(',') of [1, [2, 3]] and ['a', ['b' => 1]], @implode(fn ($v) => [$v], ',') of [1, 2], and @implode('a', ',') of [['a' => [1]], ['a' => 2]]",
+            "value": [
+                "1,Array",
+                "a,Array",
+                "Array,Array",
+                "Array,2"
+            ]
+        },
+        {
+            "label": "C32-H-implode-object-pieces",
+            "php": "implode(',') of [1, new stdClass], [1, new DateTime('@0')], [1, fn () => 1], [1, new C32HToString('T')] and [1, new Collection([2])], then implode(fn () => new stdClass, ',') of [1, 2] and implode('a', ',') of [['a' => new stdClass]]",
+            "value": [
+                [
+                    "Error",
+                    "Object of class stdClass could not be converted to string"
+                ],
+                [
+                    "Error",
+                    "Object of class DateTime could not be converted to string"
+                ],
+                [
+                    "Error",
+                    "Object of class Closure could not be converted to string"
+                ],
+                "1,S:T",
+                "1,[2]",
+                [
+                    "Error",
+                    "Object of class stdClass could not be converted to string"
+                ],
+                [
+                    "Error",
+                    "Object of class stdClass could not be converted to string"
+                ]
+            ]
+        }
+    ]
+}

@@ -1,0 +1,380 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "spaceship on two numeric strings",
+            "php": "\"5\" <=> \"10\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on a numeric and a non-numeric string",
+            "php": "\"5\" <=> \"abc\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on zero and empty string",
+            "php": "0 <=> \"\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on null and false",
+            "php": "null <=> false",
+            "value": 0
+        },
+        {
+            "label": "spaceship on two numeric strings, wider on the left",
+            "php": "\"10\" <=> \"9\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on numeric strings spelled differently",
+            "php": "\"1\" <=> \"01\"",
+            "value": 0
+        },
+        {
+            "label": "spaceship on an int and its numeric string",
+            "php": "1 <=> \"1\"",
+            "value": 0
+        },
+        {
+            "label": "spaceship on an int and a non-numeric string",
+            "php": "5 <=> \"abc\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on a non-numeric string and an int",
+            "php": "\"abc\" <=> 0",
+            "value": 1
+        },
+        {
+            "label": "spaceship on a negative int and an empty string",
+            "php": "-1 <=> \"\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on null and a non-numeric string",
+            "php": "null <=> \"abc\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on null and the string zero",
+            "php": "null <=> \"0\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on null and a positive int",
+            "php": "null <=> 5",
+            "value": -1
+        },
+        {
+            "label": "spaceship on null and an empty array",
+            "php": "null <=> []",
+            "value": 0
+        },
+        {
+            "label": "spaceship on false and a non-numeric string",
+            "php": "false <=> \"abc\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on false and a negative int",
+            "php": "false <=> -1",
+            "value": -1
+        },
+        {
+            "label": "spaceship on true and a positive int",
+            "php": "true <=> 5",
+            "value": 0
+        },
+        {
+            "label": "spaceship on true and an empty string",
+            "php": "true <=> \"\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on true and the string zero",
+            "php": "true <=> \"0\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on null and zero",
+            "php": "null <=> 0",
+            "value": 0
+        },
+        {
+            "label": "spaceship on null and an empty string",
+            "php": "null <=> \"\"",
+            "value": 0
+        },
+        {
+            "label": "spaceship on null and a one-element array",
+            "php": "null <=> [1]",
+            "value": -1
+        },
+        {
+            "label": "spaceship on true and false",
+            "php": "true <=> false",
+            "value": 1
+        },
+        {
+            "label": "spaceship on false and an empty array",
+            "php": "false <=> []",
+            "value": 0
+        },
+        {
+            "label": "spaceship on an int and a one-element array",
+            "php": "5 <=> [1]",
+            "value": -1
+        },
+        {
+            "label": "spaceship on a one-element array and an int",
+            "php": "[1] <=> 5",
+            "value": 1
+        },
+        {
+            "label": "spaceship on integer strings one apart past 2^53",
+            "php": "\"9007199254740993\" <=> \"9007199254740992\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on integer strings one apart past 2^53, ascending",
+            "php": "\"9007199254740993\" <=> \"9007199254740994\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on negative integer strings past 2^53",
+            "php": "\"-9007199254740993\" <=> \"-9007199254740992\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on integer strings past the int64 range",
+            "php": "\"99999999999999999999\" <=> \"99999999999999999998\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on a leading-zero integer string that is larger",
+            "php": "\"0000123\" <=> \"99\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on a leading-zero integer string that is smaller",
+            "php": "\"00001\" <=> \"99\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on a whitespace-padded integer string",
+            "php": "\" 42 \" <=> \"42\"",
+            "value": 0
+        },
+        {
+            "label": "spaceship on exponent strings that overflow to infinity",
+            "php": "\"1e400\" <=> \"1e401\"",
+            "value": -1
+        },
+        {
+            "label": "spaceship on identical exponent strings that overflow",
+            "php": "\"1e400\" <=> \"1e400\"",
+            "value": 0
+        },
+        {
+            "label": "spaceship on decimal strings spelled differently",
+            "php": "\"1.5\" <=> \"1.50\"",
+            "value": 0
+        },
+        {
+            "label": "spaceship on an integer string and a decimal string",
+            "php": "\"42\" <=> \"1.5\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on arrays of different length, shorter on the left",
+            "php": "[1] <=> [1, 2]",
+            "value": -1
+        },
+        {
+            "label": "spaceship on arrays of different length, longer on the left",
+            "php": "[1, 2] <=> [1]",
+            "value": 1
+        },
+        {
+            "label": "spaceship where the longer array holds the smaller elements",
+            "php": "[9, 9] <=> [10]",
+            "value": 1
+        },
+        {
+            "label": "spaceship on an empty array and a one-element array",
+            "php": "[] <=> [1]",
+            "value": -1
+        },
+        {
+            "label": "spaceship on two empty arrays",
+            "php": "[] <=> []",
+            "value": 0
+        },
+        {
+            "label": "spaceship on equal-length arrays differing in the last element",
+            "php": "[1, 2] <=> [1, 3]",
+            "value": -1
+        },
+        {
+            "label": "spaceship on equal-length arrays differing in the first element",
+            "php": "[2, 1] <=> [1, 9]",
+            "value": 1
+        },
+        {
+            "label": "spaceship on identical arrays",
+            "php": "[1, 2] <=> [1, 2]",
+            "value": 0
+        },
+        {
+            "label": "spaceship on arrays of numeric strings",
+            "php": "[\"9\"] <=> [\"10\"]",
+            "value": -1
+        },
+        {
+            "label": "spaceship on keyed arrays sharing their keys",
+            "php": "[\"a\"=>1] <=> [\"a\"=>2]",
+            "value": -1
+        },
+        {
+            "label": "spaceship on keyed arrays with disjoint keys",
+            "php": "[\"a\"=>1] <=> [\"b\"=>1]",
+            "value": 1
+        },
+        {
+            "label": "spaceship on keyed arrays with disjoint keys, reversed",
+            "php": "[\"b\"=>1] <=> [\"a\"=>1]",
+            "value": 1
+        },
+        {
+            "label": "spaceship on a keyed array and a list of the same length",
+            "php": "[\"a\"=>1] <=> [1]",
+            "value": 1
+        },
+        {
+            "label": "spaceship on keyed arrays holding the same pairs in another order",
+            "php": "[\"a\"=>1,\"b\"=>2] <=> [\"b\"=>2,\"a\"=>1]",
+            "value": 0
+        },
+        {
+            "label": "spaceship walks the left operand keys in their own order",
+            "php": "[\"z\"=>1,\"\"=>9] <=> [\"z\"=>2,\"\"=>8]",
+            "value": -1
+        },
+        {
+            "label": "spaceship on nested arrays differing one level down",
+            "php": "[[1],[2]] <=> [[1],[3]]",
+            "value": -1
+        },
+        {
+            "label": "spaceship on nested arrays differing in an inner count",
+            "php": "[[1]] <=> [[1,2]]",
+            "value": -1
+        },
+        {
+            "label": "spaceship on stdClass objects sharing a property",
+            "php": "(object)[\"x\"=>1] <=> (object)[\"x\"=>2]",
+            "value": -1
+        },
+        {
+            "label": "spaceship on stdClass objects with equal properties",
+            "php": "(object)[\"x\"=>1] <=> (object)[\"x\"=>1]",
+            "value": 0
+        },
+        {
+            "label": "spaceship on stdClass objects with disjoint properties",
+            "php": "(object)[\"x\"=>1] <=> (object)[\"y\"=>1]",
+            "value": 1
+        },
+        {
+            "label": "spaceship on an empty array and zero",
+            "php": "[] <=> 0",
+            "value": 1
+        },
+        {
+            "label": "spaceship on a one-element array and its only element as a string",
+            "php": "[\"a\"] <=> \"a\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on a one-element array and a numeric string",
+            "php": "[1] <=> \"1\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on two self-referencing arrays",
+            "php": "$c = [1]; $c[1] = &$c; $c <=> $d",
+            "threw": "Error",
+            "message": "Nesting level too deep - recursive dependency?"
+        },
+        {
+            "label": "spaceship on two self-referencing stdClass objects",
+            "php": "$o->self = $o; $o <=> $p",
+            "threw": "Error",
+            "message": "Nesting level too deep - recursive dependency?"
+        },
+        {
+            "label": "spaceship on two DateTime objects, earlier on the left",
+            "php": "new DateTime('2020-01-01') <=> new DateTime('2021-01-01')",
+            "value": -1
+        },
+        {
+            "label": "spaceship on two DateTime objects, later on the left",
+            "php": "new DateTime('2021-01-01') <=> new DateTime('2020-01-01')",
+            "value": 1
+        },
+        {
+            "label": "spaceship on two DateTime objects of the same instant",
+            "php": "new DateTime('2020-01-01') <=> new DateTime('2020-01-01')",
+            "value": 0
+        },
+        {
+            "label": "spaceship on a DateTime and a stdClass",
+            "php": "new DateTime('2020-01-01') <=> new stdClass()",
+            "value": 1
+        },
+        {
+            "label": "spaceship on a stdClass and a DateTime",
+            "php": "new stdClass() <=> new DateTime('2020-01-01')",
+            "value": 1
+        },
+        {
+            "label": "spaceship on a DateTime and an empty array",
+            "php": "new DateTime('2020-01-01') <=> []",
+            "value": 1
+        },
+        {
+            "label": "spaceship on an empty array and a DateTime",
+            "php": "[] <=> new DateTime('2020-01-01')",
+            "value": -1
+        },
+        {
+            "label": "spaceship on a keyed array and a DateTime",
+            "php": "['a'=>1] <=> new DateTime('2020-01-01')",
+            "value": -1
+        },
+        {
+            "label": "e3 spaceship on a keyed array and a non-numeric string",
+            "php": "['x'=>1] <=> 'abc'",
+            "value": 1
+        },
+        {
+            "label": "e3 greater-than on a keyed array and a non-numeric string",
+            "php": "['x'=>1] > 'abc'",
+            "value": true
+        },
+        {
+            "label": "e3 spaceship on an empty array and true",
+            "php": "[] <=> true",
+            "value": -1
+        },
+        {
+            "label": "e3 spaceship on a one-element array and true",
+            "php": "[1] <=> true",
+            "value": 0
+        }
+    ]
+}

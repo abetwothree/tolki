@@ -1,0 +1,191 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-D-where-one-arg-truthiness",
+            "php": "(new Collection([['v' => 1], ['v' => 'a'], ['v' => 0], ['v' => '0'], ['v' => ''], ['v' => null], ['v' => []], ['v' => true], ['v' => false]]))->where('v')->keys()",
+            "value": [
+                0,
+                1,
+                7
+            ]
+        },
+        {
+            "label": "C32-D-where-null-key-items",
+            "php": "(new Collection([1, 2, 3, 4]))->where(null, '>', 2)",
+            "value": [
+                [
+                    2,
+                    3
+                ],
+                [
+                    3,
+                    4
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-where-dot-path",
+            "php": "(new Collection([['a' => ['b' => 1]], ['a' => ['b' => 2]], ['a.b' => 2]]))->where('a.b', 2)->keys()",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "C32-D-where-eq-null-loose",
+            "php": "(new Collection([['v' => 0], ['v' => ''], ['v' => false], ['v' => null], ['v' => '0'], ['v' => []], ['v' => 'a']]))->where('v', '=', null)->keys()",
+            "value": [
+                0,
+                1,
+                2,
+                3,
+                5
+            ]
+        },
+        {
+            "label": "C32-D-where-missing-key-null",
+            "php": "(new Collection([['a' => 1], ['b' => 2]]))->where('missing', null)->keys()",
+            "value": [
+                0,
+                1
+            ]
+        },
+        {
+            "label": "C32-D-where-one-arg-empty-object",
+            "php": "(new Collection([['v' => new DateTime('@0')], ['v' => new stdClass]]))->where('v')->count()",
+            "value": 0
+        },
+        {
+            "label": "C32-D-where-wildcard-path",
+            "php": "(new Collection([['a' => [['b' => 1], ['b' => 2]]], ['a' => [['b' => 3]]]]))->where('a.*.b', [1, 2])->keys()",
+            "value": [
+                0
+            ]
+        },
+        {
+            "label": "C32-D-item-paths-by-backing",
+            "php": "where('a.b', 2) and where('a.*.b', [1, 2]) keys, pluck('a.b'), value('a.b') and value('a.b', 'miss'), keyBy(['a', 'b']) and keyBy(['id', 'name']) keys, over a list and over 'x', 'y', 'z'",
+            "value": {
+                "list": {
+                    "whereDotPath": [
+                        1
+                    ],
+                    "whereWildcardPath": [
+                        0
+                    ],
+                    "pluckDotPath": [
+                        2
+                    ],
+                    "valueDotPath": 2,
+                    "valueDotPathMiss": "miss",
+                    "keyByNestedPath": [
+                        "z"
+                    ],
+                    "keyByUnreachablePath": [
+                        ""
+                    ]
+                },
+                "keyed": {
+                    "whereDotPath": [
+                        "y"
+                    ],
+                    "whereWildcardPath": [
+                        "x"
+                    ],
+                    "pluckDotPath": [
+                        2
+                    ],
+                    "valueDotPath": 2,
+                    "valueDotPathMiss": "miss",
+                    "keyByNestedPath": [
+                        "z"
+                    ],
+                    "keyByUnreachablePath": [
+                        ""
+                    ]
+                }
+            }
+        },
+        {
+            "label": "C32-D-item-paths-filtered-values",
+            "php": "what the filters keep, read as values: where('a.b', 2) and where('a.*.b', [1, 2]) over plain rows, and where('k', 'b'), whereIn('k', ['a']), whereNotIn('k', ['a']) and whereNotBetween('v', [2, 2]) over c32c_rows as each row's 'v'",
+            "value": {
+                "list": {
+                    "whereDotPath": [
+                        {
+                            "a": {
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "whereWildcardPath": [
+                        {
+                            "a": [
+                                {
+                                    "b": 1
+                                },
+                                {
+                                    "b": 2
+                                }
+                            ]
+                        }
+                    ],
+                    "where": [
+                        1,
+                        3
+                    ],
+                    "whereIn": [
+                        2
+                    ],
+                    "whereNotIn": [
+                        1,
+                        3
+                    ],
+                    "whereNotBetween": [
+                        1,
+                        3
+                    ]
+                },
+                "keyed": {
+                    "whereDotPath": [
+                        {
+                            "a": {
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "whereWildcardPath": [
+                        {
+                            "a": [
+                                {
+                                    "b": 1
+                                },
+                                {
+                                    "b": 2
+                                }
+                            ]
+                        }
+                    ],
+                    "where": [
+                        1,
+                        3
+                    ],
+                    "whereIn": [
+                        2
+                    ],
+                    "whereNotIn": [
+                        1,
+                        3
+                    ],
+                    "whereNotBetween": [
+                        1,
+                        3
+                    ]
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,44 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "order-offsetUnset",
+            "php": "$c = collect(base); $c->offsetUnset(0)",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "C32-B-offsetUnset-negative-on-list",
+            "php": "$c = collect(['a', 'b', 'c']); $c->offsetUnset(-1); $c->all()",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "C32-B-offsetUnset-string-on-list",
+            "php": "$c = collect(['a', 'b', 'c']); $c->offsetUnset('x'); $c->all()",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        }
+    ]
+}

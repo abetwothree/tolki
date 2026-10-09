@@ -1,0 +1,15 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-D-whereNotNull-dot-path",
+            "php": "(new Collection([['a' => ['b' => null]], ['a' => ['b' => 0]], ['a' => []]]))->whereNotNull('a.b')->keys()",
+            "value": [
+                1
+            ]
+        }
+    ]
+}

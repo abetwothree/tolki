@@ -1,0 +1,708 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::set preserves a sibling \"__proto__\" key",
+            "php": "Arr::set([[\"__proto__\"=>[\"isAdmin\"=>true],\"z\"=>1]],\"0.z\",2)",
+            "value": [
+                {
+                    "__proto__": {
+                        "isAdmin": true
+                    },
+                    "z": 2
+                }
+            ]
+        },
+        {
+            "label": "Arr::set writes a \"constructor\" key",
+            "php": "Arr::set([], \"constructor\", 5)",
+            "value": {
+                "constructor": 5
+            }
+        },
+        {
+            "label": "Arr::set writes a \"prototype\" key",
+            "php": "Arr::set([], \"prototype\", 5)",
+            "value": {
+                "prototype": 5
+            }
+        },
+        {
+            "label": "Arr::set writes a nested \"constructor.prototype\" path",
+            "php": "Arr::set([], \"constructor.prototype.polluted\", 5)",
+            "value": {
+                "constructor": {
+                    "prototype": {
+                        "polluted": 5
+                    }
+                }
+            }
+        },
+        {
+            "label": "Arr::set writes a \"__proto__\" key",
+            "php": "Arr::set([], \"__proto__\", 5)",
+            "value": {
+                "__proto__": 5
+            }
+        },
+        {
+            "label": "set-overwrite-nested",
+            "php": "set(['products'=>['desk'=>['price'=>100]]], 'products.desk.price', 200)",
+            "value": {
+                "products": {
+                    "desk": {
+                        "price": 200
+                    }
+                }
+            }
+        },
+        {
+            "label": "set-scalar-intermediate",
+            "php": "set(['products'=>'desk'], 'products.desk.price', 200)",
+            "value": {
+                "products": {
+                    "desk": {
+                        "price": 200
+                    }
+                }
+            }
+        },
+        {
+            "label": "set-int-key",
+            "php": "set([1=>'test'], 1, 'hAz')",
+            "value": {
+                "1": "hAz"
+            }
+        },
+        {
+            "label": "set-int-key-string",
+            "php": "set([1=>'test'], '1', 'hAz')",
+            "value": {
+                "1": "hAz"
+            }
+        },
+        {
+            "label": "set-list-input",
+            "php": "set([0=>'products'], 'products.desk.price', 200)",
+            "value": {
+                "0": "products",
+                "products": {
+                    "desk": {
+                        "price": 200
+                    }
+                }
+            }
+        },
+        {
+            "label": "set-null-array-null-key",
+            "php": "$a = null; Arr::set($a, null, 5)",
+            "value": {
+                "value": 5,
+                "array": 5
+            }
+        },
+        {
+            "label": "set-creates-missing-path",
+            "php": "set(['products'=>['desk'=>['price'=>100]]], 'table.price', 500)",
+            "value": {
+                "flat write": {
+                    "products": {
+                        "desk": {
+                            "price": 100
+                        }
+                    },
+                    "table": 500
+                },
+                "then dotted write": {
+                    "products": {
+                        "desk": {
+                            "price": 100
+                        }
+                    },
+                    "table": {
+                        "price": 500
+                    }
+                }
+            }
+        },
+        {
+            "label": "set-list-key-cast",
+            "php": "Arr::set(['a','b'], $seg, 'V') for $seg in '01','1','-1','1.5',''",
+            "value": {
+                "01": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "01": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:01"
+                    ]
+                },
+                "1": {
+                    "json": [
+                        "a",
+                        "V"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                },
+                "-1": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "-1": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:-1"
+                    ]
+                },
+                "1.5": {
+                    "json": [
+                        "a",
+                        {
+                            "5": "V"
+                        }
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                },
+                "": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "set-record-key-cast",
+            "php": "Arr::set(['x'=>1], $seg, 'V') for $seg in '01','1','-1','1.5',''",
+            "value": {
+                "01": {
+                    "json": {
+                        "x": 1,
+                        "01": "V"
+                    },
+                    "keys": [
+                        "string:x",
+                        "string:01"
+                    ]
+                },
+                "1": {
+                    "json": {
+                        "x": 1,
+                        "1": "V"
+                    },
+                    "keys": [
+                        "string:x",
+                        "integer:1"
+                    ]
+                },
+                "-1": {
+                    "json": {
+                        "x": 1,
+                        "-1": "V"
+                    },
+                    "keys": [
+                        "string:x",
+                        "integer:-1"
+                    ]
+                },
+                "1.5": {
+                    "json": {
+                        "x": 1,
+                        "1": {
+                            "5": "V"
+                        }
+                    },
+                    "keys": [
+                        "string:x",
+                        "integer:1"
+                    ]
+                },
+                "": {
+                    "json": {
+                        "x": 1,
+                        "": "V"
+                    },
+                    "keys": [
+                        "string:x",
+                        "string:"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "set-nested-list-key-cast",
+            "php": "Arr::set([['a','b']], '0.'.$seg, 'V') for $seg in '01','1','-1','1.5',''",
+            "value": {
+                "01": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "01": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:01"
+                    ]
+                },
+                "1": {
+                    "json": [
+                        "a",
+                        "V"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                },
+                "-1": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "-1": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:-1"
+                    ]
+                },
+                "1.5": {
+                    "json": [
+                        "a",
+                        {
+                            "5": "V"
+                        }
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                },
+                "": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "set-nested-record-key-cast",
+            "php": "Arr::set([['x'=>1]], '0.'.$seg, 'V') for $seg in '01','1','-1','1.5',''",
+            "value": {
+                "01": {
+                    "json": {
+                        "x": 1,
+                        "01": "V"
+                    },
+                    "keys": [
+                        "string:x",
+                        "string:01"
+                    ]
+                },
+                "1": {
+                    "json": {
+                        "x": 1,
+                        "1": "V"
+                    },
+                    "keys": [
+                        "string:x",
+                        "integer:1"
+                    ]
+                },
+                "-1": {
+                    "json": {
+                        "x": 1,
+                        "-1": "V"
+                    },
+                    "keys": [
+                        "string:x",
+                        "integer:-1"
+                    ]
+                },
+                "1.5": {
+                    "json": {
+                        "x": 1,
+                        "1": {
+                            "5": "V"
+                        }
+                    },
+                    "keys": [
+                        "string:x",
+                        "integer:1"
+                    ]
+                },
+                "": {
+                    "json": {
+                        "x": 1,
+                        "": "V"
+                    },
+                    "keys": [
+                        "string:x",
+                        "string:"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "set-then-get-noncanonical-index",
+            "php": "$a = []; Arr::set($a, '01', 5); Arr::get($a, '01')",
+            "value": 5
+        },
+        {
+            "label": "set-then-get-noncanonical-index-nested",
+            "php": "$a = [[]]; Arr::set($a, '0.01', 5); Arr::get($a, '0.01')",
+            "value": {
+                "written": [
+                    {
+                        "01": 5
+                    }
+                ],
+                "read back": 5
+            }
+        },
+        {
+            "label": "set-empty-middle-segment",
+            "php": "$a = []; Arr::set($a, '0..1', 'V')",
+            "value": {
+                "outer": {
+                    "json": [
+                        {
+                            "": {
+                                "1": "V"
+                            }
+                        }
+                    ],
+                    "keys": [
+                        "integer:0"
+                    ]
+                },
+                "inner": {
+                    "json": {
+                        "": {
+                            "1": "V"
+                        }
+                    },
+                    "keys": [
+                        "string:"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "set-dot-path-under-a-list-index",
+            "php": "$a = ['a', 'b']; Arr::set($a, '0.x', 5)",
+            "value": [
+                {
+                    "x": 5
+                },
+                "b"
+            ]
+        },
+        {
+            "label": "set-scalar-element-empty-trailing-segment",
+            "php": "$a = ['a']; Arr::set($a, '0.', 'value')",
+            "value": {
+                "outer": {
+                    "json": [
+                        {
+                            "": "value"
+                        }
+                    ],
+                    "keys": [
+                        "integer:0"
+                    ]
+                },
+                "inner": {
+                    "json": {
+                        "": "value"
+                    },
+                    "keys": [
+                        "string:"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "own-key-channel-round-trip",
+            "php": "$a = ['a','b']; Arr::set($a, '01', 'V'); then Arr::get / Arr::has",
+            "value": {
+                "written": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "01": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:01"
+                    ]
+                },
+                "get": "V",
+                "has": true
+            }
+        },
+        {
+            "label": "e3-own-key-channel-empty-root",
+            "php": "$a = []; $a['01'] = 'V'; and $b = []; Arr::set($b, '01', 'V')",
+            "value": {
+                "raw subscript": {
+                    "json": {
+                        "01": "V"
+                    },
+                    "keys": [
+                        "string:01"
+                    ]
+                },
+                "Arr::set": {
+                    "json": {
+                        "01": "V"
+                    },
+                    "keys": [
+                        "string:01"
+                    ]
+                },
+                "get": "V",
+                "has": true
+            }
+        },
+        {
+            "label": "own-key-channel-negative-index-round-trip",
+            "php": "$a = ['a','b']; Arr::set($a, '-1', 'V'); then Arr::get / Arr::has",
+            "value": {
+                "written": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "-1": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:-1"
+                    ]
+                },
+                "get": "V",
+                "has": true
+            }
+        },
+        {
+            "label": "own-key-channel-survives-other-helpers",
+            "php": "on $a = ['a','b'] + Arr::set($a,'01','V'): except, add, set, only, forget",
+            "value": {
+                "except ['zzz']": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "01": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:01"
+                    ]
+                },
+                "add '2'": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "01": "V",
+                        "2": "c"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:01",
+                        "integer:2"
+                    ]
+                },
+                "set '2'": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "01": "V",
+                        "2": "c"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:01",
+                        "integer:2"
+                    ]
+                },
+                "only [0]": {
+                    "json": [
+                        "a"
+                    ],
+                    "keys": [
+                        "integer:0"
+                    ]
+                },
+                "forget '01'": {
+                    "json": [
+                        "a",
+                        "b"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "d6-set-assoc-nested-object-is-replaced-wholesale",
+            "php": "$src = ['a' => new D4Point(1)]; Arr::set($src, 'a.y', 2)",
+            "value": {
+                "result": {
+                    "a": {
+                        "y": 2
+                    }
+                },
+                "result_type": "array"
+            }
+        },
+        {
+            "label": "r2-set-noncanonical-index-head-with-rest",
+            "php": "$a = ['a','b']; Arr::set($a, '01.x', 5)",
+            "value": {
+                "written": {
+                    "0": "a",
+                    "1": "b",
+                    "01": {
+                        "x": 5
+                    }
+                },
+                "keys": [
+                    "int:0",
+                    "int:1",
+                    "string:01"
+                ]
+            }
+        },
+        {
+            "label": "e3-set-noncanonical-index-nested-scalar-element",
+            "php": "$a = ['a','b']; Arr::set($a, '0.01', 5)",
+            "value": {
+                "written": [
+                    {
+                        "01": 5
+                    },
+                    "b"
+                ],
+                "keys": [
+                    "int:0",
+                    "int:1"
+                ],
+                "element 0 keys": [
+                    "string:01"
+                ],
+                "read back": 5
+            }
+        },
+        {
+            "label": "r3-set-list-nested-object-is-replaced-wholesale",
+            "php": "$src = [new D4Point(1)]; Arr::set($src, '0.y', 2)",
+            "value": {
+                "result": [
+                    {
+                        "y": 2
+                    }
+                ],
+                "result_type": "array"
+            }
+        },
+        {
+            "label": "r4-set-nested-list-in-a-list-is-descended",
+            "php": "$src = [['q']]; Arr::set($src, '0.1', 'y')",
+            "value": {
+                "set": [
+                    "q",
+                    "y"
+                ],
+                "source-after-set": [
+                    [
+                        "q",
+                        "y"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "set-interior-empty-segment",
+            "php": "Arr::set($a, 'a..b', 9)",
+            "value": {
+                "a": {
+                    "": {
+                        "b": 9
+                    }
+                }
+            }
+        },
+        {
+            "label": "set-leading-empty-segment",
+            "php": "Arr::set($a, '.a', 9)",
+            "value": {
+                "": {
+                    "a": 9
+                }
+            }
+        },
+        {
+            "label": "set-trailing-empty-segment",
+            "php": "Arr::set($a, 'a.', 9)",
+            "value": {
+                "a": {
+                    "": 9
+                }
+            }
+        },
+        {
+            "label": "set-only-empty-segments",
+            "php": "Arr::set($a, '..', 9)",
+            "value": {
+                "": {
+                    "": {
+                        "": 9
+                    }
+                }
+            }
+        },
+        {
+            "label": "set-empty-key",
+            "php": "Arr::set($a, '', 9)",
+            "value": {
+                "": 9
+            }
+        }
+    ]
+}

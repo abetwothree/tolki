@@ -1,0 +1,117 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "reverse over the same fixture",
+            "php": "collect([10,20,30,40])->reverse()",
+            "value": {
+                "3": 40,
+                "2": 30,
+                "1": 20,
+                "0": 10
+            }
+        },
+        {
+            "label": "reverse preserves keys and reverses entry order",
+            "php": "collect([10,20,30,40])->reverse()",
+            "value": {
+                "3": 40,
+                "2": 30,
+                "1": 20,
+                "0": 10
+            }
+        },
+        {
+            "label": "reverse on string keys",
+            "php": "collect(['a'=>1,'b'=>2,'c'=>3])->reverse()",
+            "value": {
+                "c": 3,
+                "b": 2,
+                "a": 1
+            }
+        },
+        {
+            "label": "C5 reverse assoc",
+            "php": "(new Collection(['name' => 'taylor', 'framework' => 'laravel']))->reverse()->all()",
+            "value": {
+                "framework": "laravel",
+                "name": "taylor"
+            }
+        },
+        {
+            "label": "reverse-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->reverse()",
+            "value": [
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    2,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "reverse-mixed",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->reverse()",
+            "value": [
+                [
+                    "y",
+                    3
+                ],
+                [
+                    0,
+                    2
+                ],
+                [
+                    "x",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "reverse-string-keys-then-descending-int-keys",
+            "php": "(new Collection(['y' => 'Y', 'x' => 'X', 1 => 'o', 0 => 'z']))->reverse()",
+            "value": [
+                [
+                    0,
+                    "z"
+                ],
+                [
+                    1,
+                    "o"
+                ],
+                [
+                    "x",
+                    "X"
+                ],
+                [
+                    "y",
+                    "Y"
+                ]
+            ]
+        },
+        {
+            "label": "reverse-collision",
+            "php": "(new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->reverse()",
+            "value": [
+                [
+                    "x",
+                    "b"
+                ],
+                [
+                    1,
+                    "c"
+                ]
+            ]
+        }
+    ]
+}

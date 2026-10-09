@@ -1,0 +1,50 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "hasAny-stray-arg-hit",
+            "php": "Arr::hasAny(['name' => 'Taylor', 'email' => 'foo'], 'surname', 'email')",
+            "value": false
+        },
+        {
+            "label": "hasAny-variadic",
+            "php": "Arr::hasAny(['name'=>'Taylor','age'=>''], 'surname', 'name')",
+            "value": false
+        },
+        {
+            "label": "hasAny-dot-over-null-and-empty",
+            "php": "Arr::hasAny over null/'' values and dot paths",
+            "value": {
+                "null value": true,
+                "dot over null": true,
+                "all missing": false
+            }
+        },
+        {
+            "label": "hasAny-null-keys",
+            "php": "Arr::hasAny(['a' => 1], null)",
+            "value": false
+        },
+        {
+            "label": "hasAny-true-hits",
+            "php": "Arr::hasAny \u2014 array-form and bare-key calls that actually return true",
+            "value": {
+                "array form assoc": true,
+                "bare key assoc": true,
+                "array form list": true
+            }
+        },
+        {
+            "label": "hasAny-list-null-and-empty",
+            "php": "Arr::hasAny over a list with a null value and a partial key set",
+            "value": {
+                "null value": true,
+                "stray plus real": true,
+                "all missing": false
+            }
+        }
+    ]
+}

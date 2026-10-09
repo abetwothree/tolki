@@ -1,0 +1,22 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-H-unless-php-falsy-values",
+            "php": "[unless('0', fn () => 'called'), unless([], fn () => 'called')]",
+            "value": [
+                "called",
+                "called"
+            ]
+        },
+        {
+            "label": "C32-H-unless-null-callback-throws",
+            "php": "(new Collection([1]))->unless(false, null)",
+            "threw": "Error",
+            "message": "Value of type null is not callable"
+        }
+    ]
+}

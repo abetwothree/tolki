@@ -1,0 +1,51 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-D-takeUntil-strict-value",
+            "php": "(new Collection([1, 2, 3, 4]))->takeUntil('3')",
+            "value": [
+                1,
+                2,
+                3,
+                4
+            ]
+        },
+        {
+            "label": "C32-D-takeUntil-keyed",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->takeUntil(3)",
+            "value": [
+                [
+                    "a",
+                    1
+                ],
+                [
+                    "b",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-takeUntil-callback-key",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->takeUntil(fn ($v, $k) => $k === 'c')",
+            "value": [
+                [
+                    "a",
+                    1
+                ],
+                [
+                    "b",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-takeUntil-empty",
+            "php": "(new Collection([]))->takeUntil(1)",
+            "value": []
+        }
+    ]
+}

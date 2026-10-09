@@ -1,0 +1,21 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "excerpt-two-spaces-before-phrase",
+            "php": "Str::excerpt('This is  my name', 'my'), then with ['radius' => 3]",
+            "value": [
+                "This is  my name",
+                "...s  my na..."
+            ]
+        },
+        {
+            "label": "excerpt-space-then-tab-before-phrase",
+            "php": "Str::excerpt(\"foo \\tbar\", \"bar\")",
+            "value": "foo \tbar"
+        }
+    ]
+}

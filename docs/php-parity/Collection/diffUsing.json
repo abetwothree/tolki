@@ -1,0 +1,99 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "d6-diff-using",
+            "php": "(new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue']))->diffUsing(['A' => 'GREEN', 'yellow'], 'strcasecmp')",
+            "value": {
+                "assoc": {
+                    "b": "brown",
+                    "c": "blue"
+                },
+                "list": {
+                    "1": "brown",
+                    "2": "blue"
+                },
+                "nullish-operand": {
+                    "a": "green"
+                },
+                "collection-operand": {
+                    "b": "brown"
+                }
+            }
+        },
+        {
+            "label": "C32-F-diffUsing-spaceship-comparator",
+            "php": "collect([1, 2, 3])->diffUsing([2], fn ($a, $b) => $a <=> $b)",
+            "value": {
+                "0": 1,
+                "2": 3
+            }
+        },
+        {
+            "label": "C32-F-diffUsing-list-keeps-keys",
+            "php": "collect(['a', 'b', 'c'])->diffUsing(['a'], 'strcasecmp')",
+            "value": {
+                "1": "b",
+                "2": "c"
+            }
+        },
+        {
+            "label": "C32-F-using-fractional-comparator",
+            "php": "collect([1, 2, 3])->diffUsing([2], fn () => $answer) and ->intersectUsing([2], fn () => $answer) for 0.5, -0.99 and 1.5",
+            "value": {
+                "0.5": {
+                    "diffUsing": [],
+                    "intersectUsing": [
+                        1,
+                        2,
+                        3
+                    ]
+                },
+                "-0.99": {
+                    "diffUsing": [],
+                    "intersectUsing": [
+                        1,
+                        2,
+                        3
+                    ]
+                },
+                "1.5": {
+                    "diffUsing": [
+                        1,
+                        2,
+                        3
+                    ],
+                    "intersectUsing": []
+                }
+            }
+        },
+        {
+            "label": "C32-F-using-non-finite-comparator",
+            "php": "collect([1, 2, 3])->diffUsing([2], fn () => $answer) for NAN, INF and -INF",
+            "value": {
+                "NAN": [],
+                "INF": [],
+                "-INF": []
+            }
+        },
+        {
+            "label": "C32-F-using-comparator-past-int-range",
+            "php": "diffUsing([2], $comparator) and intersectUsing([2], $comparator) over collect([1, 2, 3]) for a comparator answering ($a <=> $b) * 2**64, which the int cast wraps to 0, and diffUsing([2]) for one answering ($a <=> $b) * 1e19",
+            "value": {
+                "diffUsing 2**64": [],
+                "intersectUsing 2**64": [
+                    1,
+                    2,
+                    3
+                ],
+                "diffUsing 1e19": [
+                    1,
+                    3
+                ]
+            }
+        }
+    ]
+}

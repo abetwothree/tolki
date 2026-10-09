@@ -1,0 +1,850 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::sort multi-key",
+            "php": "Arr::sort($u, [\"name\",\"age\",\"meta.key\"])",
+            "value": [
+                {
+                    "name": "Apple",
+                    "age": 10,
+                    "meta": {
+                        "key": 2
+                    }
+                },
+                {
+                    "name": "Item",
+                    "age": 2,
+                    "meta": {
+                        "key": 1
+                    }
+                },
+                {
+                    "name": "Item",
+                    "age": 10,
+                    "meta": {
+                        "key": 3
+                    }
+                }
+            ]
+        },
+        {
+            "label": "direction tuple [age,false] \u2014 descending",
+            "php": "Arr::sort($u, [\"name\",[\"age\",false]])",
+            "value": [
+                {
+                    "name": "Item",
+                    "age": 10
+                },
+                {
+                    "name": "Item",
+                    "age": 2
+                }
+            ]
+        },
+        {
+            "label": "direction tuple [age,true] \u2014 ascending",
+            "php": "Arr::sort($u, [\"name\",[\"age\",true]])",
+            "value": [
+                {
+                    "name": "Item",
+                    "age": 2
+                },
+                {
+                    "name": "Item",
+                    "age": 10
+                }
+            ]
+        },
+        {
+            "label": "direction tuple [age,\"desc\"] \u2014 string form",
+            "php": "Arr::sort($u, [[\"age\",\"desc\"]])",
+            "value": [
+                {
+                    "age": 10
+                },
+                {
+                    "age": 2
+                }
+            ]
+        },
+        {
+            "label": "direction tuple [age] \u2014 omitted defaults to ascending",
+            "php": "Arr::sort($u, [[\"age\"]])",
+            "value": [
+                {
+                    "age": 2
+                },
+                {
+                    "age": 10
+                }
+            ]
+        },
+        {
+            "label": "direction tuple [age,\"BOGUS\"] \u2014 default arm is DESCENDING",
+            "php": "Arr::sort($u, [[\"age\",\"BOGUS\"]])",
+            "value": [
+                {
+                    "age": 10
+                },
+                {
+                    "age": 2
+                }
+            ]
+        },
+        {
+            "label": "Arr::sort \u2014 empty descriptor array preserves insertion order",
+            "php": "Arr::sort($u, [])",
+            "value": [
+                5,
+                1,
+                3
+            ]
+        },
+        {
+            "label": "sort orders falsy values by value, not by falsiness",
+            "php": "asort([-1,0,5])",
+            "value": {
+                "natural": {
+                    "a": -1,
+                    "b": 0,
+                    "c": 5
+                },
+                "arr_sort": [
+                    -1,
+                    0,
+                    5
+                ],
+                "collection_sortby_null": {
+                    "a": -1,
+                    "b": 0,
+                    "c": 5
+                },
+                "sortdesc_values": [
+                    3,
+                    2,
+                    1
+                ],
+                "reverse_values": [
+                    2,
+                    1,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "sort by a string field orders falsy field values by value",
+            "php": "Arr::sort($u, \"n\")",
+            "value": {
+                "arr_sort_field": {
+                    "a": {
+                        "n": -1
+                    },
+                    "b": {
+                        "n": 0
+                    },
+                    "c": {
+                        "n": 5
+                    }
+                },
+                "collection_sortby_field": {
+                    "a": {
+                        "n": -1
+                    },
+                    "b": {
+                        "n": 0
+                    },
+                    "c": {
+                        "n": 5
+                    }
+                }
+            }
+        },
+        {
+            "label": "X28 sort accepts multi-key and [key, direction] descriptors",
+            "php": "Arr::sort(..., [...])",
+            "value": {
+                "byKey": [
+                    {
+                        "id": 1,
+                        "name": "a"
+                    },
+                    {
+                        "id": 2,
+                        "name": "b"
+                    },
+                    {
+                        "id": 3,
+                        "name": "c"
+                    }
+                ],
+                "descriptor": [
+                    {
+                        "id": 3,
+                        "name": "c"
+                    },
+                    {
+                        "id": 2,
+                        "name": "b"
+                    },
+                    {
+                        "id": 1,
+                        "name": "a"
+                    }
+                ],
+                "plain": {
+                    "1": 10,
+                    "2": 20,
+                    "0": 30
+                },
+                "empty": [
+                    3,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "sort with no comparisons leaves the order alone",
+            "php": "Arr::sort([3,1,2],[])",
+            "value": [
+                3,
+                1,
+                2
+            ]
+        },
+        {
+            "label": "direction tuple [age,\"asc\"] \u2014 string form",
+            "php": "Arr::sort($u, [[\"age\",\"asc\"]])",
+            "value": [
+                {
+                    "age": 2
+                },
+                {
+                    "age": 10
+                }
+            ]
+        },
+        {
+            "label": "direction tuple [age,SortDirection::Ascending]",
+            "php": "Arr::sort($u, [[\"age\",SortDirection::Ascending]])",
+            "value": [
+                {
+                    "age": 2
+                },
+                {
+                    "age": 10
+                }
+            ]
+        },
+        {
+            "label": "Arr::sort runs a comparator nested in a one-element descriptor",
+            "php": "Arr::sort($rows, [[$byAge]])",
+            "value": [
+                {
+                    "age": 1
+                },
+                {
+                    "age": 2
+                },
+                {
+                    "age": 3
+                }
+            ]
+        },
+        {
+            "label": "Arr::sort orders numeric strings numerically",
+            "php": "Arr::sort([\"9\",\"10\",\"1\",5])",
+            "value": [
+                "1",
+                5,
+                "9",
+                "10"
+            ]
+        },
+        {
+            "label": "Arr::sort by key orders numeric strings numerically",
+            "php": "Arr::sort($rows, \"n\")",
+            "value": [
+                {
+                    "n": "1"
+                },
+                {
+                    "n": 5
+                },
+                {
+                    "n": "9"
+                },
+                {
+                    "n": "10"
+                }
+            ]
+        },
+        {
+            "label": "sort-rows-natural",
+            "php": "Arr::sort(['a'=>['name'=>'Desk'],'b'=>['name'=>'Chair']])",
+            "value": {
+                "b": {
+                    "name": "Chair"
+                },
+                "a": {
+                    "name": "Desk"
+                }
+            }
+        },
+        {
+            "label": "sort-rows-natural-keys",
+            "php": "array_keys(...)",
+            "value": [
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "sortByMany-keys",
+            "php": "Arr::sort($sbm, ['name','age','meta.key'])",
+            "value": {
+                "c": {
+                    "name": "Dave",
+                    "age": 10,
+                    "meta": {
+                        "key": 3
+                    }
+                },
+                "d": {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 2
+                    }
+                },
+                "a": {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 3
+                    }
+                },
+                "b": {
+                    "name": "John",
+                    "age": 10,
+                    "meta": {
+                        "key": 5
+                    }
+                }
+            }
+        },
+        {
+            "label": "sortByMany-keys-order",
+            "php": "array_keys",
+            "value": [
+                "c",
+                "d",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "sortByMany-order",
+            "php": "Arr::sort($sbm, ['name',['age',false],['meta.key',true]])",
+            "value": [
+                "c",
+                "b",
+                "d",
+                "a"
+            ]
+        },
+        {
+            "label": "sortByMany-callable",
+            "php": "Arr::sort($sbm, [cmp name, cmp age desc, ['meta.key', true]])",
+            "value": {
+                "c": {
+                    "name": "Dave",
+                    "age": 10,
+                    "meta": {
+                        "key": 3
+                    }
+                },
+                "b": {
+                    "name": "John",
+                    "age": 10,
+                    "meta": {
+                        "key": 5
+                    }
+                },
+                "d": {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 2
+                    }
+                },
+                "a": {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 3
+                    }
+                }
+            }
+        },
+        {
+            "label": "sortByMany-callable-keys",
+            "php": "array_keys",
+            "value": [
+                "c",
+                "b",
+                "d",
+                "a"
+            ]
+        },
+        {
+            "label": "callback-key sort",
+            "php": "Arr::sort([1 => \"a\", \"x\" => \"b\"], $cb)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "sort-scalar-keys",
+            "php": "array_keys(Arr::sort(['c'=>3,'a'=>1,'b'=>2]))",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "sort-rows-closure-keys",
+            "php": "array_keys(Arr::sort(['a'=>['name'=>'Desk'],'b'=>['name'=>'Chair']], fn($v)=>$v['name']))",
+            "value": [
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "sort-rows-dot-key-keys",
+            "php": "array_keys(Arr::sort(['a'=>['meta'=>['k'=>2]],'b'=>['meta'=>['k'=>1]]], 'meta.k'))",
+            "value": [
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "sort-rows-list-closure",
+            "php": "array_values(Arr::sort([['name'=>'Desk'],['name'=>'Chair']], fn($v)=>$v['name']))",
+            "value": [
+                {
+                    "name": "Chair"
+                },
+                {
+                    "name": "Desk"
+                }
+            ]
+        },
+        {
+            "label": "sortByMany-keys-list",
+            "php": "array_values(Arr::sort($sbmList, ['name','age','meta.key']))",
+            "value": [
+                {
+                    "name": "Dave",
+                    "age": 10,
+                    "meta": {
+                        "key": 3
+                    }
+                },
+                {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 2
+                    }
+                },
+                {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 3
+                    }
+                },
+                {
+                    "name": "John",
+                    "age": 10,
+                    "meta": {
+                        "key": 5
+                    }
+                }
+            ]
+        },
+        {
+            "label": "sortByMany-order-list",
+            "php": "array_values(Arr::sort($sbmList, ['name',['age',false],['meta.key',true]]))",
+            "value": [
+                {
+                    "name": "Dave",
+                    "age": 10,
+                    "meta": {
+                        "key": 3
+                    }
+                },
+                {
+                    "name": "John",
+                    "age": 10,
+                    "meta": {
+                        "key": 5
+                    }
+                },
+                {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 2
+                    }
+                },
+                {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 3
+                    }
+                }
+            ]
+        },
+        {
+            "label": "Arr::sort orders lists of arrays by count first",
+            "php": "Arr::sort([[9,9],[10],[1,2,3]])",
+            "value": [
+                [
+                    10
+                ],
+                [
+                    9,
+                    9
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "Arr::sort orders equal-count rows element-wise",
+            "php": "Arr::sort([[\"id\"=>2],[\"id\"=>10],[\"id\"=>1]])",
+            "value": [
+                {
+                    "id": 1
+                },
+                {
+                    "id": 2
+                },
+                {
+                    "id": 10
+                }
+            ]
+        },
+        {
+            "label": "sort-out-of-order",
+            "php": "Arr::sort([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "sort-out-of-order-ties",
+            "php": "Arr::sort([2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']], 'n')",
+            "value": [
+                [
+                    1,
+                    [
+                        [
+                            "n",
+                            0
+                        ],
+                        [
+                            "id",
+                            "r"
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "p"
+                        ]
+                    ]
+                ],
+                [
+                    0,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "q"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "sort-out-of-order-ties-callback",
+            "php": "Arr::sort([2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']], fn ($v, $k) => $v['n'])",
+            "value": [
+                [
+                    1,
+                    [
+                        [
+                            "n",
+                            0
+                        ],
+                        [
+                            "id",
+                            "r"
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "p"
+                        ]
+                    ]
+                ],
+                [
+                    0,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "q"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "sort-out-of-order-ties-callback-order",
+            "php": "Arr::sort([2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']], fn ($v, $k) => $v['n']) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "sort-out-of-order-ties-descriptor",
+            "php": "Arr::sort([2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']], [['n', 'asc']])",
+            "value": [
+                [
+                    1,
+                    [
+                        [
+                            "n",
+                            0
+                        ],
+                        [
+                            "id",
+                            "r"
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "p"
+                        ]
+                    ]
+                ],
+                [
+                    0,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "q"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "sort-mixed-callback-order",
+            "php": "Arr::sort(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => $v) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "sort-out-of-order-loose-ties",
+            "php": "Arr::sort([2 => '1', 0 => 1, 1 => '01'])",
+            "value": [
+                [
+                    2,
+                    "1"
+                ],
+                [
+                    0,
+                    1
+                ],
+                [
+                    1,
+                    "01"
+                ]
+            ]
+        },
+        {
+            "label": "sort-collision-loose-ties",
+            "php": "Arr::sort([1 => '1', 0 => 1, '1' => '01'])",
+            "value": [
+                [
+                    1,
+                    "01"
+                ],
+                [
+                    0,
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "sort-out-of-order-rows-by-path",
+            "php": "Arr::sort([2 => ['n' => 1], 0 => ['n' => 0]], 'n')",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            "n",
+                            0
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            "n",
+                            1
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "sort-out-of-order-rows-by-descriptor",
+            "php": "Arr::sort([2 => ['n' => 1], 0 => ['n' => 0]], [['n', 'asc']])",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            "n",
+                            0
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            "n",
+                            1
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-sortBy-bool-comparator",
+            "php": "sortBy() with a comparator answering a bool, alone and ahead of 'y', sortBy() with one answering 0.5 ahead of 'y', and Arr::sort() with a bool comparator",
+            "value": {
+                "alone": [
+                    {
+                        "x": 1
+                    },
+                    {
+                        "x": 2
+                    },
+                    {
+                        "x": 3
+                    }
+                ],
+                "ahead of y": [
+                    {
+                        "x": 1,
+                        "y": 2
+                    },
+                    {
+                        "x": 1,
+                        "y": 1
+                    }
+                ],
+                "zero ahead of y": [
+                    {
+                        "x": 1,
+                        "y": 1
+                    },
+                    {
+                        "x": 1,
+                        "y": 2
+                    }
+                ],
+                "fraction ahead of y": [
+                    {
+                        "x": 1,
+                        "y": 2
+                    },
+                    {
+                        "x": 1,
+                        "y": 1
+                    }
+                ],
+                "Arr::sort list": {
+                    "1": 1,
+                    "2": 2,
+                    "0": 3
+                },
+                "Arr::sort keyed": {
+                    "a": 1,
+                    "b": 2,
+                    "c": 3
+                }
+            }
+        }
+    ]
+}

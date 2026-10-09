@@ -1,0 +1,17 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "toBoolean-wrapped-in-whitespace",
+            "php": "Str::of($value)->toBoolean() for \" true \", \"\\u{0085}true\" and \"\\u{00A0}true\": filter_var() trims ASCII whitespace only",
+            "value": [
+                true,
+                false,
+                false
+            ]
+        }
+    ]
+}

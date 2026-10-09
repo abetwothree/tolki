@@ -1,0 +1,212 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "collapse-int-keys",
+            "php": "Arr::collapse(['g1' => ['a' => 1, 5 => 'x'], 'g2' => [5 => 'y']])",
+            "value": {
+                "a": 1,
+                "0": "x",
+                "1": "y"
+            }
+        },
+        {
+            "label": "collapse-string-keys",
+            "php": "Arr::collapse(['a' => ['x' => 1, 'y' => 2], 'b' => ['x' => 3, 'z' => 4]])",
+            "value": {
+                "x": 3,
+                "y": 2,
+                "z": 4
+            }
+        },
+        {
+            "label": "collapse-assoc-of-lists",
+            "php": "Arr::collapse(['a' => [1, 2], 'b' => [3]])",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "collapse-assoc-collection-item",
+            "php": "Arr::collapse(['a' => new Collection(['x' => 1]), 'b' => ['y' => 2]])",
+            "value": {
+                "x": 1,
+                "y": 2
+            }
+        },
+        {
+            "label": "collapse-negative-int-keys",
+            "php": "Arr::collapse(['g1' => [-1 => 'a', 'k' => 'b'], 'g2' => [-1 => 'c']]) and the same groups as a list",
+            "value": {
+                "assoc": {
+                    "0": "a",
+                    "k": "b",
+                    "1": "c"
+                },
+                "list": {
+                    "0": "a",
+                    "k": "b",
+                    "1": "c"
+                }
+            }
+        },
+        {
+            "label": "collapse-skips-objects",
+            "php": "Arr::collapse([[1], new DateTime('@0'), [2]]), ([[1], new ArrayObject(['x' => 1]), [2]]), ([['a' => 1], (object) ['b' => 2]]), ([(object) ['b' => 2]]), (['g1' => ['a' => 1], 'g2' => (object) ['b' => 2]])",
+            "value": {
+                "date": [
+                    1,
+                    2
+                ],
+                "array-object": [
+                    1,
+                    2
+                ],
+                "object-item": {
+                    "a": 1
+                },
+                "only-object": [],
+                "assoc-object-item": {
+                    "a": 1
+                }
+            }
+        },
+        {
+            "label": "collapse-list-then-map",
+            "php": "Arr::collapse([[1, 2], ['x' => 1, 0 => 'z']])",
+            "value": {
+                "0": 1,
+                "1": 2,
+                "x": 1,
+                "2": "z"
+            }
+        },
+        {
+            "label": "collapse-map-then-list",
+            "php": "Arr::collapse([['a' => 3], [1, 2]])",
+            "value": {
+                "a": 3,
+                "0": 1,
+                "1": 2
+            }
+        },
+        {
+            "label": "collapse-collection-items",
+            "php": "Arr::collapse([new Collection([1, 2]), 5, new Collection([3])])",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "collapse-out-of-order-lists",
+            "php": "Arr::collapse([2 => ['c'], 0 => ['a'], 1 => ['b']])",
+            "value": [
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "collapse-out-of-order-string-keys",
+            "php": "Arr::collapse([2 => ['c' => 1], 0 => ['a' => 1], 1 => ['b' => 1]])",
+            "value": [
+                [
+                    "c",
+                    1
+                ],
+                [
+                    "a",
+                    1
+                ],
+                [
+                    "b",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "collapse-out-of-order-collision",
+            "php": "Arr::collapse([1 => ['k' => 1], 0 => ['k' => 2]])",
+            "value": [
+                [
+                    "k",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "collapse-mixed",
+            "php": "Arr::collapse(['x' => ['p' => 1], 0 => [5], 'y' => ['q' => 2]])",
+            "value": [
+                [
+                    "p",
+                    1
+                ],
+                [
+                    0,
+                    5
+                ],
+                [
+                    "q",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "collapse-lazy-list",
+            "php": "Arr::collapse([[1], new LazyCollection([2, 3]), collect([4])])",
+            "value": [
+                1,
+                2,
+                3,
+                4
+            ]
+        },
+        {
+            "label": "collapse-lazy-nested-kept",
+            "php": "Arr::collapse([new LazyCollection([[1, 2], new LazyCollection([3])])])",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                {
+                    "lazy": [
+                        3
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "collapse-lazy-assoc-outer",
+            "php": "Arr::collapse(['x' => [1], 'y' => new LazyCollection([2, 3]), 'z' => collect([4])])",
+            "value": [
+                1,
+                2,
+                3,
+                4
+            ]
+        },
+        {
+            "label": "collapse-lazy-keyed",
+            "php": "Arr::collapse(['first' => ['a' => 1], 'second' => new LazyCollection(['b' => 2, 'a' => 3])])",
+            "value": [
+                [
+                    "a",
+                    3
+                ],
+                [
+                    "b",
+                    2
+                ]
+            ]
+        }
+    ]
+}

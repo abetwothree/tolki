@@ -1,0 +1,299 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "pull removes and returns the value",
+            "php": "collect([10,20,30,40])->pull(1)",
+            "value": {
+                "pulled": 20,
+                "after": {
+                    "0": 10,
+                    "2": 30,
+                    "3": 40
+                }
+            }
+        },
+        {
+            "label": "order-pull",
+            "php": "$c = collect(base); $returned = $c->pull(0)",
+            "value": {
+                "returned": "a",
+                "all": {
+                    "2": "c",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "C32-B-pull-string-index-on-list",
+            "php": "$c = collect(['a', 'b', 'c']); $c->pull('1')",
+            "value": {
+                "returned": "b",
+                "all": {
+                    "0": "a",
+                    "2": "c"
+                },
+                "count": 2
+            }
+        },
+        {
+            "label": "C32-B-pull-missing-on-list-keeps-list",
+            "php": "$c = collect(['foo', 'bar']); $c->pull(2); $c->pull(-1)",
+            "value": {
+                "returned": [
+                    null,
+                    null
+                ],
+                "all": [
+                    "foo",
+                    "bar"
+                ],
+                "json": "[\"foo\",\"bar\"]"
+            }
+        },
+        {
+            "label": "C32-B-pull-keeps-sibling-collections",
+            "php": "$c = collect(['a' => collect([1]), 'b' => 2]); $c->pull('b')",
+            "value": true
+        },
+        {
+            "label": "C32-B-pull-returns-stored-collection",
+            "php": "collect(['a' => collect(['x' => 1])])->pull('a') instanceof Collection",
+            "value": true
+        },
+        {
+            "label": "C32-B-pull-dot-into-nested-collection",
+            "php": "$c = collect(['a' => collect(['x' => 1, 'y' => 2])]); $c->pull('a.x')",
+            "value": {
+                "returned": 1,
+                "nestedIsCollection": true,
+                "toArray": {
+                    "a": {
+                        "y": 2
+                    }
+                }
+            }
+        },
+        {
+            "label": "C32-B-pull-null-key",
+            "php": "$c = collect([1, 2]); $c->pull(null)",
+            "value": {
+                "returned": [
+                    1,
+                    2
+                ],
+                "all": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-B-pull-array-inside-collection-stays",
+            "php": "$c = collect(['a' => collect(['x' => ['y' => 1, 'z' => 2]])]); @$c->pull('a.x.y')",
+            "value": {
+                "returned": 1,
+                "toArray": {
+                    "a": {
+                        "x": {
+                            "y": 1,
+                            "z": 2
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "label": "C32-B-pull-dot-path-inside-collection-per-segment",
+            "php": "$c = collect(['a' => collect(['x.y' => 1])]); $c->pull('a.x.y')",
+            "value": {
+                "returned": null,
+                "toArray": {
+                    "a": {
+                        "x.y": 1
+                    }
+                }
+            }
+        },
+        {
+            "label": "C32-B-pull-through-array-into-collection",
+            "php": "$c = collect(['a' => ['b' => collect(['x' => 1, 'y' => 2])]]); $c->pull('a.b.x')",
+            "value": {
+                "returned": 1,
+                "toArray": {
+                    "a": {
+                        "b": {
+                            "y": 2
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "label": "C32-B-pull-through-array-keeps-the-collection",
+            "php": "$c = collect(['a' => ['b' => collect(['x' => 1])]]); $c->pull('a.b.x'); $c->get('a')['b'] instanceof Collection",
+            "value": true
+        },
+        {
+            "label": "C32-B-pull-float-key-exists-as-its-string-form",
+            "php": "@pull(1.5) on collect(['a', 'b', 'c']) and on collect(['1.5' => 'x', 1 => 'y'])",
+            "value": {
+                "list": {
+                    "returned": null,
+                    "all": [
+                        "a",
+                        "b",
+                        "c"
+                    ]
+                },
+                "record": {
+                    "returned": "y",
+                    "all": {
+                        "1.5": "x"
+                    }
+                }
+            }
+        },
+        {
+            "label": "C32-B-pull-dot-path-through-nested-arrays",
+            "php": "pull('a.b'), pull('a.b.c'), pull('a.2') and pull('a.z', 'd') through the array under 'a': what each returns, and the keys and values 'a' holds after",
+            "value": [
+                {
+                    "returned": 1,
+                    "keys": [
+                        "c"
+                    ],
+                    "values": [
+                        2
+                    ]
+                },
+                {
+                    "returned": 1,
+                    "keys": [
+                        "b"
+                    ],
+                    "values": [
+                        {
+                            "d": 2
+                        }
+                    ]
+                },
+                {
+                    "returned": "x",
+                    "keys": [
+                        0,
+                        1
+                    ],
+                    "values": [
+                        "y",
+                        "z"
+                    ]
+                },
+                {
+                    "returned": "d",
+                    "keys": [
+                        "b"
+                    ],
+                    "values": [
+                        1
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "C32-B-pull-dot-path-missing-below-nested-array",
+            "php": "$c = collect(['a' => ['b' => ['c' => 1]]]); $c->pull('a.b.z', 'd'), and what 'a' holds after",
+            "value": {
+                "returned": "d",
+                "a": {
+                    "b": {
+                        "c": 1
+                    }
+                }
+            }
+        },
+        {
+            "label": "C32-B-pull-illegal-key",
+            "php": "pull($key) over both backings, for $key = ['a'], new stdClass and fn () => 1",
+            "value": {
+                "array": [
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    }
+                ],
+                "object": [
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    }
+                ],
+                "closure": [
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

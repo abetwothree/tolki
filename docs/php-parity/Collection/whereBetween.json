@@ -1,0 +1,45 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "whereBetween over the same items",
+            "php": "collect($between)->whereBetween(\"v\",[\"1\",\"5\"])->pluck(\"v\")",
+            "value": [
+                "1",
+                5
+            ]
+        },
+        {
+            "label": "C32-D-whereBetween-three-values",
+            "php": "whereBetween('v', [1, 5, 3]) over v = 0..6",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "C32-D-whereBetween-keyed-values",
+            "php": "whereBetween('v', ['max' => 3, 'min' => 1]) over v = 0..4",
+            "value": []
+        },
+        {
+            "label": "C32-D-whereBetween-collection-values",
+            "php": "whereBetween('v', new Collection([1, 3])) over v = 0..4",
+            "value": []
+        },
+        {
+            "label": "C32-D-whereBetween-null-item",
+            "php": "whereBetween('v', [0, 2]) over v = null, 0, 1, '', false",
+            "value": [
+                0,
+                1,
+                2,
+                4
+            ]
+        }
+    ]
+}

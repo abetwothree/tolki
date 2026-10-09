@@ -1,0 +1,34 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-A-toBase-is-base-class",
+            "php": "$base = C32ASub::make([1, 2])->toBase(); [get_class($base), $base->all()]",
+            "value": [
+                "Illuminate\\Support\\Collection",
+                [
+                    1,
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-toBase-copies",
+            "php": "$sub = C32ASub::make([1, 2]); $base = $sub->toBase(); $base->push(3); [$sub->all(), $base->all()]",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        }
+    ]
+}

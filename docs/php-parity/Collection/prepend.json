@@ -1,0 +1,119 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "order-prepend",
+            "php": "$c = collect(base); $c->prepend('x')",
+            "value": {
+                "all": [
+                    "x",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "x",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "order-prepend-with-key",
+            "php": "$c = collect(base); $c->prepend('x', 'k')",
+            "value": {
+                "all": {
+                    "k": "x",
+                    "2": "c",
+                    "0": "a",
+                    "1": "b"
+                },
+                "values": [
+                    "x",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    "k",
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-prepend-with-null-key",
+            "php": "$c = collect(base); $c->prepend('x', null)",
+            "value": {
+                "all": {
+                    "": "x",
+                    "2": "c",
+                    "0": "a",
+                    "1": "b"
+                },
+                "values": [
+                    "x",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    "",
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-prepend-with-existing-key",
+            "php": "$c = collect(base); $c->prepend('x', 1)",
+            "value": {
+                "all": {
+                    "1": "x",
+                    "2": "c",
+                    "0": "a"
+                },
+                "values": [
+                    "x",
+                    "c",
+                    "a"
+                ],
+                "keys": [
+                    1,
+                    2,
+                    0
+                ]
+            }
+        },
+        {
+            "label": "C32-B-prepend-string-key-on-list-order",
+            "php": "$c = collect(['b', 'c'])->prepend('a', 'k'); values/keys/first/last",
+            "value": {
+                "values": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "keys": [
+                    "k",
+                    0,
+                    1
+                ],
+                "first": "a",
+                "last": "c"
+            }
+        }
+    ]
+}

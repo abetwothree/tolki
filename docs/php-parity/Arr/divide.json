@@ -1,0 +1,115 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "divide-empty-and-int-key",
+            "php": "Arr::divide(['' => 'Null', 1 => 'one'])",
+            "value": [
+                [
+                    "",
+                    1
+                ],
+                [
+                    "Null",
+                    "one"
+                ]
+            ]
+        },
+        {
+            "label": "divide-int-key-types",
+            "php": "array_map('gettype', Arr::divide(['' => 'Null', 1 => 'one'])[0])",
+            "value": [
+                "string",
+                "integer"
+            ]
+        },
+        {
+            "label": "divide-empty",
+            "php": "Arr::divide([])",
+            "value": [
+                [],
+                []
+            ]
+        },
+        {
+            "label": "divide-array-values",
+            "php": "Arr::divide(['a' => [1, 2], 'b' => 'x'])",
+            "value": [
+                [
+                    "a",
+                    "b"
+                ],
+                [
+                    [
+                        1,
+                        2
+                    ],
+                    "x"
+                ]
+            ]
+        },
+        {
+            "label": "divide-list",
+            "php": "Arr::divide(['Null', 'one'])",
+            "value": [
+                [
+                    0,
+                    1
+                ],
+                [
+                    "Null",
+                    "one"
+                ]
+            ]
+        },
+        {
+            "label": "divide-out-of-order",
+            "php": "Arr::divide([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": [
+                [
+                    2,
+                    0,
+                    1
+                ],
+                [
+                    "c",
+                    "a",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "divide-mixed",
+            "php": "Arr::divide(['x' => 1, 0 => 2, 'y' => 3])",
+            "value": [
+                [
+                    "x",
+                    0,
+                    "y"
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "divide-collision",
+            "php": "Arr::divide([1 => 'a', 'x' => 'b', '1' => 'c'])",
+            "value": [
+                [
+                    1,
+                    "x"
+                ],
+                [
+                    "c",
+                    "b"
+                ]
+            ]
+        }
+    ]
+}

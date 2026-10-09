@@ -1,0 +1,140 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "except-int-key",
+            "php": "Arr::except([1 => 'hAz', 2 => [5 => 'foo', 12 => 'baz']], 2)",
+            "value": {
+                "1": "hAz"
+            }
+        },
+        {
+            "label": "except-float-key",
+            "php": "Arr::except([1 => 'hAz', 2 => [5 => 'foo', 12 => 'baz']], 2.5)",
+            "value": {
+                "1": "hAz",
+                "2": {
+                    "12": "baz"
+                }
+            }
+        },
+        {
+            "label": "except-mixed-list",
+            "php": "Arr::except(fw, ['name', 'framework.name'])",
+            "value": {
+                "framework": {
+                    "language": "PHP"
+                }
+            }
+        },
+        {
+            "label": "except-single-dot-path",
+            "php": "Arr::except(['name'=>'taylor','framework'=>['language'=>'PHP','name'=>'Laravel']], 'framework.language')",
+            "value": {
+                "name": "taylor",
+                "framework": {
+                    "name": "Laravel"
+                }
+            }
+        },
+        {
+            "label": "except-string-key",
+            "php": "Arr::except([1 => 'hAz', 2 => 'x'], '2')",
+            "value": {
+                "1": "hAz"
+            }
+        },
+        {
+            "label": "except-out-of-order",
+            "php": "Arr::except([2 => 'c', 0 => 'a', 1 => 'b'], [0])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-array-key-type-error",
+            "php": "except('a', ['b']) and except('a', new Collection(['b'])) over ['a' => 1, 'b' => 2], Arr::except([], [['b']]), and select('a', ['b']) over an array row, an object row, a scalar row and no rows",
+            "value": {
+                "except-array": "TypeError: array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                "except-collection": "TypeError: array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                "arr-except-empty": "TypeError: array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                "select-array-row": "TypeError: array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                "select-object-row": [
+                    [
+                        [
+                            "a",
+                            1
+                        ]
+                    ]
+                ],
+                "select-scalar-row": [
+                    []
+                ],
+                "select-no-rows": []
+            }
+        },
+        {
+            "label": "C32-D-arr-except-null-key",
+            "php": "Arr::except(['' => 1, 'a' => 2], null), Arr::except(['' => 1, 'a' => 2], [null]) and Arr::except(['a' => ['' => 1]], [null])",
+            "value": {
+                "bare": [
+                    [
+                        "",
+                        1
+                    ],
+                    [
+                        "a",
+                        2
+                    ]
+                ],
+                "list": [
+                    [
+                        "a",
+                        2
+                    ]
+                ],
+                "nested": [
+                    [
+                        "a",
+                        [
+                            [
+                                "",
+                                1
+                            ]
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-D-arr-except-float-list-path",
+            "php": "Arr::except([['a', 'b', 'c', 'd', 'e', 'f']], [0.5]) and Arr::except(['a', 'b', 'c'], [1.5])",
+            "value": [
+                [
+                    [
+                        "a",
+                        "b",
+                        "c",
+                        "d",
+                        "e"
+                    ]
+                ],
+                [
+                    "a",
+                    "b",
+                    "c"
+                ]
+            ]
+        }
+    ]
+}

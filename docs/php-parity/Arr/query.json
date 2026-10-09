@@ -1,0 +1,92 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::query with booleans",
+            "php": "Arr::query([\"foo\"=>\"bar\",\"bar\"=>true])",
+            "value": {
+                "true": "foo=bar&bar=1",
+                "false": "foo=bar&bar=0",
+                "empty": "foo=bar&bar=",
+                "null": "foo=bar",
+                "none": ""
+            }
+        },
+        {
+            "label": "X21 query casts booleans to 1/0",
+            "php": "Arr::query(['a'=>true,'b'=>false])",
+            "value": {
+                "bools": "a=1&b=0",
+                "list": "0=a&1=b"
+            }
+        },
+        {
+            "label": "query-nested-key-brackets",
+            "php": "Arr::query(['a'=>['b'=>1]])",
+            "value": "a%5Bb%5D=1"
+        },
+        {
+            "label": "query-list-value-brackets",
+            "php": "Arr::query(['a'=>[1,2]])",
+            "value": "a%5B0%5D=1&a%5B1%5D=2"
+        },
+        {
+            "label": "query-deep-nested-brackets",
+            "php": "Arr::query(['a'=>['b'=>['c'=>1]]])",
+            "value": "a%5Bb%5D%5Bc%5D=1"
+        },
+        {
+            "label": "query-bracket-inside-a-key",
+            "php": "Arr::query(['a[b]'=>1])",
+            "value": "a%5Bb%5D=1"
+        },
+        {
+            "label": "query-rfc3986-sub-delimiters",
+            "php": "Arr::query([\"k!'()*~-._\" => \"v!'()*~-._\"])",
+            "value": "k%21%27%28%29%2A~-._=v%21%27%28%29%2A~-._"
+        },
+        {
+            "label": "query-space-and-plus",
+            "php": "Arr::query(['a b'=>'c d','f+o'=>'b&r'])",
+            "value": "a%20b=c%20d&f%2Bo=b%26r"
+        },
+        {
+            "label": "query-flat-list",
+            "php": "Arr::query([1,2,3])",
+            "value": "0=1&1=2&2=3"
+        },
+        {
+            "label": "query-out-of-order",
+            "php": "Arr::query([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": "2=c&0=a&1=b"
+        },
+        {
+            "label": "query-mixed",
+            "php": "Arr::query(['x' => 1, 0 => 2, 'y' => 3])",
+            "value": "x=1&0=2&y=3"
+        },
+        {
+            "label": "query-out-of-order-nested",
+            "php": "Arr::query(['u' => [1 => 'p', 0 => 'q'], 'v' => 1])",
+            "value": "u%5B1%5D=p&u%5B0%5D=q&v=1"
+        },
+        {
+            "label": "query-out-of-order-nested-in-list",
+            "php": "Arr::query(['l' => [[1 => 'p', 0 => 'q'], 'x']])",
+            "value": "l%5B0%5D%5B1%5D=p&l%5B0%5D%5B0%5D=q&l%5B1%5D=x"
+        },
+        {
+            "label": "query-out-of-order-nested-twice",
+            "php": "Arr::query(['a' => ['b' => [1 => 'p', 0 => 'q']], 1 => 'one', 0 => 'zero'])",
+            "value": "a%5Bb%5D%5B1%5D=p&a%5Bb%5D%5B0%5D=q&1=one&0=zero"
+        },
+        {
+            "label": "query-collision",
+            "php": "Arr::query([1 => 'a', 0 => 'z', '1' => 'b'])",
+            "value": "1=b&0=z"
+        }
+    ]
+}

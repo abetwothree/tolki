@@ -1,0 +1,39 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "wrap-empty-string",
+            "php": "Arr::wrap('')",
+            "value": [
+                ""
+            ]
+        },
+        {
+            "label": "wrap-false",
+            "php": "Arr::wrap(false)",
+            "value": [
+                false
+            ]
+        },
+        {
+            "label": "wrap-zero",
+            "php": "Arr::wrap(0)",
+            "value": [
+                0
+            ]
+        },
+        {
+            "label": "wrap-stdclass-is-wrapped",
+            "php": "Arr::wrap(new stdClass) is list",
+            "value": true
+        },
+        {
+            "label": "wrap-datetime",
+            "php": "Arr::wrap(new DateTime) count",
+            "value": 1
+        }
+    ]
+}

@@ -1,0 +1,103 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "pad negative on assoc",
+            "php": "array_pad([\"a\"=>1,\"b\"=>2],-5,0)",
+            "value": {
+                "0": 0,
+                "1": 0,
+                "2": 0,
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "pad positive on assoc",
+            "php": "array_pad([\"a\"=>1,\"b\"=>2],5,0)",
+            "value": {
+                "a": 1,
+                "b": 2,
+                "0": 0,
+                "1": 0,
+                "2": 0
+            }
+        },
+        {
+            "label": "pad when no padding needed",
+            "php": "array_pad([\"a\"=>1,\"b\"=>2],2,0)",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "X17 pad numbers negative pad slots from 0",
+            "php": "array_pad(['a'=>1,'b'=>2],-5,0)",
+            "value": {
+                "strings": {
+                    "0": 0,
+                    "1": 0,
+                    "2": 0,
+                    "a": 1,
+                    "b": 2
+                },
+                "ints": [
+                    0,
+                    0,
+                    10,
+                    20,
+                    30,
+                    40
+                ]
+            }
+        },
+        {
+            "label": "pad appends after the original entries",
+            "php": "array_pad([10,20,30,40],6,0)",
+            "value": [
+                10,
+                20,
+                30,
+                40,
+                0,
+                0
+            ]
+        },
+        {
+            "label": "pad with string keys numbers the pad slots from 0",
+            "php": "array_pad(['a'=>1,'b'=>2],4,0)",
+            "value": {
+                "a": 1,
+                "b": 2,
+                "0": 0,
+                "1": 0
+            }
+        },
+        {
+            "label": "pad with mixed keys continues past the highest integer key",
+            "php": "array_pad([0=>'a','x'=>1],4,'p')",
+            "value": {
+                "0": "a",
+                "x": 1,
+                "1": "p",
+                "2": "p"
+            }
+        },
+        {
+            "label": "negative pad numbers the pad slots first",
+            "php": "array_pad([10,20,30,40],-6,0)",
+            "value": [
+                0,
+                0,
+                10,
+                20,
+                30,
+                40
+            ]
+        }
+    ]
+}

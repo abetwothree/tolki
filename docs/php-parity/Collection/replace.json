@@ -1,0 +1,409 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "replace does not mutate",
+            "php": "$c->replace([\"b\"=>2])",
+            "value": {
+                "result": {
+                    "a": 1,
+                    "b": 2
+                },
+                "source": {
+                    "a": 1
+                }
+            }
+        },
+        {
+            "label": "replace(null)",
+            "php": "$c->replace(null)",
+            "value": {
+                "a": 1,
+                "b": 2,
+                "c": 3
+            }
+        },
+        {
+            "label": "replace array does not mutate",
+            "php": "$c->replace([9])",
+            "value": {
+                "result": [
+                    9,
+                    2
+                ],
+                "source": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "replace array (null)",
+            "php": "$c->replace(null)",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "X9 replace does not mutate",
+            "php": "collect([10,20,30,40])->replace([1=>'d'])",
+            "value": {
+                "result": [
+                    10,
+                    "d",
+                    30,
+                    40
+                ],
+                "source": [
+                    10,
+                    20,
+                    30,
+                    40
+                ]
+            }
+        },
+        {
+            "label": "X11 replace/replaceRecursive treat null as a no-op",
+            "php": "collect([10,20,30,40])->replace(null)",
+            "value": {
+                "replace": [
+                    10,
+                    20,
+                    30,
+                    40
+                ],
+                "replaceRecursive": [
+                    10,
+                    20,
+                    30,
+                    40
+                ]
+            }
+        },
+        {
+            "label": "C16 replace assoc",
+            "php": "(new Collection(['name' => 'amir', 'family' => 'otwell']))->replace(['name' => 'taylor', 'age' => 26])->all()",
+            "value": {
+                "name": "taylor",
+                "family": "otwell",
+                "age": 26
+            }
+        },
+        {
+            "label": "C23 replace int-keyed replacer on int-keyed",
+            "php": "(new Collection(['a', 'b', 'c']))->replace([1 => 'd', 2 => 'e', 3 => 'f', 4 => 'g'])->all()",
+            "value": [
+                "a",
+                "d",
+                "e",
+                "f",
+                "g"
+            ]
+        },
+        {
+            "label": "replace-list-replacer",
+            "php": "(new Collection(['a' => 1]))->replace(['x'])",
+            "value": {
+                "a": 1,
+                "0": "x"
+            }
+        },
+        {
+            "label": "replace-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->replace(new Collection([9]))",
+            "value": [
+                9,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "replace-list-keyed-replacer",
+            "php": "(new Collection(['a', 'b', 'c']))->replace([1 => 'x', 'k' => 'y']), ->replace(['01' => 'x']), ->replace([-1 => 'x']), ->replace(['1.5' => 'x']), (new Collection(['a']))->replace([3 => 'x']), and each through ->replaceRecursive()",
+            "value": {
+                "replace": {
+                    "mixed": {
+                        "0": "a",
+                        "1": "x",
+                        "2": "c",
+                        "k": "y"
+                    },
+                    "leading-zero": {
+                        "0": "a",
+                        "1": "b",
+                        "2": "c",
+                        "01": "x"
+                    },
+                    "negative": {
+                        "0": "a",
+                        "1": "b",
+                        "2": "c",
+                        "-1": "x"
+                    },
+                    "float-string": {
+                        "0": "a",
+                        "1": "b",
+                        "2": "c",
+                        "1.5": "x"
+                    },
+                    "gap": {
+                        "0": "a",
+                        "3": "x"
+                    }
+                },
+                "replaceRecursive": {
+                    "mixed": {
+                        "0": "a",
+                        "1": "x",
+                        "2": "c",
+                        "k": "y"
+                    },
+                    "leading-zero": {
+                        "0": "a",
+                        "1": "b",
+                        "2": "c",
+                        "01": "x"
+                    },
+                    "negative": {
+                        "0": "a",
+                        "1": "b",
+                        "2": "c",
+                        "-1": "x"
+                    },
+                    "float-string": {
+                        "0": "a",
+                        "1": "b",
+                        "2": "c",
+                        "1.5": "x"
+                    },
+                    "gap": {
+                        "0": "a",
+                        "3": "x"
+                    }
+                }
+            }
+        },
+        {
+            "label": "replace-scalar-operand",
+            "php": "(new Collection(['a', 'b']))->replace('z'), ->replaceRecursive('z')",
+            "value": {
+                "replace": [
+                    "z",
+                    "b"
+                ],
+                "replaceRecursive": [
+                    "z",
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "object-backing-list-operand",
+            "php": "$c = new Collection([0 => 'a', 1 => 'b', 'x' => 'c']); $c->replace(['z']), ->replaceRecursive(['z']), ->intersectByKeys(['z']), ->intersectAssoc(['a']), ->intersectAssocUsing(['a'], $cmp)",
+            "value": {
+                "replace": {
+                    "0": "z",
+                    "1": "b",
+                    "x": "c"
+                },
+                "replaceRecursive": {
+                    "0": "z",
+                    "1": "b",
+                    "x": "c"
+                },
+                "intersectByKeys": [
+                    "a"
+                ],
+                "intersectAssoc": [
+                    "a"
+                ],
+                "intersectAssocUsing": [
+                    "a"
+                ]
+            }
+        },
+        {
+            "label": "replace-list-string-key-replacer",
+            "php": "(new Collection(['a','b','c']))->replace(['k' => 'x'])",
+            "value": {
+                "0": "a",
+                "1": "b",
+                "2": "c",
+                "k": "x"
+            }
+        },
+        {
+            "label": "replace-list-sparse-replacer",
+            "php": "(new Collection(['a']))->replace([3 => 'd'])",
+            "value": {
+                "0": "a",
+                "3": "d"
+            }
+        },
+        {
+            "label": "replace-list-mixed-key-replacer",
+            "php": "(new Collection(['a','b']))->replace([1 => 'z', 'k' => 'x'])",
+            "value": {
+                "0": "a",
+                "1": "z",
+                "k": "x"
+            }
+        },
+        {
+            "label": "replace-traversable-backing",
+            "php": "collect(gen(1,2))->replace([0 => 9])",
+            "value": [
+                9,
+                2
+            ]
+        },
+        {
+            "label": "replace-list-out-of-order-operand",
+            "php": "(new Collection(['a']))->replace([2 => 'c', 1 => 'b'])",
+            "value": [
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "replace-list-in-order-operand",
+            "php": "(new Collection(['a']))->replace([1 => 'b', 2 => 'c'])",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "replace-two-item-list-out-of-order-operand",
+            "php": "(new Collection(['a', 'b']))->replace([3 => 'd', 2 => 'c'])",
+            "value": [
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    3,
+                    "d"
+                ],
+                [
+                    2,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "replace-two-item-list-in-order-operand",
+            "php": "(new Collection(['a', 'b']))->replace([2 => 'c', 3 => 'd'])",
+            "value": [
+                "a",
+                "b",
+                "c",
+                "d"
+            ]
+        },
+        {
+            "label": "replace-two-item-list-out-of-order-existing-keys",
+            "php": "(new Collection(['a', 'b']))->replace([1 => 'B', 0 => 'A'])",
+            "value": [
+                "A",
+                "B"
+            ]
+        },
+        {
+            "label": "replace-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->replace([1 => 'B', 5 => 'f'])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    1,
+                    "B"
+                ],
+                [
+                    5,
+                    "f"
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-replace-sparse-int-keyed-replacer",
+            "php": "collect(['a', 'b', 'c'])->replace([1 => 'd', 2 => 'e'])",
+            "value": [
+                "a",
+                "d",
+                "e"
+            ]
+        },
+        {
+            "label": "C32-F-replace-assoc-then-list",
+            "php": "collect(['a' => 1])->replace(['x'])",
+            "value": {
+                "all": {
+                    "a": 1,
+                    "0": "x"
+                },
+                "keys": [
+                    "a",
+                    0
+                ],
+                "values": [
+                    1,
+                    "x"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-replace-out-of-order-int-keys",
+            "php": "collect([1, 2, 3])->replace([7 => 'x', 3 => 'y'])",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "2": 3,
+                    "7": "x",
+                    "3": "y"
+                },
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    7,
+                    3
+                ],
+                "values": [
+                    1,
+                    2,
+                    3,
+                    "x",
+                    "y"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,15 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-D-whereNotInStrict-array",
+            "php": "whereNotInStrict('v', [[1, 2]]) over v = [1, 2], ['1', '2']",
+            "value": [
+                1
+            ]
+        }
+    ]
+}

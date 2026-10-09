@@ -1,0 +1,109 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "start-cases",
+            "php": "Str::start($value, $prefix) for each [$value, $prefix], recorded as [$value, $prefix, result]",
+            "value": [
+                [
+                    "test/string",
+                    "/",
+                    "/test/string"
+                ],
+                [
+                    "/test/string",
+                    "/",
+                    "/test/string"
+                ],
+                [
+                    "//test/string",
+                    "/",
+                    "/test/string"
+                ],
+                [
+                    "test/string",
+                    "",
+                    "test/string"
+                ],
+                [
+                    "",
+                    "",
+                    ""
+                ],
+                [
+                    "",
+                    "/",
+                    "/"
+                ],
+                [
+                    "///",
+                    "/",
+                    "/"
+                ],
+                [
+                    "..a.b",
+                    ".",
+                    ".a.b"
+                ],
+                [
+                    "$$a",
+                    "$",
+                    "$a"
+                ],
+                [
+                    "[[x",
+                    "[",
+                    "[x"
+                ],
+                [
+                    "\u00f1\u00f1\u00f1z",
+                    "\u00f1",
+                    "\u00f1z"
+                ],
+                [
+                    "\ud83d\ude00\ud83d\ude00x",
+                    "\ud83d\ude00",
+                    "\ud83d\ude00x"
+                ],
+                [
+                    "a",
+                    "abc",
+                    "abca"
+                ],
+                [
+                    "aaa",
+                    "aa",
+                    "aaa"
+                ],
+                [
+                    "aaaa",
+                    "aa",
+                    "aa"
+                ],
+                [
+                    "aaaaa",
+                    "aa",
+                    "aaa"
+                ],
+                [
+                    "abab",
+                    "ab",
+                    "ab"
+                ]
+            ]
+        },
+        {
+            "label": "start-long-run",
+            "php": "Str::start('x'.str_repeat('/', 100000), '/') === '/x'.str_repeat('/', 100000)",
+            "value": true
+        },
+        {
+            "label": "start-long-leading-run",
+            "php": "Str::start(str_repeat('/', 100000).'x', '/'): PCRE gives up on the run, so only the prefix comes back",
+            "value": "/"
+        }
+    ]
+}

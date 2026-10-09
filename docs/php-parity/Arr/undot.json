@@ -1,0 +1,201 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::undot \u2014 integer segments rebuild a list",
+            "php": "Arr::undot([...])",
+            "value": {
+                "user": {
+                    "languages": [
+                        "PHP",
+                        "C#"
+                    ],
+                    "name": "Taylor"
+                }
+            }
+        },
+        {
+            "label": "undot rebuilds the nested list",
+            "php": "Arr::undot(['0'=>'a','1.0'=>'b','1.1'=>'c'])",
+            "value": [
+                "a",
+                [
+                    "b",
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "undot only canonicalises canonical integer keys",
+            "php": "Arr::undot([\"1e2\"=>\"x\"])",
+            "value": {
+                "exp": {
+                    "1e2": "x"
+                },
+                "leading_space": {
+                    " 1": "x"
+                },
+                "plus": {
+                    "+1": "x"
+                },
+                "leading_zero": {
+                    "01": "x"
+                },
+                "canonical": {
+                    "1": "x"
+                }
+            }
+        },
+        {
+            "label": "Arr::undot with a billion-index key",
+            "php": "Arr::undot([\"1000000000\"=>\"x\"])",
+            "value": [
+                1000000000
+            ]
+        },
+        {
+            "label": "Arr::undot with a negative integer key",
+            "php": "Arr::undot([\"-1\"=>\"x\"])",
+            "value": [
+                -1
+            ]
+        },
+        {
+            "label": "undot-mixed-keys",
+            "php": "Arr::undot(['foo', 'foo.bar' => 'baz', 'foo.baz' => ['a' => 'b']])",
+            "value": {
+                "0": "foo",
+                "foo": {
+                    "bar": "baz",
+                    "baz": {
+                        "a": "b"
+                    }
+                }
+            }
+        },
+        {
+            "label": "undot-out-of-order-int-keys",
+            "php": "Arr::undot(['a.1' => 'y', 'a.0' => 'x']) and Arr::undot(['a.0' => 'x', 'a.1' => 'y']): each result, and whether its 'a' is a list",
+            "value": {
+                "out of order": {
+                    "value": {
+                        "a": {
+                            "1": "y",
+                            "0": "x"
+                        }
+                    },
+                    "isList": false
+                },
+                "in order": {
+                    "value": {
+                        "a": [
+                            "x",
+                            "y"
+                        ]
+                    },
+                    "isList": true
+                }
+            }
+        },
+        {
+            "label": "undot-noncanonical-index",
+            "php": "Arr::undot(['01' => 'a']) and Arr::undot(['0.01' => 'a'])",
+            "value": {
+                "top level": {
+                    "json": {
+                        "01": "a"
+                    },
+                    "keys": [
+                        "string:01"
+                    ]
+                },
+                "nested": {
+                    "json": {
+                        "01": "a"
+                    },
+                    "keys": [
+                        "string:01"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "undot-out-of-order",
+            "php": "Arr::undot([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "undot-dotted-first-collision",
+            "php": "Arr::undot(['0.a' => 'y', 0 => 'x'])",
+            "value": [
+                "x"
+            ]
+        },
+        {
+            "label": "undot-plain-first-collision",
+            "php": "Arr::undot([0 => 'x', '0.a' => 'y'])",
+            "value": [
+                [
+                    [
+                        "a",
+                        "y"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "undot-mixed-dotted-first-collision",
+            "php": "Arr::undot(['1.a' => 'y', 1 => 'x', 'b' => 'z'])",
+            "value": [
+                [
+                    1,
+                    "x"
+                ],
+                [
+                    "b",
+                    "z"
+                ]
+            ]
+        },
+        {
+            "label": "undot-list-dotted-first-collision",
+            "php": "Arr::undot(['1.0' => 'y', 1 => ['z']])",
+            "value": [
+                [
+                    1,
+                    [
+                        "z"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "undot-list-plain-first-collision",
+            "php": "Arr::undot([1 => ['z'], '1.0' => 'y'])",
+            "value": [
+                [
+                    1,
+                    [
+                        "y"
+                    ]
+                ]
+            ]
+        }
+    ]
+}

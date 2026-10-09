@@ -1,0 +1,326 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-A-range-descending",
+            "php": "Collection::range(5, 1)->all()",
+            "value": [
+                5,
+                4,
+                3,
+                2,
+                1
+            ]
+        },
+        {
+            "label": "C32-A-range-descending-through-zero",
+            "php": "Collection::range(2, -2)->all()",
+            "value": [
+                2,
+                1,
+                0,
+                -1,
+                -2
+            ]
+        },
+        {
+            "label": "C32-A-range-descending-negative",
+            "php": "Collection::range(-2, -4)->all()",
+            "value": [
+                -2,
+                -3,
+                -4
+            ]
+        },
+        {
+            "label": "C32-A-range-ascending-through-zero",
+            "php": "Collection::range(-2, 2)->all()",
+            "value": [
+                -2,
+                -1,
+                0,
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-A-range-ascending-negative",
+            "php": "Collection::range(-4, -2)->all()",
+            "value": [
+                -4,
+                -3,
+                -2
+            ]
+        },
+        {
+            "label": "C32-A-range-descending-step",
+            "php": "Collection::range(10, 1, 3)->all()",
+            "value": [
+                10,
+                7,
+                4,
+                1
+            ]
+        },
+        {
+            "label": "C32-A-range-single",
+            "php": "Collection::range(3, 3)->all()",
+            "value": [
+                3
+            ]
+        },
+        {
+            "label": "C32-A-range-float-step",
+            "php": "Collection::range(0, 1, 0.1)->all()",
+            "value": [
+                0,
+                0.1,
+                0.2,
+                0.30000000000000004,
+                0.4,
+                0.5,
+                0.6000000000000001,
+                0.7000000000000001,
+                0.8,
+                0.9,
+                1
+            ]
+        },
+        {
+            "label": "C32-A-range-step-zero-throws",
+            "php": "Collection::range(1, 5, 0)",
+            "threw": "ValueError",
+            "message": "range(): Argument #3 ($step) cannot be 0"
+        },
+        {
+            "label": "C32-A-range-negative-step-increasing-throws",
+            "php": "Collection::range(1, 5, -1)",
+            "threw": "ValueError",
+            "message": "range(): Argument #3 ($step) must be greater than 0 for increasing ranges"
+        },
+        {
+            "label": "C32-A-range-step-exceeds-span-throws",
+            "php": "Collection::range(1, 2, 3)",
+            "threw": "ValueError",
+            "message": "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)"
+        },
+        {
+            "label": "C32-A-range-step-equals-span",
+            "php": "Collection::range(0, 10, 10)->all()",
+            "value": [
+                0,
+                10
+            ]
+        },
+        {
+            "label": "C32-A-range-negative-step-descending",
+            "php": "Collection::range(5, 1, -2)->all()",
+            "value": [
+                5,
+                3,
+                1
+            ]
+        },
+        {
+            "label": "C32-A-range-float-step-stops-at-end",
+            "php": "Collection::range(0, 1, 0.4)->all()",
+            "value": [
+                0,
+                0.4,
+                0.8
+            ]
+        },
+        {
+            "label": "C32-A-range-float-size-rounds-half-up",
+            "php": "Collection::range(0.2, 0.5, 0.1)->all()",
+            "value": [
+                0.2,
+                0.30000000000000004,
+                0.4,
+                0.5
+            ]
+        },
+        {
+            "label": "C32-A-range-descending-float-step",
+            "php": "Collection::range(1, 0, 0.3)->all()",
+            "value": [
+                1,
+                0.7,
+                0.4,
+                0.10000000000000009
+            ]
+        },
+        {
+            "label": "C32-A-range-descending-float-stops-at-end",
+            "php": "Collection::range(4, 1.5)->all()",
+            "value": [
+                4,
+                3,
+                2
+            ]
+        },
+        {
+            "label": "C32-A-range-non-finite-arguments-throw",
+            "php": "Collection::range() given NAN, INF or -INF as the step, the start or the end",
+            "value": [
+                [
+                    "ValueError",
+                    "range(): Argument #3 ($step) must be a finite number, NAN provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #3 ($step) must be a finite number, INF provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #3 ($step) must be a finite number, INF provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #1 ($start) must be a finite number, NAN provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #1 ($start) must be a finite number, INF provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #1 ($start) must be a finite number, INF provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #2 ($end) must be a finite number, NAN provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #2 ($end) must be a finite number, INF provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #2 ($end) must be a finite number, INF provided"
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-range-checks-the-step-first",
+            "php": "Collection::range(NAN, NAN, NAN) and Collection::range(NAN, 5, 0)",
+            "value": [
+                [
+                    "ValueError",
+                    "range(): Argument #3 ($step) must be a finite number, NAN provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #3 ($step) cannot be 0"
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-range-past-maximum-array-size",
+            "php": "Collection::range($start, $end, $step) past the maximum array size, for integer and float bounds either way round: the class and message thrown",
+            "value": {
+                "1..1073741824": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 0 elements: start=1, end=1073741824, step=1. Calculated size: 1073741823. Maximum size: 1073741824."
+                ],
+                "0..1073741824": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 1 elements: start=0, end=1073741824, step=1. Calculated size: 1073741824. Maximum size: 1073741824."
+                ],
+                "2147483648..1": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 1073741824 elements: start=1, end=2147483648, step=1. Calculated size: 2147483647. Maximum size: 1073741824."
+                ],
+                "1..2147483648 step 2": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 0 elements: start=1, end=2147483648, step=2. Calculated size: 1073741823. Maximum size: 1073741824."
+                ],
+                "1..1e19": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 9999999998926258176.0 elements: start=1.0, end=10000000000000000000.0, step=1.0. Max size: 1073741824"
+                ],
+                "1e19..1": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 9999999998926258176.0 elements: start=1.0, end=10000000000000000000.0, step=1.0. Max size: 1073741824"
+                ],
+                "0..2147483648 step 0.5": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 3221225473.0 elements: start=0.0, end=2147483648.0, step=0.5. Max size: 1073741824"
+                ],
+                "0.5..1e10": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 8926258176.5 elements: start=0.5, end=10000000000.0, step=1.0. Max size: 1073741824"
+                ],
+                "1..1e22": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 9999999999998926258176.0 elements: start=1.0, end=10000000000000000000000.0, step=1.0. Max size: 1073741824"
+                ]
+            }
+        },
+        {
+            "label": "C32-A-range-size-message-rounding",
+            "php": "Collection::range($start, $end, $step) past the maximum array size where a printed figure ends in an exact half: the class and message thrown",
+            "value": {
+                "0.25..1e10": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 8926258176.8 elements: start=0.2, end=10000000000.0, step=1.0. Max size: 1073741824"
+                ],
+                "-0.25..1e10": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 8926258177.2 elements: start=-0.2, end=10000000000.0, step=1.0. Max size: 1073741824"
+                ],
+                "1.75..1e10": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 8926258175.2 elements: start=1.8, end=10000000000.0, step=1.0. Max size: 1073741824"
+                ],
+                "0..1e10 step 1.25": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 6926258177.0 elements: start=0.0, end=10000000000.0, step=1.2. Max size: 1073741824"
+                ]
+            }
+        },
+        {
+            "label": "C32-A-range-size-message-infinite",
+            "php": "Collection::range($start, $end, $step) whose size overflows to INF: the class and message thrown",
+            "value": {
+                "0..1 step 5e-324": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by inf elements: start=0.0, end=1.0, step=0.0. Max size: 1073741824"
+                ],
+                "-1e308..1e308": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by inf elements: start=-100000000000000001097906362944045541740492309677311846336810682903157585404911491537163328978494688899061249669721172515611590283743140088328307009198146046031271664502933027185697489699588559043338384466165001178426897626212945177628091195786707458122783970171784415105291802893207873272974885715430223118336.0, end=100000000000000001097906362944045541740492309677311846336810682903157585404911491537163328978494688899061249669721172515611590283743140088328307009198146046031271664502933027185697489699588559043338384466165001178426897626212945177628091195786707458122783970171784415105291802893207873272974885715430223118336.0, step=1.0. Max size: 1073741824"
+                ],
+                "0..1e308 step 1e-10": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by inf elements: start=0.0, end=100000000000000001097906362944045541740492309677311846336810682903157585404911491537163328978494688899061249669721172515611590283743140088328307009198146046031271664502933027185697489699588559043338384466165001178426897626212945177628091195786707458122783970171784415105291802893207873272974885715430223118336.0, step=0.0. Max size: 1073741824"
+                ]
+            }
+        },
+        {
+            "label": "C32-A-range-size-message-signs-and-carries",
+            "php": "Collection::range($start, 1e10) past the maximum array size for a start of -0.0, -0.04, 0.05 and 99.95: the class and message thrown",
+            "value": {
+                "-0.0": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 8926258177.0 elements: start=0.0, end=10000000000.0, step=1.0. Max size: 1073741824"
+                ],
+                "-0.04": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 8926258177.0 elements: start=-0.0, end=10000000000.0, step=1.0. Max size: 1073741824"
+                ],
+                "0.05": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 8926258177.0 elements: start=0.1, end=10000000000.0, step=1.0. Max size: 1073741824"
+                ],
+                "99.95": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 8926258077.0 elements: start=100.0, end=10000000000.0, step=1.0. Max size: 1073741824"
+                ]
+            }
+        }
+    ]
+}

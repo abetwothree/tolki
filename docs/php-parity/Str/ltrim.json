@@ -1,0 +1,59 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "ltrim-cases",
+            "php": "Str::ltrim($value, $charlist) for each [$value, $charlist], a null charlist being the default, recorded as [$value, $charlist, result]",
+            "value": [
+                [
+                    "  hello",
+                    "",
+                    "  hello"
+                ],
+                [
+                    "  hello ",
+                    null,
+                    "hello "
+                ],
+                [
+                    "  hello  ",
+                    null,
+                    "hello  "
+                ],
+                [
+                    "  hello   ",
+                    null,
+                    "hello   "
+                ],
+                [
+                    "  hello \n",
+                    null,
+                    "hello \n"
+                ],
+                [
+                    "  hello \t",
+                    null,
+                    "hello \t"
+                ],
+                [
+                    "\u0085a\u0085",
+                    null,
+                    "a\u0085"
+                ],
+                [
+                    "\n foo bar \n",
+                    null,
+                    "foo bar \n"
+                ],
+                [
+                    "\u0000 foo bar \u0000",
+                    null,
+                    "foo bar \u0000"
+                ]
+            ]
+        }
+    ]
+}

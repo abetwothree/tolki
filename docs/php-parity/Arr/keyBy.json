@@ -1,0 +1,211 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "keyBy-assoc-rows",
+            "php": "Arr::keyBy(['x'=>['id'=>'123','data'=>'abc'],'y'=>['id'=>'345','data'=>'def'],'z'=>['id'=>'498','data'=>'hgi']], 'id')",
+            "value": {
+                "123": {
+                    "id": "123",
+                    "data": "abc"
+                },
+                "345": {
+                    "id": "345",
+                    "data": "def"
+                },
+                "498": {
+                    "id": "498",
+                    "data": "hgi"
+                }
+            }
+        },
+        {
+            "label": "callback-key keyBy",
+            "php": "Arr::keyBy([1 => [\"id\" => 1], \"x\" => [\"id\" => 2]], $cb)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "keyBy callback receives the key",
+            "php": "Arr::keyBy([\"x\" => [\"id\" => 1]], fn ($item, $key) => $key)",
+            "value": {
+                "x": {
+                    "id": 1
+                }
+            }
+        },
+        {
+            "label": "keyBy-list-callback-key",
+            "php": "Arr::keyBy([['id' => 1], ['id' => 2]], fn ($item, $key) => 'k' . $key)",
+            "value": {
+                "k0": {
+                    "id": 1
+                },
+                "k1": {
+                    "id": 2
+                }
+            }
+        },
+        {
+            "label": "keyBy-scalar-key-cast",
+            "php": "@Arr::keyBy([['v' => 1]], fn () => $key) for true, false, null, 1.5, -1.5, -0.0, INF, NAN, 1e20, '05', '5': the key stored, as [type, string]",
+            "value": {
+                "true": [
+                    "integer",
+                    "1"
+                ],
+                "false": [
+                    "integer",
+                    "0"
+                ],
+                "null": [
+                    "string",
+                    ""
+                ],
+                "1.5": [
+                    "integer",
+                    "1"
+                ],
+                "-1.5": [
+                    "integer",
+                    "-1"
+                ],
+                "-0.0": [
+                    "integer",
+                    "0"
+                ],
+                "INF": [
+                    "integer",
+                    "0"
+                ],
+                "NAN": [
+                    "integer",
+                    "0"
+                ],
+                "1e20": [
+                    "integer",
+                    "7766279631452241920"
+                ],
+                "'05'": [
+                    "string",
+                    "05"
+                ],
+                "'5'": [
+                    "integer",
+                    "5"
+                ],
+                "field": [
+                    1,
+                    0,
+                    ""
+                ]
+            }
+        },
+        {
+            "label": "keyBy-out-of-order-rows",
+            "php": "Arr::keyBy([2 => ['id' => 'r'], 0 => ['id' => 'p'], 1 => ['id' => 'q']], 'id')",
+            "value": [
+                [
+                    "r",
+                    [
+                        [
+                            "id",
+                            "r"
+                        ]
+                    ]
+                ],
+                [
+                    "p",
+                    [
+                        [
+                            "id",
+                            "p"
+                        ]
+                    ]
+                ],
+                [
+                    "q",
+                    [
+                        [
+                            "id",
+                            "q"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "keyBy-out-of-order-rows-collision",
+            "php": "Arr::keyBy([2 => ['id' => 'x', 'n' => 'c'], 0 => ['id' => 'x', 'n' => 'a'], 1 => ['id' => 'y', 'n' => 'b']], 'id')",
+            "value": [
+                [
+                    "x",
+                    [
+                        [
+                            "id",
+                            "x"
+                        ],
+                        [
+                            "n",
+                            "a"
+                        ]
+                    ]
+                ],
+                [
+                    "y",
+                    [
+                        [
+                            "id",
+                            "y"
+                        ],
+                        [
+                            "n",
+                            "b"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "keyBy-out-of-order-rows-callback-order",
+            "php": "Arr::keyBy([2 => ['id' => 'r'], 0 => ['id' => 'p'], 1 => ['id' => 'q']], fn ($item, $key) => $item['id']) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "keyBy-mixed-callback",
+            "php": "Arr::keyBy(['x' => 1, 0 => 2, 'y' => 3], fn ($item, $key) => 'k' . $item)",
+            "value": [
+                [
+                    "k1",
+                    1
+                ],
+                [
+                    "k2",
+                    2
+                ],
+                [
+                    "k3",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "keyBy-mixed-callback-order",
+            "php": "Arr::keyBy(['x' => 1, 0 => 2, 'y' => 3], fn ($item, $key) => 'k' . $item) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        }
+    ]
+}

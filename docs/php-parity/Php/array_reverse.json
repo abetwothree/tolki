@@ -1,0 +1,29 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "negative integer keys under the sort/reverse family",
+            "php": "array_reverse/asort with negative keys",
+            "value": {
+                "reverse_negative_keys": {
+                    "x": "c",
+                    "-2": "b",
+                    "-1": "a"
+                },
+                "asort_negative_keys": {
+                    "-2": "a",
+                    "-1": "b",
+                    "x": "c"
+                },
+                "unshift_renumbers_negative": {
+                    "0": 9,
+                    "1": "a",
+                    "x": "b"
+                }
+            }
+        }
+    ]
+}

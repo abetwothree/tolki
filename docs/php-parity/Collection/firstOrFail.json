@@ -1,0 +1,28 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "firstOrFail-stored-null-list",
+            "php": "(new Collection([null]))->firstOrFail()",
+            "value": null
+        },
+        {
+            "label": "firstOrFail-stored-null-assoc",
+            "php": "(new Collection(['a' => null]))->firstOrFail()",
+            "value": null
+        },
+        {
+            "label": "firstOrFail-stored-null-with-callback",
+            "php": "(new Collection([1, null]))->firstOrFail(fn ($v) => is_null($v))",
+            "value": null
+        },
+        {
+            "label": "firstOrFail-stored-null-assoc-with-callback",
+            "php": "(new Collection(['a' => 1, 'b' => null]))->firstOrFail(fn ($v) => is_null($v))",
+            "value": null
+        }
+    ]
+}

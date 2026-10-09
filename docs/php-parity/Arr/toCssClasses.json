@@ -1,0 +1,76 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::toCssClasses mixed keys",
+            "php": "Arr::toCssClasses([...])",
+            "value": "font-bold mt-4 ml-2"
+        },
+        {
+            "label": "Arr::toCssClasses with is_numeric edge-case keys",
+            "php": "Arr::toCssClasses(['' => 'foo', ' ' => 'foo', '0x10' => 'foo', '1e3' => 'foo', 'Infinity' => 'foo'])",
+            "value": {
+                "empty": "",
+                "space": " ",
+                "hex": "0x10",
+                "sci": "foo",
+                "infinity": "Infinity"
+            }
+        },
+        {
+            "label": "Arr::toCssClasses non-string value at numeric key",
+            "php": "Arr::toCssClasses([0 => 123, 1 => null, 3 => true])",
+            "value": "123  1"
+        },
+        {
+            "label": "Arr::toCssClasses false value at numeric key",
+            "php": "Arr::toCssClasses([0 => false, 1 => 'x'])",
+            "value": " x"
+        },
+        {
+            "label": "CSS helpers use PHP truthiness for the value",
+            "php": "Arr::toCssClasses([\"foo\"=>\"0\"])",
+            "value": {
+                "zero_string": "",
+                "empty_array": "",
+                "double_zero": "foo",
+                "zero_point_zero": "foo",
+                "styles_zero": "",
+                "styles_double_zero": "foo;",
+                "styles_zero_point_zero": "foo;"
+            }
+        },
+        {
+            "label": "X22 CSS helpers emit the value for numeric keys",
+            "php": "Arr::toCssClasses(['font-bold','text-red'])",
+            "value": {
+                "classes": "font-bold text-red",
+                "styles": "color:red; font-size:14px;",
+                "conditional": "font-bold active"
+            }
+        },
+        {
+            "label": "toCssClasses-out-of-order",
+            "php": "Arr::toCssClasses([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": "c a b"
+        },
+        {
+            "label": "toCssClasses-mixed",
+            "php": "Arr::toCssClasses(['x' => 1, 0 => 2, 'y' => 3])",
+            "value": "x 2 y"
+        },
+        {
+            "label": "toCssClasses-out-of-order-booleans",
+            "php": "Arr::toCssClasses([2 => 'c2', 'x' => true, 0 => 'c0', 'off' => false, 1 => 'c1'])",
+            "value": "c2 x c0 c1"
+        },
+        {
+            "label": "toCssClasses-collision",
+            "php": "Arr::toCssClasses([1 => 'a', 0 => 'z', '1' => 'b'])",
+            "value": "b z"
+        }
+    ]
+}

@@ -1,0 +1,141 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "map-null-values",
+            "php": "Arr::map(['first'=>'taylor','last'=>null], fn($v,$k)=>$k.'-'.$v)",
+            "value": {
+                "first": "first-taylor",
+                "last": "last-"
+            }
+        },
+        {
+            "label": "map-by-reference-strrev",
+            "php": "Arr::map(['first'=>'taylor','last'=>'otwell'], 'strrev')",
+            "value": {
+                "first": "rolyat",
+                "last": "llewto"
+            }
+        },
+        {
+            "label": "callback-key map",
+            "php": "Arr::map([1 => \"a\", \"x\" => \"b\"], $cb)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "map-empty",
+            "php": "Arr::map([], fn($v) => $v)",
+            "value": []
+        },
+        {
+            "label": "map-source-unchanged",
+            "php": "Arr::map does not mutate its source",
+            "value": {
+                "source": {
+                    "a": 1,
+                    "b": 2
+                },
+                "mapped": {
+                    "a": 2,
+                    "b": 4
+                }
+            }
+        },
+        {
+            "label": "map-list-index-key",
+            "php": "Arr::map(['a','b'], fn($v,$k) => \"$k-$v\")",
+            "value": [
+                "0-a",
+                "1-b"
+            ]
+        },
+        {
+            "label": "map-source-unchanged-list",
+            "php": "Arr::map does not mutate its list source",
+            "value": {
+                "source": [
+                    1,
+                    2
+                ],
+                "mapped": [
+                    2,
+                    4
+                ]
+            }
+        },
+        {
+            "label": "map-out-of-order",
+            "php": "Arr::map([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => $v . '!' . $k)",
+            "value": [
+                [
+                    2,
+                    "c!2"
+                ],
+                [
+                    0,
+                    "a!0"
+                ],
+                [
+                    1,
+                    "b!1"
+                ]
+            ]
+        },
+        {
+            "label": "map-out-of-order-callback-order",
+            "php": "Arr::map([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => $v) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "map-mixed-callback-order",
+            "php": "Arr::map(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => $v) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "map-out-of-order-visit-count",
+            "php": "Arr::map([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v) => $v . ++$calls)",
+            "value": [
+                [
+                    2,
+                    "c1"
+                ],
+                [
+                    0,
+                    "a2"
+                ],
+                [
+                    1,
+                    "b3"
+                ]
+            ]
+        },
+        {
+            "label": "map-collision-visit-count",
+            "php": "Arr::map([1 => 'a', 0 => 'z', '1' => 'b'], fn ($v) => $v . ++$calls)",
+            "value": [
+                [
+                    1,
+                    "b1"
+                ],
+                [
+                    0,
+                    "z2"
+                ]
+            ]
+        }
+    ]
+}

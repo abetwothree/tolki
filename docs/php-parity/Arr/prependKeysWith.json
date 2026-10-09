@@ -1,0 +1,91 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "prependKeysWith-literal",
+            "php": "Arr::prependKeysWith([...], 'test.')",
+            "value": {
+                "test.id": "123",
+                "test.data": "456",
+                "test.list": [
+                    1,
+                    2,
+                    3
+                ],
+                "test.meta": {
+                    "key": 1
+                }
+            }
+        },
+        {
+            "label": "prependKeysWith-list",
+            "php": "Arr::prependKeysWith(['a', 'b', 'c'], 'item_')",
+            "value": {
+                "item_0": "a",
+                "item_1": "b",
+                "item_2": "c"
+            }
+        },
+        {
+            "label": "prependKeysWith-two-item-list",
+            "php": "Arr::prependKeysWith(['a', 'b'], 'p.')",
+            "value": {
+                "p.0": "a",
+                "p.1": "b"
+            }
+        },
+        {
+            "label": "prependKeysWith-out-of-order",
+            "php": "Arr::prependKeysWith([2 => 'c', 0 => 'a', 1 => 'b'], 'k')",
+            "value": [
+                [
+                    "k2",
+                    "c"
+                ],
+                [
+                    "k0",
+                    "a"
+                ],
+                [
+                    "k1",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "prependKeysWith-mixed",
+            "php": "Arr::prependKeysWith(['x' => 1, 0 => 2, 'y' => 3], 'p')",
+            "value": [
+                [
+                    "px",
+                    1
+                ],
+                [
+                    "p0",
+                    2
+                ],
+                [
+                    "py",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "prependKeysWith-collision",
+            "php": "Arr::prependKeysWith([1 => 'a', 'x' => 'b', '1' => 'c'], 'k')",
+            "value": [
+                [
+                    "k1",
+                    "c"
+                ],
+                [
+                    "kx",
+                    "b"
+                ]
+            ]
+        }
+    ]
+}

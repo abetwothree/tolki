@@ -1,0 +1,160 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::mapWithKeys numeric-like keys",
+            "php": "Arr::mapWithKeys([...])",
+            "value": {
+                "1": 1,
+                "2": 2
+            }
+        },
+        {
+            "label": "X30 mapWithKeys returns one plain container",
+            "php": "Arr::mapWithKeys(...)",
+            "value": {
+                "stringKeys": {
+                    "c": 3,
+                    "a": 1,
+                    "b": 2
+                },
+                "numericKeys": {
+                    "3": "c",
+                    "1": "a",
+                    "2": "b"
+                }
+            }
+        },
+        {
+            "label": "mapWithKeys-assoc-rows",
+            "php": "Arr::mapWithKeys(['b'=>[...],'c'=>[...],'d'=>[...]], fn($p)=>[$p['name']=>$p['type']])",
+            "value": {
+                "Blastoise": "Water",
+                "Charmander": "Fire",
+                "Dragonair": "Dragon"
+            }
+        },
+        {
+            "label": "callback-key mapWithKeys",
+            "php": "Arr::mapWithKeys([1 => \"a\", \"x\" => \"b\"], $cb)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "d6-map-with-keys-list-return",
+            "php": "Arr::mapWithKeys(['a' => 1, 'b' => 2], fn ($v, $k) => [\"key_$k\", $v * 2])",
+            "value": {
+                "arr-assoc": [
+                    "key_b",
+                    4
+                ],
+                "collection-assoc": [
+                    "key_b",
+                    4
+                ],
+                "collection-list": [
+                    "key_1",
+                    4
+                ],
+                "arr-single-row": [
+                    "key_a",
+                    2
+                ],
+                "arr-pair-return": {
+                    "a": 2,
+                    "b": 4
+                }
+            }
+        },
+        {
+            "label": "mapWithKeys-out-of-order",
+            "php": "Arr::mapWithKeys([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => ['k' . $k => $v])",
+            "value": [
+                [
+                    "k2",
+                    "c"
+                ],
+                [
+                    "k0",
+                    "a"
+                ],
+                [
+                    "k1",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "mapWithKeys-mixed",
+            "php": "Arr::mapWithKeys(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => ['k' . $k => $v])",
+            "value": [
+                [
+                    "kx",
+                    1
+                ],
+                [
+                    "k0",
+                    2
+                ],
+                [
+                    "ky",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "mapWithKeys-out-of-order-collision",
+            "php": "Arr::mapWithKeys([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v) => ['same' => $v])",
+            "value": [
+                [
+                    "same",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "mapWithKeys-out-of-order-int-collision",
+            "php": "Arr::mapWithKeys([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v) => [0 => $v])",
+            "value": [
+                "b"
+            ]
+        },
+        {
+            "label": "mapWithKeys-out-of-order-callback-order",
+            "php": "Arr::mapWithKeys([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => []) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "mapWithKeys-mixed-callback-order",
+            "php": "Arr::mapWithKeys(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => []) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "mapWithKeys-collision",
+            "php": "Arr::mapWithKeys([1 => 'a', 0 => 'z', '1' => 'b'], fn ($v, $k) => [$v => $k])",
+            "value": [
+                [
+                    "b",
+                    1
+                ],
+                [
+                    "z",
+                    0
+                ]
+            ]
+        }
+    ]
+}

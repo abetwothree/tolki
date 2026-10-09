@@ -1,0 +1,96 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "sole-rows-callback",
+            "php": "Arr::sole(['a'=>['name'=>'foo'],'b'=>['name'=>'bar']], fn($v)=>$v['name']==='foo')",
+            "value": {
+                "name": "foo"
+            }
+        },
+        {
+            "label": "sole-assoc-multi-callback",
+            "php": "Arr::sole(['a'=>'baz','b'=>'foo','c'=>'baz'], fn($v)=>$v==='baz')",
+            "threw": "Illuminate\\Support\\MultipleItemsFoundException",
+            "message": "2 items were found."
+        },
+        {
+            "label": "sole-none",
+            "php": "Arr::sole(['a'=>'foo'], fn($v)=>$v==='baz')",
+            "threw": "Illuminate\\Support\\ItemNotFoundException",
+            "message": ""
+        },
+        {
+            "label": "sole-multi-list",
+            "php": "Arr::sole(['baz','foo','baz'], fn($v)=>$v==='baz')",
+            "threw": "Illuminate\\Support\\MultipleItemsFoundException",
+            "message": "2 items were found."
+        },
+        {
+            "label": "callback-key sole",
+            "php": "Arr::sole([1 => \"a\", \"x\" => \"b\"], $cb returning false)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "sole-empty-no-callback",
+            "php": "Arr::sole([])",
+            "threw": "Illuminate\\Support\\ItemNotFoundException",
+            "message": ""
+        },
+        {
+            "label": "sole-multi-no-callback",
+            "php": "Arr::sole(['a' => 1, 'b' => 2])",
+            "threw": "Illuminate\\Support\\MultipleItemsFoundException",
+            "message": "2 items were found."
+        },
+        {
+            "label": "sole-single-no-callback",
+            "php": "Arr::sole(['only' => 42])",
+            "value": 42
+        },
+        {
+            "label": "sole-out-of-order-callback",
+            "php": "Arr::sole([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v) => $v === 'c')",
+            "value": "c"
+        },
+        {
+            "label": "sole-out-of-order-callback-order",
+            "php": "Arr::sole([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => $v === 'c') => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "sole-out-of-order-first-call-only",
+            "php": "Arr::sole([2 => 'c', 0 => 'a', 1 => 'b'], a callback true only on its first call)",
+            "value": "c"
+        },
+        {
+            "label": "sole-mixed-callback-order",
+            "php": "Arr::sole(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => $v === 2) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "sole-collision",
+            "php": "Arr::sole([1 => 'a', '1' => 'b'])",
+            "value": "b"
+        },
+        {
+            "label": "sole-true-key-collision",
+            "php": "Arr::sole([1 => 'a', true => 'b'])",
+            "value": "b"
+        }
+    ]
+}

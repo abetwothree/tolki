@@ -1,0 +1,741 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "push requires an array at the key",
+            "php": "Arr::push($pa = [1,2,3], 0, 9)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an array, integer found."
+        },
+        {
+            "label": "push through an explicit null",
+            "php": "Arr::push($pb = [\"name\"=>null], \"name\", 9)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [name] must be an array, NULL found."
+        },
+        {
+            "label": "push at a missing key creates the array",
+            "php": "Arr::push($pc = [], \"name\", 9)",
+            "value": {
+                "name": [
+                    9
+                ]
+            }
+        },
+        {
+            "label": "push at a multi-segment key still requires an array at the resolved path",
+            "php": "Arr::push($pd = [[\"Desk\"]], \"0.0\", \"Chair\", \"Lamp\")",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0.0] must be an array, string found."
+        },
+        {
+            "label": "push through an explicit null at a dotted path",
+            "php": "Arr::push($e1 = [\"a\"=>[\"b\"=>null]], \"a.b\", 9)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [a.b] must be an array, NULL found."
+        },
+        {
+            "label": "push at a missing dotted path creates the array",
+            "php": "Arr::push($e2 = [\"a\"=>[]], \"a.b\", 9)",
+            "value": {
+                "a": {
+                    "b": [
+                        9
+                    ]
+                }
+            }
+        },
+        {
+            "label": "push through a float in a middle segment does not throw",
+            "php": "Arr::push($e3 = [1.5, [2]], \"0.1\", 9)",
+            "value": [
+                {
+                    "1": [
+                        9
+                    ]
+                },
+                [
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "push appends into the array AT the key, never beside it",
+            "php": "Arr::push($a = [[\"Desk\"]], \"0\", \"Chair\")",
+            "value": {
+                "existing_leaf": {
+                    "returned": [
+                        [
+                            "Desk",
+                            "Chair"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            "Desk",
+                            "Chair"
+                        ]
+                    ]
+                },
+                "existing_leaf_two_values": {
+                    "returned": [
+                        "a",
+                        [
+                            "b",
+                            "c",
+                            "d"
+                        ]
+                    ],
+                    "after": [
+                        "a",
+                        [
+                            "b",
+                            "c",
+                            "d"
+                        ]
+                    ]
+                },
+                "existing_leaf_named": {
+                    "returned": [
+                        [
+                            "a",
+                            "b"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            "a",
+                            "b"
+                        ]
+                    ]
+                },
+                "empty_leaf": {
+                    "returned": [
+                        [
+                            "a",
+                            "b"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            "a",
+                            "b"
+                        ]
+                    ]
+                },
+                "missing_leaf": {
+                    "returned": [
+                        [
+                            "value"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            "value"
+                        ]
+                    ]
+                },
+                "missing_leaf_bool": {
+                    "returned": [
+                        [
+                            true
+                        ]
+                    ],
+                    "after": [
+                        [
+                            true
+                        ]
+                    ]
+                },
+                "missing_leaf_dotted": {
+                    "returned": [
+                        [
+                            "deep"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            [
+                                "deep"
+                            ]
+                        ]
+                    ]
+                },
+                "missing_leaf_dotted_value": {
+                    "returned": [
+                        [
+                            "value"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            [
+                                "value"
+                            ]
+                        ]
+                    ]
+                },
+                "missing_leaf_dotted_desk": {
+                    "returned": [
+                        [
+                            "Desk"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            [
+                                "Desk"
+                            ]
+                        ]
+                    ]
+                },
+                "missing_leaf_dotted_three": {
+                    "returned": [
+                        [
+                            "value"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            [
+                                [
+                                    "value"
+                                ]
+                            ]
+                        ]
+                    ]
+                },
+                "missing_leaf_dotted_three_deep": {
+                    "returned": [
+                        [
+                            "deep"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            [
+                                [
+                                    "deep"
+                                ]
+                            ]
+                        ]
+                    ]
+                },
+                "jsdoc_existing_leaf": {
+                    "returned": [
+                        [
+                            "x",
+                            "y"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            "x",
+                            "y"
+                        ]
+                    ]
+                },
+                "jsdoc_dotted_leaf": {
+                    "returned": [
+                        "b",
+                        [
+                            "c"
+                        ]
+                    ],
+                    "after": [
+                        "a",
+                        [
+                            "b",
+                            [
+                                "c"
+                            ]
+                        ]
+                    ]
+                },
+                "null_intermediate": {
+                    "returned": [
+                        [
+                            "value"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            [
+                                "value"
+                            ]
+                        ]
+                    ]
+                },
+                "empty_intermediate": {
+                    "returned": [
+                        [
+                            "value"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            [
+                                "value"
+                            ]
+                        ]
+                    ]
+                },
+                "existing_nested_leaf": {
+                    "returned": [
+                        "existing",
+                        [
+                            "new"
+                        ]
+                    ],
+                    "after": [
+                        [
+                            "existing",
+                            [
+                                "new"
+                            ]
+                        ]
+                    ]
+                },
+                "array_value_pushed_into_leaf": {
+                    "returned": [
+                        [
+                            "a",
+                            "b"
+                        ],
+                        [
+                            "c",
+                            "d",
+                            [
+                                "x",
+                                "y"
+                            ]
+                        ]
+                    ],
+                    "after": [
+                        [
+                            "a",
+                            "b"
+                        ],
+                        [
+                            "c",
+                            "d",
+                            [
+                                "x",
+                                "y"
+                            ]
+                        ]
+                    ]
+                },
+                "assoc_leaf_two_values": {
+                    "returned": {
+                        "items": [
+                            "a",
+                            "b",
+                            "c",
+                            "d"
+                        ]
+                    },
+                    "after": {
+                        "items": [
+                            "a",
+                            "b",
+                            "c",
+                            "d"
+                        ]
+                    }
+                },
+                "nested_leaf_in_place": {
+                    "returned": [
+                        [
+                            1,
+                            9
+                        ]
+                    ],
+                    "after": [
+                        [
+                            [
+                                1,
+                                9
+                            ]
+                        ]
+                    ]
+                },
+                "assoc_nested_leaf_in_place": {
+                    "returned": {
+                        "b": [
+                            1,
+                            9
+                        ]
+                    },
+                    "after": {
+                        "a": {
+                            "b": [
+                                1,
+                                9
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "label": "push rejects a boolean at the leaf",
+            "php": "Arr::push($a = [true], \"0\", \"value\")",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an array, boolean found."
+        },
+        {
+            "label": "push at an out-of-range index writes a gapped key in PHP",
+            "php": "Arr::push($a = [], \"2\", \"value\")",
+            "value": {
+                "flat_gap": {
+                    "returned": {
+                        "2": [
+                            "value"
+                        ]
+                    },
+                    "after": {
+                        "2": [
+                            "value"
+                        ]
+                    }
+                },
+                "nested_gap": {
+                    "returned": {
+                        "1": [
+                            "nested"
+                        ]
+                    },
+                    "after": [
+                        {
+                            "1": [
+                                "nested"
+                            ]
+                        }
+                    ]
+                },
+                "nested_gap_deep": {
+                    "returned": {
+                        "2": [
+                            "deep-value"
+                        ]
+                    },
+                    "after": [
+                        {
+                            "1": {
+                                "2": [
+                                    "deep-value"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "nested_gap_mid": {
+                    "returned": [
+                        [
+                            "value"
+                        ]
+                    ],
+                    "after": [
+                        {
+                            "1": [
+                                [
+                                    "value"
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                "intermediate_gap": {
+                    "returned": [
+                        [
+                            "value"
+                        ]
+                    ],
+                    "after": {
+                        "0": [
+                            "existing"
+                        ],
+                        "5": [
+                            [
+                                "value"
+                            ]
+                        ]
+                    }
+                },
+                "leaf_gap_after_root": {
+                    "returned": [
+                        [
+                            "item"
+                        ]
+                    ],
+                    "after": {
+                        "1": [
+                            [
+                                "item"
+                            ]
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "label": "Arr::push with a null key appends",
+            "php": "Arr::push([\"a\"=>1], null, 9)",
+            "value": {
+                "a": 1,
+                "0": 9
+            }
+        },
+        {
+            "label": "Arr::push with a null key on a list",
+            "php": "Arr::push([1,2], null, 9)",
+            "value": [
+                1,
+                2,
+                9
+            ]
+        },
+        {
+            "label": "push-dotted-chain",
+            "php": "push office.furniture Desk; then Chair, Lamp",
+            "value": {
+                "first": {
+                    "office": {
+                        "furniture": [
+                            "Desk"
+                        ]
+                    }
+                },
+                "second": {
+                    "office": {
+                        "furniture": [
+                            "Desk",
+                            "Chair",
+                            "Lamp"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "label": "push-boolean-at-dotted",
+            "php": "Arr::push(['foo' => ['bar' => false]], 'foo.bar', 'baz')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [foo.bar] must be an array, boolean found."
+        },
+        {
+            "label": "push-list-key-cast",
+            "php": "Arr::push([['a']], $seg, 'V') for $seg in '01','1','-1','1.5',''",
+            "value": {
+                "01": {
+                    "json": {
+                        "0": [
+                            "a"
+                        ],
+                        "01": [
+                            "V"
+                        ]
+                    },
+                    "keys": [
+                        "integer:0",
+                        "string:01"
+                    ]
+                },
+                "1": {
+                    "json": [
+                        [
+                            "a"
+                        ],
+                        [
+                            "V"
+                        ]
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                },
+                "-1": {
+                    "json": {
+                        "0": [
+                            "a"
+                        ],
+                        "-1": [
+                            "V"
+                        ]
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:-1"
+                    ]
+                },
+                "1.5": {
+                    "json": [
+                        [
+                            "a"
+                        ],
+                        {
+                            "5": [
+                                "V"
+                            ]
+                        }
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                },
+                "": {
+                    "json": {
+                        "0": [
+                            "a"
+                        ],
+                        "": [
+                            "V"
+                        ]
+                    },
+                    "keys": [
+                        "integer:0",
+                        "string:"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "push-record-key-cast",
+            "php": "Arr::push(['k'=>['a']], $seg, 'V') for $seg in '01','1','-1','1.5',''",
+            "value": {
+                "01": {
+                    "json": {
+                        "k": [
+                            "a"
+                        ],
+                        "01": [
+                            "V"
+                        ]
+                    },
+                    "keys": [
+                        "string:k",
+                        "string:01"
+                    ]
+                },
+                "1": {
+                    "json": {
+                        "k": [
+                            "a"
+                        ],
+                        "1": [
+                            "V"
+                        ]
+                    },
+                    "keys": [
+                        "string:k",
+                        "integer:1"
+                    ]
+                },
+                "-1": {
+                    "json": {
+                        "k": [
+                            "a"
+                        ],
+                        "-1": [
+                            "V"
+                        ]
+                    },
+                    "keys": [
+                        "string:k",
+                        "integer:-1"
+                    ]
+                },
+                "1.5": {
+                    "json": {
+                        "k": [
+                            "a"
+                        ],
+                        "1": {
+                            "5": [
+                                "V"
+                            ]
+                        }
+                    },
+                    "keys": [
+                        "string:k",
+                        "integer:1"
+                    ]
+                },
+                "": {
+                    "json": {
+                        "k": [
+                            "a"
+                        ],
+                        "": [
+                            "V"
+                        ]
+                    },
+                    "keys": [
+                        "string:k",
+                        "string:"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "push-mutates-the-caller-by-reference",
+            "php": "$src = [['a']]; Arr::push($src, '0', 'b')",
+            "value": {
+                "source": [
+                    [
+                        "a",
+                        "b"
+                    ]
+                ],
+                "result": [
+                    [
+                        "a",
+                        "b"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "push-missing-index-stores-an-empty-array",
+            "php": "$src = [1, 2, 3]; Arr::push($src, 4)",
+            "value": {
+                "source": {
+                    "0": 1,
+                    "1": 2,
+                    "2": 3,
+                    "4": []
+                },
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    4
+                ]
+            }
+        },
+        {
+            "label": "push-integer-key-mutates-the-caller-by-reference",
+            "php": "$src = [['x']]; Arr::push($src, 0, 'y')",
+            "value": {
+                "source": [
+                    [
+                        "x",
+                        "y"
+                    ]
+                ],
+                "result": [
+                    [
+                        "x",
+                        "y"
+                    ]
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,490 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "\"__proto__\" is an ordinary key on an array-backed collection too",
+            "php": "collect([1,2])->put(\"__proto__\", [\"polluted\" => true])",
+            "value": {
+                "list_put_proto": {
+                    "0": 1,
+                    "1": 2,
+                    "__proto__": {
+                        "polluted": true
+                    }
+                },
+                "list_put_proto_still_maps": {
+                    "0": 1,
+                    "1": 2,
+                    "__proto__": {
+                        "polluted": true
+                    }
+                },
+                "list_put_index": [
+                    1,
+                    2,
+                    3
+                ],
+                "list_get_or_put_proto": {
+                    "0": 1,
+                    "1": 2,
+                    "__proto__": {
+                        "polluted": true
+                    }
+                }
+            }
+        },
+        {
+            "label": "put uses \"length\" as an ordinary key",
+            "php": "collect([1,2])->put(\"length\",5)",
+            "value": {
+                "0": 1,
+                "1": 2,
+                "length": 5
+            }
+        },
+        {
+            "label": "order-put",
+            "php": "$c = collect(base); $c->put('k', 'z')",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b",
+                    "k": "z"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b",
+                    "z"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1,
+                    "k"
+                ]
+            }
+        },
+        {
+            "label": "order-put-existing-key",
+            "php": "$c = collect(base); $c->put(0, 'z')",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "z",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "z",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "C32-A-construct-from-record-put-copies",
+            "php": "$arr = ['a' => 1]; $c = new Collection($arr); $c->put('b', 2); caller/all/keys/values",
+            "value": {
+                "caller": {
+                    "a": 1
+                },
+                "all": {
+                    "a": 1,
+                    "b": 2
+                },
+                "keys": [
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-A-isEmpty-after-put-on-empty-list",
+            "php": "collect([])->put('x', 1)->isEmpty()",
+            "value": false
+        },
+        {
+            "label": "C32-B-put-string-key-on-list",
+            "php": "$c = collect([1, 2]); $c->put('x', 3); views",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "x": 3
+                },
+                "count": 3,
+                "keys": [
+                    0,
+                    1,
+                    "x"
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "get": 3,
+                "has": true,
+                "last": 3
+            }
+        },
+        {
+            "label": "C32-B-put-string-key-on-empty",
+            "php": "$c = collect(); $c->put('foo', 1); views",
+            "value": {
+                "all": {
+                    "foo": 1
+                },
+                "count": 1,
+                "keys": [
+                    "foo"
+                ],
+                "values": [
+                    1
+                ],
+                "get": 1,
+                "has": true,
+                "last": 1
+            }
+        },
+        {
+            "label": "C32-B-put-gap-int-key-on-list",
+            "php": "$c = collect([1, 2]); $c->put(5, 3); views",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "5": 3
+                },
+                "count": 3,
+                "keys": [
+                    0,
+                    1,
+                    5
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "get": 3,
+                "has": true,
+                "last": 3
+            }
+        },
+        {
+            "label": "C32-B-put-negative-key-on-list",
+            "php": "$c = collect([1, 2]); $c->put(-1, 3); views",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "-1": 3
+                },
+                "count": 3,
+                "keys": [
+                    0,
+                    1,
+                    -1
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "get": 3,
+                "has": true,
+                "last": 3
+            }
+        },
+        {
+            "label": "C32-B-put-non-canonical-int-string-on-list",
+            "php": "$c = collect([1, 2]); $c->put('01', 3); views",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "01": 3
+                },
+                "count": 3,
+                "keys": [
+                    0,
+                    1,
+                    "01"
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "get": 3,
+                "has": true,
+                "last": 3
+            }
+        },
+        {
+            "label": "C32-B-put-float-key-on-list",
+            "php": "$c = collect([1, 2]); @$c->put(1.5, 3); $c->all()",
+            "value": [
+                1,
+                3
+            ]
+        },
+        {
+            "label": "C32-B-put-bool-key-on-list",
+            "php": "$c = collect([1, 2]); $c->put(true, 3); $c->all()",
+            "value": [
+                1,
+                3
+            ]
+        },
+        {
+            "label": "C32-B-put-length-zero-on-list",
+            "php": "$c = collect([1, 2]); $c->put('length', 0); views",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "length": 0
+                },
+                "count": 3,
+                "keys": [
+                    0,
+                    1,
+                    "length"
+                ],
+                "values": [
+                    1,
+                    2,
+                    0
+                ],
+                "get": 0,
+                "has": true,
+                "last": 0
+            }
+        },
+        {
+            "label": "C32-B-put-method-name-then-push",
+            "php": "$c = collect([1, 2]); $c->put('push', 9)->push(3); $c->all()",
+            "value": {
+                "0": 1,
+                "1": 2,
+                "push": 9,
+                "2": 3
+            }
+        },
+        {
+            "label": "C32-B-put-string-key-then-pop",
+            "php": "$c = collect([1, 2]); $c->put('x', 3); $c->pop()",
+            "value": {
+                "returned": 3,
+                "all": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-B-put-string-key-then-shift",
+            "php": "$c = collect([1, 2]); $c->put('x', 3); $c->shift()",
+            "value": {
+                "returned": 1,
+                "all": {
+                    "0": 2,
+                    "x": 3
+                }
+            }
+        },
+        {
+            "label": "C32-B-put-string-key-then-push",
+            "php": "$c = collect([1, 2]); $c->put('x', 3)->push(4); $c->all()",
+            "value": {
+                "0": 1,
+                "1": 2,
+                "x": 3,
+                "2": 4
+            }
+        },
+        {
+            "label": "C32-B-put-string-key-then-transform",
+            "php": "$c = collect([1, 2]); $c->put('x', 3)->transform(fn ($v) => $v * 10)->all()",
+            "value": {
+                "0": 10,
+                "1": 20,
+                "x": 30
+            }
+        },
+        {
+            "label": "C32-B-put-int-key-onto-string-keyed-order",
+            "php": "$c = collect(['a' => 1]); $c->put(0, 'z'); keys/values/last",
+            "value": {
+                "keys": [
+                    "a",
+                    0
+                ],
+                "values": [
+                    1,
+                    "z"
+                ],
+                "last": "z"
+            }
+        },
+        {
+            "label": "C32-B-put-illegal-key",
+            "php": "put($key, 9) and offsetSet($key, 9) over collect(['a', 'b']) and collect(['a' => 1, 'b' => 2]), for $key = ['a'], new stdClass and fn () => 1",
+            "value": {
+                "array": {
+                    "put": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type array on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type array on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "offsetSet": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type array on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type array on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ]
+                },
+                "object": {
+                    "put": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type stdClass on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type stdClass on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "offsetSet": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type stdClass on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type stdClass on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ]
+                },
+                "closure": {
+                    "put": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type Closure on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type Closure on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "offsetSet": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type Closure on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type Closure on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

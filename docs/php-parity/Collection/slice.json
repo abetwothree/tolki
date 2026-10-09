@@ -1,0 +1,321 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "X15 slice with a negative offset and a length",
+            "php": "collect([10,20,30,40])->slice(-3,2)",
+            "value": {
+                "1": 20,
+                "2": 30
+            }
+        },
+        {
+            "label": "L1 slice(3) assoc",
+            "php": "(new Collection($eight))->slice(3)->all()",
+            "value": {
+                "d": 4,
+                "e": 5,
+                "f": 6,
+                "g": 7,
+                "h": 8
+            }
+        },
+        {
+            "label": "L2 slice(-3) assoc",
+            "php": "(new Collection($eight))->slice(-3)->all()",
+            "value": {
+                "f": 6,
+                "g": 7,
+                "h": 8
+            }
+        },
+        {
+            "label": "L3 slice(3,3) assoc",
+            "php": "(new Collection($eight))->slice(3, 3)->all()",
+            "value": {
+                "d": 4,
+                "e": 5,
+                "f": 6
+            }
+        },
+        {
+            "label": "L4 slice(3,-1) assoc",
+            "php": "(new Collection($eight))->slice(3, -1)->all()",
+            "value": {
+                "d": 4,
+                "e": 5,
+                "f": 6,
+                "g": 7
+            }
+        },
+        {
+            "label": "L5 slice(-5,3) assoc",
+            "php": "(new Collection($eight))->slice(-5, 3)->all()",
+            "value": {
+                "d": 4,
+                "e": 5,
+                "f": 6
+            }
+        },
+        {
+            "label": "L6 slice(-6,-2) assoc",
+            "php": "(new Collection($eight))->slice(-6, -2)->all()",
+            "value": {
+                "c": 3,
+                "d": 4,
+                "e": 5,
+                "f": 6
+            }
+        },
+        {
+            "label": "order-slice",
+            "php": "collect(base)->slice(1)",
+            "value": {
+                "all": [
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-slice-with-length",
+            "php": "collect(base)->slice(1, 1)",
+            "value": {
+                "all": [
+                    "a"
+                ],
+                "values": [
+                    "a"
+                ],
+                "keys": [
+                    0
+                ]
+            }
+        },
+        {
+            "label": "order-slice-negative-offset",
+            "php": "collect(base)->slice(-2)",
+            "value": {
+                "all": [
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-slice-negative-length",
+            "php": "collect(base)->slice(1, -1)",
+            "value": {
+                "all": [
+                    "a"
+                ],
+                "values": [
+                    "a"
+                ],
+                "keys": [
+                    0
+                ]
+            }
+        },
+        {
+            "label": "order-slice-offset-past-the-start",
+            "php": "collect(base)->slice(-5, 1)",
+            "value": {
+                "all": {
+                    "2": "c"
+                },
+                "values": [
+                    "c"
+                ],
+                "keys": [
+                    2
+                ]
+            }
+        },
+        {
+            "label": "order-slice-does-not-mutate",
+            "php": "$c = collect(base); $c->slice(1); $c",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-mixed-slice",
+            "php": "collect([2 => 'c', 'x' => 'a', 1 => 'b'])->slice(1)",
+            "value": {
+                "all": {
+                    "x": "a",
+                    "1": "b"
+                },
+                "values": [
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    "x",
+                    1
+                ]
+            }
+        },
+        {
+            "label": "slice-out-of-order-offset",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->slice(1)",
+            "value": [
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "slice-out-of-order-offset-length",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->slice(0, 2)",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "slice-out-of-order-negative-offset-length",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->slice(-2, 1)",
+            "value": [
+                "a"
+            ]
+        },
+        {
+            "label": "slice-mixed-offset",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->slice(1)",
+            "value": [
+                [
+                    0,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "slice-mixed-offset-length",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->slice(0, 1)",
+            "value": [
+                [
+                    "x",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "slice-collision-offset",
+            "php": "(new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->slice(1)",
+            "value": [
+                [
+                    "x",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-slice-counts",
+            "php": "(new Collection([1, 2, 3, 4, 5]))->slice($offset) for 1.5, -1.5, NAN, INF and 1e19, and ->slice(0, $length) for 1.5, NAN, INF and 1e19",
+            "value": {
+                "offset": {
+                    "1.5": [
+                        [
+                            1,
+                            2
+                        ],
+                        [
+                            2,
+                            3
+                        ],
+                        [
+                            3,
+                            4
+                        ],
+                        [
+                            4,
+                            5
+                        ]
+                    ],
+                    "-1.5": [
+                        [
+                            4,
+                            5
+                        ]
+                    ],
+                    "NAN": [
+                        "TypeError",
+                        "array_slice(): Argument #2 ($offset) must be of type int, float given"
+                    ],
+                    "INF": [
+                        "TypeError",
+                        "array_slice(): Argument #2 ($offset) must be of type int, float given"
+                    ],
+                    "1e19": [
+                        "TypeError",
+                        "array_slice(): Argument #2 ($offset) must be of type int, float given"
+                    ]
+                },
+                "length": {
+                    "1.5": [
+                        [
+                            0,
+                            1
+                        ]
+                    ],
+                    "NAN": [
+                        "TypeError",
+                        "array_slice(): Argument #3 ($length) must be of type ?int, float given"
+                    ],
+                    "INF": [
+                        "TypeError",
+                        "array_slice(): Argument #3 ($length) must be of type ?int, float given"
+                    ],
+                    "1e19": [
+                        "TypeError",
+                        "array_slice(): Argument #3 ($length) must be of type ?int, float given"
+                    ]
+                }
+            }
+        }
+    ]
+}

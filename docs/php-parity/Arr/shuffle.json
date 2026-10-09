@@ -1,0 +1,101 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "shuffle-assoc-keys",
+            "php": "array_keys(Arr::shuffle(['a'=>1,'b'=>2,'c'=>3]))",
+            "value": [
+                0,
+                1,
+                2
+            ]
+        },
+        {
+            "label": "shuffle-assoc-values-sorted",
+            "php": "sorted values",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "shuffle-empty",
+            "php": "Arr::shuffle([])",
+            "value": []
+        },
+        {
+            "label": "shuffle-keeps-same-values",
+            "php": "sort(Arr::shuffle(range(0, 25)))",
+            "value": {
+                "sorted": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21,
+                    22,
+                    23,
+                    24,
+                    25
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21,
+                    22,
+                    23,
+                    24,
+                    25
+                ]
+            }
+        },
+        {
+            "label": "shuffle-true-key-collision-values",
+            "php": "$v = Arr::shuffle([1 => 'a', true => 'b', 0 => 'z']); sort($v)",
+            "value": [
+                "b",
+                "z"
+            ]
+        }
+    ]
+}

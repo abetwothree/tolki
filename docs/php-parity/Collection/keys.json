@@ -1,0 +1,70 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "keys/values over the same fixture",
+            "php": "collect([10,20,30,40])->keys()",
+            "value": {
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    3
+                ],
+                "values": [
+                    10,
+                    20,
+                    30,
+                    40
+                ]
+            }
+        },
+        {
+            "label": "C15 keys assoc",
+            "php": "(new Collection(['name' => 'taylor', 'framework' => 'laravel']))->keys()->all()",
+            "value": [
+                "name",
+                "framework"
+            ]
+        },
+        {
+            "label": "keys-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->keys()",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "keys-mixed",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->keys()",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "keys-collision",
+            "php": "(new Collection([1 => 'a', 0 => 'z', '1' => 'b']))->keys()",
+            "value": [
+                1,
+                0
+            ]
+        },
+        {
+            "label": "keys-out-of-order-key-types",
+            "php": "(new Collection([-1 => 'a', 'x' => 'X', 0 => 'b', '01' => 's']))->keys()",
+            "value": [
+                -1,
+                "x",
+                0,
+                "01"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,33 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "intersectAssoc / intersectAssocUsing / intersectByKeys",
+            "php": "array_intersect_assoc family",
+            "value": {
+                "assoc": {
+                    "0": 10,
+                    "2": 30
+                },
+                "assocUsing": {
+                    "0": 10,
+                    "2": 30
+                },
+                "byKeys": {
+                    "1": 20,
+                    "3": 40
+                }
+            }
+        },
+        {
+            "label": "array_intersect_assoc casts values to string",
+            "php": "array_intersect_assoc([\"a\"=>0],[\"a\"=>\"0\"])",
+            "value": {
+                "a": 0
+            }
+        }
+    ]
+}

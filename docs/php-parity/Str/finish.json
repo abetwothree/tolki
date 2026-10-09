@@ -1,0 +1,153 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "finish-cases",
+            "php": "Str::finish($value, $cap) for each [$value, $cap], recorded as [$value, $cap, result]",
+            "value": [
+                [
+                    "ab",
+                    "bc",
+                    "abbc"
+                ],
+                [
+                    "abbcbc",
+                    "bc",
+                    "abbc"
+                ],
+                [
+                    "abcbbcbc",
+                    "bc",
+                    "abcbbc"
+                ],
+                [
+                    "test/string",
+                    "/",
+                    "test/string/"
+                ],
+                [
+                    "test/string/",
+                    "/",
+                    "test/string/"
+                ],
+                [
+                    "test/string//",
+                    "/",
+                    "test/string/"
+                ],
+                [
+                    "test/string",
+                    "",
+                    "test/string"
+                ],
+                [
+                    "",
+                    "",
+                    ""
+                ],
+                [
+                    "",
+                    "/",
+                    "/"
+                ],
+                [
+                    "///",
+                    "/",
+                    "/"
+                ],
+                [
+                    "a.b..",
+                    ".",
+                    "a.b."
+                ],
+                [
+                    "a$$",
+                    "$",
+                    "a$"
+                ],
+                [
+                    "x[[",
+                    "[",
+                    "x["
+                ],
+                [
+                    "x\\\\",
+                    "\\",
+                    "x\\"
+                ],
+                [
+                    "a\u00f1\u00f1\u00f1",
+                    "\u00f1",
+                    "a\u00f1"
+                ],
+                [
+                    "\ud83d\ude00\ud83d\ude00",
+                    "\ud83d\ude00",
+                    "\ud83d\ude00"
+                ],
+                [
+                    "a",
+                    "abc",
+                    "aabc"
+                ],
+                [
+                    "a/b/c",
+                    "/",
+                    "a/b/c/"
+                ],
+                [
+                    "aaa",
+                    "aa",
+                    "aaa"
+                ],
+                [
+                    "aaaa",
+                    "aa",
+                    "aa"
+                ],
+                [
+                    "aaaaa",
+                    "aa",
+                    "aaa"
+                ],
+                [
+                    "abab",
+                    "ab",
+                    "ab"
+                ]
+            ]
+        },
+        {
+            "label": "finish-long-interior-run",
+            "php": "Str::finish(str_repeat('/', 100000).'x', '/') === str_repeat('/', 100000).'x/'",
+            "value": true
+        },
+        {
+            "label": "finish-long-interior-run-then-caps",
+            "php": "Str::finish(str_repeat('/', 100000).'x//', '/'): PCRE gives up on the run, so only the cap comes back",
+            "value": "/"
+        },
+        {
+            "label": "finish-start-non-string-arguments",
+            "php": "Str::finish() and Str::start() given a cap, prefix or value that is no string: an int, true, null, a Stringable",
+            "value": {
+                "finish-int-cap-present": "a5",
+                "finish-int-cap-absent": "a5",
+                "finish-true-cap": "a1",
+                "finish-null-cap": "a",
+                "finish-stringable-cap": "a/",
+                "finish-stringable-value": "a/",
+                "stringable-finish-stringable-cap": "a/",
+                "start-null-prefix": "a",
+                "start-int-prefix-present": "5a",
+                "start-int-prefix-absent": "5a",
+                "start-stringable-prefix": "/a",
+                "start-stringable-value": "/a",
+                "stringable-start-stringable-prefix": "/a"
+            }
+        }
+    ]
+}

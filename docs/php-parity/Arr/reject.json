@@ -1,0 +1,79 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "callback-key reject",
+            "php": "Arr::reject([1 => \"a\", \"x\" => \"b\"], $cb)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "reject-preserves-int-keys",
+            "php": "Arr::reject([1,2,3,4,5], fn($v) => $v % 2 === 0)",
+            "value": {
+                "0": 1,
+                "2": 3,
+                "4": 5
+            }
+        },
+        {
+            "label": "reject-key-predicate",
+            "php": "Arr::reject(['a'=>1,'b'=>2], fn($v,$k)=>$k==='a')",
+            "value": {
+                "b": 2
+            }
+        },
+        {
+            "label": "reject-out-of-order-callback-order",
+            "php": "Arr::reject([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => false) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "reject-mixed-callback-order",
+            "php": "Arr::reject(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => false) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "reject-out-of-order-first-visit",
+            "php": "Arr::reject([2 => 'c', 0 => 'a', 1 => 'b'], a callback true for its first call)",
+            "value": [
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "reject-mixed-first-visit",
+            "php": "Arr::reject(['x' => 1, 0 => 2, 'y' => 3], a callback true for its first call)",
+            "value": [
+                [
+                    0,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "reject-collision",
+            "php": "Arr::reject([1 => 'a', 0 => 'z', '1' => 'b'], fn ($v) => $v === 'b')",
+            "value": [
+                "z"
+            ]
+        }
+    ]
+}

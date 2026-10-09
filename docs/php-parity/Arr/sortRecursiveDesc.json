@@ -1,0 +1,213 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "sortRecursiveDesc-literal",
+            "php": "Arr::sortRecursiveDesc($srd)",
+            "value": {
+                "numbered_index": {
+                    "5": "a",
+                    "4": "b",
+                    "3": "c",
+                    "2": "d",
+                    "1": "e"
+                },
+                "nested": {
+                    "level1": {
+                        "values": [
+                            6,
+                            5,
+                            4
+                        ],
+                        "level2": {
+                            "level3": [
+                                3,
+                                2,
+                                1
+                            ]
+                        }
+                    }
+                },
+                "mixed": {
+                    "c": 3,
+                    "a": 1,
+                    "2": "b",
+                    "1": "d"
+                },
+                "empty": []
+            }
+        },
+        {
+            "label": "sortRecursiveDesc-numbers",
+            "php": "Arr::sortRecursiveDesc(['a'=>[1,9,10]])",
+            "value": {
+                "a": [
+                    10,
+                    9,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "sortRecursiveDesc-numbers-list",
+            "php": "Arr::sortRecursiveDesc([[1,9,10]])",
+            "value": [
+                [
+                    10,
+                    9,
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-three-groups",
+            "php": "Arr::sortRecursiveDesc(['empty'=>[],'nested'=>['level1'=>['level2'=>['level3'=>[2,3,1]],'values'=>[4,5,6]]],'mixed'=>['a'=>1,2=>'b','c'=>3,1=>'d']])",
+            "value": {
+                "nested": {
+                    "level1": {
+                        "values": [
+                            6,
+                            5,
+                            4
+                        ],
+                        "level2": {
+                            "level3": [
+                                3,
+                                2,
+                                1
+                            ]
+                        }
+                    }
+                },
+                "mixed": {
+                    "c": 3,
+                    "a": 1,
+                    "2": "b",
+                    "1": "d"
+                },
+                "empty": []
+            }
+        },
+        {
+            "label": "sortRecursiveDesc-explicit-zero-based-keys",
+            "php": "Arr::sortRecursiveDesc([0=>3,1=>1,2=>2])",
+            "value": [
+                3,
+                2,
+                1
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-nested-lists",
+            "php": "Arr::sortRecursiveDesc([[3,1,2],[9,8]])",
+            "value": [
+                [
+                    3,
+                    2,
+                    1
+                ],
+                [
+                    9,
+                    8
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-string-keys-stay-krsorted",
+            "php": "Arr::sortRecursiveDesc(['b'=>2,'a'=>1])",
+            "value": {
+                "b": 2,
+                "a": 1
+            }
+        },
+        {
+            "label": "sortRecursiveDesc-descending-int-keys",
+            "php": "Arr::sortRecursiveDesc([1 => 'a', 0 => 'b'])",
+            "value": [
+                [
+                    1,
+                    "a"
+                ],
+                [
+                    0,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-out-of-order",
+            "php": "Arr::sortRecursiveDesc([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-out-of-order-key-and-value-sorts-disagree",
+            "php": "Arr::sortRecursiveDesc([2 => 'a', 0 => 'c', 1 => 'b'])",
+            "value": [
+                [
+                    2,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    0,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-collision",
+            "php": "Arr::sortRecursiveDesc([1 => 'a', 0 => 'c', '1' => 'b'])",
+            "value": [
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    0,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-collision-out-of-order",
+            "php": "Arr::sortRecursiveDesc([1 => 'c', 0 => 'a', '1' => 'b'])",
+            "value": [
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-collision-makes-list",
+            "php": "Arr::sortRecursiveDesc([0 => 'z', 1 => 'b', '0' => 'a'])",
+            "value": [
+                "b",
+                "a"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,29 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "arsort over the same null and empty-array fixture",
+            "php": "arsort([\"user2\"=>null,\"user4\"=>[],...])",
+            "value": [
+                "user0",
+                "user1",
+                "user3",
+                "user2",
+                "user4"
+            ]
+        },
+        {
+            "label": "arsort over a keyed mix of numeric strings and an int",
+            "php": "arsort([\"a\"=>\"9\",\"b\"=>\"10\",\"c\"=>\"1\",\"d\"=>5])",
+            "value": [
+                "10",
+                "9",
+                5,
+                "1"
+            ]
+        }
+    ]
+}

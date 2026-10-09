@@ -1,0 +1,230 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::dot keeps a \"__proto__\" key",
+            "php": "Arr::dot([\"__proto__\"=>1])",
+            "value": {
+                "__proto__": 1
+            }
+        },
+        {
+            "label": "Arr::dot keeps a \"__proto__\" array value",
+            "php": "Arr::dot([\"__proto__\"=>[]])",
+            "value": {
+                "__proto__": []
+            }
+        },
+        {
+            "label": "dot-int-key",
+            "php": "Arr::dot([10 => 100])",
+            "value": {
+                "10": 100
+            }
+        },
+        {
+            "label": "dot-nested-int-key",
+            "php": "Arr::dot(['foo' => [10 => 100]])",
+            "value": {
+                "foo.10": 100
+            }
+        },
+        {
+            "label": "dot-empty-leaf",
+            "php": "Arr::dot(['foo' => []])",
+            "value": {
+                "foo": []
+            }
+        },
+        {
+            "label": "dot-nested-empty-leaf",
+            "php": "Arr::dot(['foo' => ['bar' => []]])",
+            "value": {
+                "foo.bar": []
+            }
+        },
+        {
+            "label": "dot-mixed-keys",
+            "php": "Arr::dot(['foo', 'foo' => ['bar' => 'baz', 'baz' => ['a' => 'b']]])",
+            "value": {
+                "0": "foo",
+                "foo.bar": "baz",
+                "foo.baz.a": "b"
+            }
+        },
+        {
+            "label": "dot-prepend-no-dot",
+            "php": "Arr::dot(['name' => 'John'], 'user')",
+            "value": {
+                "username": "John"
+            }
+        },
+        {
+            "label": "dot-prepend-no-dot-depth",
+            "php": "Arr::dot(['user' => ['name' => 'Taylor']], 'prefix', 1)",
+            "value": {
+                "prefixuser.name": "Taylor"
+            }
+        },
+        {
+            "label": "dot-prepend-with-dot-depth",
+            "php": "Arr::dot(['user' => ['name' => 'Taylor']], 'prefix.', 1)",
+            "value": {
+                "prefix.user.name": "Taylor"
+            }
+        },
+        {
+            "label": "dot-prepend-trailing-dots",
+            "php": "Arr::dot(['a' => 1], 'prefix...')",
+            "value": {
+                "prefix...a": 1
+            }
+        },
+        {
+            "label": "dot-list-prepend-no-dot",
+            "php": "Arr::dot(['x', ['y']], 'user')",
+            "value": {
+                "user0": "x",
+                "user1.0": "y"
+            }
+        },
+        {
+            "label": "dot-list-of-assoc",
+            "php": "Arr::dot([['a' => 1], ['b' => ['c' => 2]]])",
+            "value": {
+                "0.a": 1,
+                "1.b.c": 2
+            }
+        },
+        {
+            "label": "dot-object-leaf",
+            "php": "Arr::dot([$o]), Arr::dot([['p' => $o]]), Arr::dot(['p' => $o, 'l' => [$o]]), Arr::dot([new ArrayObject(['a' => 1])]) with $o = (object) ['x' => 1, 'y' => 2]: keys, and whether $o is kept",
+            "value": {
+                "list": {
+                    "keys": [
+                        0
+                    ],
+                    "kept": true
+                },
+                "nested": {
+                    "keys": [
+                        "0.p"
+                    ],
+                    "kept": true
+                },
+                "map": {
+                    "keys": [
+                        "p",
+                        "l.0"
+                    ],
+                    "kept": true
+                },
+                "arrayObject": [
+                    0
+                ]
+            }
+        },
+        {
+            "label": "dot-depth-through-list",
+            "php": "Arr::dot([['a' => ['b' => ['c' => 1]]]], '', 2)",
+            "value": {
+                "0.a.b": {
+                    "c": 1
+                }
+            }
+        },
+        {
+            "label": "dot-out-of-order",
+            "php": "Arr::dot([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "dot-out-of-order-prefixed",
+            "php": "Arr::dot([2 => 'c', 0 => 'a', 1 => 'b'], 'p.')",
+            "value": [
+                [
+                    "p.2",
+                    "c"
+                ],
+                [
+                    "p.0",
+                    "a"
+                ],
+                [
+                    "p.1",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "dot-mixed-prefixed",
+            "php": "Arr::dot(['x' => 1, 0 => 2, 'y' => 3], 'p')",
+            "value": [
+                [
+                    "px",
+                    1
+                ],
+                [
+                    "p0",
+                    2
+                ],
+                [
+                    "py",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "dot-out-of-order-nested",
+            "php": "Arr::dot([2 => ['z' => 1], 0 => ['y' => 2], 1 => ['x' => 3]])",
+            "value": [
+                [
+                    "2.z",
+                    1
+                ],
+                [
+                    "0.y",
+                    2
+                ],
+                [
+                    "1.x",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "dot-mixed-nested",
+            "php": "Arr::dot(['x' => ['k' => 1], 0 => ['k' => 2], 'y' => ['k' => 3]])",
+            "value": [
+                [
+                    "x.k",
+                    1
+                ],
+                [
+                    "0.k",
+                    2
+                ],
+                [
+                    "y.k",
+                    3
+                ]
+            ]
+        }
+    ]
+}

@@ -1,0 +1,130 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::only with a bare string key",
+            "php": "Arr::only([\"foo\"=>1,\"bar\"=>\"baz\"], \"bar\")",
+            "value": {
+                "bar": "baz"
+            }
+        },
+        {
+            "label": "X25 only accepts a bare key and null",
+            "php": "Arr::only([10,20,30,40],1)",
+            "value": {
+                "bare": {
+                    "1": 20
+                },
+                "null": [],
+                "list": {
+                    "1": 20,
+                    "3": 40
+                }
+            }
+        },
+        {
+            "label": "only accepts a bare scalar key",
+            "php": "Arr::only([10,20,30,40],1)",
+            "value": {
+                "1": 20
+            }
+        },
+        {
+            "label": "only casts a null key to an empty key list",
+            "php": "Arr::only([10,20,30,40],null)",
+            "value": []
+        },
+        {
+            "label": "only-none-exist",
+            "php": "Arr::only(['name'=>'Desk','price'=>100], ['nonExistingKey'])",
+            "value": []
+        },
+        {
+            "label": "only-mixed-int-as-string",
+            "php": "Arr::only([0=>'foo','bar'=>'baz'], '0')",
+            "value": [
+                "foo"
+            ]
+        },
+        {
+            "label": "only-mixed-string",
+            "php": "Arr::only([0=>'foo','bar'=>'baz'], 'bar')",
+            "value": {
+                "bar": "baz"
+            }
+        },
+        {
+            "label": "only-out-of-order",
+            "php": "Arr::only([2 => 'c', 0 => 'a', 1 => 'b'], [0, 2])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "only-mixed",
+            "php": "Arr::only(['x' => 1, 0 => 2, 'y' => 3], ['y', 'x', 0])",
+            "value": [
+                [
+                    "x",
+                    1
+                ],
+                [
+                    0,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "only-string-keys-reordered-selector",
+            "php": "Arr::only(['b' => 1, 'a' => 2], ['a', 'b'])",
+            "value": [
+                [
+                    "b",
+                    1
+                ],
+                [
+                    "a",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "only-collision",
+            "php": "Arr::only([1 => 'a', 'x' => 'b', '1' => 'c'], [1])",
+            "value": [
+                [
+                    1,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-arr-only-repeated-keys",
+            "php": "Arr::only(['a', 'b', 'c'], [2, 0, 2])",
+            "value": [
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    2,
+                    "c"
+                ]
+            ]
+        }
+    ]
+}

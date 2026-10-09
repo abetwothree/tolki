@@ -1,0 +1,95 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-E-mapSpread-scalar-row",
+            "php": "collect([10, 20])->mapSpread(fn (...$a) => $a)",
+            "threw": "Error",
+            "message": "Cannot use a scalar value as an array"
+        },
+        {
+            "label": "C32-E-mapSpread-string-keyed-row",
+            "php": "collect([['all' => fn () => [9], 'b' => 2]])->mapSpread(fn (...$a) => count($a))",
+            "threw": "Error",
+            "message": "Cannot use positional argument after named argument during unpacking"
+        },
+        {
+            "label": "C32-E-mapSpread-null-row",
+            "php": "collect([null, [1]]) and collect(['x' => null]), each ->mapSpread(fn (...$a) => $a)",
+            "value": {
+                "list": [
+                    [
+                        0
+                    ],
+                    [
+                        1,
+                        1
+                    ]
+                ],
+                "keyed": {
+                    "x": [
+                        "x"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "C32-E-mapSpread-int-keyed-row",
+            "php": "collect([[5 => 'a', 7 => 'b'], []]) and collect(['x' => [5 => 'a', 7 => 'b']]), each ->mapSpread(fn (...$a) => $a)",
+            "value": {
+                "list": [
+                    [
+                        "a",
+                        "b",
+                        0
+                    ],
+                    [
+                        1
+                    ]
+                ],
+                "keyed": {
+                    "x": [
+                        "a",
+                        "b",
+                        "x"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "C32-E-mapSpread-int-keyed-collection-row",
+            "php": "collect([new Collection([5 => 'a', 7 => 'b'])]) and collect(['x' => ...]), each ->mapSpread(fn (...$a) => $a)",
+            "value": {
+                "list": [
+                    [
+                        "a",
+                        "b",
+                        0
+                    ]
+                ],
+                "keyed": {
+                    "x": [
+                        "a",
+                        "b",
+                        "x"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "C32-E-mapSpread-string-keyed-collection-row",
+            "php": "collect([new Collection(['a' => 1, 'b' => 2])])->mapSpread(fn (...$a) => $a)",
+            "threw": "Error",
+            "message": "Cannot use positional argument after named argument during unpacking"
+        },
+        {
+            "label": "C32-E-mapSpread-object-row",
+            "php": "collect([new DateTime('@0')])->mapSpread(fn (...$a) => $a)",
+            "threw": "Error",
+            "message": "Cannot use object of type DateTime as array"
+        }
+    ]
+}

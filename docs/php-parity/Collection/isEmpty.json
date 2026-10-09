@@ -1,0 +1,13 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-A-isEmpty-null-item",
+            "php": "collect([null])->isEmpty()",
+            "value": false
+        }
+    ]
+}

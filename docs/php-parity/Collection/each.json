@@ -1,0 +1,73 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-E-each-mixed-keys",
+            "php": "collect([1, 2, 'foo' => 'bar', 'bam' => 'baz'])->each(copy)",
+            "value": [
+                [
+                    0,
+                    "integer",
+                    1
+                ],
+                [
+                    1,
+                    "integer",
+                    2
+                ],
+                [
+                    "foo",
+                    "string",
+                    "bar"
+                ],
+                [
+                    "bam",
+                    "string",
+                    "baz"
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-each-stop-on-string-key",
+            "php": "same, returning false on the first string key",
+            "value": [
+                [
+                    0,
+                    "integer",
+                    1
+                ],
+                [
+                    1,
+                    "integer",
+                    2
+                ],
+                [
+                    "foo",
+                    "string",
+                    "bar"
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-each-key-type-array-items",
+            "php": "collect([['a' => 1], ['b' => 2]])->each(gettype($k)) and collect([5 => ['a' => 1]])",
+            "value": [
+                "integer",
+                "integer",
+                "integer"
+            ]
+        },
+        {
+            "label": "C32-E-each-out-of-order-keys",
+            "php": "collect([2 => 'c', 0 => 'a', 1 => 'b'])->each(): keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        }
+    ]
+}

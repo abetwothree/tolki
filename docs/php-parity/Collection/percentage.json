@@ -1,0 +1,45 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-H-percentage-fp-below-half",
+            "php": "(new Collection(range(1, 2000)))->percentage(fn ($v) => $v <= 9, 1)",
+            "value": 0.4
+        },
+        {
+            "label": "C32-H-percentage-precision-zero-and-negative",
+            "php": "[percentage(..., 0), percentage(..., -1)] on [1, 1, 2]",
+            "value": [
+                67,
+                70
+            ]
+        },
+        {
+            "label": "C32-H-percentage-fp-just-below-half-rounds-up",
+            "php": "(new Collection(range(1, 2000)))->percentage(fn ($v) => $v <= 3, 1)",
+            "value": 0.2
+        },
+        {
+            "label": "C32-H-percentage-scaled-just-short-of-whole",
+            "php": "(new Collection(range(1, 35)))->percentage(fn ($v) => $v <= 3, 15)",
+            "value": 8.571428571428573
+        },
+        {
+            "label": "C32-H-percentage-beyond-double-digits",
+            "php": "(new Collection(range(1, 9)))->percentage(fn ($v) => $v === 1, 15)",
+            "value": 11.11111111111111
+        },
+        {
+            "label": "C32-H-percentage-extreme-precision",
+            "php": "[percentage(=== 1, -400), percentage(=== 1, 400), percentage(=== 5, 400)] on [1, 1, 2]",
+            "value": [
+                0,
+                66.66666666666666,
+                0
+            ]
+        }
+    ]
+}

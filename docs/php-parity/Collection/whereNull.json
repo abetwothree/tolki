@@ -1,0 +1,22 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-D-whereNull-keyed",
+            "php": "(new Collection(['a' => null, 'b' => 0, 'c' => null]))->whereNull()",
+            "value": [
+                [
+                    "a",
+                    null
+                ],
+                [
+                    "c",
+                    null
+                ]
+            ]
+        }
+    ]
+}

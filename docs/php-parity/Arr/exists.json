@@ -1,0 +1,83 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::exists \u2014 literal dotted key",
+            "php": "Arr::exists([...], \"products.desk\")",
+            "value": true
+        },
+        {
+            "label": "exists-null-value",
+            "php": "Arr::exists(['a' => null], 'a')",
+            "value": true
+        },
+        {
+            "label": "exists-int-miss",
+            "php": "Arr::exists(['a' => 1], 0)",
+            "value": false
+        },
+        {
+            "label": "exists-no-dot-traversal",
+            "php": "Arr::exists(['user' => ['name' => 'John']], 'user.name')",
+            "value": false
+        },
+        {
+            "label": "exists-no-dot-traversal-miss",
+            "php": "Arr::exists(['user' => ['name' => 'John']], 'user.age')",
+            "value": false
+        },
+        {
+            "label": "exists-null-key-empty-string",
+            "php": "Arr::exists(['' => 1], null)",
+            "value": true
+        },
+        {
+            "label": "exists-float-key",
+            "php": "Arr::exists(['1.5' => 1], 1.5)",
+            "value": true
+        },
+        {
+            "label": "exists-literal-dotted",
+            "php": "Arr::exists(['user.name' => 'John'], 'user.name')",
+            "value": true
+        },
+        {
+            "label": "exists-list-non-canonical-keys",
+            "php": "Arr::exists([1, 2, 3], $k) for '', ' ', '01', ' 1', '1e0', '0x1', '-0', '1.0'",
+            "value": {
+                "": false,
+                " ": false,
+                "01": false,
+                " 1": false,
+                "1e0": false,
+                "0x1": false,
+                "-0": false,
+                "1.0": false
+            }
+        },
+        {
+            "label": "exists-list-null-and-float-keys",
+            "php": "Arr::exists([1, 2, 3], null), (\u2026, 1.5), (\u2026, 1.0), (\u2026, '1')",
+            "value": {
+                "null": false,
+                "float 1.5": false,
+                "float 1.0": true,
+                "string 1": true
+            }
+        },
+        {
+            "label": "exists-float-key-cast",
+            "php": "Arr::exists([1], -0.0), (['-0' => 1], -0.0), (['INF' => 1], INF), (['1.0E+21' => 1], 1e21), (['0.3' => 1], 0.1 + 0.2)",
+            "value": {
+                "list -0": false,
+                "map -0": true,
+                "INF": true,
+                "1e21": true,
+                "0.1 + 0.2": true
+            }
+        }
+    ]
+}

@@ -1,0 +1,227 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::random on empty",
+            "php": "Arr::random([])",
+            "threw": "InvalidArgumentException",
+            "message": "You requested 1 items, but there are only 0 items available."
+        },
+        {
+            "label": "Arr::random preserveKeys default",
+            "php": "Arr::random([...], 2)",
+            "value": [
+                0,
+                1
+            ]
+        },
+        {
+            "label": "X23 random throws before the empty guard",
+            "php": "Arr::random([],1)",
+            "threw": "InvalidArgumentException",
+            "message": "You requested 1 items, but there are only 0 items available."
+        },
+        {
+            "label": "X24 random preserveKeys defaults to false",
+            "php": "Arr::random([10,20,30,40],2)",
+            "value": {
+                "keys": [
+                    0,
+                    1
+                ],
+                "preserved_count": 2,
+                "preserved_keys_are_original": true
+            }
+        },
+        {
+            "label": "random-empty-2",
+            "php": "Arr::random([], 2)",
+            "threw": "InvalidArgumentException",
+            "message": "You requested 2 items, but there are only 0 items available."
+        },
+        {
+            "label": "random-zero-count",
+            "php": "Arr::random([1,2,3,4], 0)",
+            "value": []
+        },
+        {
+            "label": "random-empty-zero-count",
+            "php": "Arr::random([], 0) \u2014 does NOT throw",
+            "value": []
+        },
+        {
+            "label": "random-numeric-string-counts",
+            "php": "Arr::random([1,2,3,4], '0'|'1'|'2'): count and key shape only",
+            "value": {
+                "'0'": {
+                    "count": 0,
+                    "keys": []
+                },
+                "'1'": {
+                    "count": 1,
+                    "keys": [
+                        0
+                    ]
+                },
+                "'2'": {
+                    "count": 2,
+                    "keys": [
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "label": "random-preserve-keys-invariant",
+            "php": "Arr::random([1,2,3,4], 2, true): keys are a subset of the source keys",
+            "value": {
+                "count": 2,
+                "keys are original": true,
+                "values are original": true
+            }
+        },
+        {
+            "label": "random-single-no-count-type",
+            "php": "gettype(Arr::random([1,2,3,4]))",
+            "value": "integer"
+        },
+        {
+            "label": "random-out-of-order-full-count",
+            "php": "Arr::random([2 => 'c', 0 => 'a', 1 => 'b'], 3) (50 draws, all equal)",
+            "value": [
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "random-out-of-order-full-count-preserve-keys",
+            "php": "Arr::random([2 => 'c', 0 => 'a', 1 => 'b'], 3, true) (50 draws, all equal)",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "random-mixed-full-count",
+            "php": "Arr::random(['x' => 1, 0 => 2, 'y' => 3], 3) (50 draws, all equal)",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "random-mixed-full-count-preserve-keys",
+            "php": "Arr::random(['x' => 1, 0 => 2, 'y' => 3], 3, true) (50 draws, all equal)",
+            "value": [
+                [
+                    "x",
+                    1
+                ],
+                [
+                    0,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "random-out-of-order-partial-keeps-array-order",
+            "php": "every one of 200 draws of Arr::random([2 => 'c', 0 => 'a', 1 => 'b'], 2, true) lists its keys in the array's own order",
+            "value": true
+        },
+        {
+            "label": "random-mixed-partial-keeps-array-order",
+            "php": "every one of 200 draws of Arr::random(['x' => 1, 0 => 2, 'y' => 3], 2) lists its values in the array's own order",
+            "value": true
+        },
+        {
+            "label": "random-out-of-order-partial-values-keep-array-order",
+            "php": "every one of 200 draws of Arr::random([2 => 'c', 0 => 'a', 1 => 'b'], 2) lists two values in the array's own order",
+            "value": true
+        },
+        {
+            "label": "random-collision-full-count",
+            "php": "Arr::random([1 => 'a', 'x' => 'b', '1' => 'c'], 2) (50 draws, all equal)",
+            "value": [
+                "c",
+                "b"
+            ]
+        },
+        {
+            "label": "random-list-full-count",
+            "php": "Arr::random(['a', 'b', 'c', 'd'], 4) (50 draws, all equal)",
+            "value": [
+                "a",
+                "b",
+                "c",
+                "d"
+            ]
+        },
+        {
+            "label": "random-list-partial-keeps-array-order",
+            "php": "every one of 200 draws of Arr::random(['a', 'b', 'c', 'd'], 2) lists its values in the array's own order",
+            "value": true
+        },
+        {
+            "label": "C32-C-random-nan-count-on-empty",
+            "php": "Arr::random([], NAN) / Arr::random([], NAN, true) / (new Collection([]))->random(NAN)->all() / (new Collection([]))->random(fn () => NAN)->all(): the empty guard answers before pickArrayKeys",
+            "value": {
+                "list": [],
+                "list-preserving-keys": [],
+                "collection": [],
+                "collection-callback": []
+            }
+        },
+        {
+            "label": "C32-C-arr-random-fractional-count",
+            "php": "Arr::random over [1, 2, 3] (list) and ['a' => 1, 'b' => 2, 'c' => 3] (keyed), deprecations silenced: how many it picks for 1.2, 2.9 and 1.5 with keys preserved, and what 3.5 and 0.5 throw",
+            "value": {
+                "list": {
+                    "1.2": 1,
+                    "2.9": 2,
+                    "1.5 preserving keys": 1,
+                    "3.5": [
+                        "InvalidArgumentException",
+                        "You requested 3.5 items, but there are only 3 items available."
+                    ],
+                    "0.5": [
+                        "ValueError",
+                        "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be between 1 and the number of elements in argument #1 ($array)"
+                    ]
+                },
+                "keyed": {
+                    "1.2": 1,
+                    "2.9": 2,
+                    "1.5 preserving keys": 1,
+                    "3.5": [
+                        "InvalidArgumentException",
+                        "You requested 3.5 items, but there are only 3 items available."
+                    ],
+                    "0.5": [
+                        "ValueError",
+                        "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be between 1 and the number of elements in argument #1 ($array)"
+                    ]
+                }
+            }
+        }
+    ]
+}

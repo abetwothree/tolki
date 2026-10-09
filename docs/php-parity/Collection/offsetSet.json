@@ -1,0 +1,120 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "order-offsetSet-null-key",
+            "php": "$c = collect(base); $c->offsetSet(null, 'z')",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b",
+                    "3": "z"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b",
+                    "z"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "append-key-offsetSet-null-matches-add",
+            "php": "$c = collect([5 => 'a']); $c->offsetSet(null, 'z')",
+            "value": {
+                "all": {
+                    "5": "a",
+                    "6": "z"
+                },
+                "values": [
+                    "a",
+                    "z"
+                ],
+                "keys": [
+                    5,
+                    6
+                ]
+            }
+        },
+        {
+            "label": "order-array-set-new-key",
+            "php": "$c = collect(base); $c['k'] = 'z'",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b",
+                    "k": "z"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b",
+                    "z"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1,
+                    "k"
+                ]
+            }
+        },
+        {
+            "label": "order-array-set-existing-key",
+            "php": "$c = collect(base); $c[0] = 'z'",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "z",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "z",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "C32-B-offsetSet-string-key-on-list",
+            "php": "$c = collect([1, 2]); $c->offsetSet('x', 3); views",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "x": 3
+                },
+                "count": 3,
+                "keys": [
+                    0,
+                    1,
+                    "x"
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "get": 3,
+                "has": true,
+                "last": 3
+            }
+        }
+    ]
+}

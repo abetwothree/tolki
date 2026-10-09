@@ -1,0 +1,87 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "whereKey-numeric",
+            "php": "Arr::where(['10'=>1,'foo'=>3,20=>2], fn($v,$k)=>is_numeric($k))",
+            "value": {
+                "10": 1,
+                "20": 2
+            }
+        },
+        {
+            "label": "callback-key where",
+            "php": "Arr::where([1 => \"a\", \"x\" => \"b\"], $cb)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "where-preserves-int-keys",
+            "php": "Arr::where(['100','200','300','400'], fn($v) => $v === '200' || $v === '400')",
+            "value": {
+                "1": "200",
+                "3": "400"
+            }
+        },
+        {
+            "label": "where-list-key-predicate",
+            "php": "array_values(Arr::where(['a','b','c'], fn($v,$k)=>$k>0))",
+            "value": [
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "where-out-of-order-callback-order",
+            "php": "Arr::where([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => true) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "where-mixed-callback-order",
+            "php": "Arr::where(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => true) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "where-out-of-order-first-two-visits",
+            "php": "Arr::where([2 => 'c', 0 => 'a', 1 => 'b'], a callback true for its first two calls)",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "where-mixed-first-visit",
+            "php": "Arr::where(['x' => 1, 0 => 2, 'y' => 3], a callback true for its first call)",
+            "value": [
+                [
+                    "x",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "where-collision",
+            "php": "Arr::where([1 => 'a', 0 => 'z', '1' => 'b'], fn ($v) => $v === 'a')",
+            "value": []
+        }
+    ]
+}

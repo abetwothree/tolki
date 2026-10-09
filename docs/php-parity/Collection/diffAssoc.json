@@ -1,0 +1,129 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "diffAssoc \u2014 key AND value (must stay unchanged)",
+            "php": "$c->diffAssoc([...])",
+            "value": {
+                "id": 1,
+                "first_word": "Hello"
+            }
+        },
+        {
+            "label": "diffAssoc \u2014 case-sensitive keys (must stay unchanged)",
+            "php": "$c->diffAssoc([...])",
+            "value": {
+                "a": "green",
+                "b": "brown",
+                "c": "blue",
+                "0": "red"
+            }
+        },
+        {
+            "label": "diffAssoc on array-backed collection",
+            "php": "$c->diffAssoc([1,9,3])",
+            "value": {
+                "1": 2
+            }
+        },
+        {
+            "label": "C6 diffAssoc testDiffAssoc",
+            "php": "(new Collection(['id' => 1, 'first_word' => 'Hello', 'not_affected' => 'value']))->diffAssoc(new Collection(['id' => 123, 'foo_bar' => 'Hello', 'not_affected' => 'value']))->all()",
+            "value": {
+                "id": 1,
+                "first_word": "Hello"
+            }
+        },
+        {
+            "label": "C7 diffAssoc case keys",
+            "php": "(new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red']))->diffAssoc(new Collection(['A' => 'green', 'yellow', 'red']))->all()",
+            "value": {
+                "a": "green",
+                "b": "brown",
+                "c": "blue",
+                "0": "red"
+            }
+        },
+        {
+            "label": "diffAssoc-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->diffAssoc(new Collection([1, 9, 9]))",
+            "value": [
+                2,
+                3
+            ]
+        },
+        {
+            "label": "diffAssoc-collection-matching-key",
+            "php": "(new Collection(['id' => 1, 'name' => 'a']))->diffAssoc(new Collection(['id' => 1, 'name' => 'b']))",
+            "value": {
+                "name": "a"
+            }
+        },
+        {
+            "label": "diffAssoc-list-keyed-operand",
+            "php": "(new Collection([1, 2]))->diffAssoc(['a' => 1, 'b' => 2]); (new Collection(['a', 'b']))->diffAssoc([1 => 'b']); the first with a Collection operand",
+            "value": {
+                "assoc": [
+                    1,
+                    2
+                ],
+                "offset": [
+                    "a"
+                ],
+                "collection": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "diffAssoc-scalar-backing",
+            "php": "(new Collection(5))->diffAssoc([1, 99, 3])",
+            "value": [
+                5
+            ]
+        },
+        {
+            "label": "C32-F-assoc-and-key-diffs-null-operand",
+            "php": "collect(['a' => 1])->diffAssoc(null) / ->diffAssocUsing(null, 'strcasecmp') / ->diffKeysUsing(null, 'strcasecmp')",
+            "value": {
+                "diffAssoc": {
+                    "a": 1
+                },
+                "diffAssocUsing": {
+                    "a": 1
+                },
+                "diffKeysUsing": {
+                    "a": 1
+                }
+            }
+        },
+        {
+            "label": "C32-F-plain-object-all-member-is-data-by-key",
+            "php": "collect(['a' => 1, 'b' => 2])->diffAssoc((object) ['all' => fn () => ['b' => 2]]) / ->diffAssocUsing(..., 'strcasecmp') / ->diffKeysUsing(..., 'strcasecmp') / ->intersectAssoc(...) / ->intersectAssocUsing(..., 'strcasecmp'), and collect(['a' => 1])->merge(...) keys",
+            "value": {
+                "diffAssoc": {
+                    "a": 1,
+                    "b": 2
+                },
+                "diffAssocUsing": {
+                    "a": 1,
+                    "b": 2
+                },
+                "diffKeysUsing": {
+                    "a": 1,
+                    "b": 2
+                },
+                "intersectAssoc": [],
+                "intersectAssocUsing": [],
+                "mergeKeys": [
+                    "a",
+                    "all"
+                ]
+            }
+        }
+    ]
+}

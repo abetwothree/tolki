@@ -1,0 +1,28 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "parseInt-past-int32",
+            "php": "Number::parseInt('3,000,000,000')",
+            "value": 3000000000
+        },
+        {
+            "label": "parseInt-past-int32-negative",
+            "php": "Number::parseInt('-3,000,000,000')",
+            "value": -3000000000
+        },
+        {
+            "label": "parseInt-max-safe-integer",
+            "php": "Number::parseInt('9007199254740991')",
+            "value": 9007199254740991
+        },
+        {
+            "label": "parseInt-php-int-max",
+            "php": "(string) Number::parseInt((string) PHP_INT_MAX)",
+            "value": "9223372036854775807"
+        }
+    ]
+}

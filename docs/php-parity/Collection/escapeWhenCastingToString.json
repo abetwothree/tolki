@@ -1,0 +1,33 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-A-escape-when-casting-to-string",
+            "php": "(string) collect(['<b>'])->escapeWhenCastingToString()",
+            "value": "[&quot;&lt;b&gt;&quot;]"
+        },
+        {
+            "label": "C32-A-escape-when-casting-concat",
+            "php": "collect(['<b>'])->escapeWhenCastingToString() . ''",
+            "value": "[&quot;&lt;b&gt;&quot;]"
+        },
+        {
+            "label": "C32-A-escape-when-casting-to-string-all-characters",
+            "php": "(string) collect([\"&'<>&amp;\"])->escapeWhenCastingToString()",
+            "value": "[&quot;&amp;&#039;&lt;&gt;&amp;amp;&quot;]"
+        },
+        {
+            "label": "C32-A-escape-when-casting-to-string-off",
+            "php": "(string) collect(['<b>'])->escapeWhenCastingToString()->escapeWhenCastingToString(false)",
+            "value": "[\"<b>\"]"
+        },
+        {
+            "label": "C32-A-escape-when-casting-leaves-toJson",
+            "php": "collect(['<b>'])->escapeWhenCastingToString()->toJson()",
+            "value": "[\"<b>\"]"
+        }
+    ]
+}

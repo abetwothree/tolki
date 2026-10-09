@@ -1,0 +1,183 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "collection-except-null",
+            "php": "(new Collection(['a'=>1,'b'=>2]))->except(null)",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "collection-except-self",
+            "php": "$c->except($c)",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "C32-D-except-array-then-extra-arg",
+            "php": "(new Collection($kv))->except(['first'], 'last')",
+            "value": [
+                [
+                    "last",
+                    "Otwell"
+                ],
+                [
+                    "email",
+                    "e"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-except-dot-key-literal-first",
+            "php": "(new Collection(['a.b' => 1, 'a' => ['b' => 2]]))->except('a.b')",
+            "value": [
+                [
+                    "a",
+                    [
+                        [
+                            "b",
+                            2
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-except-keyed-collection-arg",
+            "php": "(new Collection($kv))->except(new Collection(['x' => 'first', 'y' => 'email']))",
+            "value": [
+                [
+                    "last",
+                    "Otwell"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-except-list-numeric-string",
+            "php": "(new Collection(['a', 'b', 'c']))->except('1')",
+            "value": [
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    2,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-except-empty-array",
+            "php": "(new Collection($kv))->except([])",
+            "value": [
+                [
+                    "first",
+                    "Taylor"
+                ],
+                [
+                    "last",
+                    "Otwell"
+                ],
+                [
+                    "email",
+                    "e"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-except-forget-null-key",
+            "php": "except(null), except([null]), except('a', null) and except(new Collection([null])), then forget(null) and forget([null]), over ['' => 1, 'a' => 2]",
+            "value": {
+                "except-null": [
+                    [
+                        "",
+                        1
+                    ],
+                    [
+                        "a",
+                        2
+                    ]
+                ],
+                "except-list": [
+                    [
+                        "a",
+                        2
+                    ]
+                ],
+                "except-later": [],
+                "except-collection": [
+                    [
+                        "a",
+                        2
+                    ]
+                ],
+                "forget-null": [
+                    [
+                        "",
+                        1
+                    ],
+                    [
+                        "a",
+                        2
+                    ]
+                ],
+                "forget-list": [
+                    [
+                        "a",
+                        2
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-D-except-float-key",
+            "php": "except([1.5]) over ['1.5' => 'a', 1 => 'b', 'c' => 'd'], ['1.5' => 'a', 'c' => 'd'] and [1 => ['5' => 'x', 6 => 'y']], and forget([1.5]) over ['1.5' => 'a', 1 => 'b']",
+            "value": {
+                "both": [
+                    [
+                        "1.5",
+                        "a"
+                    ],
+                    [
+                        "c",
+                        "d"
+                    ]
+                ],
+                "string-only": [
+                    [
+                        "1.5",
+                        "a"
+                    ],
+                    [
+                        "c",
+                        "d"
+                    ]
+                ],
+                "nested": [
+                    [
+                        1,
+                        [
+                            [
+                                6,
+                                "y"
+                            ]
+                        ]
+                    ]
+                ],
+                "forget-both": [
+                    [
+                        "1.5",
+                        "a"
+                    ]
+                ]
+            }
+        }
+    ]
+}

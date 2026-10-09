@@ -1,0 +1,150 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "is_numeric matrix for CSS-helper keys",
+            "php": "is_numeric($key) for each input",
+            "value": [
+                {
+                    "input": "",
+                    "is_numeric": false
+                },
+                {
+                    "input": " ",
+                    "is_numeric": false
+                },
+                {
+                    "input": "0x10",
+                    "is_numeric": false
+                },
+                {
+                    "input": "1e3",
+                    "is_numeric": true
+                },
+                {
+                    "input": "Infinity",
+                    "is_numeric": false
+                },
+                {
+                    "input": "NAN",
+                    "is_numeric": false
+                },
+                {
+                    "input": "INF",
+                    "is_numeric": false
+                },
+                {
+                    "input": " 42",
+                    "is_numeric": true
+                },
+                {
+                    "input": "42 ",
+                    "is_numeric": true
+                },
+                {
+                    "input": " 42 ",
+                    "is_numeric": true
+                },
+                {
+                    "input": "+42",
+                    "is_numeric": true
+                },
+                {
+                    "input": "-42",
+                    "is_numeric": true
+                },
+                {
+                    "input": "3.14",
+                    "is_numeric": true
+                },
+                {
+                    "input": "-3.14",
+                    "is_numeric": true
+                },
+                {
+                    "input": "1e-3",
+                    "is_numeric": true
+                },
+                {
+                    "input": "1E3",
+                    "is_numeric": true
+                },
+                {
+                    "input": "007",
+                    "is_numeric": true
+                },
+                {
+                    "input": "0",
+                    "is_numeric": true
+                },
+                {
+                    "input": "00",
+                    "is_numeric": true
+                },
+                {
+                    "input": ".5",
+                    "is_numeric": true
+                },
+                {
+                    "input": "5.",
+                    "is_numeric": true
+                },
+                {
+                    "input": "5.5e2",
+                    "is_numeric": true
+                },
+                {
+                    "input": "abc",
+                    "is_numeric": false
+                },
+                {
+                    "input": "1abc",
+                    "is_numeric": false
+                },
+                {
+                    "input": "abc1",
+                    "is_numeric": false
+                },
+                {
+                    "input": "1_000",
+                    "is_numeric": false
+                },
+                {
+                    "input": "0b101",
+                    "is_numeric": false
+                },
+                {
+                    "input": "0o17",
+                    "is_numeric": false
+                },
+                {
+                    "input": "\t5",
+                    "is_numeric": true
+                },
+                {
+                    "input": "5\n",
+                    "is_numeric": true
+                },
+                {
+                    "input": "\n5\n",
+                    "is_numeric": true
+                },
+                {
+                    "input": "5\t",
+                    "is_numeric": true
+                },
+                {
+                    "input": "5,5",
+                    "is_numeric": false
+                },
+                {
+                    "input": "  ",
+                    "is_numeric": false
+                }
+            ]
+        }
+    ]
+}

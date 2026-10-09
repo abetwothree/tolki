@@ -1,0 +1,566 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "splice(1,1) on assoc \u2014 keys preserved on BOTH halves",
+            "php": "$c->splice(1,1)",
+            "value": {
+                "remaining": {
+                    "x": 1,
+                    "z": 3
+                },
+                "cut": {
+                    "y": 2
+                }
+            }
+        },
+        {
+            "label": "splice(1) \u2014 one-arg form removes to the end",
+            "php": "$c->splice(1)",
+            "value": {
+                "remaining": {
+                    "foo": "f"
+                },
+                "cut": {
+                    "baz": "z"
+                }
+            }
+        },
+        {
+            "label": "splice with replacement",
+            "php": "$c->splice(1,1,\"bar\")",
+            "value": {
+                "remaining": [
+                    "foo",
+                    "bar"
+                ],
+                "cut": [
+                    "baz"
+                ]
+            }
+        },
+        {
+            "label": "X6 splice mutates and returns the removed items",
+            "php": "collect([10,20,30,40])->splice(1,2)",
+            "value": {
+                "removed": [
+                    20,
+                    30
+                ],
+                "after": [
+                    10,
+                    40
+                ]
+            }
+        },
+        {
+            "label": "X7 splice one-arg form removes offset to end",
+            "php": "collect([10,20,30,40])->splice(1)",
+            "value": {
+                "removed": [
+                    20,
+                    30,
+                    40
+                ],
+                "after": [
+                    10
+                ]
+            }
+        },
+        {
+            "label": "splice inserts a scalar replacement as one element",
+            "php": "collect([10,20,30,40])->splice(1,2,99)",
+            "value": {
+                "removed": [
+                    20,
+                    30
+                ],
+                "remaining": [
+                    10,
+                    99,
+                    40
+                ]
+            }
+        },
+        {
+            "label": "splice with a scalar replacement on string keys",
+            "php": "collect(['a'=>1,'b'=>2,'c'=>3,'d'=>4])->splice(1,2,99)",
+            "value": {
+                "removed": {
+                    "b": 2,
+                    "c": 3
+                },
+                "remaining": {
+                    "a": 1,
+                    "0": 99,
+                    "d": 4
+                }
+            }
+        },
+        {
+            "label": "splice with an assoc replacement on a list",
+            "php": "collect([1,2,3])->splice(1,1,[\"foo\"=>\"bar\"])",
+            "value": {
+                "removed": [
+                    2
+                ],
+                "after": [
+                    1,
+                    "bar",
+                    3
+                ]
+            }
+        },
+        {
+            "label": "S1 splice on assoc with scalar replacement mid",
+            "php": "$c = new Collection(['a' => 1, 'b' => 2, 'c' => 3]); ['removed' => $c->splice(1, 1, 'bar')->all(), 'after' => $c->all()]",
+            "value": {
+                "removed": {
+                    "b": 2
+                },
+                "after": {
+                    "a": 1,
+                    "0": "bar",
+                    "c": 3
+                }
+            }
+        },
+        {
+            "label": "S2 splice assoc insert scalar, length 0",
+            "php": "$c = new Collection(['foo' => 'f', 'baz' => 'z']); ['removed' => $c->splice(1, 0, 'bar')->all(), 'after' => $c->all()]",
+            "value": {
+                "removed": [],
+                "after": {
+                    "foo": "f",
+                    "0": "bar",
+                    "baz": "z"
+                }
+            }
+        },
+        {
+            "label": "S3 splice assoc insert array",
+            "php": "$c = new Collection(['foo' => 'f', 'baz' => 'z']); $c->splice(1, 0, ['bar']); $c->all()",
+            "value": {
+                "foo": "f",
+                "0": "bar",
+                "baz": "z"
+            }
+        },
+        {
+            "label": "S4 splice assoc (1,1) no replacement",
+            "php": "$c = new Collection(['foo' => 'f', 'baz' => 'z']); ['removed' => $c->splice(1, 1)->all(), 'after' => $c->all()]",
+            "value": {
+                "removed": {
+                    "baz": "z"
+                },
+                "after": {
+                    "foo": "f"
+                }
+            }
+        },
+        {
+            "label": "splice-negative-int-keys",
+            "php": "$c = new Collection([-1 => 'a', 'x' => 'b', -5 => 'c']); $c->splice(1, 1, ['z']); and $d = new Collection(['x' => 'a', -3 => 'b', -7 => 'c']); $d->splice(0, 3)",
+            "value": {
+                "replaced": {
+                    "removed": {
+                        "x": "b"
+                    },
+                    "rest": [
+                        "a",
+                        "z",
+                        "c"
+                    ]
+                },
+                "emptied": {
+                    "removed": {
+                        "x": "a",
+                        "0": "b",
+                        "1": "c"
+                    },
+                    "rest": []
+                }
+            }
+        },
+        {
+            "label": "order-splice",
+            "php": "$c = collect(base); $returned = $c->splice(1, 1)",
+            "value": {
+                "returned": [
+                    "a"
+                ],
+                "all": [
+                    "c",
+                    "b"
+                ],
+                "values": [
+                    "c",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-splice-with-replacement",
+            "php": "$c = collect(base); $returned = $c->splice(1, 1, ['z'])",
+            "value": {
+                "returned": [
+                    "a"
+                ],
+                "all": [
+                    "c",
+                    "z",
+                    "b"
+                ],
+                "values": [
+                    "c",
+                    "z",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "order-splice-two-from-start",
+            "php": "$c = collect(base); $returned = $c->splice(0, 2)",
+            "value": {
+                "returned": [
+                    "c",
+                    "a"
+                ],
+                "all": [
+                    "b"
+                ],
+                "values": [
+                    "b"
+                ],
+                "keys": [
+                    0
+                ]
+            }
+        },
+        {
+            "label": "order-splice-to-end",
+            "php": "$c = collect(base); $returned = $c->splice(1)",
+            "value": {
+                "returned": [
+                    "a",
+                    "b"
+                ],
+                "all": [
+                    "c"
+                ],
+                "values": [
+                    "c"
+                ],
+                "keys": [
+                    0
+                ]
+            }
+        },
+        {
+            "label": "order-splice-negative-offset",
+            "php": "$c = collect(base); $returned = $c->splice(-2, 1)",
+            "value": {
+                "returned": [
+                    "a"
+                ],
+                "all": [
+                    "c",
+                    "b"
+                ],
+                "values": [
+                    "c",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-splice-negative-length",
+            "php": "$c = collect(base); $returned = $c->splice(1, -1)",
+            "value": {
+                "returned": [
+                    "a"
+                ],
+                "all": [
+                    "c",
+                    "b"
+                ],
+                "values": [
+                    "c",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "splice-out-of-order-offset-returns",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->splice(1)",
+            "value": [
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "splice-out-of-order-offset-remaining",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->splice(1); $c->all()",
+            "value": [
+                "c"
+            ]
+        },
+        {
+            "label": "splice-out-of-order-offset-length-returns",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->splice(0, 1)",
+            "value": [
+                "c"
+            ]
+        },
+        {
+            "label": "splice-out-of-order-offset-length-remaining",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->splice(0, 1); $c->all()",
+            "value": [
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "splice-out-of-order-replacement-returns",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->splice(1, 1, ['R'])",
+            "value": [
+                "a"
+            ]
+        },
+        {
+            "label": "splice-out-of-order-replacement-remaining",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->splice(1, 1, ['R']); $c->all()",
+            "value": [
+                "c",
+                "R",
+                "b"
+            ]
+        },
+        {
+            "label": "splice-mixed-offset-length-returns",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->splice(0, 1)",
+            "value": [
+                [
+                    "x",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "splice-mixed-offset-length-remaining",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->splice(0, 1); $c->all()",
+            "value": [
+                [
+                    0,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "splice-mixed-replacement-returns",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->splice(1, 1, ['R'])",
+            "value": [
+                2
+            ]
+        },
+        {
+            "label": "splice-mixed-replacement-remaining",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->splice(1, 1, ['R']); $c->all()",
+            "value": [
+                [
+                    "x",
+                    1
+                ],
+                [
+                    0,
+                    "R"
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "splice-string-keys-out-of-order-replacement-returns",
+            "php": "$c = new Collection(['k' => 'K', 'j' => 'J']); $c->splice(0, 1, [2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": [
+                [
+                    "k",
+                    "K"
+                ]
+            ]
+        },
+        {
+            "label": "splice-string-keys-out-of-order-replacement-remaining",
+            "php": "$c = new Collection(['k' => 'K', 'j' => 'J']); $c->splice(0, 1, [2 => 'c', 0 => 'a', 1 => 'b']); $c->all()",
+            "value": [
+                [
+                    0,
+                    "c"
+                ],
+                [
+                    1,
+                    "a"
+                ],
+                [
+                    2,
+                    "b"
+                ],
+                [
+                    "j",
+                    "J"
+                ]
+            ]
+        },
+        {
+            "label": "splice-collision-offset-length-returns",
+            "php": "$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); $c->splice(0, 1)",
+            "value": [
+                "c"
+            ]
+        },
+        {
+            "label": "splice-collision-offset-length-remaining",
+            "php": "$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); $c->splice(0, 1); $c->all()",
+            "value": [
+                [
+                    "x",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "splice-out-of-order-replacement-collision-returns",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->splice(1, 1, [1 => 'p', 'x' => 'q', '1' => 'r'])",
+            "value": [
+                "a"
+            ]
+        },
+        {
+            "label": "splice-out-of-order-replacement-collision-remaining",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->splice(1, 1, [1 => 'p', 'x' => 'q', '1' => 'r']); $c->all()",
+            "value": [
+                "c",
+                "r",
+                "q",
+                "b"
+            ]
+        },
+        {
+            "label": "C32-B-splice-null-length",
+            "php": "$c = collect([1, 2, 3, 4]); $c->splice(1, null, ['x'])",
+            "value": {
+                "returned": [
+                    2,
+                    3,
+                    4
+                ],
+                "all": [
+                    1,
+                    "x"
+                ]
+            }
+        },
+        {
+            "label": "C32-B-splice-keyed-order",
+            "php": "splice(1, 0, ['p', 'q']) on collect(['a' => 1, 'b' => 2]) and splice(1, 1, ['p']) on collect(['a' => 1, 'b' => 2, 'c' => 3]): keys/values/first and the removed items",
+            "value": [
+                {
+                    "keys": [
+                        "a",
+                        0,
+                        1,
+                        "b"
+                    ],
+                    "values": [
+                        1,
+                        "p",
+                        "q",
+                        2
+                    ],
+                    "first": 1,
+                    "removed": []
+                },
+                {
+                    "keys": [
+                        "a",
+                        0,
+                        "c"
+                    ],
+                    "values": [
+                        1,
+                        "p",
+                        3
+                    ],
+                    "first": 1,
+                    "removed": {
+                        "b": 2
+                    }
+                }
+            ]
+        },
+        {
+            "label": "C32-B-splice-replacement-order",
+            "php": "splice(1, 0, [2 => 'c', 0 => 'a', 1 => 'b']) on collect(['x', 'y']) and on collect(['a' => 1, 'b' => 2]): keys/values",
+            "value": [
+                {
+                    "keys": [
+                        0,
+                        1,
+                        2,
+                        3,
+                        4
+                    ],
+                    "values": [
+                        "x",
+                        "c",
+                        "a",
+                        "b",
+                        "y"
+                    ]
+                },
+                {
+                    "keys": [
+                        "a",
+                        0,
+                        1,
+                        2,
+                        "b"
+                    ],
+                    "values": [
+                        1,
+                        "c",
+                        "a",
+                        "b",
+                        2
+                    ]
+                }
+            ]
+        }
+    ]
+}

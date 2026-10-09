@@ -1,0 +1,58 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "max-keeps-earlier-larger-value",
+            "php": "(new Collection([3, 1, 2]))->max()",
+            "value": 3
+        },
+        {
+            "label": "max-key-keeps-earlier-larger-value",
+            "php": "(new Collection([['foo' => 20], ['foo' => 10]]))->max('foo')",
+            "value": 20
+        },
+        {
+            "label": "C32-H-max-numeric-strings",
+            "php": "(new Collection(['10', '9', '8']))->max()",
+            "value": "10"
+        },
+        {
+            "label": "C32-H-max-dot-path",
+            "php": "(new Collection([['a' => ['b' => 3]], ['a' => ['b' => 7]]]))->max('a.b')",
+            "value": 7
+        },
+        {
+            "label": "C32-H-min-max-uncomparable-arrays",
+            "php": "[max, min] of [[1], ['a' => 1]] and of [['a' => 1], [1]], two arrays each of which PHP's <=> calls larger",
+            "value": {
+                "max": [
+                    [
+                        1
+                    ],
+                    {
+                        "a": 1
+                    }
+                ],
+                "min": [
+                    [
+                        1
+                    ],
+                    {
+                        "a": 1
+                    }
+                ]
+            }
+        },
+        {
+            "label": "C32-H-max-null-callback-answers",
+            "php": "[max(fn () => null), max(fn ($v) => $v === 1 ? null : 0)] on [1, 2]",
+            "value": [
+                null,
+                0
+            ]
+        }
+    ]
+}

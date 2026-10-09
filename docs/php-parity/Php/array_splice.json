@@ -1,0 +1,150 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "splice on numeric keys \u2014 reindexes",
+            "php": "array_splice([10=>a,20=>b,30=>c],1,1)",
+            "value": {
+                "remaining": [
+                    "a",
+                    "c"
+                ],
+                "cut": [
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "splice discards replacement keys",
+            "php": "array_splice($a,1,1,[\"foo\"=>\"bar\"])",
+            "value": {
+                "simple": {
+                    "x": 1,
+                    "0": "bar",
+                    "z": 3
+                },
+                "multi": {
+                    "a": 1,
+                    "0": 10,
+                    "1": 20,
+                    "c": 3
+                },
+                "collision": {
+                    "a": 1,
+                    "0": 9,
+                    "c": 3
+                },
+                "insert": {
+                    "a": 1,
+                    "0": 10,
+                    "b": 2,
+                    "c": 3
+                }
+            }
+        },
+        {
+            "label": "array_splice negative length \u2014 associative, single removal",
+            "php": "array_splice($a,1,-1)",
+            "value": {
+                "remaining": {
+                    "a": 1,
+                    "c": 3
+                },
+                "cut": {
+                    "b": 2
+                }
+            }
+        },
+        {
+            "label": "array_splice negative length \u2014 numeric, five offset/length combinations",
+            "php": "array_splice($a,$offset,$length)",
+            "value": {
+                "1,-1": {
+                    "remaining": [
+                        1,
+                        5
+                    ],
+                    "cut": [
+                        2,
+                        3,
+                        4
+                    ]
+                },
+                "-3,-1": {
+                    "remaining": [
+                        1,
+                        2,
+                        5
+                    ],
+                    "cut": [
+                        3,
+                        4
+                    ]
+                },
+                "0,-5": {
+                    "remaining": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "cut": []
+                },
+                "-2,-1": {
+                    "remaining": [
+                        1,
+                        2,
+                        3,
+                        5
+                    ],
+                    "cut": [
+                        4
+                    ]
+                },
+                "1,-2": {
+                    "remaining": [
+                        1,
+                        4,
+                        5
+                    ],
+                    "cut": [
+                        2,
+                        3
+                    ]
+                }
+            }
+        },
+        {
+            "label": "X8 splice keeps string keys, reindexes integer keys",
+            "php": "array_splice(['x'=>1,'y'=>2,'z'=>3],1,1)",
+            "value": {
+                "strRemoved": {
+                    "y": 2
+                },
+                "strAfter": {
+                    "x": 1,
+                    "z": 3
+                },
+                "intRemoved": [
+                    "b"
+                ],
+                "intAfter": [
+                    "a",
+                    "c"
+                ]
+            }
+        },
+        {
+            "label": "PHP casts \"-1\" to int(-1) and array_splice renumbers it too (JS does not)",
+            "php": "array_splice($a=['-1'=>'x','b'=>'y','c'=>'z'], 1, 1)",
+            "value": {
+                "0": "x",
+                "c": "z"
+            }
+        }
+    ]
+}

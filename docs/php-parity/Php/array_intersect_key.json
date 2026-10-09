@@ -1,0 +1,15 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "array_intersect_key never compares values",
+            "php": "array_intersect_key([\"a\"=>0],[\"a\"=>\"zzz\"])",
+            "value": {
+                "a": 0
+            }
+        }
+    ]
+}

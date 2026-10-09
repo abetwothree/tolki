@@ -1,0 +1,94 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "intersectByKeys(null)",
+            "php": "$c->intersectByKeys(null)",
+            "value": []
+        },
+        {
+            "label": "C19 intersectByKeys 2",
+            "php": "(new Collection(['name' => 'taylor', 'family' => 'otwell', 'age' => 26]))->intersectByKeys(new Collection(['height' => 180, 'name' => 'amir', 'family' => 'moharami']))->all()",
+            "value": {
+                "name": "taylor",
+                "family": "otwell"
+            }
+        },
+        {
+            "label": "C20 intersectByKeys 1",
+            "php": "(new Collection(['name' => 'Mateus', 'age' => 18]))->intersectByKeys(new Collection(['name' => 'Mateus', 'surname' => 'Guimaraes']))->all()",
+            "value": {
+                "name": "Mateus"
+            }
+        },
+        {
+            "label": "intersectByKeys-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->intersectByKeys(new Collection([9, 9]))",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "intersectByKeys-list-keyed-operand",
+            "php": "(new Collection([1, 2, 3]))->intersectByKeys(['a' => 'x', 'b' => 'y']), ->intersectByKeys([0 => 'x', 2 => 'y']), ->intersectByKeys(new ArrayIterator([2 => 'z']))",
+            "value": {
+                "assoc": [],
+                "offset": [
+                    1,
+                    3
+                ],
+                "iterator": [
+                    3
+                ]
+            }
+        },
+        {
+            "label": "intersectByKeys-scalar-backing",
+            "php": "(new Collection(5))->intersectByKeys([1])",
+            "value": [
+                5
+            ]
+        },
+        {
+            "label": "intersectByKeys-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->intersectByKeys([0 => 'z', 2 => 'z'])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-plain-object-all-member-is-data",
+            "php": "collect(['all' => 1, 'b' => 2])->intersectByKeys((object) ['all' => fn () => ['b' => 2]]) / ->union(...) keys / ->replace(...) keys / ->diffKeys(...) / ->combine(...) keys",
+            "value": {
+                "intersectByKeys": {
+                    "all": 1
+                },
+                "unionKeys": [
+                    "a",
+                    "all"
+                ],
+                "replaceKeys": [
+                    "a",
+                    "all"
+                ],
+                "diffKeys": {
+                    "b": 2
+                },
+                "combineKeys": [
+                    "k"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,175 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::get \u2014 literal dotted key wins",
+            "php": "Arr::get([\"products.desk\"=>[...]], \"products.desk\")",
+            "value": {
+                "price": 100
+            }
+        },
+        {
+            "label": "X26 get/has/exists resolve a literal dotted key first",
+            "php": "Arr::get(['a.b'=>'literal','a'=>['b'=>'nested']],'a.b')",
+            "value": {
+                "get": "literal",
+                "has": true,
+                "exists": true,
+                "getList": 30,
+                "hasList": true,
+                "existsList": true
+            }
+        },
+        {
+            "label": "slice over-negative length clamps to empty",
+            "php": "array_slice($a,0,-5,true)",
+            "value": {
+                "assoc_0_neg5": [],
+                "assoc_neg5_neg5": [],
+                "list_0_neg5": [],
+                "list_neg5_neg5": [],
+                "assoc_0_neg6_of5": []
+            }
+        },
+        {
+            "label": "get-null-value",
+            "php": "Arr::get(['foo' => null], 'foo', 'default')",
+            "value": null
+        },
+        {
+            "label": "get-nested-null-value",
+            "php": "Arr::get(['bar' => ['baz' => null]], 'bar.baz', 'default')",
+            "value": null
+        },
+        {
+            "label": "get-through-list",
+            "php": "Arr::get(['products' => [['name' => 'desk'], ['name' => 'chair']]], 'products.0.name')",
+            "value": "desk"
+        },
+        {
+            "label": "get-through-list-2",
+            "php": "Arr::get(['products' => [['name' => 'desk'], ['name' => 'chair']]], 'products.1.name')",
+            "value": "chair"
+        },
+        {
+            "label": "get-through-list-missing",
+            "php": "Arr::get(['products' => [['name' => 'desk']]], 'products.2.name', 'none')",
+            "value": "none"
+        },
+        {
+            "label": "get-through-list-length",
+            "php": "Arr::get(['products' => [1, 2, 3]], 'products.length', 'none')",
+            "value": "none"
+        },
+        {
+            "label": "get-through-list-leading-zero",
+            "php": "Arr::get(['products' => [1, 2, 3]], 'products.01', 'none')",
+            "value": "none"
+        },
+        {
+            "label": "get-false",
+            "php": "Arr::get(false, 'foo', 'default')",
+            "value": "default"
+        },
+        {
+            "label": "get-empty-null-key",
+            "php": "Arr::get([], null)",
+            "value": []
+        },
+        {
+            "label": "get-empty-null-key-default",
+            "php": "Arr::get([], null, 'default')",
+            "value": []
+        },
+        {
+            "label": "get-empty-string-key",
+            "php": "Arr::get(['' => 'bar'], '')",
+            "value": "bar"
+        },
+        {
+            "label": "get-dot-only-key",
+            "php": "Arr::get(['' => ['' => 'bar']], '.')",
+            "value": "bar"
+        },
+        {
+            "label": "get-through-null",
+            "php": "Arr::get(['parent' => ['products' => ['desk' => null]]], 'parent.products.desk.price')",
+            "value": null
+        },
+        {
+            "label": "get-list-non-canonical-index",
+            "php": "Arr::get(['x', 'y'], $k, 'd') and Arr::get([['x', 'y']], \"0.$k\", 'd')",
+            "value": {
+                "01": {
+                    "top": "d",
+                    "nested": "d"
+                },
+                " 1": {
+                    "top": "d",
+                    "nested": "d"
+                },
+                "1e0": {
+                    "top": "d",
+                    "nested": "d"
+                },
+                "+1": {
+                    "top": "d",
+                    "nested": "d"
+                },
+                "0x1": {
+                    "top": "d",
+                    "nested": "d"
+                },
+                "-0": {
+                    "top": "d",
+                    "nested": "d"
+                },
+                "1 ": {
+                    "top": "d",
+                    "nested": "d"
+                }
+            }
+        },
+        {
+            "label": "get-list-int-segment-into-map",
+            "php": "Arr::get([[0 => 'x']], '0.0', 'd'), Arr::get([['k' => 'v', 0 => 'x']], '0.0', 'd'), Arr::get([[[1 => 'z']]], '0.0.1', 'd'), Arr::has(\u2026), data_get([['k' => 'v', 0 => 'x']], '0.0', 'd')",
+            "value": {
+                "get": "x",
+                "get-map": "x",
+                "get-deep": "z",
+                "get-missing": "d",
+                "has": true,
+                "has-missing": false,
+                "data_get": "x"
+            }
+        },
+        {
+            "label": "get-write-path-key-cast",
+            "php": "Arr::get with an empty segment, a non-canonical index, and a stored '01' key",
+            "value": {
+                "[['' => 1]] '0.'": 1,
+                "[['a','b']] '0.01'": null,
+                "[['01' => 'z']] '0.01'": "z",
+                "['a','b'] '01'": null
+            }
+        },
+        {
+            "label": "get-through-empty-segment",
+            "php": "Arr::get(['a'=>[''=>['b'=>7]]], 'a..b')",
+            "value": 7
+        },
+        {
+            "label": "get-out-of-order-int-key",
+            "php": "Arr::get([2 => 'c', 0 => 'a', 1 => 'b'], 2)",
+            "value": "c"
+        },
+        {
+            "label": "get-mixed-string-key",
+            "php": "Arr::get(['x' => 1, 0 => 2, 'y' => 3], 'y')",
+            "value": 3
+        }
+    ]
+}

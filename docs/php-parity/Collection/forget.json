@@ -1,0 +1,160 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "order-forget",
+            "php": "$c = collect(base); $c->forget(0)",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-forget-many",
+            "php": "$c = collect(base); $c->forget([0, 1])",
+            "value": {
+                "all": {
+                    "2": "c"
+                },
+                "values": [
+                    "c"
+                ],
+                "keys": [
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-B-forget-dot-path-is-literal",
+            "php": "collect(['a' => ['b' => 1]])->forget('a.b')->all()",
+            "value": {
+                "a": {
+                    "b": 1
+                }
+            }
+        },
+        {
+            "label": "C32-B-forget-max-int-key-then-push",
+            "php": "collect([5 => 'a', 6 => 'b'])->forget(6)->push('x')->all()",
+            "value": {
+                "5": "a",
+                "7": "x"
+            }
+        },
+        {
+            "label": "C32-B-forget-repeated-key-on-list",
+            "php": "collect(['a', 'b', 'c'])->forget([1, 1])->all()",
+            "value": {
+                "0": "a",
+                "2": "c"
+            }
+        },
+        {
+            "label": "C32-B-forget-illegal-key",
+            "php": "forget([$key]) over both backings for $key = ['a'], new stdClass and fn () => 1, then forget([$first, ['b']]) with $first the backing's first key",
+            "value": {
+                "keys": {
+                    "array": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type array on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type array on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "object": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type stdClass on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type stdClass on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "closure": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type Closure on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type Closure on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ]
+                },
+                "after-a-legal-key": [
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "Cannot unset offset of type array on array"
+                        ],
+                        "all": {
+                            "1": "b"
+                        }
+                    },
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "Cannot unset offset of type array on array"
+                        ],
+                        "all": {
+                            "b": 2
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

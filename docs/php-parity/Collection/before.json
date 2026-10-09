@@ -1,0 +1,92 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "before-strict-falsy",
+            "php": "before(1, true) and before(false, true) over [false,0,1,[],'']",
+            "value": {
+                "one": 0,
+                "first": null
+            }
+        },
+        {
+            "label": "before-array-needle",
+            "php": "collect([[0],[1,2]])->before([1,2])",
+            "value": [
+                0
+            ]
+        },
+        {
+            "label": "before-keyed-needle",
+            "php": "collect(['a'=>['k'=>0],'b'=>['k'=>1]])->before(['k'=>1])",
+            "value": {
+                "k": 0
+            }
+        },
+        {
+            "label": "before-traversable-backing",
+            "php": "collect(gen(1,2))->before(2)",
+            "value": 1
+        },
+        {
+            "label": "before-out-of-order-first-item",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->before('c')",
+            "value": null
+        },
+        {
+            "label": "before-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->before('a')",
+            "value": "c"
+        },
+        {
+            "label": "before-mixed",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->before(2)",
+            "value": 1
+        },
+        {
+            "label": "before-out-of-order-callback",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->before(fn ($v, $k) => $v === 'b')",
+            "value": "a"
+        },
+        {
+            "label": "before-out-of-order-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->before(fn ($v, $k) => $v === 'b') => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "before-collision",
+            "php": "(new Collection([5 => 'a', 0 => 'b', '5' => 'c']))->before('b')",
+            "value": "c"
+        },
+        {
+            "label": "before-loose-key-position",
+            "php": "(new Collection(['01' => 'a', 1 => 'b']))->before('b')",
+            "value": null
+        },
+        {
+            "label": "before-loose-key-position-record-order",
+            "php": "(new Collection([1 => 'b', '01' => 'a']))->before('a')",
+            "value": null
+        },
+        {
+            "label": "before-loose-key-position-strict-search",
+            "php": "(new Collection(['01' => 'a', 1 => 'b']))->before('b', true)",
+            "value": null
+        },
+        {
+            "label": "C32-C-before-after-string-key-first",
+            "php": "(new Collection([\"foo\" => \"bar\", 1, 2, 3, 4, 5]))->before(1) / after(\"bar\")",
+            "value": [
+                "bar",
+                1
+            ]
+        }
+    ]
+}

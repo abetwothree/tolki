@@ -1,0 +1,21 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "limit-long-interior-run",
+            "php": "Str::limit() past a run of 100000 spaces: plain === $s.'x...', and with preserveWords === 'x'.$s.'x...'",
+            "value": {
+                "plain": true,
+                "preserve-words": true
+            }
+        },
+        {
+            "label": "limit-preserve-words-no-whitespace",
+            "php": "Str::limit(str_repeat('x', 200000), 100000, '...', true) === str_repeat('x', 100000).'...'",
+            "value": true
+        }
+    ]
+}

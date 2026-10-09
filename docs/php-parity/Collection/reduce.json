@@ -1,0 +1,56 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "reduce-empty-no-initial",
+            "php": "(new Collection([]))->reduce(fn ($c, $v) => $c + $v) and the assoc backing",
+            "value": {
+                "list": null,
+                "assoc": null
+            }
+        },
+        {
+            "label": "C32-H-reduce-no-initial-trace",
+            "php": "carries/values/keys seen by (new Collection([10, 20, 30]))->reduce(fn ($c, $v, $k) => $v)",
+            "value": [
+                [
+                    null,
+                    10,
+                    0
+                ],
+                [
+                    10,
+                    20,
+                    1
+                ],
+                [
+                    20,
+                    30,
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-H-reduce-no-initial-single",
+            "php": "(new Collection([5]))->reduce(fn ($c, $v) => [$c, $v])",
+            "value": [
+                null,
+                5
+            ]
+        },
+        {
+            "label": "C32-H-reduce-family-out-of-order",
+            "php": "[reduce, reduceInto, reduceSpread] joining each key and value of [2 => 'c', 0 => 'a', 1 => 'b'] onto ''",
+            "value": [
+                "2c0a1b",
+                "2c0a1b",
+                [
+                    "2c0a1b"
+                ]
+            ]
+        }
+    ]
+}

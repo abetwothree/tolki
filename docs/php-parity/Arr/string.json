@@ -1,0 +1,32 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "string-int-value",
+            "php": "Arr::string(['string' => 'foo bar', 'integer' => 1234], 'integer')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [integer] must be a string, integer found."
+        },
+        {
+            "label": "string-list-int-key",
+            "php": "Arr::string([1234], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be a string, integer found."
+        },
+        {
+            "label": "string-missing-key-no-default",
+            "php": "Arr::string([], 'missing')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [missing] must be a string, NULL found."
+        },
+        {
+            "label": "string-list-missing-index-no-default",
+            "php": "Arr::string([], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be a string, NULL found."
+        }
+    ]
+}

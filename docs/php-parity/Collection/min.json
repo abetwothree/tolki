@@ -1,0 +1,51 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-H-min-numeric-strings",
+            "php": "(new Collection(['10', '9', '8']))->min()",
+            "value": "8"
+        },
+        {
+            "label": "C32-H-min-max-callback-arity",
+            "php": "[min(fn (...$a) => count($a)), max(...)] on ['a' => 1]",
+            "value": [
+                1,
+                1
+            ]
+        },
+        {
+            "label": "C32-H-min-max-strings",
+            "php": "[min, max] of ['b', 'a', 'c']",
+            "value": [
+                "a",
+                "c"
+            ]
+        },
+        {
+            "label": "C32-H-min-max-out-of-order-tie",
+            "php": "[min, max] of [2 => '1', 0 => 1]",
+            "value": [
+                "1",
+                "1"
+            ]
+        },
+        {
+            "label": "C32-H-min-max-null-items",
+            "php": "[[min, max] of [null, 3, 1], [min, max] of [null]]",
+            "value": [
+                [
+                    1,
+                    3
+                ],
+                [
+                    null,
+                    null
+                ]
+            ]
+        }
+    ]
+}

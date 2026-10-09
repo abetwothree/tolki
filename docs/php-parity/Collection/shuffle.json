@@ -1,0 +1,40 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-G-shuffle-list",
+            "php": "(new Collection($items))->shuffle() over ['a' => 1, 'b' => 2, 'c' => 3], [2 => 'c', 0 => 'a', 1 => 'b'] and ['x' => 1, 5 => 2]: array_is_list, the count and the sorted values",
+            "value": {
+                "keyed": [
+                    true,
+                    3,
+                    [
+                        1,
+                        2,
+                        3
+                    ]
+                ],
+                "out-of-order": [
+                    true,
+                    3,
+                    [
+                        "a",
+                        "b",
+                        "c"
+                    ]
+                ],
+                "mixed": [
+                    true,
+                    2,
+                    [
+                        1,
+                        2
+                    ]
+                ]
+            }
+        }
+    ]
+}

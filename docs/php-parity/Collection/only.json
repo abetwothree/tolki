@@ -1,0 +1,132 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-D-only-null-first-arg",
+            "php": "(new Collection($kv))->only(null, 'first')",
+            "value": [
+                [
+                    "first",
+                    "Taylor"
+                ],
+                [
+                    "last",
+                    "Otwell"
+                ],
+                [
+                    "email",
+                    "e"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-only-array-then-extra-arg",
+            "php": "(new Collection($kv))->only(['first'], 'last')",
+            "value": [
+                [
+                    "first",
+                    "Taylor"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-only-dot-key-literal",
+            "php": "(new Collection(['a' => ['b' => 1], 'a.b' => 2]))->only('a.b')",
+            "value": [
+                [
+                    "a.b",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-only-dot-key-nested-miss",
+            "php": "(new Collection(['a' => ['b' => 1, 'c' => 2]]))->only('a.b')",
+            "value": []
+        },
+        {
+            "label": "C32-D-only-keyed-collection-arg",
+            "php": "(new Collection($kv))->only(new Collection(['x' => 'first', 'y' => 'email']))",
+            "value": [
+                [
+                    "first",
+                    "Taylor"
+                ],
+                [
+                    "email",
+                    "e"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-only-list-keys",
+            "php": "(new Collection(['a', 'b', 'c', 'd']))->only([3, 1])",
+            "value": [
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    3,
+                    "d"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-only-empty-array",
+            "php": "(new Collection($kv))->only([])",
+            "value": []
+        },
+        {
+            "label": "C32-D-null-keys-copy",
+            "php": "$c = new Collection(['a' => 1]); only(null), except(null) and select(null), each then put('b', 2): $c and each copy",
+            "value": [
+                {
+                    "a": 1
+                },
+                {
+                    "a": 1,
+                    "b": 2
+                },
+                {
+                    "a": 1,
+                    "b": 2
+                },
+                {
+                    "a": 1,
+                    "b": 2
+                }
+            ]
+        },
+        {
+            "label": "C32-D-only-odd-later-args",
+            "php": "only('a', null) over ['null' => 1, 'a' => 2], only('a', ['b']) and only('a', new Collection(['b'])) over ['a' => 1, 'b' => 2], and only(0, [1]) over ['x', 'y']",
+            "value": {
+                "null": [
+                    [
+                        "a",
+                        2
+                    ]
+                ],
+                "array": [
+                    [
+                        "a",
+                        1
+                    ]
+                ],
+                "collection": [
+                    [
+                        "a",
+                        1
+                    ]
+                ],
+                "list": [
+                    "x"
+                ]
+            }
+        }
+    ]
+}

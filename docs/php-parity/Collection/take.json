@@ -1,0 +1,169 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "collection-take-negative-keeps-keys",
+            "php": "(new Collection(['taylor','dayle','shawn']))->take(-2)",
+            "value": {
+                "1": "dayle",
+                "2": "shawn"
+            }
+        },
+        {
+            "label": "collection-take-positive-keeps-keys",
+            "php": "(new Collection(['taylor','dayle','shawn']))->take(2)",
+            "value": [
+                "taylor",
+                "dayle"
+            ]
+        },
+        {
+            "label": "collection-take-zero",
+            "php": "(new Collection(['taylor','dayle','shawn']))->take(0)",
+            "value": []
+        },
+        {
+            "label": "take-traversable-backing",
+            "php": "(new Collection(new ArrayIterator([1, 2, 3])))->take(2)",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "take-string-backing",
+            "php": "(new Collection('abc'))->take(2)",
+            "value": [
+                "abc"
+            ]
+        },
+        {
+            "label": "order-take",
+            "php": "collect(base)->take(2)",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a"
+                },
+                "values": [
+                    "c",
+                    "a"
+                ],
+                "keys": [
+                    2,
+                    0
+                ]
+            }
+        },
+        {
+            "label": "order-take-negative",
+            "php": "collect(base)->take(-2)",
+            "value": {
+                "all": [
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "take-out-of-order-collection",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->take(2)",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "take-out-of-order-negative-collection",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->take(-1)",
+            "value": [
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "take-collision-negative",
+            "php": "(new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->take(-1)",
+            "value": [
+                [
+                    "x",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "take-negative-past-size",
+            "php": "(new Collection(['taylor', 'dayle', 'shawn']))->take(-5)->all()",
+            "value": [
+                "taylor",
+                "dayle",
+                "shawn"
+            ]
+        },
+        {
+            "label": "C32-G-take-assoc-negative",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->take(-2)->all()",
+            "value": {
+                "b": 2,
+                "c": 3
+            }
+        },
+        {
+            "label": "C32-G-take-counts",
+            "php": "(new Collection([1, 2, 3, 4, 5, 6]))->take($limit) for 1.5, -1.5, NAN, INF, -INF, 1e19 and -1e19",
+            "value": {
+                "1.5": [
+                    [
+                        0,
+                        1
+                    ]
+                ],
+                "-1.5": [
+                    [
+                        5,
+                        6
+                    ]
+                ],
+                "NAN": [
+                    "TypeError",
+                    "array_slice(): Argument #3 ($length) must be of type ?int, float given"
+                ],
+                "INF": [
+                    "TypeError",
+                    "array_slice(): Argument #3 ($length) must be of type ?int, float given"
+                ],
+                "-INF": [
+                    "TypeError",
+                    "array_slice(): Argument #2 ($offset) must be of type int, float given"
+                ],
+                "1e19": [
+                    "TypeError",
+                    "array_slice(): Argument #3 ($length) must be of type ?int, float given"
+                ],
+                "-1e19": [
+                    "TypeError",
+                    "array_slice(): Argument #2 ($offset) must be of type int, float given"
+                ]
+            }
+        }
+    ]
+}

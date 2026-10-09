@@ -1,0 +1,36 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "order-skip",
+            "php": "collect(base)->skip(1)",
+            "value": {
+                "all": [
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "C32-G-skip-negative",
+            "php": "(new Collection([1, 2, 3]))->skip(-1)",
+            "value": [
+                [
+                    2,
+                    3
+                ]
+            ]
+        }
+    ]
+}

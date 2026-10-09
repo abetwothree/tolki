@@ -1,0 +1,61 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "intersectAssoc \u2014 key AND value",
+            "php": "$c->intersectAssoc([...])",
+            "value": {
+                "a": "green"
+            }
+        },
+        {
+            "label": "intersectAssoc(null)",
+            "php": "$c->intersectAssoc(null)",
+            "value": []
+        },
+        {
+            "label": "intersectAssoc/intersectAssocUsing/intersectByKeys treat a nullish first operand as empty too",
+            "php": "collect(null)->intersectAssoc(...)",
+            "value": {
+                "null_intersect_assoc": [],
+                "null_intersect_assoc_using": [],
+                "null_intersect_by_keys": []
+            }
+        },
+        {
+            "label": "intersectAssoc-collection",
+            "php": "(new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red']))->intersectAssoc(new Collection(['a' => 'green', 'b' => 'yellow', 'blue', 'red']))",
+            "value": {
+                "a": "green"
+            }
+        },
+        {
+            "label": "intersectAssoc-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->intersectAssoc(new Collection([1, 2, 9]))",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "intersectAssoc-list-keyed-operand",
+            "php": "(new Collection([1, 2]))->intersectAssoc(['a' => 1, 'b' => 2]); (new Collection(['a', 'b']))->intersectAssoc([1 => 'b'])",
+            "value": {
+                "assoc": [],
+                "offset": [
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "intersectAssoc-scalar-backing",
+            "php": "(new Collection(5))->intersectAssoc([5])",
+            "value": [
+                5
+            ]
+        }
+    ]
+}

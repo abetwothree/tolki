@@ -1,0 +1,370 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-F-mergeRecursive-null-is-a-new-instance",
+            "php": "$a = collect([1]); $b = $a->mergeRecursive(null); $b->push(2);",
+            "value": {
+                "same": false,
+                "receiver": [
+                    1
+                ],
+                "result": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-null-renumbers",
+            "php": "collect([5 => 'a', 'k' => 'b'])->mergeRecursive(null)",
+            "value": {
+                "all": {
+                    "0": "a",
+                    "k": "b"
+                },
+                "keys": [
+                    0,
+                    "k"
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-list-list-appends",
+            "php": "collect([1, [2, 3]])->mergeRecursive([4, [5]])",
+            "value": [
+                1,
+                [
+                    2,
+                    3
+                ],
+                4,
+                [
+                    5
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-mergeRecursive-spec-merging-arrays",
+            "php": "collect([1, [4, 5, 7], ['b' => 4, 'c' => 5, 'd' => [8, 9], 'e' => ['x' => 1, 'y' => 2]]])->mergeRecursive(collect([2, [6, 8], ['b' => 5, 'c' => 6, 'd' => [10, 11], 'e' => ['x' => 3, 'z' => 4]], 3]))",
+            "value": [
+                1,
+                [
+                    4,
+                    5,
+                    7
+                ],
+                {
+                    "b": 4,
+                    "c": 5,
+                    "d": [
+                        8,
+                        9
+                    ],
+                    "e": {
+                        "x": 1,
+                        "y": 2
+                    }
+                },
+                2,
+                [
+                    6,
+                    8
+                ],
+                {
+                    "b": 5,
+                    "c": 6,
+                    "d": [
+                        10,
+                        11
+                    ],
+                    "e": {
+                        "x": 3,
+                        "z": 4
+                    }
+                },
+                3
+            ]
+        },
+        {
+            "label": "C32-F-mergeRecursive-spec-target-longer",
+            "php": "collect([1, [2, 3, 4], ['a' => 7, 'b' => 8, 'c' => 9]])->mergeRecursive(collect([5, [6]]))",
+            "value": [
+                1,
+                [
+                    2,
+                    3,
+                    4
+                ],
+                {
+                    "a": 7,
+                    "b": 8,
+                    "c": 9
+                },
+                5,
+                [
+                    6
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-mergeRecursive-scalar-meets-assoc",
+            "php": "collect(['a' => 1])->mergeRecursive(['a' => ['x' => 1]])",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "x": 1
+                },
+                "keys": [
+                    0,
+                    "x"
+                ],
+                "values": [
+                    1,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-assoc-meets-scalar",
+            "php": "collect(['a' => ['x' => 1]])->mergeRecursive(['a' => 2])",
+            "value": {
+                "all": {
+                    "x": 1,
+                    "0": 2
+                },
+                "keys": [
+                    "x",
+                    0
+                ],
+                "values": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-list-meets-assoc",
+            "php": "collect(['a' => [1, 2]])->mergeRecursive(['a' => ['x' => 3]])",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "x": 3
+                },
+                "keys": [
+                    0,
+                    1,
+                    "x"
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-nested-int-keys-append",
+            "php": "collect(['a' => [5 => 'p']])->mergeRecursive(['a' => [5 => 'q']])",
+            "value": {
+                "all": {
+                    "5": "p",
+                    "6": "q"
+                },
+                "keys": [
+                    5,
+                    6
+                ],
+                "values": [
+                    "p",
+                    "q"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-scalar-operand",
+            "php": "collect([1])->mergeRecursive(2)",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-F-mergeRecursive-spec-existing-and-new-keys",
+            "php": "collect(['a' => 5, 'b' => [3, 4], 'c' => ['z' => 5, 'y' => [9, 0]]])->mergeRecursive(collect(['a' => 6, 'b' => [5, 6], 'c' => ['z' => 6, 'y' => [10, 11]], 'd' => 'new']))",
+            "value": {
+                "a": [
+                    5,
+                    6
+                ],
+                "b": [
+                    3,
+                    4,
+                    5,
+                    6
+                ],
+                "c": {
+                    "z": [
+                        5,
+                        6
+                    ],
+                    "y": [
+                        9,
+                        0,
+                        10,
+                        11
+                    ]
+                },
+                "d": "new"
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-spec-object-and-arrays",
+            "php": "collect(['a' => 1, 'b' => [2, 3], 'c' => ['x' => 4, 'y' => 5]])->mergeRecursive(collect(['a' => [6, 7], 'b' => 4, 'c' => ['x' => [8, 9]]]))",
+            "value": {
+                "a": [
+                    1,
+                    6,
+                    7
+                ],
+                "b": [
+                    2,
+                    3,
+                    4
+                ],
+                "c": {
+                    "x": [
+                        4,
+                        8,
+                        9
+                    ],
+                    "y": 5
+                }
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-spec-object-then-list",
+            "php": "collect(['a' => 1, 'b' => ['x' => 2, 'y' => 3], 'c' => [4, 5]])->mergeRecursive(collect([[6, 7], 4, ['x' => [8, 9]]]))",
+            "value": {
+                "all": {
+                    "a": 1,
+                    "b": {
+                        "x": 2,
+                        "y": 3
+                    },
+                    "c": [
+                        4,
+                        5
+                    ],
+                    "0": [
+                        6,
+                        7
+                    ],
+                    "1": 4,
+                    "2": {
+                        "x": [
+                            8,
+                            9
+                        ]
+                    }
+                },
+                "keys": [
+                    "a",
+                    "b",
+                    "c",
+                    0,
+                    1,
+                    2
+                ],
+                "values": [
+                    1,
+                    {
+                        "x": 2,
+                        "y": 3
+                    },
+                    [
+                        4,
+                        5
+                    ],
+                    [
+                        6,
+                        7
+                    ],
+                    4,
+                    {
+                        "x": [
+                            8,
+                            9
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-list-meets-scalar",
+            "php": "collect(['a' => [1, 2, 3]])->mergeRecursive(collect(['a' => 4]))",
+            "value": {
+                "a": [
+                    1,
+                    2,
+                    3,
+                    4
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-scalar-meets-list",
+            "php": "collect(['a' => 7])->mergeRecursive(collect(['a' => [1, 2, 3]]))",
+            "value": {
+                "a": [
+                    7,
+                    1,
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-null-meets-scalar",
+            "php": "collect(['a' => null])->mergeRecursive(['a' => 1])",
+            "value": {
+                "a": [
+                    null,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-assoc-then-list",
+            "php": "collect(['a' => 1, 'b' => 2])->mergeRecursive([3, 4])",
+            "value": {
+                "all": {
+                    "a": 1,
+                    "b": 2,
+                    "0": 3,
+                    "1": 4
+                },
+                "keys": [
+                    "a",
+                    "b",
+                    0,
+                    1
+                ],
+                "values": [
+                    1,
+                    2,
+                    3,
+                    4
+                ]
+            }
+        }
+    ]
+}

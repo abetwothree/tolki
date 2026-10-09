@@ -1,0 +1,18 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-H-pipeThrough-order",
+            "php": "(new Collection(['a']))->pipeThrough([push('b'), implode(''), strtoupper])",
+            "value": "AB"
+        },
+        {
+            "label": "C32-H-pipeThrough-empty-returns-receiver",
+            "php": "$c->pipeThrough([]) === $c",
+            "value": true
+        }
+    ]
+}

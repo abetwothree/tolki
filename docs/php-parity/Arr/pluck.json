@@ -1,0 +1,371 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::pluck wildcard path",
+            "php": "Arr::pluck($d, \"users.*.first\")",
+            "value": [
+                [
+                    "taylor"
+                ],
+                [
+                    "abigail",
+                    "dayle"
+                ]
+            ]
+        },
+        {
+            "label": "Arr::pluck wildcard + key",
+            "php": "Arr::pluck($d, \"users.*.first\", \"account\")",
+            "value": {
+                "a": [
+                    "taylor"
+                ],
+                "b": [
+                    "abigail",
+                    "dayle"
+                ]
+            }
+        },
+        {
+            "label": "Arr::pluck array path",
+            "php": "Arr::pluck($d, [\"developer\",\"name\"])",
+            "value": [
+                "Taylor",
+                "Abigail"
+            ]
+        },
+        {
+            "label": "Arr::pluck null value keeps the item",
+            "php": "Arr::pluck($d, null, \"name\")",
+            "value": {
+                "Taylor": {
+                    "name": "Taylor",
+                    "role": "dev"
+                }
+            }
+        },
+        {
+            "label": "Arr::pluck missing path",
+            "php": "Arr::pluck($d, \"foo\")",
+            "value": [
+                null,
+                null
+            ]
+        },
+        {
+            "label": "Arr::pluck \u2014 missing key field vs explicit null key",
+            "php": "Arr::pluck($u, \"name\", \"id\")",
+            "value": {
+                "": "Jane"
+            }
+        },
+        {
+            "label": "Arr::pluck wildcard over an associative (object-shaped) target, string-keyed outer",
+            "php": "Arr::pluck([\"a\"=>$shape], \"meta.*.v\")",
+            "value": [
+                [
+                    1,
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "Arr::pluck wildcard over an associative (object-shaped) target, list outer",
+            "php": "Arr::pluck([$shape], \"meta.*.v\")",
+            "value": [
+                [
+                    1,
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "Arr::pluck \u2014 boolean key casts to int, not string",
+            "php": "Arr::pluck($u, \"name\", \"flag\")",
+            "value": {
+                "1": "X",
+                "0": "Y"
+            }
+        },
+        {
+            "label": "pluck wildcard over a non-iterable",
+            "php": "Arr::pluck([[\"meta\"=>\"x\"]], \"meta.*.v\")",
+            "value": {
+                "scalar_string": [
+                    null
+                ],
+                "null": [
+                    null
+                ],
+                "int": [
+                    null
+                ],
+                "assoc_target": [
+                    null
+                ]
+            }
+        },
+        {
+            "label": "X27 pluck supports wildcard and array paths",
+            "php": "Arr::pluck(...,'name')",
+            "value": {
+                "plain": [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keyed": {
+                    "3": "c",
+                    "1": "a",
+                    "2": "b"
+                },
+                "wildcard": [
+                    [
+                        "p1",
+                        "p2"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "pluck-comments",
+            "php": "Arr::pluck($data, 'comments')",
+            "value": [
+                {
+                    "tags": [
+                        "#foo",
+                        "#bar"
+                    ]
+                },
+                {
+                    "tags": [
+                        "#baz"
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "pluck-comments.tags",
+            "php": "Arr::pluck($data, 'comments.tags')",
+            "value": [
+                [
+                    "#foo",
+                    "#bar"
+                ],
+                [
+                    "#baz"
+                ]
+            ]
+        },
+        {
+            "label": "pluck-foo",
+            "php": "Arr::pluck($data, 'foo')",
+            "value": [
+                null,
+                null
+            ]
+        },
+        {
+            "label": "pluck-foo.bar",
+            "php": "Arr::pluck($data, 'foo.bar')",
+            "value": [
+                null,
+                null
+            ]
+        },
+        {
+            "label": "pluck-nested-user.0",
+            "php": "Arr::pluck($nk, 'user.0')",
+            "value": [
+                "taylor",
+                "dayle"
+            ]
+        },
+        {
+            "label": "pluck-nested-arr-user-0str",
+            "php": "Arr::pluck($nk, ['user', '0'])",
+            "value": [
+                "taylor",
+                "dayle"
+            ]
+        },
+        {
+            "label": "pluck-nested-user.1-by-user.0",
+            "php": "Arr::pluck($nk, 'user.1', 'user.0')",
+            "value": {
+                "taylor": "otwell",
+                "dayle": "rees"
+            }
+        },
+        {
+            "label": "pluck-nested-arr-1-by-0-str",
+            "php": "Arr::pluck($nk, ['user', '1'], ['user', '0'])",
+            "value": {
+                "taylor": "otwell",
+                "dayle": "rees"
+            }
+        },
+        {
+            "label": "pluck-wildcard-email",
+            "php": "Arr::pluck($na, 'users.*.email')",
+            "value": [
+                [
+                    "taylorotwell@gmail.com"
+                ],
+                [
+                    null,
+                    null
+                ]
+            ]
+        },
+        {
+            "label": "pluck-obj-and-array-rows-name",
+            "php": "Arr::pluck($ao, 'name')",
+            "value": [
+                "taylor",
+                "dayle"
+            ]
+        },
+        {
+            "label": "pluck-obj-and-array-rows-email-by-name",
+            "php": "Arr::pluck($ao, 'email', 'name')",
+            "value": {
+                "taylor": "foo",
+                "dayle": "bar"
+            }
+        },
+        {
+            "label": "pluck-with-keys-null-assoc",
+            "php": "Arr::pluck(['a'=>['name'=>'Taylor','role'=>'developer'],'b'=>['name'=>'Abigail','role'=>'developer']], null, 'name')",
+            "value": {
+                "Taylor": {
+                    "name": "Taylor",
+                    "role": "developer"
+                },
+                "Abigail": {
+                    "name": "Abigail",
+                    "role": "developer"
+                }
+            }
+        },
+        {
+            "label": "pluck-out-of-order",
+            "php": "Arr::pluck([2 => ['n' => 'c', 'k' => 'kc'], 0 => ['n' => 'a', 'k' => 'ka'], 1 => ['n' => 'b', 'k' => 'kb']], 'n')",
+            "value": [
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "pluck-out-of-order-keyed",
+            "php": "Arr::pluck([2 => ['n' => 'c', 'k' => 'kc'], 0 => ['n' => 'a', 'k' => 'ka'], 1 => ['n' => 'b', 'k' => 'kb']], 'n', 'k')",
+            "value": [
+                [
+                    "kc",
+                    "c"
+                ],
+                [
+                    "ka",
+                    "a"
+                ],
+                [
+                    "kb",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "pluck-out-of-order-keyed-collision",
+            "php": "Arr::pluck([2 => ['n' => 'c', 'k' => 'same'], 0 => ['n' => 'a', 'k' => 'same'], 1 => ['n' => 'b', 'k' => 'other']], 'n', 'k')",
+            "value": [
+                [
+                    "same",
+                    "a"
+                ],
+                [
+                    "other",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "pluck-mixed",
+            "php": "Arr::pluck(['x' => ['n' => 'X'], 0 => ['n' => 'Z'], 'y' => ['n' => 'Y']], 'n')",
+            "value": [
+                "X",
+                "Z",
+                "Y"
+            ]
+        },
+        {
+            "label": "pluck-collision",
+            "php": "Arr::pluck([1 => ['n' => 'a'], 0 => ['n' => 'z'], '1' => ['n' => 'b']], 'n')",
+            "value": [
+                "b",
+                "z"
+            ]
+        },
+        {
+            "label": "pluck-out-of-order-whole-items-keyed",
+            "php": "Arr::pluck([2 => ['n' => 'c', 'k' => 'kc'], 0 => ['n' => 'a', 'k' => 'ka'], 1 => ['n' => 'b', 'k' => 'kb']], null, 'k')",
+            "value": [
+                [
+                    "kc",
+                    [
+                        [
+                            "n",
+                            "c"
+                        ],
+                        [
+                            "k",
+                            "kc"
+                        ]
+                    ]
+                ],
+                [
+                    "ka",
+                    [
+                        [
+                            "n",
+                            "a"
+                        ],
+                        [
+                            "k",
+                            "ka"
+                        ]
+                    ]
+                ],
+                [
+                    "kb",
+                    [
+                        [
+                            "n",
+                            "b"
+                        ],
+                        [
+                            "k",
+                            "kb"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "pluck-out-of-order-callback-order",
+            "php": "Arr::pluck([2 => ['n' => 'c', 'k' => 'kc'], 0 => ['n' => 'a', 'k' => 'ka'], 1 => ['n' => 'b', 'k' => 'kb']], fn ($item) => $item['n'], fn ($item) => $item['k']) => 'v:' . $item['n'] per value call, 'k:' . $item['n'] per key call",
+            "value": [
+                "v:c",
+                "k:c",
+                "v:a",
+                "k:a",
+                "v:b",
+                "k:b"
+            ]
+        }
+    ]
+}

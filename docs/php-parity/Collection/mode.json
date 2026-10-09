@@ -1,0 +1,161 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Collection::mode \u2014 the inner sort before keys() is a no-op",
+            "php": "mode() and its filtered-then-sorted keys",
+            "value": {
+                "mode_single": [
+                    4
+                ],
+                "mode_tie": [
+                    1,
+                    2
+                ],
+                "mode_assoc_tie": [
+                    1,
+                    2
+                ],
+                "filtered_keys": [
+                    1,
+                    2
+                ],
+                "filtered_sorted_keys": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "mode-key-with-nulls",
+            "php": "(new Collection([(object) ['foo' => 5], (object) ['foo' => null], (object) ['foo' => null]]))->mode('foo')",
+            "value": [
+                5
+            ]
+        },
+        {
+            "label": "mode-null-and-value",
+            "php": "(new Collection([null, 3]))->mode()",
+            "value": [
+                3
+            ]
+        },
+        {
+            "label": "mode-only-nulls",
+            "php": "(new Collection([null, null]))->mode()",
+            "value": null
+        },
+        {
+            "label": "mode-missing-key",
+            "php": "(new Collection([['foo' => 5], ['bar' => 1], ['bar' => 2]]))->mode('foo')",
+            "value": [
+                5
+            ]
+        },
+        {
+            "label": "mode-dotted-values",
+            "php": "(new Collection(['a.b', 'a.b', 'c']))->mode()",
+            "value": [
+                "a.b"
+            ]
+        },
+        {
+            "label": "mode-bools",
+            "php": "(new Collection([true, true, false]))->mode()",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "mode-numeric-strings",
+            "php": "(new Collection(['1', 1, '1']))->mode()",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "mode-empty-string",
+            "php": "(new Collection(['', '', 'a']))->mode()",
+            "value": [
+                ""
+            ]
+        },
+        {
+            "label": "mode-tie-first-seen",
+            "php": "(new Collection([3, 1, 3, 1]))->mode()",
+            "value": [
+                3,
+                1
+            ]
+        },
+        {
+            "label": "mode-out-of-order-tie",
+            "php": "(new Collection([2 => 'c', 0 => 'a']))->mode()",
+            "value": [
+                "c",
+                "a"
+            ]
+        },
+        {
+            "label": "mode-out-of-order-key-tie",
+            "php": "(new Collection([2 => ['foo' => 'c'], 0 => ['foo' => 'a']]))->mode('foo')",
+            "value": [
+                "c",
+                "a"
+            ]
+        },
+        {
+            "label": "mode-assoc-strings",
+            "php": "(new Collection(['x' => 'p', 'y' => 'q', 'z' => 'q']))->mode()",
+            "value": [
+                "q"
+            ]
+        },
+        {
+            "label": "C32-H-mode-array-items",
+            "php": "(new Collection([[1], [1]]))->mode()",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type array in isset or empty"
+        },
+        {
+            "label": "C32-H-mode-assoc-items",
+            "php": "(new Collection([['a' => 1], ['a' => 1]]))->mode()",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type array in isset or empty"
+        },
+        {
+            "label": "C32-H-mode-date-items",
+            "php": "(new Collection([new DateTime('@0'), new DateTime('@0')]))->mode()",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type DateTime in isset or empty"
+        },
+        {
+            "label": "C32-H-mode-enum-items",
+            "php": "(new Collection([C32E_Int::B, C32E_Int::B]))->mode()",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type C32E_Int in isset or empty"
+        },
+        {
+            "label": "C32-H-mode-stringable-items",
+            "php": "(new Collection([new Stringable('Lara'), new Stringable('Lara')]))->mode()",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type Illuminate\\Support\\Stringable in isset or empty"
+        },
+        {
+            "label": "C32-H-mode-tostring-items",
+            "php": "(new Collection([$o, $o]))->mode(), $o an object with __toString",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type class@anonymous in isset or empty"
+        },
+        {
+            "label": "C32-H-mode-float-items",
+            "php": "@(new Collection([1.5, 1.7, 2.5]))->mode()",
+            "value": [
+                1
+            ]
+        }
+    ]
+}

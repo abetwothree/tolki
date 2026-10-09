@@ -1,0 +1,285 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::flatten default depth",
+            "php": "Arr::flatten([\"a\"=>[\"b\"=>[\"c\"=>[\"d\"=>1]]]])",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "X29 flatten defaults to INF",
+            "php": "Arr::flatten([1,[2,[3]]])",
+            "value": {
+                "default": [
+                    1,
+                    2,
+                    3
+                ],
+                "depth1": [
+                    1,
+                    2,
+                    [
+                        3
+                    ]
+                ],
+                "depth2": [
+                    1,
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "flatten at a finite depth descends exactly that many levels",
+            "php": "Arr::flatten([1,[2,[3]]],2)",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "flatten depth 1 stops one level down",
+            "php": "Arr::flatten([1,[2,[3]]],1)",
+            "value": [
+                1,
+                2,
+                [
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "flatten depth 0 keeps descending (only 1 stops it)",
+            "php": "Arr::flatten([1,[2,[3]]],0)",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "flatten ignores keys at every level",
+            "php": "Arr::flatten(['a'=>1,'b'=>['c'=>2,'d'=>['e'=>3]]],2)",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "flatten depth 0 fully flattens (depth never hits 1)",
+            "php": "Arr::flatten([1,[2,[3]]], 0)",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "Arr::flatten defaults to unlimited depth",
+            "php": "Arr::flatten([\"a\"=>[\"b\"=>[\"c\"=>[\"d\"=>1]]]])",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "Arr::flatten honours an explicit depth of 2",
+            "php": "Arr::flatten([\"a\"=>[\"b\"=>[\"c\"=>[\"d\"=>1]]]], 2)",
+            "value": [
+                {
+                    "d": 1
+                }
+            ]
+        },
+        {
+            "label": "flatten-assoc-nulls",
+            "php": "Arr::flatten(['a' => ['#foo', null], 'b' => '#baz', 'c' => null])",
+            "value": [
+                "#foo",
+                null,
+                "#baz",
+                null
+            ]
+        },
+        {
+            "label": "flatten-object-leaf",
+            "php": "Arr::flatten([$date, [1]]), ([$o, [$date]]), (['a' => $o, 'b' => ['c' => $date, 'd' => [2]]]), ([new ArrayObject([1, 2])]): what is kept",
+            "value": {
+                "list": {
+                    "count": 2,
+                    "kept": true,
+                    "rest": [
+                        1
+                    ]
+                },
+                "nested": {
+                    "count": 2,
+                    "kept": true
+                },
+                "map": {
+                    "count": 3,
+                    "kept": true,
+                    "rest": [
+                        2
+                    ]
+                },
+                "arrayObject": {
+                    "count": 1,
+                    "kept": true
+                }
+            }
+        },
+        {
+            "label": "flatten-collection-item",
+            "php": "Arr::flatten([new Collection([1, [2, 3]]), 4]), ([new Collection(['a' => 1, 'b' => new Collection([2])])]), ([new Collection([[1, 2], 3])], 1), ([[new Collection([2, 3])]], 1)",
+            "value": {
+                "item": [
+                    1,
+                    2,
+                    3,
+                    4
+                ],
+                "nested": [
+                    1,
+                    2
+                ],
+                "depth-1-item": [
+                    [
+                        1,
+                        2
+                    ],
+                    3
+                ],
+                "depth-1-value": {
+                    "count": 1,
+                    "collection": true
+                }
+            }
+        },
+        {
+            "label": "r3-assoc-backed-leaf-rules",
+            "php": "Arr::flatten(['a' => $o]), Arr::collapse(['g2' => $o]), array_replace_recursive(['a' => $o], ['a' => ['x' => 5]])",
+            "value": {
+                "flatten-single-object-entry": {
+                    "count": 1,
+                    "kept": true
+                },
+                "collapse-only-object-assoc": [],
+                "replaceRecursive-object-under-array": {
+                    "a": {
+                        "x": 5
+                    }
+                }
+            }
+        },
+        {
+            "label": "flatten-out-of-order",
+            "php": "Arr::flatten([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": [
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "flatten-mixed",
+            "php": "Arr::flatten(['x' => 1, 0 => 2, 'y' => 3])",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "flatten-out-of-order-nested",
+            "php": "Arr::flatten([2 => ['c', ['d']], 0 => 'a', 1 => ['k' => 'b']])",
+            "value": [
+                "c",
+                "d",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "flatten-out-of-order-nested-depth-1",
+            "php": "Arr::flatten([2 => ['c', ['d']], 0 => 'a', 1 => ['k' => 'b']], 1)",
+            "value": [
+                "c",
+                [
+                    "d"
+                ],
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "flatten-collision",
+            "php": "Arr::flatten([1 => 'a', 'x' => 'b', '1' => 'c'])",
+            "value": [
+                "c",
+                "b"
+            ]
+        },
+        {
+            "label": "flatten-lazy-list",
+            "php": "Arr::flatten([new LazyCollection(['#foo', ['#bar']]), ['#baz', new LazyCollection(['#zap'])]])",
+            "value": [
+                "#foo",
+                "#bar",
+                "#baz",
+                "#zap"
+            ]
+        },
+        {
+            "label": "flatten-lazy-depth-1",
+            "php": "Arr::flatten([new LazyCollection([1, [2, [3]]]), [4, new LazyCollection([5])]], 1)",
+            "value": [
+                1,
+                [
+                    2,
+                    [
+                        3
+                    ]
+                ],
+                4,
+                {
+                    "lazy": [
+                        5
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "flatten-lazy-depth-2",
+            "php": "Arr::flatten([new LazyCollection([1, [2, [3]]]), [4, new LazyCollection([5, [6]])]], 2)",
+            "value": [
+                1,
+                2,
+                [
+                    3
+                ],
+                4,
+                5,
+                [
+                    6
+                ]
+            ]
+        },
+        {
+            "label": "flatten-lazy-assoc",
+            "php": "Arr::flatten(['a' => new LazyCollection(['x' => '#foo', 'y' => ['#bar']]), 'b' => ['c' => '#baz', 'd' => new LazyCollection(['#zap'])]])",
+            "value": [
+                "#foo",
+                "#bar",
+                "#baz",
+                "#zap"
+            ]
+        }
+    ]
+}

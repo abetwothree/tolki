@@ -1,0 +1,277 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "collection-chunk-zero",
+            "php": "(new Collection([1..10]))->chunk(0)",
+            "value": []
+        },
+        {
+            "label": "collection-chunk-negative",
+            "php": "(new Collection([1..10]))->chunk(-1)",
+            "value": []
+        },
+        {
+            "label": "collection-chunk-last-chunk-keys",
+            "php": "(new Collection([1..10]))->chunk(3)->get(3)",
+            "value": {
+                "9": 10
+            }
+        },
+        {
+            "label": "collection-chunk-assoc-preserves-keys",
+            "php": "(new Collection(['a'=>1,'b'=>2,'c'=>3]))->chunk(2)",
+            "value": [
+                {
+                    "a": 1,
+                    "b": 2
+                },
+                {
+                    "c": 3
+                }
+            ]
+        },
+        {
+            "label": "arr-chunk-zero-and-negative",
+            "php": "array_chunk guard via Collection::chunk on an assoc backing",
+            "value": {
+                "zero": [],
+                "negative": []
+            }
+        },
+        {
+            "label": "chunk-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->chunk(2)",
+            "value": [
+                [
+                    [
+                        2,
+                        "c"
+                    ],
+                    [
+                        0,
+                        "a"
+                    ]
+                ],
+                [
+                    [
+                        1,
+                        "b"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "chunk-out-of-order-renumbered",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->chunk(2, false)",
+            "value": [
+                [
+                    "c",
+                    "a"
+                ],
+                [
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "chunk-mixed",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->chunk(2)",
+            "value": [
+                [
+                    [
+                        "x",
+                        1
+                    ],
+                    [
+                        0,
+                        2
+                    ]
+                ],
+                [
+                    [
+                        "y",
+                        3
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "chunk-mixed-renumbered",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->chunk(2, false)",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "chunk-collision-renumbered",
+            "php": "(new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->chunk(2, false)",
+            "value": [
+                [
+                    "c",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-chunk-assoc-no-preserve",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->chunk(2, false)",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            0,
+                            1
+                        ],
+                        [
+                            1,
+                            2
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            0,
+                            3
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-chunk-fractional-size",
+            "php": "(new Collection([1, 2, 3, 4, 5]))->chunk(2.5)",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            0,
+                            1
+                        ],
+                        [
+                            1,
+                            2
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            2,
+                            3
+                        ],
+                        [
+                            3,
+                            4
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            4,
+                            5
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-chunk-counts",
+            "php": "(new Collection([1, 2, 3, 4, 5]))->chunk($size) for 1.5, 0.5, NAN, INF, -INF and 1e19, and (new Collection([]))->chunk($size) for NAN, INF and 1e19: the chunks, or the class and message thrown",
+            "value": {
+                "1.5": [
+                    [
+                        0,
+                        [
+                            [
+                                0,
+                                1
+                            ]
+                        ]
+                    ],
+                    [
+                        1,
+                        [
+                            [
+                                1,
+                                2
+                            ]
+                        ]
+                    ],
+                    [
+                        2,
+                        [
+                            [
+                                2,
+                                3
+                            ]
+                        ]
+                    ],
+                    [
+                        3,
+                        [
+                            [
+                                3,
+                                4
+                            ]
+                        ]
+                    ],
+                    [
+                        4,
+                        [
+                            [
+                                4,
+                                5
+                            ]
+                        ]
+                    ]
+                ],
+                "0.5": [
+                    "ValueError",
+                    "array_chunk(): Argument #2 ($length) must be greater than 0"
+                ],
+                "NAN": [
+                    "TypeError",
+                    "array_chunk(): Argument #2 ($length) must be of type int, float given"
+                ],
+                "INF": [
+                    "TypeError",
+                    "array_chunk(): Argument #2 ($length) must be of type int, float given"
+                ],
+                "-INF": [],
+                "1e19": [
+                    "TypeError",
+                    "array_chunk(): Argument #2 ($length) must be of type int, float given"
+                ],
+                "empty NAN": [
+                    "TypeError",
+                    "array_chunk(): Argument #2 ($length) must be of type int, float given"
+                ],
+                "empty INF": [
+                    "TypeError",
+                    "array_chunk(): Argument #2 ($length) must be of type int, float given"
+                ],
+                "empty 1e19": [
+                    "TypeError",
+                    "array_chunk(): Argument #2 ($length) must be of type int, float given"
+                ]
+            }
+        }
+    ]
+}

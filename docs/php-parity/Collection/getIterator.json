@@ -1,0 +1,16 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-A-iterate-integer-keys-out-of-order",
+            "php": "foreach (collect([2 => 'a', 1 => 'b']) as $v) { $seen[] = $v; }",
+            "value": [
+                "a",
+                "b"
+            ]
+        }
+    ]
+}

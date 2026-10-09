@@ -1,0 +1,34 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "exceptValues-empty",
+            "php": "Arr::exceptValues([], 'foo')",
+            "value": []
+        },
+        {
+            "label": "exceptValues-assoc-strict",
+            "php": "Arr::exceptValues(['a' => 1, 'b' => '1', 'c' => 2, 'd' => '2', 'e' => 3], [1, 2, 3], true)",
+            "value": {
+                "b": "1",
+                "d": "2"
+            }
+        },
+        {
+            "label": "exceptValues-assoc-loose",
+            "php": "Arr::exceptValues(['a' => 1, 'b' => '1', 'c' => 2, 'd' => '2', 'e' => 3], [1, 2, 3])",
+            "value": []
+        },
+        {
+            "label": "exceptValues-list-keeps-gap",
+            "php": "Arr::exceptValues(['foo','bar','baz','qux'], ['foo','baz'])",
+            "value": {
+                "1": "bar",
+                "3": "qux"
+            }
+        }
+    ]
+}

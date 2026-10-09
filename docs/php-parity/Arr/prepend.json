@@ -1,0 +1,335 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "prepend-empty-key",
+            "php": "Arr::prepend(['one'=>1,'two'=>2], 0, '')",
+            "value": {
+                "": 0,
+                "one": 1,
+                "two": 2
+            }
+        },
+        {
+            "label": "prepend-null-key",
+            "php": "Arr::prepend(['one'=>1,'two'=>2], 0, null)",
+            "value": {
+                "": 0,
+                "one": 1,
+                "two": 2
+            }
+        },
+        {
+            "label": "prepend-existing-empty-key",
+            "php": "Arr::prepend(['one','two',''=>'three'], ['zero'], '')",
+            "value": {
+                "": [
+                    "zero"
+                ],
+                "0": "one",
+                "1": "two"
+            }
+        },
+        {
+            "label": "prepend-existing-empty-key-null",
+            "php": "Arr::prepend(['one','two',''=>'three'], ['zero'], null)",
+            "value": {
+                "": [
+                    "zero"
+                ],
+                "0": "one",
+                "1": "two"
+            }
+        },
+        {
+            "label": "prepend-existing-key-assoc",
+            "php": "Arr::prepend(['a'=>1,'b'=>2], 9, 'b')",
+            "value": {
+                "b": 9,
+                "a": 1
+            }
+        },
+        {
+            "label": "prepend-existing-key-assoc-keys",
+            "php": "array_keys(Arr::prepend(['a'=>1,'b'=>2], 9, 'b'))",
+            "value": [
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "prepend-zero-key-order",
+            "php": "array_keys(Arr::prepend(['one'=>1,'two'=>2], 0, 'zero'))",
+            "value": [
+                "zero",
+                "one",
+                "two"
+            ]
+        },
+        {
+            "label": "prepend-list-null-empty-key",
+            "php": "prepend(['one','two'], null, '')",
+            "value": {
+                "": null,
+                "0": "one",
+                "1": "two"
+            }
+        },
+        {
+            "label": "prepend-list-array-key",
+            "php": "prepend(['one','two'], ['zero'], 'key')",
+            "value": {
+                "key": [
+                    "zero"
+                ],
+                "0": "one",
+                "1": "two"
+            }
+        },
+        {
+            "label": "prepend-list-array-empty-key",
+            "php": "prepend(['one','two'], ['zero'], '')",
+            "value": {
+                "": [
+                    "zero"
+                ],
+                "0": "one",
+                "1": "two"
+            }
+        },
+        {
+            "label": "prepend-assoc-no-key",
+            "php": "Arr::prepend(['one' => 1, 'two' => 2], 0)",
+            "value": {
+                "0": 0,
+                "one": 1,
+                "two": 2
+            }
+        },
+        {
+            "label": "prepend-mixed-no-key",
+            "php": "Arr::prepend([5 => 'five', 'one' => 1], 0)",
+            "value": {
+                "0": 0,
+                "1": "five",
+                "one": 1
+            }
+        },
+        {
+            "label": "prepend-negative-int-key-no-key",
+            "php": "Arr::prepend([-1 => 'a', 'x' => 'b'], 'z')",
+            "value": {
+                "0": "z",
+                "1": "a",
+                "x": "b"
+            }
+        },
+        {
+            "label": "prepend-key-cast",
+            "php": "@Arr::prepend(['a' => 1, 1 => 'x'], 'v', 1.5), @(['a' => 1], 'v', -2.7), (['a' => 1], 'v', true), (['a' => 1, 0 => 'x'], 'v', false)",
+            "value": {
+                "float": {
+                    "1": "v",
+                    "a": 1
+                },
+                "negative-float": {
+                    "-2": "v",
+                    "a": 1
+                },
+                "true": {
+                    "1": "v",
+                    "a": 1
+                },
+                "false": {
+                    "0": "v",
+                    "a": 1
+                }
+            }
+        },
+        {
+            "label": "prepend-list-with-key",
+            "php": "Arr::prepend(['b', 'c'], 'a', 0), (..., 1), (..., 5), @(..., 1.5), (..., 'k'), (new Collection(['b', 'c']))->prepend('a', 0), ->prepend('a', 'k'), ->prepend('a', 1)",
+            "value": {
+                "zero": [
+                    "a",
+                    "c"
+                ],
+                "one": {
+                    "1": "a",
+                    "0": "b"
+                },
+                "five": {
+                    "5": "a",
+                    "0": "b",
+                    "1": "c"
+                },
+                "float": {
+                    "1": "a",
+                    "0": "b"
+                },
+                "string": {
+                    "k": "a",
+                    "0": "b",
+                    "1": "c"
+                },
+                "collection-zero": [
+                    "a",
+                    "c"
+                ],
+                "collection-string": {
+                    "k": "a",
+                    "0": "b",
+                    "1": "c"
+                },
+                "collection-one": {
+                    "1": "a",
+                    "0": "b"
+                }
+            }
+        },
+        {
+            "label": "d6-prepend-existing-integer-key",
+            "php": "Arr::prepend([1 => 'a', 'b' => 2], 'z', 1)",
+            "value": {
+                "result": {
+                    "1": "z",
+                    "b": 2
+                },
+                "keys": [
+                    1,
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "r3-prepend-extra-keys",
+            "php": "Arr::prepend([1 => 'a', 2 => 'b', 'c' => 3], 'z', 2) and @Arr::prepend(['a' => 1], 'v', -0.5)",
+            "value": {
+                "existing-integer-key-2": {
+                    "result": {
+                        "2": "z",
+                        "1": "a",
+                        "c": 3
+                    },
+                    "keys": [
+                        "int:2",
+                        "int:1",
+                        "string:c"
+                    ]
+                },
+                "negative-float-above-minus-one": {
+                    "result": {
+                        "0": "v",
+                        "a": 1
+                    },
+                    "keys": [
+                        "int:0",
+                        "string:a"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "prepend-out-of-order",
+            "php": "Arr::prepend([2 => 'c', 0 => 'a', 1 => 'b'], 'z')",
+            "value": [
+                "z",
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "prepend-mixed",
+            "php": "Arr::prepend(['x' => 1, 0 => 2, 'y' => 3], 'z')",
+            "value": [
+                [
+                    0,
+                    "z"
+                ],
+                [
+                    "x",
+                    1
+                ],
+                [
+                    1,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "prepend-out-of-order-string-key",
+            "php": "Arr::prepend([2 => 'c', 0 => 'a', 1 => 'b'], 'z', 'k')",
+            "value": [
+                [
+                    "k",
+                    "z"
+                ],
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "prepend-out-of-order-existing-int-key",
+            "php": "Arr::prepend([2 => 'c', 0 => 'a', 1 => 'b'], 'z', 0)",
+            "value": [
+                [
+                    0,
+                    "z"
+                ],
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "prepend-negative-key-first",
+            "php": "Arr::prepend([-1 => 'm', 5 => 'f'], 'z')",
+            "value": [
+                "z",
+                "m",
+                "f"
+            ]
+        },
+        {
+            "label": "prepend-collision",
+            "php": "Arr::prepend([1 => 'a', 'x' => 'b', '1' => 'c'], 'z')",
+            "value": [
+                [
+                    0,
+                    "z"
+                ],
+                [
+                    1,
+                    "c"
+                ],
+                [
+                    "x",
+                    "b"
+                ]
+            ]
+        }
+    ]
+}

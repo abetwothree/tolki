@@ -1,0 +1,23 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "camel-multibyte-first-space",
+            "php": "Str::camel('\u00dcber uns')",
+            "value": "\u00fcberUns"
+        },
+        {
+            "label": "camel-multibyte-first-snake",
+            "php": "Str::camel('\u00e9mile_zola')",
+            "value": "\u00e9mileZola"
+        },
+        {
+            "label": "camel-multibyte-first-kebab",
+            "php": "Str::camel('\u00c9lan-vital')",
+            "value": "\u00e9lanVital"
+        }
+    ]
+}

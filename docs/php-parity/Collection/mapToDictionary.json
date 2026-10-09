@@ -1,0 +1,88 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-E-mapToDictionary-int-key-order",
+            "php": "collect([3, 1, 3, 2])->mapToDictionary(fn ($v, $k) => [$v => $k])",
+            "value": [
+                [
+                    3,
+                    "integer",
+                    [
+                        0,
+                        2
+                    ]
+                ],
+                [
+                    1,
+                    "integer",
+                    [
+                        1
+                    ]
+                ],
+                [
+                    2,
+                    "integer",
+                    [
+                        3
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-mapToDictionary-multi-pair-takes-first",
+            "php": "collect([1, 2])->mapToDictionary(fn ($v) => ['a' => $v, 'b' => $v * 10])",
+            "value": {
+                "a": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-E-mapToDictionary-list-return",
+            "php": "collect([['id'=>1,'name'=>'A'],['id'=>2,'name'=>'B']])->mapToDictionary(fn ($i) => [$i['name'], $i['id']])",
+            "value": [
+                [
+                    0,
+                    "integer",
+                    [
+                        "A",
+                        "B"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-mapToDictionary-one-item-list-return",
+            "php": "collect([['name'=>'A'],['name'=>'B']])->mapToDictionary(fn ($i) => [$i['name']])",
+            "value": [
+                [
+                    0,
+                    "integer",
+                    [
+                        "A",
+                        "B"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-mapToDictionary-empty-return",
+            "php": "@collect([1, 2])->mapToDictionary(fn () => [])",
+            "value": [
+                [
+                    "",
+                    "string",
+                    [
+                        false,
+                        false
+                    ]
+                ]
+            ]
+        }
+    ]
+}

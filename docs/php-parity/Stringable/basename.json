@@ -1,0 +1,73 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "basename: trailing name of a directory path",
+            "php": "Str::of('/framework/tests/Support')->basename('')",
+            "value": "Support"
+        },
+        {
+            "label": "basename: file name with extension",
+            "php": "Str::of('/framework/src/Str.php')->basename('')",
+            "value": "Str.php"
+        },
+        {
+            "label": "basename: file name with the suffix removed",
+            "php": "Str::of('/framework/src/Str.php')->basename('.php')",
+            "value": "Str"
+        },
+        {
+            "label": "basename: root alone is empty",
+            "php": "Str::of('/')->basename('')",
+            "value": ""
+        },
+        {
+            "label": "basename: empty path",
+            "php": "Str::of('')->basename('')",
+            "value": ""
+        },
+        {
+            "label": "basename: trailing slash is ignored",
+            "php": "Str::of('foo/')->basename('')",
+            "value": "foo"
+        },
+        {
+            "label": "basename: repeated trailing slashes ignored",
+            "php": "Str::of('/foo//')->basename('')",
+            "value": "foo"
+        },
+        {
+            "label": "basename: suffix equal to the whole name stays",
+            "php": "Str::of('.php')->basename('.php')",
+            "value": ".php"
+        },
+        {
+            "label": "basename: suffix equal to the whole file name stays",
+            "php": "Str::of('Str.php')->basename('Str.php')",
+            "value": "Str.php"
+        },
+        {
+            "label": "basename: dotfile is its own name",
+            "php": "Str::of('dir/.hidden')->basename('')",
+            "value": ".hidden"
+        },
+        {
+            "label": "basename: only the last suffix is removed",
+            "php": "Str::of('a/b/c.tar.gz')->basename('.gz')",
+            "value": "c.tar"
+        },
+        {
+            "label": "basename: suffix is case-sensitive",
+            "php": "Str::of('file.PHP')->basename('.php')",
+            "value": "file.PHP"
+        },
+        {
+            "label": "basename: suffix absent leaves the name",
+            "php": "Str::of('foo')->basename('.php')",
+            "value": "foo"
+        }
+    ]
+}

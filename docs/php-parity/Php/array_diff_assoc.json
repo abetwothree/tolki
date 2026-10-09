@@ -1,0 +1,18 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "array_diff_assoc casts values to string",
+            "php": "array_diff_assoc([\"a\"=>0],[\"a\"=>\"0\"])",
+            "value": []
+        },
+        {
+            "label": "array_diff_assoc casts a float to string",
+            "php": "array_diff_assoc([\"a\"=>1.0],[\"a\"=>\"1\"])",
+            "value": []
+        }
+    ]
+}

@@ -1,0 +1,80 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "collapse-null",
+            "php": "collect(null)->collapse()->all()",
+            "value": []
+        },
+        {
+            "label": "C32-E-collapse-nested-collections",
+            "php": "collect([collect([1,2,3]), collect([4,5,6])])->collapse() and collect([[o1],[o2]])->collapse() count",
+            "value": {
+                "collections": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6
+                ],
+                "objects": 2
+            }
+        },
+        {
+            "label": "C32-E-array-item-all-member-is-data",
+            "php": "$row = ['all' => fn () => [9], 'b' => 2]: collect([$row]) and collect(['x' => $row]) ->collapse()->keys() and ->flatten() (a closure as 'Closure')",
+            "value": {
+                "collapseKeys": [
+                    "all",
+                    "b"
+                ],
+                "collapseKeyedKeys": [
+                    "all",
+                    "b"
+                ],
+                "flatten": [
+                    "Closure",
+                    2
+                ],
+                "flattenKeyed": [
+                    "Closure",
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-E-collapse-out-of-order-collection-item",
+            "php": "collect([collect([2 => 'c', 0 => 'a'])])->collapse(), and whether it is a list",
+            "value": {
+                "pairs": [
+                    [
+                        0,
+                        "integer",
+                        "c"
+                    ],
+                    [
+                        1,
+                        "integer",
+                        "a"
+                    ]
+                ],
+                "is-list": true
+            }
+        },
+        {
+            "label": "collapse-mixed-collection-types",
+            "php": "(new Collection([new Collection([1, 2]), new LazyCollection([3, 4]), [5]]))->collapse()->all()",
+            "value": [
+                1,
+                2,
+                3,
+                4,
+                5
+            ]
+        }
+    ]
+}

@@ -1,0 +1,40 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-G-sortKeysUsing-key-types",
+            "php": "(new Collection(['a', 'b', 'c']))->sortKeysUsing(fn ($a, $b) => ...) recording gettype of each key",
+            "value": [
+                "integer"
+            ]
+        },
+        {
+            "label": "C32-G-sortKeysUsing-int-keys-desc",
+            "php": "(new Collection([5 => 'e', 2 => 'b', 9 => 'z']))->sortKeysUsing(fn ($a, $b) => $b <=> $a)->values()->all()",
+            "value": [
+                "z",
+                "e",
+                "b"
+            ]
+        },
+        {
+            "label": "C32-G-sortKeysUsing-fractional-answers",
+            "php": "(new Collection(['c' => 1, 'a' => 2, 'b' => 3]))->sortKeysUsing(fn ($x, $y) => $x < $y ? -$step : ($x > $y ? $step : 0))->keys()->all() for $step = 0.5 and 1.5",
+            "value": [
+                [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                [
+                    "a",
+                    "b",
+                    "c"
+                ]
+            ]
+        }
+    ]
+}

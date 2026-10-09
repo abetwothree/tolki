@@ -1,0 +1,46 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "callback-key some",
+            "php": "Arr::some([1 => \"a\", \"x\" => \"b\"], $cb returning false)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "some-out-of-order-callback-order",
+            "php": "Arr::some([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => false) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "some-out-of-order-early-exit-callback-order",
+            "php": "Arr::some([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => true) => keys seen",
+            "value": [
+                2
+            ]
+        },
+        {
+            "label": "some-mixed-callback-order",
+            "php": "Arr::some(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => false) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "some-collision",
+            "php": "Arr::some([1 => 'a', '1' => 'b'], fn ($v) => $v === 'a')",
+            "value": false
+        }
+    ]
+}

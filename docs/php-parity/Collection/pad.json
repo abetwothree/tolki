@@ -1,0 +1,571 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "X18/pad positive padding appends",
+            "php": "collect([10,20,30,40])->pad(6,0)",
+            "value": {
+                "padded": [
+                    10,
+                    20,
+                    30,
+                    40,
+                    0,
+                    0
+                ],
+                "noPad": [
+                    10,
+                    20,
+                    30,
+                    40
+                ]
+            }
+        },
+        {
+            "label": "pad via Collection",
+            "php": "collect([10,20,30,40])->pad(6,0)",
+            "value": [
+                10,
+                20,
+                30,
+                40,
+                0,
+                0
+            ]
+        },
+        {
+            "label": "PAD1 pad on assoc (list fixture shapes)",
+            "php": "['p4' => (new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->pad(4, 0)->all(), 'p4big' => (new Collection(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4, 'e' => 5]))->pad(4, 0)->all(), 'n4' => ...->pad(-4, 0)->all(), 'n4big' => ...->pad(-4, 0)->all()]",
+            "value": {
+                "p4": {
+                    "a": 1,
+                    "b": 2,
+                    "c": 3,
+                    "0": 0
+                },
+                "p4big": {
+                    "a": 1,
+                    "b": 2,
+                    "c": 3,
+                    "d": 4,
+                    "e": 5
+                },
+                "n4": {
+                    "0": 0,
+                    "a": 1,
+                    "b": 2,
+                    "c": 3
+                },
+                "n4big": {
+                    "a": 1,
+                    "b": 2,
+                    "c": 3,
+                    "d": 4,
+                    "e": 5
+                }
+            }
+        },
+        {
+            "label": "pad-negative-int-key",
+            "php": "(new Collection([-1 => 'a', 'x' => 'b']))->pad(4, 0), ->pad(-4, 0), ->pad(2, 0)",
+            "value": {
+                "right": {
+                    "0": "a",
+                    "x": "b",
+                    "1": 0,
+                    "2": 0
+                },
+                "left": {
+                    "0": 0,
+                    "1": 0,
+                    "2": "a",
+                    "x": "b"
+                },
+                "none": {
+                    "-1": "a",
+                    "x": "b"
+                }
+            }
+        },
+        {
+            "label": "order-pad",
+            "php": "collect(base)->pad(5, 'z')",
+            "value": {
+                "all": [
+                    "c",
+                    "a",
+                    "b",
+                    "z",
+                    "z"
+                ],
+                "values": [
+                    "c",
+                    "a",
+                    "b",
+                    "z",
+                    "z"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4
+                ]
+            }
+        },
+        {
+            "label": "order-pad-negative",
+            "php": "collect(base)->pad(-5, 'z')",
+            "value": {
+                "all": [
+                    "z",
+                    "z",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "z",
+                    "z",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4
+                ]
+            }
+        },
+        {
+            "label": "order-pad-no-padding",
+            "php": "collect(base)->pad(2, 'z')",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-pad-does-not-mutate",
+            "php": "$c = collect(base); $c->pad(5, 'z'); $c",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-mixed-pad",
+            "php": "collect([2 => 'c', 'x' => 'a', 1 => 'b'])->pad(5, 'p')",
+            "value": {
+                "all": {
+                    "0": "c",
+                    "x": "a",
+                    "1": "b",
+                    "2": "p",
+                    "3": "p"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b",
+                    "p",
+                    "p"
+                ],
+                "keys": [
+                    0,
+                    "x",
+                    1,
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "pad-out-of-order-grow-right",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->pad(6, 'P')",
+            "value": [
+                "c",
+                "a",
+                "b",
+                "P",
+                "P",
+                "P"
+            ]
+        },
+        {
+            "label": "pad-out-of-order-grow-left",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->pad(-6, 'P')",
+            "value": [
+                "P",
+                "P",
+                "P",
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "pad-out-of-order-no-op",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->pad(2, 'P')",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "pad-mixed-grow-right",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->pad(5, 'P')",
+            "value": [
+                [
+                    "x",
+                    1
+                ],
+                [
+                    0,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ],
+                [
+                    1,
+                    "P"
+                ],
+                [
+                    2,
+                    "P"
+                ]
+            ]
+        },
+        {
+            "label": "pad-mixed-grow-left",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->pad(-5, 'P')",
+            "value": [
+                [
+                    0,
+                    "P"
+                ],
+                [
+                    1,
+                    "P"
+                ],
+                [
+                    "x",
+                    1
+                ],
+                [
+                    2,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "pad-collision-grow-right",
+            "php": "(new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->pad(3, 'P')",
+            "value": [
+                [
+                    0,
+                    "c"
+                ],
+                [
+                    "x",
+                    "b"
+                ],
+                [
+                    1,
+                    "P"
+                ]
+            ]
+        },
+        {
+            "label": "C32-B-pad-past-a-string-key-order",
+            "php": "$c = collect([5 => 'a', 'x' => 'b'])->pad(4, 0); keys/values",
+            "value": {
+                "keys": [
+                    0,
+                    "x",
+                    1,
+                    2
+                ],
+                "values": [
+                    "a",
+                    "b",
+                    0,
+                    0
+                ]
+            }
+        },
+        {
+            "label": "C32-B-pad-fractional-and-non-int-sizes",
+            "php": "pad($size, 0) over collect([1, 2, 3]) and collect(['a' => 1, 'b' => 2, 'c' => 3]) for 7.5, -7.5, 0.5, NAN, INF, -INF, 1e19 and -1e19: the keys and values, or the class and message thrown",
+            "value": {
+                "list": {
+                    "7.5": {
+                        "keys": [
+                            0,
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6
+                        ],
+                        "values": [
+                            1,
+                            2,
+                            3,
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    "-7.5": {
+                        "keys": [
+                            0,
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6
+                        ],
+                        "values": [
+                            0,
+                            0,
+                            0,
+                            0,
+                            1,
+                            2,
+                            3
+                        ]
+                    },
+                    "0.5": {
+                        "keys": [
+                            0,
+                            1,
+                            2
+                        ],
+                        "values": [
+                            1,
+                            2,
+                            3
+                        ]
+                    },
+                    "NAN": [
+                        "TypeError",
+                        "array_pad(): Argument #2 ($length) must be of type int, float given"
+                    ],
+                    "INF": [
+                        "TypeError",
+                        "array_pad(): Argument #2 ($length) must be of type int, float given"
+                    ],
+                    "-INF": [
+                        "TypeError",
+                        "array_pad(): Argument #2 ($length) must be of type int, float given"
+                    ],
+                    "1e19": [
+                        "TypeError",
+                        "array_pad(): Argument #2 ($length) must be of type int, float given"
+                    ],
+                    "-1e19": [
+                        "TypeError",
+                        "array_pad(): Argument #2 ($length) must be of type int, float given"
+                    ]
+                },
+                "keyed": {
+                    "7.5": {
+                        "keys": [
+                            "a",
+                            "b",
+                            "c",
+                            0,
+                            1,
+                            2,
+                            3
+                        ],
+                        "values": [
+                            1,
+                            2,
+                            3,
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    "-7.5": {
+                        "keys": [
+                            0,
+                            1,
+                            2,
+                            3,
+                            "a",
+                            "b",
+                            "c"
+                        ],
+                        "values": [
+                            0,
+                            0,
+                            0,
+                            0,
+                            1,
+                            2,
+                            3
+                        ]
+                    },
+                    "0.5": {
+                        "keys": [
+                            "a",
+                            "b",
+                            "c"
+                        ],
+                        "values": [
+                            1,
+                            2,
+                            3
+                        ]
+                    },
+                    "NAN": [
+                        "TypeError",
+                        "array_pad(): Argument #2 ($length) must be of type int, float given"
+                    ],
+                    "INF": [
+                        "TypeError",
+                        "array_pad(): Argument #2 ($length) must be of type int, float given"
+                    ],
+                    "-INF": [
+                        "TypeError",
+                        "array_pad(): Argument #2 ($length) must be of type int, float given"
+                    ],
+                    "1e19": [
+                        "TypeError",
+                        "array_pad(): Argument #2 ($length) must be of type int, float given"
+                    ],
+                    "-1e19": [
+                        "TypeError",
+                        "array_pad(): Argument #2 ($length) must be of type int, float given"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "C32-B-pad-past-maximum-array-size",
+            "php": "collect([1, 2, 3])->pad($size, 0) for 1073741825, -1073741825 and 1e18: the class and message thrown",
+            "value": {
+                "1073741825": [
+                    "ValueError",
+                    "array_pad(): Argument #2 ($length) must not exceed the maximum allowed array size"
+                ],
+                "-1073741825": [
+                    "ValueError",
+                    "array_pad(): Argument #2 ($length) must not exceed the maximum allowed array size"
+                ],
+                "1e18": [
+                    "ValueError",
+                    "array_pad(): Argument #2 ($length) must not exceed the maximum allowed array size"
+                ]
+            }
+        },
+        {
+            "label": "C32-B-pad-fractional-size-out-of-order-keys",
+            "php": "collect([2 => 'c', 0 => 'a', 1 => 'b'])->pad($size, 'P') for 4.5, -4.5 and NAN: the keys and values, or the class and message thrown",
+            "value": {
+                "4.5": {
+                    "keys": [
+                        0,
+                        1,
+                        2,
+                        3
+                    ],
+                    "values": [
+                        "c",
+                        "a",
+                        "b",
+                        "P"
+                    ]
+                },
+                "-4.5": {
+                    "keys": [
+                        0,
+                        1,
+                        2,
+                        3
+                    ],
+                    "values": [
+                        "P",
+                        "c",
+                        "a",
+                        "b"
+                    ]
+                },
+                "NAN": [
+                    "TypeError",
+                    "array_pad(): Argument #2 ($length) must be of type int, float given"
+                ]
+            }
+        },
+        {
+            "label": "C32-B-pad-far-past-maximum-array-size",
+            "php": "collect([1, 2, 3])->pad($size, 0) for 1e18 and -1e18: the class and message thrown",
+            "value": {
+                "1e18": [
+                    "ValueError",
+                    "array_pad(): Argument #2 ($length) must not exceed the maximum allowed array size"
+                ],
+                "-1e18": [
+                    "ValueError",
+                    "array_pad(): Argument #2 ($length) must not exceed the maximum allowed array size"
+                ]
+            }
+        }
+    ]
+}

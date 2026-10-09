@@ -1,0 +1,169 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "select-name-age",
+            "php": "Arr::select($sel, ['name','age'])",
+            "value": {
+                "a": {
+                    "name": "Taylor",
+                    "age": 1
+                },
+                "b": {
+                    "name": "Abigail",
+                    "age": 2
+                }
+            }
+        },
+        {
+            "label": "select-missing",
+            "php": "Arr::select($sel, 'nonExistingKey')",
+            "value": {
+                "a": [],
+                "b": []
+            }
+        },
+        {
+            "label": "select-null",
+            "php": "Arr::select($sel, null)",
+            "value": {
+                "a": [],
+                "b": []
+            }
+        },
+        {
+            "label": "select-bare-existing-key",
+            "php": "Arr::select(['a'=>['name'=>'Taylor','age'=>1],'b'=>['name'=>'Abigail','age'=>2]], 'name')",
+            "value": {
+                "a": {
+                    "name": "Taylor"
+                },
+                "b": {
+                    "name": "Abigail"
+                }
+            }
+        },
+        {
+            "label": "select-missing-and-null-list",
+            "php": "Arr::select over a list backing \u2014 missing key and null key",
+            "value": {
+                "missing": [
+                    [],
+                    []
+                ],
+                "null": [
+                    [],
+                    []
+                ]
+            }
+        },
+        {
+            "label": "select-bare-key-list",
+            "php": "array_values(Arr::select([['a'=>1,'b'=>2],['a'=>3,'b'=>4]], 'a'))",
+            "value": [
+                {
+                    "a": 1
+                },
+                {
+                    "a": 3
+                }
+            ]
+        },
+        {
+            "label": "C32-D-select-null-key-cast",
+            "php": "select([null, 'a']) and select('a', null) over [['' => 'e', 'a' => 1]], and Arr::select() of it with [null] and with a bare null",
+            "value": {
+                "collection-array": [
+                    [
+                        [
+                            "",
+                            "e"
+                        ],
+                        [
+                            "a",
+                            1
+                        ]
+                    ]
+                ],
+                "collection-args": [
+                    [
+                        [
+                            "a",
+                            1
+                        ],
+                        [
+                            "",
+                            "e"
+                        ]
+                    ]
+                ],
+                "arr-list": [
+                    [
+                        [
+                            "",
+                            "e"
+                        ]
+                    ]
+                ],
+                "arr-bare-null": [
+                    []
+                ]
+            }
+        },
+        {
+            "label": "C32-D-select-arrayaccess-call-counts",
+            "php": "Arr::select([$row], ['a']) and Arr::select([$row], ['a', 'missing']) over a fresh C32D_CountingAccess(['a' => 1]): the selection, then the offsetExists and offsetGet calls",
+            "value": [
+                [
+                    [
+                        [
+                            [
+                                "a",
+                                1
+                            ]
+                        ]
+                    ],
+                    1,
+                    1
+                ],
+                [
+                    [
+                        [
+                            [
+                                "a",
+                                1
+                            ]
+                        ]
+                    ],
+                    2,
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-collection-row-fields",
+            "php": "Arr::select([new Collection(['a' => 1])], ['items', 'a']) and (new Collection([new Collection(['a' => 1])]))->select('items', 'a')",
+            "value": [
+                [
+                    [
+                        [
+                            "a",
+                            1
+                        ]
+                    ]
+                ],
+                [
+                    [
+                        [
+                            "a",
+                            1
+                        ]
+                    ]
+                ]
+            ]
+        }
+    ]
+}

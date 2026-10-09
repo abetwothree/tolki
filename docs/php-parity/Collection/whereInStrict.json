@@ -1,0 +1,24 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-D-whereInStrict-array",
+            "php": "whereInStrict('v', [[1, 2]]) over v = [1, 2], ['1', '2']",
+            "value": [
+                0
+            ]
+        },
+        {
+            "label": "C32-D-whereInStrict-scalars",
+            "php": "whereInStrict('v', [1, '2', null, NAN]) over v = 1, '1', 2, '2', null, false, NAN",
+            "value": [
+                0,
+                3,
+                4
+            ]
+        }
+    ]
+}

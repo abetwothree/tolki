@@ -1,0 +1,60 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "whereNotNull-assoc-falsy",
+            "php": "Arr::whereNotNull(['a' => null, 'b' => 0, 'c' => false, 'd' => '', 'e' => null, 'f' => []])",
+            "value": {
+                "b": 0,
+                "c": false,
+                "d": "",
+                "f": []
+            }
+        },
+        {
+            "label": "whereNotNull-all-null",
+            "php": "Arr::whereNotNull([null, null]) and Arr::whereNotNull(['a'=>null])",
+            "value": {
+                "list": [],
+                "assoc": []
+            }
+        },
+        {
+            "label": "whereNotNull-list-preserves-keys",
+            "php": "Arr::whereNotNull([null, 0, false, '', null, []])",
+            "value": {
+                "1": 0,
+                "2": false,
+                "3": "",
+                "5": []
+            }
+        },
+        {
+            "label": "whereNotNull-out-of-order",
+            "php": "Arr::whereNotNull([2 => 'c', 0 => null, 1 => 'b'])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "whereNotNull-collision-null-last",
+            "php": "Arr::whereNotNull([1 => 'a', 'x' => 'm', '1' => null])",
+            "value": [
+                [
+                    "x",
+                    "m"
+                ]
+            ]
+        }
+    ]
+}

@@ -1,0 +1,16 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-A-all-returns-a-copy",
+            "php": "$a = collect([1, 2]); $x = $a->all(); $x[] = 3; $a->all()",
+            "value": [
+                1,
+                2
+            ]
+        }
+    ]
+}

@@ -1,0 +1,46 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "onlyValues-empty-data",
+            "php": "Arr::onlyValues([], 'foo')",
+            "value": []
+        },
+        {
+            "label": "onlyValues-empty-values-assoc",
+            "php": "Arr::onlyValues(['a'=>'foo','b'=>'bar'], [])",
+            "value": []
+        },
+        {
+            "label": "onlyValues-strict-numstr-assoc",
+            "php": "Arr::onlyValues(['a'=>1,'b'=>'1','c'=>2,'d'=>'2','e'=>3], [1,2,3], true)",
+            "value": {
+                "a": 1,
+                "c": 2,
+                "e": 3
+            }
+        },
+        {
+            "label": "onlyValues-loose-numstr-assoc",
+            "php": "Arr::onlyValues(['a'=>1,'b'=>'1','c'=>2,'d'=>'2','e'=>3], [1,2,3])",
+            "value": {
+                "a": 1,
+                "b": "1",
+                "c": 2,
+                "d": "2",
+                "e": 3
+            }
+        },
+        {
+            "label": "onlyValues-list-keeps-gap",
+            "php": "Arr::onlyValues(['foo','bar','baz','qux'], ['foo','baz'])",
+            "value": {
+                "0": "foo",
+                "2": "baz"
+            }
+        }
+    ]
+}

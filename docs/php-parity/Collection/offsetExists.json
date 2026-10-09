@@ -1,0 +1,24 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-B-offsetExists-falsy-values",
+            "php": "collect([0, false, '', [], '0']) offsetExists(0..4)",
+            "value": [
+                true,
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "label": "C32-B-offsetExists-zero-on-record",
+            "php": "collect(['a' => 0])->offsetExists('a')",
+            "value": true
+        }
+    ]
+}

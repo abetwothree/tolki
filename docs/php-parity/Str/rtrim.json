@@ -1,0 +1,64 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "rtrim-charlist-long-interior-run",
+            "php": "Str::rtrim($x.'['.$x.'y'.$x, 'x') === $x.'['.$x.'y' for $x = str_repeat('x', 120000)",
+            "value": true
+        },
+        {
+            "label": "rtrim-cases",
+            "php": "Str::rtrim($value, $charlist) for each [$value, $charlist], a null charlist being the default, recorded as [$value, $charlist, result]",
+            "value": [
+                [
+                    "hello  ",
+                    "",
+                    "hello  "
+                ],
+                [
+                    "line1\nline2   ",
+                    null,
+                    "line1\nline2"
+                ],
+                [
+                    "line1\n    line2\n        ",
+                    null,
+                    "line1\n    line2"
+                ],
+                [
+                    "hello\n    world\n      ",
+                    null,
+                    "hello\n    world"
+                ],
+                [
+                    "line1\n\nline2\n   ",
+                    null,
+                    "line1\n\nline2"
+                ],
+                [
+                    "\u0085a\u0085",
+                    null,
+                    "\u0085a"
+                ],
+                [
+                    "a\ud834\udd59\udb40\udc20",
+                    null,
+                    "a"
+                ],
+                [
+                    "a\ud83d\ude00\ud83d\ude00b\ud83d\ude00",
+                    "\ud83d\ude00",
+                    "a\ud83d\ude00\ud83d\ude00b"
+                ],
+                [
+                    "a]]",
+                    "]",
+                    "a"
+                ]
+            ]
+        }
+    ]
+}

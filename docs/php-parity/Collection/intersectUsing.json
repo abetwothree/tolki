@@ -1,0 +1,32 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "d6-intersect-using",
+            "php": "(new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue']))->intersectUsing(['A' => 'GREEN', 'yellow'], 'strcasecmp')",
+            "value": {
+                "assoc": {
+                    "a": "green"
+                },
+                "list": [
+                    "green"
+                ],
+                "nullish-operand": [],
+                "collection-operand": {
+                    "a": "green"
+                }
+            }
+        },
+        {
+            "label": "C32-F-intersectUsing-spaceship-comparator",
+            "php": "collect([1, 2, 3])->intersectUsing([2, 3], fn ($a, $b) => $a <=> $b)",
+            "value": {
+                "1": 2,
+                "2": 3
+            }
+        }
+    ]
+}

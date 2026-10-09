@@ -1,0 +1,79 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "last-assoc-key-callback",
+            "php": "Arr::last(['first' => 100, 'second' => 200, 'third' => 300], fn ($v, $k) => $k !== 'third')",
+            "value": 200
+        },
+        {
+            "label": "last-assoc-no-match",
+            "php": "Arr::last(['a' => 100, 'b' => 200, 'c' => 300], fn ($v) => $v > 300)",
+            "value": null
+        },
+        {
+            "label": "last-assoc-closure-default",
+            "php": "Arr::last(assoc, fn > 300, fn () => 'baz')",
+            "value": "baz"
+        },
+        {
+            "label": "callback-key last",
+            "php": "Arr::last([1 => \"a\", \"x\" => \"b\"], $cb returning false)",
+            "value": [
+                "string",
+                "integer"
+            ]
+        },
+        {
+            "label": "arr-last-out-of-order",
+            "php": "Arr::last([2 => \"c\", 0 => \"a\", 1 => \"b\"])",
+            "value": "b"
+        },
+        {
+            "label": "arr-last-out-of-order-callback",
+            "php": "Arr::last(base, fn ($v) => $v !== 'b')",
+            "value": "a"
+        },
+        {
+            "label": "arr-last-out-of-order-key-order",
+            "php": "$keys seen by Arr::last(base, $cb returning false)",
+            "value": [
+                1,
+                0,
+                2
+            ]
+        },
+        {
+            "label": "last-out-of-order",
+            "php": "Arr::last([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": "b"
+        },
+        {
+            "label": "last-mixed",
+            "php": "Arr::last(['x' => 1, 0 => 2, 'y' => 3])",
+            "value": 3
+        },
+        {
+            "label": "last-out-of-order-callback",
+            "php": "Arr::last([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v) => $v !== 'b')",
+            "value": "a"
+        },
+        {
+            "label": "last-out-of-order-callback-order",
+            "php": "Arr::last([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => false) => keys seen",
+            "value": [
+                1,
+                0,
+                2
+            ]
+        },
+        {
+            "label": "last-collision",
+            "php": "Arr::last([1 => 'a', 0 => 'z', '1' => 'b'])",
+            "value": "z"
+        }
+    ]
+}

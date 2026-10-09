@@ -1,0 +1,48 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-C-no-args-forms-throw",
+            "php": "(new Collection([1]))->some() / every() / firstWhere()",
+            "value": {
+                "some": "ArgumentCountError",
+                "every": "ArgumentCountError",
+                "firstWhere": "ArgumentCountError"
+            }
+        },
+        {
+            "label": "C32-C-two-args-null-value-others",
+            "php": "some / doesntContain / containsStrict / doesntContainStrict with (\"a\", null) over [[\"a\" => null], [\"a\" => 1]] and over [[\"a\" => 1]], and firstOrFail(\"a\", null) over [[\"a\" => 1], [\"a\" => null]] and over [[\"a\" => 1]]",
+            "value": {
+                "some": [
+                    true,
+                    false
+                ],
+                "doesntContain": [
+                    false,
+                    true
+                ],
+                "containsStrict": [
+                    true,
+                    false
+                ],
+                "doesntContainStrict": [
+                    false,
+                    true
+                ],
+                "firstOrFail": [
+                    {
+                        "a": null
+                    },
+                    [
+                        "Illuminate\\Support\\ItemNotFoundException",
+                        ""
+                    ]
+                ]
+            }
+        }
+    ]
+}

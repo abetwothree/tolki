@@ -1,0 +1,41 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-A-wrap-collection-copies",
+            "php": "$a = collect([1]); $b = Collection::wrap($a); $b->push(2); [$a->all(), $b->all(), $a === $b]",
+            "value": [
+                [
+                    1
+                ],
+                [
+                    1,
+                    2
+                ],
+                false
+            ]
+        },
+        {
+            "label": "C32-A-wrap-assoc-array",
+            "php": "Collection::wrap(['a' => 1])->all()",
+            "value": {
+                "a": 1
+            }
+        },
+        {
+            "label": "C32-A-wrap-null",
+            "php": "Collection::wrap(null)->all()",
+            "value": []
+        },
+        {
+            "label": "C32-A-wrap-false",
+            "php": "Collection::wrap(false)->all()",
+            "value": [
+                false
+            ]
+        }
+    ]
+}

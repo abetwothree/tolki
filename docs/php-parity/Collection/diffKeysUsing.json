@@ -1,0 +1,47 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C22 diffKeysUsing",
+            "php": "(new Collection(['id' => 1, 'first_word' => 'Hello']))->diffKeysUsing(new Collection(['ID' => 123, 'foo_bar' => 'Hello']), 'strcasecmp')->all()",
+            "value": {
+                "first_word": "Hello"
+            }
+        },
+        {
+            "label": "callback-key diffKeysUsing",
+            "php": "Collection([1 => \"a\", \"x\" => \"b\"])->diffKeysUsing([1 => \"z\"], $cmp)",
+            "value": [
+                [
+                    "integer",
+                    "string"
+                ],
+                [
+                    "integer",
+                    "integer"
+                ],
+                [
+                    "string",
+                    "integer"
+                ]
+            ]
+        },
+        {
+            "label": "diffKeysUsing-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->diffKeysUsing(new Collection([9, 9]), 'strcasecmp')",
+            "value": [
+                3
+            ]
+        },
+        {
+            "label": "diffKeysUsing-list-keyed-operand",
+            "php": "(new Collection([1, 2]))->diffKeysUsing(['a' => 1, 1 => 5], 'strcasecmp')",
+            "value": [
+                1
+            ]
+        }
+    ]
+}

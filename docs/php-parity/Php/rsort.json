@@ -1,0 +1,16 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "rsort orders numeric strings numerically",
+            "php": "rsort([\"9\",\"10\"])",
+            "value": [
+                "10",
+                "9"
+            ]
+        }
+    ]
+}

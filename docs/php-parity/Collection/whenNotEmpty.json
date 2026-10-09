@@ -1,0 +1,13 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-H-whenNotEmpty-default-receives-false",
+            "php": "(new Collection)->whenNotEmpty(fn () => 'cb', fn ($c, $v) => var_export($v, true))",
+            "value": "false"
+        }
+    ]
+}

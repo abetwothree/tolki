@@ -1,0 +1,312 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "replaceRecursive nested",
+            "php": "$c->replaceRecursive([\"a\"=>[\"y\"=>2]])",
+            "value": {
+                "result": {
+                    "a": {
+                        "x": 1,
+                        "y": 2
+                    }
+                },
+                "source": {
+                    "a": {
+                        "x": 1
+                    }
+                }
+            }
+        },
+        {
+            "label": "replaceRecursive(null)",
+            "php": "$c->replaceRecursive(null)",
+            "value": {
+                "a": 1
+            }
+        },
+        {
+            "label": "replaceRecursive array nested",
+            "php": "$c->replaceRecursive([[\"y\"=>2]])",
+            "value": {
+                "result": [
+                    {
+                        "x": 1,
+                        "y": 2
+                    },
+                    2
+                ],
+                "source": [
+                    {
+                        "x": 1
+                    },
+                    2
+                ]
+            }
+        },
+        {
+            "label": "replaceRecursive array (null)",
+            "php": "$c->replaceRecursive(null)",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "X10 replaceRecursive does not mutate",
+            "php": "collect([[a=>1],[b=>2]])->replaceRecursive([[c=>3]])",
+            "value": {
+                "result": [
+                    {
+                        "a": 1,
+                        "c": 3
+                    },
+                    {
+                        "b": 2
+                    }
+                ],
+                "source": [
+                    {
+                        "a": 1
+                    },
+                    {
+                        "b": 2
+                    }
+                ]
+            }
+        },
+        {
+            "label": "C24 replaceRecursive list fixture",
+            "php": "(new Collection(['a', 'b', ['c', 'd']]))->replaceRecursive(['z', 2 => [1 => 'e'], 'f'])->all()",
+            "value": [
+                "z",
+                "b",
+                [
+                    "c",
+                    "e"
+                ],
+                "f"
+            ]
+        },
+        {
+            "label": "D7 replaceRecursive nested list replaced by offset map",
+            "php": "(new Collection(['k' => ['c', 'd']]))->replaceRecursive(['k' => [1 => 'e']])->all()",
+            "value": {
+                "k": [
+                    "c",
+                    "e"
+                ]
+            }
+        },
+        {
+            "label": "R1 replaceRecursive nested map replaced by list",
+            "php": "(new Collection(['k' => [0 => 'c', 1 => 'd']]))->replaceRecursive(['k' => ['x']])->all()",
+            "value": {
+                "k": [
+                    "x",
+                    "d"
+                ]
+            }
+        },
+        {
+            "label": "replaceRecursive-list-with-assoc",
+            "php": "(new Collection(['k' => ['c']]))->replaceRecursive(['k' => ['x' => 1]])",
+            "value": {
+                "k": {
+                    "0": "c",
+                    "x": 1
+                }
+            }
+        },
+        {
+            "label": "replaceRecursive-list-element-map",
+            "php": "(new Collection(['y' => [1, 2]]))->replaceRecursive(['y' => [[1 => 'x']]])",
+            "value": {
+                "y": [
+                    {
+                        "1": "x"
+                    },
+                    2
+                ]
+            }
+        },
+        {
+            "label": "replaceRecursive-list-elements-kept-whole",
+            "php": "(new Collection([1, 2]))->replaceRecursive([[1 => 'x']]); (new Collection(['a', 'b', 'c']))->replaceRecursive(['x', [4 => 'e'], 'z'])",
+            "value": {
+                "pair": [
+                    {
+                        "1": "x"
+                    },
+                    2
+                ],
+                "three": [
+                    "x",
+                    {
+                        "4": "e"
+                    },
+                    "z"
+                ]
+            }
+        },
+        {
+            "label": "replaceRecursive-nested-list-meets-map",
+            "php": "(new Collection([['c'], ['a' => 1]]))->replaceRecursive([['x' => 1], ['x']])",
+            "value": [
+                {
+                    "0": "c",
+                    "x": 1
+                },
+                {
+                    "a": 1,
+                    "0": "x"
+                }
+            ]
+        },
+        {
+            "label": "replaceRecursive-object-leaf",
+            "php": "replaceRecursive with a DateTime or stdClass on either side: d and q are the replacer instances",
+            "value": {
+                "d": true,
+                "p": {
+                    "y": 2
+                },
+                "q": true
+            }
+        },
+        {
+            "label": "replaceRecursive-nested-toArray-entry",
+            "php": "a nested 'toArray' closure entry merges as data, with an array or a Collection operand",
+            "value": {
+                "plain": {
+                    "keys": [
+                        "x",
+                        "toArray"
+                    ],
+                    "kept": true
+                },
+                "wrapped": {
+                    "keys": [
+                        "x",
+                        "toArray"
+                    ],
+                    "kept": true
+                }
+            }
+        },
+        {
+            "label": "replaceRecursive-list-collection-operand",
+            "php": "(new Collection([['a' => 1]]))->replaceRecursive(new Collection([['b' => 2]]))",
+            "value": [
+                {
+                    "a": 1,
+                    "b": 2
+                }
+            ]
+        },
+        {
+            "label": "replaceRecursive-collection-operand",
+            "php": "(new Collection(['a' => ['x' => 1]]))->replaceRecursive(new Collection(['a' => ['y' => 2]]))",
+            "value": {
+                "a": {
+                    "x": 1,
+                    "y": 2
+                }
+            }
+        },
+        {
+            "label": "replaceRecursive-list-string-key-replacer",
+            "php": "(new Collection(['a','b','c']))->replaceRecursive(['k' => 'x'])",
+            "value": {
+                "0": "a",
+                "1": "b",
+                "2": "c",
+                "k": "x"
+            }
+        },
+        {
+            "label": "replaceRecursive-list-sparse-replacer",
+            "php": "(new Collection(['a']))->replaceRecursive([3 => 'd'])",
+            "value": {
+                "0": "a",
+                "3": "d"
+            }
+        },
+        {
+            "label": "replaceRecursive-list-mixed-key-replacer",
+            "php": "(new Collection(['a','b']))->replaceRecursive([1 => 'z', 'k' => 'x'])",
+            "value": {
+                "0": "a",
+                "1": "z",
+                "k": "x"
+            }
+        },
+        {
+            "label": "replaceRecursive-traversable-backing",
+            "php": "collect(gen(1,2))->replaceRecursive([0 => 9])",
+            "value": [
+                9,
+                2
+            ]
+        },
+        {
+            "label": "replaceRecursive-list-out-of-order-operand",
+            "php": "(new Collection(['a']))->replaceRecursive([2 => 'c', 1 => 'b'])",
+            "value": [
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "replaceRecursive-list-in-order-operand",
+            "php": "(new Collection(['a']))->replaceRecursive([1 => 'b', 2 => 'c'])",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "C32-F-replaceRecursive-sparse-replacer",
+            "php": "collect(['a', 'b', ['c', 'd']])->replaceRecursive(['z', 2 => [1 => 'e']])",
+            "value": [
+                "z",
+                "b",
+                [
+                    "c",
+                    "e"
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-replaceRecursive-assoc-then-list",
+            "php": "collect(['a' => 1])->replaceRecursive(['x'])",
+            "value": {
+                "all": {
+                    "a": 1,
+                    "0": "x"
+                },
+                "keys": [
+                    "a",
+                    0
+                ],
+                "values": [
+                    1,
+                    "x"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,49 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "integer-string-value",
+            "php": "Arr::integer(['string' => 'foo bar'], 'string')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [string] must be an integer, string found."
+        },
+        {
+            "label": "integer-float-value",
+            "php": "Arr::integer(['a' => 1.5], 'a')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [a] must be an integer, double found."
+        },
+        {
+            "label": "integer-list-int-key",
+            "php": "Arr::integer(['foo bar'], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an integer, string found."
+        },
+        {
+            "label": "integer-float-value-list",
+            "php": "Arr::integer([1.5], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an integer, double found."
+        },
+        {
+            "label": "integer-missing-key-no-default",
+            "php": "Arr::integer([], 'missing')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [missing] must be an integer, NULL found."
+        },
+        {
+            "label": "integer-list-missing-index-no-default",
+            "php": "Arr::integer([], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an integer, NULL found."
+        },
+        {
+            "label": "integer-list-missing-index-with-default",
+            "php": "Arr::integer([], 0, 5)",
+            "value": 5
+        }
+    ]
+}

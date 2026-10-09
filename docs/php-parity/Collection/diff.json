@@ -1,0 +1,323 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "diff \u2014 values only",
+            "php": "$c->diff([\"x\"=>\"Hello\"])",
+            "value": {
+                "id": 1
+            }
+        },
+        {
+            "label": "diff is case-sensitive",
+            "php": "$c->diff([...])",
+            "value": [
+                "en_GB",
+                "fr",
+                "HR"
+            ]
+        },
+        {
+            "label": "diff(null) returns items unchanged",
+            "php": "$c->diff(null)",
+            "value": {
+                "id": 1,
+                "first_word": "Hello"
+            }
+        },
+        {
+            "label": "diff on array-backed collection",
+            "php": "$c->diff([2,4])",
+            "value": {
+                "0": 1,
+                "2": 3
+            }
+        },
+        {
+            "label": "diff and intersect accept any array operand",
+            "php": "collect([\"a\"=>10,\"b\"=>20])->diff([20])",
+            "value": {
+                "assoc_diff_list": {
+                    "a": 10
+                },
+                "list_diff_assoc": [
+                    10
+                ],
+                "assoc_intersect_list": {
+                    "b": 2
+                },
+                "list_intersect_assoc": {
+                    "1": 20
+                },
+                "null_intersect": [],
+                "null_diff": []
+            }
+        },
+        {
+            "label": "X13 diff compares values only",
+            "php": "collect([10,20,30,40])->diff([20,40])",
+            "value": {
+                "0": 10,
+                "2": 30
+            }
+        },
+        {
+            "label": "diff accepts an operand of any shape",
+            "php": "collect(null)->diff([1,2])",
+            "value": {
+                "null_data_list_other": [],
+                "list_data_assoc_other": [
+                    10
+                ],
+                "assoc_data_list_other": {
+                    "a": 10
+                },
+                "assoc_data_scalar_other": {
+                    "a": 1
+                },
+                "list_data_scalar_other": [
+                    1
+                ],
+                "list_data_int_other": [
+                    1
+                ],
+                "assoc_data_null_other": {
+                    "a": 1
+                },
+                "list_data_null_other": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "diff with a Collection operand",
+            "php": "collect([\"a\"=>10,\"b\"=>20])->diff(collect([20]))",
+            "value": {
+                "a": 10
+            }
+        },
+        {
+            "label": "diff with a Traversable operand",
+            "php": "collect([\"a\"=>10,\"b\"=>20])->diff(new ArrayIterator([20]))",
+            "value": {
+                "a": 10
+            }
+        },
+        {
+            "label": "getArrayableItems rejects a bare object",
+            "php": "collect([1])->diff(new stdClass())",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "diff over array items collapses to \"Array\"",
+            "php": "collect([[\"id\"=>1],[\"id\"=>2]])->diff([[\"id\"=>1]])",
+            "value": []
+        },
+        {
+            "label": "C21 diff collection",
+            "php": "(new Collection(['id' => 1, 'first_word' => 'Hello']))->diff(new Collection(['first_word' => 'Hello', 'last_word' => 'World']))->all()",
+            "value": {
+                "id": 1
+            }
+        },
+        {
+            "label": "order-diff-leaves-the-receiver-alone",
+            "php": "$c = collect([1, 2, 3]); $c->diff([7 => 'x', 3 => 'y']); $c",
+            "value": {
+                "all": [
+                    1,
+                    2,
+                    3
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "diff-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->diff(['a'])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-plain-object-all-member-is-data-by-value",
+            "php": "collect(['a', 'b'])->diff((object) ['all' => $invokable]) / ->intersect(...), $invokable answering ['b'] when called and 'zzz' as a string, since array_diff cannot cast a Closure; ->intersectUsing((object) ['all' => fn () => ['b']], fn ($x, $y) => $x === $y ? 0 : 1); collect(['a' => 1])->replaceRecursive((object) ['all' => fn () => ['b' => 2]]) keys",
+            "value": {
+                "diff": [
+                    "a",
+                    "b"
+                ],
+                "intersect": [],
+                "intersectUsing": [],
+                "replaceRecursiveKeys": [
+                    "a",
+                    "all"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-receiver-out-of-order",
+            "php": "each set operation on collect([2 => 'c', 0 => 'a', 1 => 'b']): the kept keys and values, or the rows built",
+            "value": {
+                "diff": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "diffUsing": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "diffAssoc": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "diffKeys": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "diffKeysUsing": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "intersect": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "intersectUsing": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "intersectAssoc": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "intersectAssocUsing": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "intersectByKeys": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "crossJoin": [
+                    [
+                        "c",
+                        "x"
+                    ],
+                    [
+                        "a",
+                        "x"
+                    ],
+                    [
+                        "b",
+                        "x"
+                    ]
+                ],
+                "zip": [
+                    [
+                        "c",
+                        "x"
+                    ],
+                    [
+                        "a",
+                        "y"
+                    ],
+                    [
+                        "b",
+                        "z"
+                    ]
+                ],
+                "multiply": [
+                    "c",
+                    "a",
+                    "b",
+                    "c",
+                    "a",
+                    "b"
+                ]
+            }
+        }
+    ]
+}

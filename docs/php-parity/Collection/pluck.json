@@ -1,0 +1,203 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "sortBy-key-default-flag",
+            "php": "sortBy('price')->pluck('price')->values()",
+            "value": [
+                1.2,
+                1.5,
+                1.9,
+                "10.2",
+                "10.5"
+            ]
+        },
+        {
+            "label": "C32-E-pluck-accessor",
+            "php": "collect([accessor(some=foo), accessor(some=bar)])->pluck('some')",
+            "value": [
+                "foo",
+                "bar"
+            ]
+        },
+        {
+            "label": "C32-E-pluck-int-key-order",
+            "php": "collect([['id'=>3,'n'=>'c'],['id'=>1,'n'=>'a'],['id'=>2,'n'=>'b']])->pluck('n', 'id')",
+            "value": [
+                [
+                    3,
+                    "integer",
+                    "c"
+                ],
+                [
+                    1,
+                    "integer",
+                    "a"
+                ],
+                [
+                    2,
+                    "integer",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-pluck-key-path-casts",
+            "php": "@collect([k=null, k=true, k=false, k=1.5])->pluck('v', 'k')",
+            "value": [
+                [
+                    "",
+                    "string",
+                    "n"
+                ],
+                [
+                    1,
+                    "integer",
+                    "fl"
+                ],
+                [
+                    0,
+                    "integer",
+                    "f"
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-pluck-key-closure-casts",
+            "php": "collect([['v'=>'x'],['v'=>'y']])->pluck('v', fn ($r) => $r['v'] === 'x') and @->pluck('v', fn () => 1.5)",
+            "value": {
+                "bool": [
+                    [
+                        1,
+                        "integer",
+                        "x"
+                    ],
+                    [
+                        0,
+                        "integer",
+                        "y"
+                    ]
+                ],
+                "float": [
+                    [
+                        1,
+                        "integer",
+                        "x"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-E-pluck-nested-collections",
+            "php": "collect([collect(['a'=>1]), collect(['a'=>2])])->pluck('a')",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-E-pluck-collection-rows",
+            "php": "c32c_rows(list | keyed)->pluck('v') and ->pluck('v', 'k')",
+            "value": {
+                "list": [
+                    [
+                        1,
+                        2,
+                        3
+                    ],
+                    {
+                        "b": 3,
+                        "a": 2
+                    }
+                ],
+                "keyed": [
+                    [
+                        1,
+                        2,
+                        3
+                    ],
+                    {
+                        "b": 3,
+                        "a": 2
+                    }
+                ]
+            }
+        },
+        {
+            "label": "C32-E-pluck-array-key",
+            "php": "(new Collection([['v' => 1]]))->pluck('v', fn () => [1, 2])",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type array on array"
+        },
+        {
+            "label": "C32-E-pluck-assoc-key",
+            "php": "(new Collection([['v' => 1]]))->pluck('v', fn () => ['a' => 1])",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type array on array"
+        },
+        {
+            "label": "C32-E-pluck-date-key",
+            "php": "(new Collection([['v' => 1]]))->pluck('v', fn () => new DateTime('@0'))",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type DateTime on array"
+        },
+        {
+            "label": "C32-E-pluck-enum-key",
+            "php": "(new Collection([['v' => 1]]))->pluck('v', fn () => C32E_Int::B)",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type C32E_Int on array"
+        },
+        {
+            "label": "C32-E-pluck-stringable-key",
+            "php": "(new Collection([['v' => 1]]))->pluck('v', fn () => new Stringable('Lara'))",
+            "value": {
+                "Lara": 1
+            }
+        },
+        {
+            "label": "C32-E-pluck-tostring-key",
+            "php": "(new Collection([['v' => 1]]))->pluck('v', fn () => an object with __toString)",
+            "value": {
+                "Framework": 1
+            }
+        },
+        {
+            "label": "C32-E-pluck-closure-key",
+            "php": "(new Collection([['v' => 1]]))->pluck('v', fn () => fn () => 1)",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type Closure on array"
+        },
+        {
+            "label": "C32-E-pluck-anonymous-subclass-key",
+            "php": "(new Collection([['v' => 1]]))->pluck('v', fn () => new class extends C32AParent {})",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type C32AParent@anonymous on array"
+        },
+        {
+            "label": "C32-E-pluck-nested-array-row",
+            "php": "(new Collection([['n' => 1]]))->pluck('n') and ->pluck('*')",
+            "value": {
+                "path": [
+                    1
+                ],
+                "wildcard": [
+                    [
+                        1
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-G-sortBy-ties-stable",
+            "php": "sortBy('k') over [k=1 a, k=0 b, k=1 c] ->pluck('id')",
+            "value": [
+                "b",
+                "a",
+                "c"
+            ]
+        }
+    ]
+}

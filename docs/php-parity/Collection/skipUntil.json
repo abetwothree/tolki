@@ -1,0 +1,204 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-D-skipUntil-list-keys",
+            "php": "(new Collection([1, 2, 3, 4]))->skipUntil(3)",
+            "value": [
+                [
+                    2,
+                    3
+                ],
+                [
+                    3,
+                    4
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-skipUntil-keyed",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->skipUntil(2)",
+            "value": [
+                [
+                    "b",
+                    2
+                ],
+                [
+                    "c",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-skipUntil-strict-value",
+            "php": "(new Collection([1, 2, 3, 4]))->skipUntil('3')",
+            "value": []
+        },
+        {
+            "label": "C32-D-skipUntil-callback-key",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->skipUntil(fn ($v, $k) => $k === 'b')",
+            "value": [
+                [
+                    "b",
+                    2
+                ],
+                [
+                    "c",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-skipUntil-out-of-order-keys",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->skipUntil('a')",
+            "value": [
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "C32-D-skip-take-callback-php-truthiness",
+            "php": "skipUntil / skipWhile / takeUntil / takeWhile over new Collection(c32c_items(list | keyed)), with a callback answering '0', [] and new DateTime('@0')",
+            "value": {
+                "list": {
+                    "skipUntil": [
+                        [],
+                        [],
+                        [
+                            "a",
+                            "b"
+                        ]
+                    ],
+                    "skipWhile": [
+                        [
+                            "a",
+                            "b"
+                        ],
+                        [
+                            "a",
+                            "b"
+                        ],
+                        []
+                    ],
+                    "takeUntil": [
+                        [
+                            "a",
+                            "b"
+                        ],
+                        [
+                            "a",
+                            "b"
+                        ],
+                        []
+                    ],
+                    "takeWhile": [
+                        [],
+                        [],
+                        [
+                            "a",
+                            "b"
+                        ]
+                    ]
+                },
+                "keyed": {
+                    "skipUntil": [
+                        [],
+                        [],
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ]
+                    ],
+                    "skipWhile": [
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ],
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ],
+                        []
+                    ],
+                    "takeUntil": [
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ],
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ],
+                        []
+                    ],
+                    "takeWhile": [
+                        [],
+                        [],
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ]
+                    ]
+                }
+            }
+        },
+        {
+            "label": "C32-D-skip-take-callback-index",
+            "php": "(new Collection(['x', 'y', 'z'])): skipUntil(fn ($v, $k) => $k === 1) and takeUntil(fn ($v, $k) => $k === 1)",
+            "value": {
+                "skipUntil": [
+                    [
+                        1,
+                        "y"
+                    ],
+                    [
+                        2,
+                        "z"
+                    ]
+                ],
+                "takeUntil": [
+                    "x"
+                ]
+            }
+        }
+    ]
+}

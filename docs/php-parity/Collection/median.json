@@ -1,0 +1,40 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-H-median-numeric-strings",
+            "php": "[median(['10', '9', '8']), median(['10', '9'])]",
+            "value": [
+                "9",
+                9.5
+            ]
+        },
+        {
+            "label": "C32-H-median-rows-without-key",
+            "php": "(new Collection([['value' => 1, 'age' => 20], ['value' => 3, 'age' => 30], ['value' => 2, 'age' => 25]]))->median()",
+            "value": {
+                "value": 2,
+                "age": 25
+            }
+        },
+        {
+            "label": "C32-H-median-array-key",
+            "php": "(new Collection([['a' => ['b' => 1]], ['a' => ['b' => 9]], ['a' => ['b' => 5]]]))->median(['a', 'b'])",
+            "value": 5
+        },
+        {
+            "label": "C32-H-median-non-numeric-middle-values",
+            "php": "(new Collection(['b', 'a']))->median()",
+            "threw": "TypeError",
+            "message": "Unsupported operand types: int + string"
+        },
+        {
+            "label": "C32-H-median-out-of-order-tie",
+            "php": "(new Collection([2 => '5', 0 => 5, 1 => 1]))->median()",
+            "value": "5"
+        }
+    ]
+}

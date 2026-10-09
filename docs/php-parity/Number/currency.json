@@ -1,0 +1,38 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "currency-rounds-to-zero",
+            "php": "Number::currency(-0.001)",
+            "value": "$0.00"
+        },
+        {
+            "label": "currency-float-noise",
+            "php": "Number::currency(0.1 + 0.2 - 0.3 - 0.0000000001)",
+            "value": "$0.00"
+        },
+        {
+            "label": "currency-rounds-to-zero-no-digits",
+            "php": "Number::currency(-0.4, precision: 0)",
+            "value": "$0"
+        },
+        {
+            "label": "currency-keeps-sign",
+            "php": "Number::currency(-0.006)",
+            "value": "-$0.01"
+        },
+        {
+            "label": "currency-negative-zero",
+            "php": "Number::currency(-0.0)",
+            "value": "$0.00"
+        },
+        {
+            "label": "currency-rounds-to-zero-eur-de",
+            "php": "Number::currency(-0.001, in: 'EUR', locale: 'de')",
+            "value": "0,00\u00a0\u20ac"
+        }
+    ]
+}

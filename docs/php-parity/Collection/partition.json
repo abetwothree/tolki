@@ -1,0 +1,150 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-D-partition-null-key-truthiness",
+            "php": "(new Collection([1, 0, '', 'a', null, [], '0']))->partition(null)",
+            "value": [
+                [
+                    1,
+                    "a"
+                ],
+                [
+                    0,
+                    "",
+                    null,
+                    [],
+                    "0"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-partition-two-arg-null",
+            "php": "(new Collection([['v' => null], ['v' => 0], ['v' => 1]]))->partition('v', null)",
+            "value": [
+                [
+                    0,
+                    1
+                ],
+                [
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-partition-not-equal-operator",
+            "php": "(new Collection([['v' => 1], ['v' => '1'], ['v' => 2]]))->partition('v', '!=', 1)",
+            "value": [
+                [
+                    2
+                ],
+                [
+                    0,
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-partition-outer-keys",
+            "php": "(new Collection(['a' => 1, 'b' => 2]))->partition(fn ($v) => $v > 1)->keys()",
+            "value": [
+                0,
+                1
+            ]
+        },
+        {
+            "label": "C32-D-partition-no-args",
+            "php": "(new Collection([1]))->partition()",
+            "value": "ArgumentCountError: Too few arguments to function Illuminate\\Support\\Collection::partition(), 0 passed"
+        },
+        {
+            "label": "C32-D-partition-null-empty-objects",
+            "php": "(new Collection([new DateTime('@0'), new stdClass]))->partition(null) counts",
+            "value": [
+                2,
+                0
+            ]
+        },
+        {
+            "label": "C32-D-partition-bool-false-two-arg",
+            "php": "(new Collection([['v' => false], ['v' => 0], ['v' => null], ['v' => 1]]))->partition('v', false) keys",
+            "value": [
+                [
+                    0,
+                    1,
+                    2
+                ],
+                [
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-partition-collection-rows",
+            "php": "c32c_rows(list | keyed)->partition('k', 'b'): each half's keys and each row's 'v'",
+            "value": {
+                "list": [
+                    [
+                        [
+                            0,
+                            2
+                        ],
+                        [
+                            1,
+                            3
+                        ]
+                    ],
+                    [
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ]
+                    ]
+                ],
+                "keyed": [
+                    [
+                        [
+                            "x",
+                            "z"
+                        ],
+                        [
+                            1,
+                            3
+                        ]
+                    ],
+                    [
+                        [
+                            "y"
+                        ],
+                        [
+                            2
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-D-partition-offset-get",
+            "php": "(new Collection(['a' => 1, 'b' => 2]))->partition(fn ($v) => $v > 1): its [0] and [1]",
+            "value": [
+                [
+                    [
+                        "b",
+                        2
+                    ]
+                ],
+                [
+                    [
+                        "a",
+                        1
+                    ]
+                ]
+            ]
+        }
+    ]
+}

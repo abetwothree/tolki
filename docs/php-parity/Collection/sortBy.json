@@ -1,0 +1,693 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Collection::sortBy \u2014 string \"desc\" direction sorts descending",
+            "php": "sortBy([[\"age\",\"desc\"]])",
+            "value": [
+                {
+                    "age": 10
+                },
+                {
+                    "age": 2
+                }
+            ]
+        },
+        {
+            "label": "Collection::sortBy \u2014 unrecognized direction sorts descending (default arm)",
+            "php": "sortBy([[\"age\",\"BOGUS\"]])",
+            "value": [
+                {
+                    "age": 10
+                },
+                {
+                    "age": 2
+                }
+            ]
+        },
+        {
+            "label": "Collection::sortBy \u2014 global $descending=true is ignored for the array-of-descriptors form",
+            "php": "sortBy([[\"age\"]], SORT_REGULAR, true)",
+            "value": [
+                {
+                    "age": 2
+                },
+                {
+                    "age": 10
+                }
+            ]
+        },
+        {
+            "label": "sortBy/sortByDesc: all() and values() agree on order",
+            "php": "sortBy/sortByDesc over [0=>3,1=>1,2=>2]",
+            "value": {
+                "sortby_all": {
+                    "1": {
+                        "v": 1
+                    },
+                    "2": {
+                        "v": 2
+                    },
+                    "0": {
+                        "v": 3
+                    }
+                },
+                "sortby_values": [
+                    {
+                        "v": 1
+                    },
+                    {
+                        "v": 2
+                    },
+                    {
+                        "v": 3
+                    }
+                ],
+                "sortbydesc_all": {
+                    "0": {
+                        "v": 3
+                    },
+                    "2": {
+                        "v": 2
+                    },
+                    "1": {
+                        "v": 1
+                    }
+                },
+                "sortbydesc_values": [
+                    {
+                        "v": 3
+                    },
+                    {
+                        "v": 2
+                    },
+                    {
+                        "v": 1
+                    }
+                ],
+                "sortbymany_values": [
+                    {
+                        "v": 1
+                    },
+                    {
+                        "v": 2
+                    },
+                    {
+                        "v": 3
+                    }
+                ]
+            }
+        },
+        {
+            "label": "sortBy/sortByMany over an integer-keyed backing",
+            "php": "sortBy(fn), sortBy([[key]]), sortBy([comparator])",
+            "value": {
+                "words_all": {
+                    "1": "dayle",
+                    "0": "taylor"
+                },
+                "words_values": [
+                    "dayle",
+                    "taylor"
+                ],
+                "records_all": {
+                    "1": {
+                        "sort": 1
+                    },
+                    "0": {
+                        "sort": 2
+                    }
+                },
+                "records_values": [
+                    {
+                        "sort": 1
+                    },
+                    {
+                        "sort": 2
+                    }
+                ],
+                "imgs_plucked": [
+                    "img1",
+                    "img10",
+                    "img101",
+                    "img11"
+                ],
+                "vals_plucked": [
+                    5,
+                    10,
+                    20
+                ],
+                "nums_all": {
+                    "1": 1,
+                    "2": 2,
+                    "0": 3
+                },
+                "nums_values": [
+                    1,
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "sortBy with no comparisons leaves the order alone",
+            "php": "collect([3,1,2])->sortBy([])",
+            "value": [
+                3,
+                1,
+                2
+            ]
+        },
+        {
+            "label": "sortBy(null) over array values",
+            "php": "collect([\"a\"=>[\"n\"=>2],\"b\"=>[\"n\"=>1],\"c\"=>[\"n\"=>3]])->sortBy(null)->values()",
+            "value": [
+                {
+                    "n": 1
+                },
+                {
+                    "n": 2
+                },
+                {
+                    "n": 3
+                }
+            ]
+        },
+        {
+            "label": "sortByMany falls through on an equal first key",
+            "php": "collect([[\"a\"=>[],\"b\"=>2],[\"a\"=>[],\"b\"=>1]])->sortBy([[\"a\",\"asc\"],[\"b\",\"asc\"]])->values()",
+            "value": [
+                {
+                    "a": [],
+                    "b": 1
+                },
+                {
+                    "a": [],
+                    "b": 2
+                }
+            ]
+        },
+        {
+            "label": "sortByMany treats 1 and \"1\" as a tie",
+            "php": "collect([[\"a\"=>1,\"b\"=>2],[\"a\"=>\"1\",\"b\"=>1]])->sortBy([[\"a\",\"asc\"],[\"b\",\"asc\"]])->values()",
+            "value": [
+                {
+                    "a": "1",
+                    "b": 1
+                },
+                {
+                    "a": 1,
+                    "b": 2
+                }
+            ]
+        },
+        {
+            "label": "sortByMany orders mixed numeric strings and ints numerically",
+            "php": "collect($mixed)->sortBy([\"item\"])->pluck(\"item\")",
+            "value": [
+                "1",
+                5,
+                "10",
+                20
+            ]
+        },
+        {
+            "label": "sortBy runs a comparator nested in a one-element descriptor",
+            "php": "collect($rows)->sortBy([[$byAge]])->values()",
+            "value": [
+                {
+                    "age": 1
+                },
+                {
+                    "age": 2
+                },
+                {
+                    "age": 3
+                }
+            ]
+        },
+        {
+            "label": "sortBy treats [[fn]] and [fn] the same",
+            "php": "collect($rows)->sortBy([$byAge])->values()",
+            "value": [
+                {
+                    "age": 1
+                },
+                {
+                    "age": 2
+                },
+                {
+                    "age": 3
+                }
+            ]
+        },
+        {
+            "label": "Collection::sortBy(null) orders numeric strings numerically",
+            "php": "collect([\"9\",\"10\",\"1\",5])->sortBy(null)->values()",
+            "value": [
+                "1",
+                5,
+                "9",
+                "10"
+            ]
+        },
+        {
+            "label": "Collection::sortBy([key]) orders numeric strings numerically",
+            "php": "collect($rows)->sortBy([\"n\"])->pluck(\"n\")",
+            "value": [
+                "1",
+                5,
+                "9",
+                "10"
+            ]
+        },
+        {
+            "label": "sortBy-many-numeric-flag-asc",
+            "php": "sortBy([['price', 'asc']], SORT_NUMERIC)->pluck('price')->values()",
+            "value": [
+                1.2,
+                1.5,
+                1.9,
+                "10.2",
+                "10.5"
+            ]
+        },
+        {
+            "label": "sortBy-many-numeric-flag-desc",
+            "php": "sortBy([['price', 'desc']], SORT_NUMERIC)->pluck('price')->values()",
+            "value": [
+                "10.5",
+                "10.2",
+                1.9,
+                1.5,
+                1.2
+            ]
+        },
+        {
+            "label": "sortBy-many-default-flag-asc",
+            "php": "sortBy([['price', 'asc']])->pluck('price')->values()",
+            "value": [
+                1.2,
+                1.5,
+                1.9,
+                "10.2",
+                "10.5"
+            ]
+        },
+        {
+            "label": "sortBy-many-default-flag-desc",
+            "php": "sortBy([['price', 'desc']])->pluck('price')->values()",
+            "value": [
+                "10.5",
+                "10.2",
+                1.9,
+                1.5,
+                1.2
+            ]
+        },
+        {
+            "label": "C32-G-sortBy-callback-key-types-list",
+            "php": "(new Collection([10, 20]))->sortBy(fn ($v, $k) => ...) recording [gettype($k), $k]",
+            "value": [
+                [
+                    "integer",
+                    0
+                ],
+                [
+                    "integer",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-sortBy-callback-key-types-int-keys",
+            "php": "(new Collection([5 => 'a', 7 => 'b']))->sortBy(fn ($v, $k) => ...) recording [gettype($k), $k]",
+            "value": [
+                [
+                    "integer",
+                    5
+                ],
+                [
+                    "integer",
+                    7
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-sortBy-callback-by-key",
+            "php": "(new Collection(['x' => 1, 'a' => 2, 'm' => 3]))->sortBy(fn ($v, $k) => $k)->all()",
+            "value": [
+                [
+                    "a",
+                    2
+                ],
+                [
+                    "m",
+                    3
+                ],
+                [
+                    "x",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-sortBy-descriptor-mixed-directions",
+            "php": "sortBy([['name', 'asc'], ['age', 'desc']]) over four people",
+            "value": [
+                {
+                    "name": "a",
+                    "age": 3
+                },
+                {
+                    "name": "a",
+                    "age": 1
+                },
+                {
+                    "name": "b",
+                    "age": 2
+                },
+                {
+                    "name": "b",
+                    "age": 1
+                }
+            ]
+        },
+        {
+            "label": "C32-G-sortBy-string-Ascending-direction",
+            "php": "sortBy([['n', 'Ascending']]) - a plain string, not the enum",
+            "value": [
+                3,
+                2,
+                1
+            ]
+        },
+        {
+            "label": "C32-G-sortByMany-mixed-case-default-flag",
+            "php": "sortBy(['item']) over img1/Img101/img10/Img11 (testSortByMany, default flag)",
+            "value": [
+                "Img101",
+                "Img11",
+                "img1",
+                "img10"
+            ]
+        },
+        {
+            "label": "C32-G-sortByMany-umlaut-default-flag",
+            "php": "sortBy(['item']) over \u00d6sterreich/Oesterreich/Zeta (testSortByMany, default flag)",
+            "value": [
+                "Oesterreich",
+                "Zeta",
+                "\u00d6sterreich"
+            ]
+        },
+        {
+            "label": "C32-G-sortByMany-null-desc-default-flag",
+            "php": "sortBy([['first','desc'],['second','desc']]) over [f/null, f/s] (testNaturalSortByManyWithNull, default flag)",
+            "value": [
+                {
+                    "first": "f",
+                    "second": "s"
+                },
+                {
+                    "first": "f",
+                    "second": null
+                }
+            ]
+        },
+        {
+            "label": "C32-G-sortByMany-null-values",
+            "php": "sortBy(['first','second']) and sortByDesc(['first','second']) over [f/null, f/s, a/z]",
+            "value": {
+                "asc": [
+                    {
+                        "first": "a",
+                        "second": "z"
+                    },
+                    {
+                        "first": "f",
+                        "second": null
+                    },
+                    {
+                        "first": "f",
+                        "second": "s"
+                    }
+                ],
+                "desc": [
+                    {
+                        "first": "f",
+                        "second": "s"
+                    },
+                    {
+                        "first": "f",
+                        "second": null
+                    },
+                    {
+                        "first": "a",
+                        "second": "z"
+                    }
+                ]
+            }
+        },
+        {
+            "label": "C32-G-sortBy-dot-path",
+            "php": "(new Collection([(object) ['id' => 1, 'foo' => ['bar' => 'B']], (object) ['id' => 2, 'foo' => ['bar' => 'A']]]))->sortBy('foo.bar')->pluck('id')->all()",
+            "value": [
+                2,
+                1
+            ]
+        },
+        {
+            "label": "C32-G-sortBy-collection-rows",
+            "php": "c32c_rows(list | keyed)->sortBy('k'): keys and each row's 'v'",
+            "value": {
+                "list": [
+                    [
+                        1,
+                        0,
+                        2
+                    ],
+                    [
+                        2,
+                        1,
+                        3
+                    ]
+                ],
+                "keyed": [
+                    [
+                        "y",
+                        "x",
+                        "z"
+                    ],
+                    [
+                        2,
+                        1,
+                        3
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-G-sortBy-descriptors-collection-rows",
+            "php": "c32c_rows(list | keyed)->sortBy([['k', 'asc'], ['v', 'desc']]): keys and each row's 'v'",
+            "value": {
+                "list": [
+                    [
+                        1,
+                        2,
+                        0
+                    ],
+                    [
+                        2,
+                        3,
+                        1
+                    ]
+                ],
+                "keyed": [
+                    [
+                        "y",
+                        "z",
+                        "x"
+                    ],
+                    [
+                        2,
+                        3,
+                        1
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-G-sortBy-out-of-order-ties",
+            "php": "sortBy('n'), sortByDesc('n') and sortBy(['n']) over [2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']]: the ids in order",
+            "value": {
+                "sortBy": [
+                    "r",
+                    "p",
+                    "q"
+                ],
+                "sortByDesc": [
+                    "p",
+                    "q",
+                    "r"
+                ],
+                "sortBy descriptors": [
+                    "r",
+                    "p",
+                    "q"
+                ]
+            }
+        },
+        {
+            "label": "C32-G-sortByMany-desc-direction-forms",
+            "php": "testSortByMany's chain over [['item' => '1'], ['item' => '10'], ['item' => 5], ['item' => 20]]: sortBy(['item']), then sortBy([['item', 'desc']]), sortBy([['item', false]]) and sortBy([['item', SortDirection::Descending]]), each plucked",
+            "value": {
+                "asc": [
+                    "1",
+                    5,
+                    "10",
+                    20
+                ],
+                "desc": [
+                    20,
+                    "10",
+                    5,
+                    "1"
+                ],
+                "false": [
+                    20,
+                    "10",
+                    5,
+                    "1"
+                ],
+                "Descending": [
+                    20,
+                    "10",
+                    5,
+                    "1"
+                ]
+            }
+        },
+        {
+            "label": "C32-G-sortByMany-two-keys",
+            "php": "sortBy(['first', 'second']) and sortByDesc(['first', 'second']) over four rows, and sortBy(['primary', 'secondary']) over rows tying on the first key, then on both",
+            "value": {
+                "asc": [
+                    {
+                        "first": "a",
+                        "second": 1
+                    },
+                    {
+                        "first": "a",
+                        "second": 3
+                    },
+                    {
+                        "first": "b",
+                        "second": 1
+                    },
+                    {
+                        "first": "b",
+                        "second": 2
+                    }
+                ],
+                "desc": [
+                    {
+                        "first": "b",
+                        "second": 2
+                    },
+                    {
+                        "first": "b",
+                        "second": 1
+                    },
+                    {
+                        "first": "a",
+                        "second": 3
+                    },
+                    {
+                        "first": "a",
+                        "second": 1
+                    }
+                ],
+                "first-key-ties": [
+                    {
+                        "primary": "a",
+                        "secondary": 1
+                    },
+                    {
+                        "primary": "a",
+                        "secondary": 3
+                    },
+                    {
+                        "primary": "b",
+                        "secondary": 2
+                    }
+                ],
+                "both-keys-tie": [
+                    {
+                        "primary": "a",
+                        "secondary": 1
+                    },
+                    {
+                        "primary": "a",
+                        "secondary": 1
+                    },
+                    {
+                        "primary": "b",
+                        "secondary": 2
+                    }
+                ]
+            }
+        },
+        {
+            "label": "C32-G-sortBy-descriptor-direction-forms",
+            "php": "sortBy([[$key, $direction]]) for SortDirection::Descending, 'Descending', false, SortDirection::Ascending and mixed directions, and sortByDesc([$comparator]), which leaves a comparator ascending",
+            "value": {
+                "Descending case": [
+                    "carol",
+                    "bob",
+                    "alice"
+                ],
+                "Descending string": [
+                    30,
+                    20,
+                    10
+                ],
+                "false": [
+                    3,
+                    2,
+                    1
+                ],
+                "Ascending case": [
+                    "alice",
+                    "bob",
+                    "carol"
+                ],
+                "mixed": [
+                    {
+                        "group": "a",
+                        "rank": 2
+                    },
+                    {
+                        "group": "a",
+                        "rank": 1
+                    },
+                    {
+                        "group": "b",
+                        "rank": 4
+                    },
+                    {
+                        "group": "b",
+                        "rank": 3
+                    }
+                ],
+                "sortByDesc comparator": [
+                    2,
+                    10
+                ]
+            }
+        }
+    ]
+}

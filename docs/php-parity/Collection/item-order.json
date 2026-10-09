@@ -1,0 +1,134 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "order-merge-leaves-the-receiver-alone",
+            "php": "$c = collect([1, 2, 3]); $c->merge([7 => 'x', 3 => 'y']); $c",
+            "value": {
+                "all": [
+                    1,
+                    2,
+                    3
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "order-intersect-leaves-the-receiver-alone",
+            "php": "$c = collect([1, 2, 3]); $c->intersect([7 => 'x', 3 => 'y']); $c",
+            "value": {
+                "all": [
+                    1,
+                    2,
+                    3
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "order-replace-leaves-the-receiver-alone",
+            "php": "$c = collect([1, 2, 3]); $c->replace([7 => 'x', 3 => 'y']); $c",
+            "value": {
+                "all": [
+                    1,
+                    2,
+                    3
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "order-only-leaves-the-receiver-alone",
+            "php": "$c = collect([1, 2, 3]); $c->only([7 => 'x', 3 => 'y']); $c",
+            "value": {
+                "all": [
+                    1,
+                    2,
+                    3
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "order-zip-leaves-the-receiver-alone",
+            "php": "$c = collect([1, 2, 3]); $c->zip([7 => 'x', 3 => 'y']); $c",
+            "value": {
+                "all": [
+                    1,
+                    2,
+                    3
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "order-crossJoin-leaves-the-receiver-alone",
+            "php": "$c = collect([1, 2, 3]); $c->crossJoin([7 => 'x', 3 => 'y']); $c",
+            "value": {
+                "all": [
+                    1,
+                    2,
+                    3
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        }
+    ]
+}

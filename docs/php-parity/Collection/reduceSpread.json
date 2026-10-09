@@ -1,0 +1,65 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-H-reduceSpread-throws-boolean",
+            "php": "(new Collection([1]))->reduceSpread(fn () => false, null)",
+            "threw": "UnexpectedValueException",
+            "message": "Collection::reduceSpread expects reducer to return an array, but got a 'boolean' instead."
+        },
+        {
+            "label": "C32-H-reduceSpread-throws-integer",
+            "php": "(new Collection([1]))->reduceSpread(fn () => 5, null)",
+            "threw": "UnexpectedValueException",
+            "message": "Collection::reduceSpread expects reducer to return an array, but got a 'integer' instead."
+        },
+        {
+            "label": "C32-H-reduceSpread-throws-double",
+            "php": "(new Collection([1]))->reduceSpread(fn () => 1.5, null)",
+            "threw": "UnexpectedValueException",
+            "message": "Collection::reduceSpread expects reducer to return an array, but got a 'double' instead."
+        },
+        {
+            "label": "C32-H-reduceSpread-throws-null",
+            "php": "(new Collection([1]))->reduceSpread(fn () => null, null)",
+            "threw": "UnexpectedValueException",
+            "message": "Collection::reduceSpread expects reducer to return an array, but got a 'NULL' instead."
+        },
+        {
+            "label": "C32-H-reduceSpread-throws-string",
+            "php": "(new Collection([1]))->reduceSpread(fn () => 'x', null)",
+            "threw": "UnexpectedValueException",
+            "message": "Collection::reduceSpread expects reducer to return an array, but got a 'string' instead."
+        },
+        {
+            "label": "C32-H-reduceSpread-throws-object",
+            "php": "(new Collection([1]))->reduceSpread(fn () => new stdClass, null)",
+            "threw": "UnexpectedValueException",
+            "message": "Collection::reduceSpread expects reducer to return an array, but got a 'object' instead."
+        },
+        {
+            "label": "C32-H-reduceSpread-subclass-message",
+            "php": "(new C32ASub([1]))->reduceSpread(fn () => false, null)",
+            "threw": "UnexpectedValueException",
+            "message": "C32ASub::reduceSpread expects reducer to return an array, but got a 'boolean' instead."
+        },
+        {
+            "label": "C32-H-reduceSpread-list-key-type",
+            "php": "(new Collection(['a', 'b']))->reduceSpread(fn ($acc, $v, $k) => [$acc.gettype($k).$k], '')",
+            "value": [
+                "integer0integer1"
+            ]
+        },
+        {
+            "label": "C32-H-reduceSpread-empty",
+            "php": "(new Collection([]))->reduceSpread(fn () => false, 1, 2)",
+            "value": [
+                1,
+                2
+            ]
+        }
+    ]
+}

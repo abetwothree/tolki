@@ -1,0 +1,142 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "plain-object-toArray-member-keeps-its-keys",
+            "php": "collect((object) ['toArray' => fn () => [9], 'b' => 2])->keys()->all()",
+            "value": [
+                "toArray",
+                "b"
+            ]
+        },
+        {
+            "label": "real-arrayable-unwraps-through-toArray",
+            "php": "collect(new D8Arrayable)->all()",
+            "value": [
+                4,
+                5,
+                6
+            ]
+        },
+        {
+            "label": "order-initial",
+            "php": "collect([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "C32-A-construct-false",
+            "php": "new Collection(false)",
+            "value": [
+                false
+            ]
+        },
+        {
+            "label": "C32-A-construct-zero",
+            "php": "new Collection(0)",
+            "value": [
+                0
+            ]
+        },
+        {
+            "label": "C32-A-construct-empty-string",
+            "php": "new Collection('')",
+            "value": [
+                ""
+            ]
+        },
+        {
+            "label": "C32-A-construct-traversable-list",
+            "php": "new Collection(new ArrayObject([1, 2, 3]))",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "C32-A-construct-traversable-keyed",
+            "php": "new Collection(new ArrayObject(['foo' => 1, 'bar' => 2, 'baz' => 3]))",
+            "value": {
+                "foo": 1,
+                "bar": 2,
+                "baz": 3
+            }
+        },
+        {
+            "label": "C32-A-construct-generator-list",
+            "php": "new Collection((function () { yield 1; yield 2; })())",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-A-construct-stdclass",
+            "php": "new Collection((object) ['foo' => 'bar'])",
+            "value": {
+                "foo": "bar"
+            }
+        },
+        {
+            "label": "C32-A-construct-jsonable",
+            "php": "new Collection(new TestJsonableObject)",
+            "value": {
+                "foo": "bar"
+            }
+        },
+        {
+            "label": "C32-A-construct-jsonable-toJson-throws",
+            "php": "new Collection(new C32AThrowingJsonable)",
+            "threw": "RuntimeException",
+            "message": "toJson failed"
+        },
+        {
+            "label": "C32-A-construct-jsonserializable",
+            "php": "new Collection(new TestJsonSerializeObject)",
+            "value": {
+                "foo": "bar"
+            }
+        },
+        {
+            "label": "C32-A-construct-jsonserializable-scalar",
+            "php": "new Collection(new TestJsonSerializeWithScalarValueObject)",
+            "value": [
+                "foo"
+            ]
+        },
+        {
+            "label": "C32-A-construct-arrayable-keyed",
+            "php": "new Collection(new TestArrayableObject)",
+            "value": {
+                "foo": "bar"
+            }
+        },
+        {
+            "label": "C32-A-construct-traversable-beats-jsonserializable",
+            "php": "new Collection(new TestTraversableAndJsonSerializableObject(['a' => 1, 'b' => 2]))",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        }
+    ]
+}

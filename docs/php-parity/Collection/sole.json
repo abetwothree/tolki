@@ -1,0 +1,71 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "r2-sole-no-filter-keeps-a-falsy-item",
+            "php": "(new Collection([null]))->sole() / ([0]) / ([1,2,3])",
+            "value": {
+                "[null]": null,
+                "[0]": 0,
+                "['']": "",
+                "[1,2,3]": "3 items were found."
+            }
+        },
+        {
+            "label": "C32-C-multiple-items-found-count",
+            "php": "(new MultipleItemsFoundException(2))->count / getCount()",
+            "value": [
+                2,
+                2
+            ]
+        },
+        {
+            "label": "C32-C-lone-key-forms-by-key-class",
+            "php": "hasSole / sole / firstOrFail on (new Collection([[\"name\" => \"foo\"]])) and hasMany on (new Collection([[\"name\" => \"foo\"], [\"name\" => \"bar\"]])) with a lone key 0, \"\", \"0\" or 1: the answer, or the class thrown",
+            "value": {
+                "zero": {
+                    "hasSole": true,
+                    "hasMany": true,
+                    "sole": {
+                        "name": "foo"
+                    },
+                    "firstOrFail": "TypeError"
+                },
+                "empty-string": {
+                    "hasSole": true,
+                    "hasMany": true,
+                    "sole": {
+                        "name": "foo"
+                    },
+                    "firstOrFail": "TypeError"
+                },
+                "zero-string": {
+                    "hasSole": "TypeError",
+                    "hasMany": "TypeError",
+                    "sole": "TypeError",
+                    "firstOrFail": "TypeError"
+                },
+                "one": {
+                    "hasSole": "TypeError",
+                    "hasMany": "TypeError",
+                    "sole": "TypeError",
+                    "firstOrFail": "TypeError"
+                }
+            }
+        },
+        {
+            "label": "C32-C-lone-key-type-error-message",
+            "php": "the TypeError message, up to \", called in\", for a lone \"name\" key to hasSole / hasMany / sole / firstOrFail, and a lone 1 to firstOrFail, on (new Collection([[\"name\" => \"foo\"]]))",
+            "value": {
+                "hasSole": "Illuminate\\Support\\Collection::filter(): Argument #1 ($callback) must be of type ?callable, string given",
+                "hasMany": "Illuminate\\Support\\Collection::filter(): Argument #1 ($callback) must be of type ?callable, string given",
+                "sole": "Illuminate\\Support\\Collection::filter(): Argument #1 ($callback) must be of type ?callable, string given",
+                "firstOrFail": "Illuminate\\Support\\Collection::first(): Argument #1 ($callback) must be of type ?callable, string given",
+                "firstOrFail-int": "Illuminate\\Support\\Collection::first(): Argument #1 ($callback) must be of type ?callable, int given"
+            }
+        }
+    ]
+}

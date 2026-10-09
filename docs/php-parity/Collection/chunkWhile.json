@@ -1,0 +1,325 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "chunkWhile on equal adjacent elements",
+            "php": "['A','A','B','B','C','C','C'] chunkWhile(last === current)",
+            "value": [
+                [
+                    "A",
+                    "A"
+                ],
+                {
+                    "2": "B",
+                    "3": "B"
+                },
+                {
+                    "4": "C",
+                    "5": "C",
+                    "6": "C"
+                }
+            ]
+        },
+        {
+            "label": "chunkWhile on contiguously increasing integers",
+            "php": "[1,4,9,10,11,12,15,16,19,20,21] chunkWhile(last + 1 == current)",
+            "value": [
+                [
+                    1
+                ],
+                {
+                    "1": 4
+                },
+                {
+                    "2": 9,
+                    "3": 10,
+                    "4": 11,
+                    "5": 12
+                },
+                {
+                    "6": 15,
+                    "7": 16
+                },
+                {
+                    "8": 19,
+                    "9": 20,
+                    "10": 21
+                }
+            ]
+        },
+        {
+            "label": "chunkWhile preserving string keys",
+            "php": "['a'=>1,'b'=>1,'c'=>2,'d'=>2,'e'=>3,'f'=>3,'g'=>3] chunkWhile(last === current)",
+            "value": [
+                {
+                    "a": 1,
+                    "b": 1
+                },
+                {
+                    "c": 2,
+                    "d": 2
+                },
+                {
+                    "e": 3,
+                    "f": 3,
+                    "g": 3
+                }
+            ]
+        },
+        {
+            "label": "chunkWhile on an empty collection",
+            "php": "[] chunkWhile(true)",
+            "value": []
+        },
+        {
+            "label": "chunkWhile on a single item never calls back",
+            "php": "[5] chunkWhile(false)",
+            "value": [
+                [
+                    5
+                ]
+            ]
+        },
+        {
+            "label": "chunkWhile always false splits every item",
+            "php": "[1,2,3] chunkWhile(false)",
+            "value": [
+                [
+                    1
+                ],
+                {
+                    "1": 2
+                },
+                {
+                    "2": 3
+                }
+            ]
+        },
+        {
+            "label": "chunkWhile always true keeps one chunk",
+            "php": "[1,2,3] chunkWhile(true)",
+            "value": [
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "chunkWhile callback receives value, key and the chunk so far (list)",
+            "php": "[10,11,20] chunkWhile(record args)",
+            "value": [
+                [
+                    11,
+                    1,
+                    [
+                        10
+                    ]
+                ],
+                [
+                    20,
+                    2,
+                    [
+                        10,
+                        11
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "chunkWhile callback receives value, key and the chunk so far (assoc)",
+            "php": "['x'=>10,'y'=>11,'z'=>20] chunkWhile(record args)",
+            "value": [
+                [
+                    11,
+                    "y",
+                    {
+                        "x": 10
+                    }
+                ],
+                [
+                    20,
+                    "z",
+                    {
+                        "x": 10,
+                        "y": 11
+                    }
+                ]
+            ]
+        },
+        {
+            "label": "K2 chunkWhile callback key types",
+            "php": "(new Collection(['a' => 0, '01' => 'd', '1.5' => 'x', '1e3' => 'e', ' 1' => 'g', '-1' => 'c', '10' => 'f']))->chunkWhile(fn ($v, $k) => true), recording [gettype($k), $k] per call",
+            "value": [
+                [
+                    "string",
+                    "01"
+                ],
+                [
+                    "string",
+                    "1.5"
+                ],
+                [
+                    "string",
+                    "1e3"
+                ],
+                [
+                    "string",
+                    " 1"
+                ],
+                [
+                    "integer",
+                    -1
+                ],
+                [
+                    "integer",
+                    10
+                ]
+            ]
+        },
+        {
+            "label": "chunkWhile-out-of-order-never",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->chunkWhile(fn () => false)",
+            "value": [
+                [
+                    [
+                        2,
+                        "c"
+                    ]
+                ],
+                [
+                    "a"
+                ],
+                [
+                    [
+                        1,
+                        "b"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "chunkWhile-out-of-order-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->chunkWhile(fn ($v, $k, $chunk) => false) => [key, chunk] seen",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            2,
+                            "c"
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        "a"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "chunkWhile-out-of-order-growing-chunk-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->chunkWhile(fn ($v, $k, $chunk) => true) => [key, chunk] seen",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            2,
+                            "c"
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            2,
+                            "c"
+                        ],
+                        [
+                            0,
+                            "a"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "chunkWhile-mixed-callback-order",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->chunkWhile(fn ($v, $k, $chunk) => false) => [key, chunk] seen",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            "x",
+                            1
+                        ]
+                    ]
+                ],
+                [
+                    "y",
+                    [
+                        2
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "chunkWhile-out-of-order-last-equal",
+            "php": "(new Collection([2 => 1, 0 => 1, 1 => 2]))->chunkWhile(fn ($v, $k, $chunk) => $chunk->last() === $v)",
+            "value": [
+                [
+                    [
+                        2,
+                        1
+                    ],
+                    [
+                        0,
+                        1
+                    ]
+                ],
+                [
+                    [
+                        1,
+                        2
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-chunkWhile-kept-chunk",
+            "php": "each $chunk (new Collection([1, 2, 3]))->chunkWhile() hands its callback, kept, then $kept[0]->push(99): the chunks, and what each kept chunk holds",
+            "value": {
+                "chunks": [
+                    [
+                        1,
+                        2,
+                        3
+                    ]
+                ],
+                "kept": [
+                    [
+                        1,
+                        2,
+                        3,
+                        99
+                    ],
+                    [
+                        1,
+                        2,
+                        3,
+                        99
+                    ]
+                ]
+            }
+        }
+    ]
+}

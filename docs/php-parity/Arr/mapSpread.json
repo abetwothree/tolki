@@ -1,0 +1,117 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "mapSpread-tuples",
+            "php": "Arr::mapSpread($ms, fn($n,$c) => \"$n-$c\")",
+            "value": {
+                "x": "1-a",
+                "y": "2-b"
+            }
+        },
+        {
+            "label": "mapSpread-tuples-key",
+            "php": "Arr::mapSpread($ms, fn($n,$c,$k) => \"$n-$c-$k\")",
+            "value": {
+                "x": "1-a-x",
+                "y": "2-b-y"
+            }
+        },
+        {
+            "label": "mapSpread-assoc-rows",
+            "php": "Arr::mapSpread(['user1'=>['name'=>'John','age'=>25]], fn($n,$a)=>\"$n is $a\")",
+            "threw": "Error",
+            "message": "Unknown named parameter $name"
+        },
+        {
+            "label": "mapSpread-scalar-row",
+            "php": "Arr::mapSpread(['item2'=>'simple_value'], fn(...$a)=>count($a))",
+            "threw": "Error",
+            "message": "[] operator not supported for strings"
+        },
+        {
+            "label": "callback-key mapSpread",
+            "php": "Arr::mapSpread([1 => [\"a\"], \"x\" => [\"b\"]], fn ($v, $k) => ...)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "d6-map-spread-collection-row",
+            "php": "$rows = [new Collection([1, 'a'])]; Arr::mapSpread($rows, fn ($n, $c, $k) => \"$n-$c-$k\")",
+            "value": {
+                "list": [
+                    "1-a-0",
+                    "2-b-1"
+                ],
+                "assoc": {
+                    "x": "1-a-x",
+                    "y": "2-b-y"
+                },
+                "row-mutated-to": [
+                    1,
+                    "a",
+                    0
+                ],
+                "collection-mapSpread": [
+                    "1-a-0",
+                    "2-b-1"
+                ]
+            }
+        },
+        {
+            "label": "mapSpread-out-of-order",
+            "php": "Arr::mapSpread([2 => ['c', 1], 0 => ['a', 2], 1 => ['b', 3]], fn ($x, $y, $k) => $x . $y . $k)",
+            "value": [
+                [
+                    2,
+                    "c12"
+                ],
+                [
+                    0,
+                    "a20"
+                ],
+                [
+                    1,
+                    "b31"
+                ]
+            ]
+        },
+        {
+            "label": "mapSpread-out-of-order-callback-order",
+            "php": "Arr::mapSpread([2 => ['c', 1], 0 => ['a', 2], 1 => ['b', 3]], fn ($x, $y, $k) => null) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "mapSpread-mixed-callback-order",
+            "php": "Arr::mapSpread(['x' => [1, 'p'], 0 => [2, 'q'], 'y' => [3, 'r']], fn ($x, $y, $k) => null) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "mapSpread-collision-visit-count",
+            "php": "Arr::mapSpread([1 => ['a', 1], 0 => ['z', 2], '1' => ['b', 3]], fn ($x, $y, $k) => $x . $y . $k . '#' . ++$calls)",
+            "value": [
+                [
+                    1,
+                    "b31#1"
+                ],
+                [
+                    0,
+                    "z20#2"
+                ]
+            ]
+        }
+    ]
+}

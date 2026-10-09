@@ -1,0 +1,65 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-A-jsonSerialize-php-fixtures",
+            "php": "testJsonSerialize fixtures",
+            "value": [
+                {
+                    "foo": "bar"
+                },
+                {
+                    "foo": "bar"
+                },
+                {
+                    "foo": "bar"
+                },
+                "foobar",
+                "baz"
+            ]
+        },
+        {
+            "label": "C32-A-jsonSerialize-prefers-jsonSerialize-over-toArray",
+            "php": "collect([new C32AArrayableAndJsonSerializable])->jsonSerialize()",
+            "value": [
+                {
+                    "from": "jsonSerialize"
+                }
+            ]
+        },
+        {
+            "label": "C32-A-jsonSerialize-prefers-toJson-over-toArray",
+            "php": "collect([new C32AArrayableAndJsonable])->jsonSerialize()",
+            "value": [
+                {
+                    "from": "toJson"
+                }
+            ]
+        },
+        {
+            "label": "C32-A-jsonSerialize-invalid-jsonable-is-null",
+            "php": "collect([new C32ABadJsonable])->jsonSerialize()",
+            "value": [
+                null
+            ]
+        },
+        {
+            "label": "C32-A-jsonSerialize-other-object-is-kept",
+            "php": "$o = new C32AParent; collect([$o])->jsonSerialize()[0] === $o",
+            "value": true
+        },
+        {
+            "label": "C32-A-jsonSerialize-keyed",
+            "php": "collect(['a' => new TestArrayableObject, 'b' => 1])->jsonSerialize()",
+            "value": {
+                "a": {
+                    "foo": "bar"
+                },
+                "b": 1
+            }
+        }
+    ]
+}

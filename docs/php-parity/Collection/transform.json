@@ -1,0 +1,38 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "order-transform",
+            "php": "$c = collect(base); $c->transform(fn ($v) => strtoupper($v))",
+            "value": {
+                "all": {
+                    "2": "C",
+                    "0": "A",
+                    "1": "B"
+                },
+                "values": [
+                    "C",
+                    "A",
+                    "B"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-transform-callback-key-order",
+            "php": "$c = collect(base); $c->transform(recording $key)",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        }
+    ]
+}

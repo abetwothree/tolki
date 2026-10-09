@@ -1,0 +1,343 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "forget-null",
+            "php": "forget(products, null)",
+            "value": {
+                "products": {
+                    "desk": {
+                        "price": 100
+                    }
+                }
+            }
+        },
+        {
+            "label": "forget-empty-array",
+            "php": "forget(products, [])",
+            "value": {
+                "products": {
+                    "desk": {
+                        "price": 100
+                    }
+                }
+            }
+        },
+        {
+            "label": "forget-products.desk",
+            "php": "forget(products, 'products.desk')",
+            "value": {
+                "products": []
+            }
+        },
+        {
+            "label": "forget-products.desk.price",
+            "php": "forget(products, 'products.desk.price')",
+            "value": {
+                "products": {
+                    "desk": []
+                }
+            }
+        },
+        {
+            "label": "forget-missing-intermediate",
+            "php": "forget(products, 'products.final.price')",
+            "value": {
+                "products": {
+                    "desk": {
+                        "price": 100
+                    }
+                }
+            }
+        },
+        {
+            "label": "forget-shop",
+            "php": "forget(['shop'=>['cart'=>[150=>0]]], 'shop.final.cart')",
+            "value": {
+                "shop": {
+                    "cart": {
+                        "150": 0
+                    }
+                }
+            }
+        },
+        {
+            "label": "forget-taxes",
+            "php": "forget(..., 'products.desk.price.taxes')",
+            "value": {
+                "products": {
+                    "desk": {
+                        "price": {
+                            "original": 50
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "label": "forget-final-taxes",
+            "php": "forget(..., 'products.desk.final.taxes')",
+            "value": {
+                "products": {
+                    "desk": {
+                        "price": {
+                            "original": 50,
+                            "taxes": 60
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "label": "forget-empty-string-sibling",
+            "php": "forget(['products'=>['desk'=>['price'=>50],''=>'something']], ['products.amount.all','products.desk.price'])",
+            "value": {
+                "products": {
+                    "desk": [],
+                    "": "something"
+                }
+            }
+        },
+        {
+            "label": "forget-emails-nested",
+            "php": "forget(emails, ['emails.joe@example.com','emails.jane@localhost'])",
+            "value": {
+                "emails": {
+                    "joe@example.com": {
+                        "name": "Joe"
+                    }
+                }
+            }
+        },
+        {
+            "label": "forget-int-key",
+            "php": "forget(['name'=>'hAz','1'=>'test',2=>'bAz'], 1)",
+            "value": {
+                "name": "hAz",
+                "2": "bAz"
+            }
+        },
+        {
+            "label": "forget-int-key-string",
+            "php": "forget(['name'=>'hAz','1'=>'test',2=>'bAz'], '1')",
+            "value": {
+                "name": "hAz",
+                "2": "bAz"
+            }
+        },
+        {
+            "label": "forget-float",
+            "php": "forget([2=>[1=>'products',3=>'users']], 2.3)",
+            "value": {
+                "2": {
+                    "1": "products"
+                }
+            }
+        },
+        {
+            "label": "forget-float-string",
+            "php": "forget([2=>[1=>'products',3=>'users']], '2.3')",
+            "value": {
+                "2": {
+                    "1": "products"
+                }
+            }
+        },
+        {
+            "label": "forget-joe-top",
+            "php": "forget(['joe@example.com'=>'Joe','jane@example.com'=>'Jane'], 'joe@example.com')",
+            "value": {
+                "jane@example.com": "Jane"
+            }
+        },
+        {
+            "label": "forget-record-key-cast",
+            "php": "Arr::forget(['a'=>['x','y','z']], 'a.'.$seg) for $seg in '01','1','-1','1.5',''",
+            "value": {
+                "01": {
+                    "json": [
+                        "x",
+                        "y",
+                        "z"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:2"
+                    ]
+                },
+                "1": {
+                    "json": {
+                        "0": "x",
+                        "2": "z"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:2"
+                    ]
+                },
+                "-1": {
+                    "json": [
+                        "x",
+                        "y",
+                        "z"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:2"
+                    ]
+                },
+                "1.5": {
+                    "json": [
+                        "x",
+                        "y",
+                        "z"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:2"
+                    ]
+                },
+                "": {
+                    "json": [
+                        "x",
+                        "y",
+                        "z"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:2"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "forget-list-key-cast",
+            "php": "Arr::forget([['x','y','z']], '0.'.$seg) for $seg in '01','1','-1','1.5',''",
+            "value": {
+                "01": {
+                    "json": [
+                        "x",
+                        "y",
+                        "z"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:2"
+                    ]
+                },
+                "1": {
+                    "json": {
+                        "0": "x",
+                        "2": "z"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:2"
+                    ]
+                },
+                "-1": {
+                    "json": [
+                        "x",
+                        "y",
+                        "z"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:2"
+                    ]
+                },
+                "1.5": {
+                    "json": [
+                        "x",
+                        "y",
+                        "z"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:2"
+                    ]
+                },
+                "": {
+                    "json": [
+                        "x",
+                        "y",
+                        "z"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:2"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "forget-top-level-key-cast",
+            "php": "Arr::forget(['products', ['desk', [100]]], $seg) for $seg in '01','1',''",
+            "value": {
+                "01": {
+                    "json": [
+                        "products",
+                        [
+                            "desk",
+                            [
+                                100
+                            ]
+                        ]
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                },
+                "1": {
+                    "json": [
+                        "products"
+                    ],
+                    "keys": [
+                        "integer:0"
+                    ]
+                },
+                "": {
+                    "json": [
+                        "products",
+                        [
+                            "desk",
+                            [
+                                100
+                            ]
+                        ]
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "forget-list-noncanonical-among-several-keys",
+            "php": "Arr::forget([['x','y','z']], ['0.01', '0.2'])",
+            "value": {
+                "json": [
+                    "x",
+                    "y"
+                ],
+                "keys": [
+                    "integer:0",
+                    "integer:1"
+                ]
+            }
+        }
+    ]
+}

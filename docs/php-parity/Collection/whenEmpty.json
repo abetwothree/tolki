@@ -1,0 +1,18 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-H-whenEmpty-callback-receives-true",
+            "php": "(new Collection)->whenEmpty(fn ($c, $v) => var_export($v, true))",
+            "value": "true"
+        },
+        {
+            "label": "C32-H-whenEmpty-scalar-return",
+            "php": "(new Collection)->whenEmpty(fn () => 'scalar')",
+            "value": "scalar"
+        }
+    ]
+}

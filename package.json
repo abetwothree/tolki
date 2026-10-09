@@ -55,7 +55,7 @@
         "stubs:create-lists": "ts-node ./scripts/stubs-function-list-create.ts",
         "stubs:php-parity": "pnpm php:parity",
         "readme:build": "ts-node ./scripts/readme-build.ts",
-        "php:parity": "for f in scripts/php-parity/task-*.php; do o=\"docs/php-parity/$(basename \"${f%.php}\").json\"; php -d display_errors=stderr \"$f\" > \"$o.tmp\" && mv \"$o.tmp\" \"$o\" || { rm -f \"$o.tmp\"; echo \"FAILED: $f\" >&2; exit 1; }; done"
+        "php:parity": "for f in scripts/php-parity/*/*.php; do r=\"${f#scripts/php-parity/}\"; o=\"docs/php-parity/${r%.php}.json\"; mkdir -p \"$(dirname \"$o\")\"; php -d display_errors=stderr \"$f\" > \"$o.tmp\" && mv \"$o.tmp\" \"$o\" || { rm -f \"$o.tmp\"; echo \"FAILED: $f\" >&2; exit 1; }; done"
     },
     "keywords": [],
     "author": "",

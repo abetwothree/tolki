@@ -1,0 +1,23 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "order-last",
+            "php": "collect(base)->last()",
+            "value": "b"
+        },
+        {
+            "label": "order-last-callback",
+            "php": "collect(base)->last(fn ($v) => $v !== 'b')",
+            "value": "a"
+        },
+        {
+            "label": "order-last-no-match-default",
+            "php": "collect(base)->last(fn ($v) => false, 'fallback')",
+            "value": "fallback"
+        }
+    ]
+}

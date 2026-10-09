@@ -1,0 +1,163 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "random-traversable-backing-count",
+            "php": "count((new Collection(new ArrayIterator([1, 2, 3])))->random(2)->all())",
+            "value": 2
+        },
+        {
+            "label": "C32-C-random-record-count-is-list",
+            "php": "array_is_list((new Collection([\"a\" => 1, \"b\" => 2, \"c\" => 3]))->random(2)->all()) / random(0) / random(3, true) on [10, 20, 30]",
+            "value": [
+                true,
+                [],
+                true
+            ]
+        },
+        {
+            "label": "C32-C-random-negative-count",
+            "php": "(new Collection([1, 2, 3]))->random(-1)->all()",
+            "value": []
+        },
+        {
+            "label": "C32-C-random-float-count",
+            "php": "(new Collection([1, 2, 3]))->random(1.2)->count() / random(2.9)->count(), with deprecations",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-C-random-callable-count",
+            "php": "(new Collection([1, 2, 3]))->random(fn ($c) => $c instanceof Collection ? 2 : 0)->count() / random(fn () => 0)->all() / random(fn () => 5)",
+            "value": [
+                2,
+                [],
+                [
+                    "InvalidArgumentException",
+                    "You requested 5 items, but there are only 3 items available."
+                ]
+            ]
+        },
+        {
+            "label": "C32-C-random-too-many-count",
+            "php": "(new Collection([1, 2, 3]))->random(4)",
+            "threw": "InvalidArgumentException",
+            "message": "You requested 4 items, but there are only 3 items available."
+        },
+        {
+            "label": "C32-C-random-preserved-string-keys",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->random(3, true)->all() / array_is_list(random(2, true)->all())",
+            "value": [
+                {
+                    "a": 1,
+                    "b": 2,
+                    "c": 3
+                },
+                false
+            ]
+        },
+        {
+            "label": "C32-C-random-non-finite-count",
+            "php": "NAN, INF and -INF as the count of (new Collection([1, 2, 3]))->random(...)->all() and of Arr::random over [1, 2, 3] (list) and ['a' => 1, 'b' => 2, 'c' => 3] (keyed): the answer, or the class and message thrown",
+            "value": {
+                "NAN": {
+                    "collection": [
+                        "TypeError",
+                        "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, float given"
+                    ],
+                    "list": [
+                        "TypeError",
+                        "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, float given"
+                    ],
+                    "keyed": [
+                        "TypeError",
+                        "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, float given"
+                    ]
+                },
+                "INF": {
+                    "collection": [
+                        "InvalidArgumentException",
+                        "You requested INF items, but there are only 3 items available."
+                    ],
+                    "list": [
+                        "InvalidArgumentException",
+                        "You requested INF items, but there are only 3 items available."
+                    ],
+                    "keyed": [
+                        "InvalidArgumentException",
+                        "You requested INF items, but there are only 3 items available."
+                    ]
+                },
+                "-INF": {
+                    "collection": [],
+                    "list": [],
+                    "keyed": []
+                }
+            }
+        },
+        {
+            "label": "C32-C-random-non-numeric-string-count",
+            "php": "'abc' and '1x' as the count of (new Collection([1, 2, 3]))->random(...)->all() and of Arr::random over [1, 2, 3] (list) and ['a' => 1, 'b' => 2, 'c' => 3] (keyed): the class and message thrown",
+            "value": {
+                "abc": {
+                    "collection": [
+                        "InvalidArgumentException",
+                        "You requested abc items, but there are only 3 items available."
+                    ],
+                    "list": [
+                        "InvalidArgumentException",
+                        "You requested abc items, but there are only 3 items available."
+                    ],
+                    "keyed": [
+                        "InvalidArgumentException",
+                        "You requested abc items, but there are only 3 items available."
+                    ]
+                },
+                "1x": {
+                    "collection": [
+                        "TypeError",
+                        "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, string given"
+                    ],
+                    "list": [
+                        "TypeError",
+                        "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, string given"
+                    ],
+                    "keyed": [
+                        "TypeError",
+                        "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, string given"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "C32-C-random-out-of-order-full-count",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->random(3)->all() and pairs(random(3, true)->all()), which every draw answers alike",
+            "value": {
+                "values": [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "preserving-keys": [
+                    [
+                        2,
+                        "c"
+                    ],
+                    [
+                        0,
+                        "a"
+                    ],
+                    [
+                        1,
+                        "b"
+                    ]
+                ]
+            }
+        }
+    ]
+}

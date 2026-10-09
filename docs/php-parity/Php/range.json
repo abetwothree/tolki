@@ -1,0 +1,21 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-A-static-factories-keep-subclass",
+            "php": "get_class of C32ASub::make/wrap/empty/range/times/times(cb)/fromJson",
+            "value": {
+                "make": "C32ASub",
+                "wrap": "C32ASub",
+                "empty": "C32ASub",
+                "range": "C32ASub",
+                "times": "C32ASub",
+                "times-callback": "C32ASub",
+                "fromJson": "C32ASub"
+            }
+        }
+    ]
+}

@@ -1,0 +1,133 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "callback-key partition",
+            "php": "Arr::partition([1 => \"a\", \"x\" => \"b\"], $cb)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "partition-preserves-keys",
+            "php": "Arr::partition(['John','Jane','Greg'], fn($v) => $v !== 'Greg')",
+            "value": [
+                [
+                    "John",
+                    "Jane"
+                ],
+                {
+                    "2": "Greg"
+                }
+            ]
+        },
+        {
+            "label": "partition-empty",
+            "php": "Arr::partition([], fn () => true)",
+            "value": [
+                [],
+                []
+            ]
+        },
+        {
+            "label": "partition-assoc-preserves-keys",
+            "php": "Arr::partition(['a'=>1,'b'=>2,'c'=>3], fn($v) => $v > 1)",
+            "value": [
+                {
+                    "b": 2,
+                    "c": 3
+                },
+                {
+                    "a": 1
+                }
+            ]
+        },
+        {
+            "label": "partition-key-predicate",
+            "php": "Arr::partition([1=>'a','x'=>'b'], fn($v,$k)=>is_numeric($k))",
+            "value": [
+                {
+                    "1": "a"
+                },
+                {
+                    "x": "b"
+                }
+            ]
+        },
+        {
+            "label": "partition-out-of-order-callback-order",
+            "php": "Arr::partition([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => true) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "partition-mixed-callback-order",
+            "php": "Arr::partition(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => true) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "partition-out-of-order-first-visit",
+            "php": "Arr::partition([2 => 'c', 0 => 'a', 1 => 'b'], a callback true for its first call)",
+            "value": [
+                [
+                    [
+                        2,
+                        "c"
+                    ]
+                ],
+                [
+                    "a",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "partition-mixed-first-visit",
+            "php": "Arr::partition(['x' => 1, 0 => 2, 'y' => 3], a callback true for its first call)",
+            "value": [
+                [
+                    [
+                        "x",
+                        1
+                    ]
+                ],
+                [
+                    [
+                        0,
+                        2
+                    ],
+                    [
+                        "y",
+                        3
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "partition-collision",
+            "php": "Arr::partition([1 => 'a', 0 => 'z', '1' => 'b'], fn ($v) => $v === 'b')",
+            "value": [
+                [
+                    [
+                        1,
+                        "b"
+                    ]
+                ],
+                [
+                    "z"
+                ]
+            ]
+        }
+    ]
+}

@@ -1,0 +1,951 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "L8 contains loose (assoc)",
+            "php": "contains() over (new Collection(['a'=>1,'b'=>3,'c'=>5])) with 1,'1',2,'2'; then ['a'=>'1'] with '1',1; ['a'=>null] with false,null,[],0,''; ['a'=>0] with 0,'0',false,null,fn($v)=>$v<5,fn($v)=>$v>5; ['a'=>'date','b'=>'class','c'=>(object)['foo'=>50]] with 'date','class','foo'; ['a'=>null,'b'=>1,'c'=>2] with fn($v)=>is_null($v)",
+            "value": {
+                "135": [
+                    true,
+                    true,
+                    false,
+                    false
+                ],
+                "str1": [
+                    true,
+                    true
+                ],
+                "null": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true
+                ],
+                "zero": [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    false
+                ],
+                "date": [
+                    true,
+                    true,
+                    false
+                ],
+                "cbnull": [
+                    true
+                ]
+            }
+        },
+        {
+            "label": "F2 contains callback key type for int key",
+            "php": "['result' => (new Collection([1 => 'a', 'x' => 'b']))->contains(fn ($v, $k) => $k === 1), 'seen' => [gettype($k), $k] per call]",
+            "value": {
+                "result": true,
+                "seen": [
+                    [
+                        "integer",
+                        1
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "contains-loose-list",
+            "php": "contains over [null] and [0]",
+            "value": {
+                "[null]": {
+                    "false": true,
+                    "null": true,
+                    "[]": true,
+                    "0": true,
+                    "''": true
+                },
+                "[0]": {
+                    "'0'": true,
+                    "false": true,
+                    "null": true
+                }
+            }
+        },
+        {
+            "label": "contains-two-args-key-value",
+            "php": "(new Collection([['v'=>1],['v'=>3],['v'=>5]]))->contains('v', 1)",
+            "value": true
+        },
+        {
+            "label": "contains-three-args-operator",
+            "php": "(new Collection([['v'=>1],['v'=>3],['v'=>'4'],['v'=>5]]))->contains('v', <op>, 4)",
+            "value": {
+                "'='": true,
+                "'=='": true,
+                "'==='": false,
+                "'>'": true
+            }
+        },
+        {
+            "label": "r3-operator-table",
+            "php": "(new Collection([['v' => $retrieved]]))->contains('v', <op>, $value) for all eleven operators",
+            "value": {
+                "4 vs 4": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": true,
+                    "!==": false,
+                    "<=>": false
+                },
+                "4 vs \"4\"": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "null vs 4": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": true,
+                    ">": false,
+                    "<=": true,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "1 vs null": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "0 vs null": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "null vs null": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": true,
+                    "!==": false,
+                    "<=>": false
+                },
+                "-1 vs null": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "\"abc\" vs null": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "\"\" vs null": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "\"10\" vs \"9\"": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "NAN vs 1": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "1 vs NAN": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "NAN vs NAN": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "raw spaceship": {
+                    "1 <=> null": 1,
+                    "null <=> 1": -1,
+                    "NAN <=> 1": 1,
+                    "1 <=> NAN": 1,
+                    "NAN <=> NAN": 1,
+                    "0 <=> null": 0,
+                    "-1 <=> null": 1
+                }
+            }
+        },
+        {
+            "label": "r3-assoc-backed-contains",
+            "php": "(new Collection(['a'=>['v'=>1],'b'=>['v'=>3],'c'=>['v'=>'4'],'d'=>['v'=>5]]))->contains(...) and the containsStrict twins",
+            "value": {
+                "operator": {
+                    "'='": true,
+                    "'=='": true,
+                    "'==='": false,
+                    "'>'": true
+                },
+                "key-value": {
+                    "1": true,
+                    "2": false
+                },
+                "null-key": {
+                    "> 1": true,
+                    "> 9": false
+                },
+                "containsStrict-numeric-string": {
+                    "'02'": true,
+                    "2": false
+                },
+                "containsStrict-two-args": {
+                    "array": true,
+                    "reordered": false,
+                    "null": true,
+                    "null-missing": true,
+                    "null-none": false
+                },
+                "containsStrict-callback-null": true
+            }
+        },
+        {
+            "label": "r3-list-backed-contains",
+            "php": "(new Collection([['v'=>1],['v'=>3],['v'=>5]]))->contains('v', 2) and (new Collection([null, 1]))->containsStrict(fn ($v) => is_null($v))",
+            "value": {
+                "key-value-no-match": false,
+                "containsStrict-callback-null": true
+            }
+        },
+        {
+            "label": "r3-contains-boolean-value",
+            "php": "(new Collection([['active'=>true],['active'=>false]]))->contains('active', true) and the forms around it",
+            "value": {
+                "key-true": true,
+                "key-false": true,
+                "key-true-no-match": false,
+                "key-operator-true": true,
+                "containsStrict-key-of-a-row": false,
+                "contains-key-of-a-row": false,
+                "non-string-operator": true,
+                "null-key-operator": true,
+                "diffKeysUsing-nullish-operand": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "r4-nan-bool-null-table",
+            "php": "(new Collection([['v' => NAN]]))->contains('v', <op>, true|false|null) for all eleven operators",
+            "value": {
+                "NAN vs true": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "true vs NAN": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "NAN vs false": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "false vs NAN": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": true,
+                    ">": false,
+                    "<=": true,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "NAN vs null": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "null vs NAN": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": true,
+                    ">": false,
+                    "<=": true,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "raw spaceship": {
+                    "NAN <=> true": 0,
+                    "true <=> NAN": 0,
+                    "NAN <=> false": 1,
+                    "false <=> NAN": -1,
+                    "NAN <=> null": 1,
+                    "null <=> NAN": -1
+                }
+            }
+        },
+        {
+            "label": "r4-strict-operators",
+            "php": "(new Collection([['v' => $retrieved]]))->contains('v', '==='|'!==', $value) over arrays and objects",
+            "value": {
+                "[1,2] vs [1,2]": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": true,
+                    "!==": false
+                },
+                "[1,2] vs [1,\"2\"]": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": false,
+                    "!==": true
+                },
+                "[1,2] vs [2,1]": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "===": false,
+                    "!==": true
+                },
+                "[] vs []": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": true,
+                    "!==": false
+                },
+                "['a'=>1,'b'=>2] vs the same pairs": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": true,
+                    "!==": false
+                },
+                "['a'=>1,'b'=>2] vs the same pairs reordered": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": false,
+                    "!==": true
+                },
+                "[[1]] vs [[1]]": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": true,
+                    "!==": false
+                },
+                "D4Point(1) vs another D4Point(1)": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": false,
+                    "!==": true
+                },
+                "D4Point(1) vs itself": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": true,
+                    "!==": false
+                },
+                "DateTimeImmutable@0 vs another": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": false,
+                    "!==": true
+                },
+                "[1,2] vs 1": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "===": false,
+                    "!==": true
+                }
+            }
+        },
+        {
+            "label": "r4-object-scalar-guard",
+            "php": "(new Collection([['v' => $retrieved]]))->contains('v', <op>, $value) over object/array against scalar",
+            "value": {
+                "stdClass vs \"\"": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "\"\" vs stdClass": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "\"abc\" vs stdClass": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "stdClass vs \"abc\"": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "stdClass vs true": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "assoc array vs \"abc\"": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "\"abc\" vs assoc array": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": true,
+                    ">": false,
+                    "<=": true,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "assoc array vs true": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "empty array vs null": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "empty array vs \"abc\"": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                }
+            }
+        },
+        {
+            "label": "r4-operator-table-extras",
+            "php": "(new Collection([['v' => $retrieved]]))->contains('v', <op>, $value) for two ints and two array pairs",
+            "value": {
+                "1 vs 2": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": true,
+                    ">": false,
+                    "<=": true,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "2 vs 1": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "1 vs 1": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": true,
+                    "!==": false,
+                    "<=>": false
+                },
+                "raw spaceship": {
+                    "1 <=> 2": -1,
+                    "2 <=> 1": 1,
+                    "1 <=> 1": 0
+                },
+                "assoc array vs the same pairs": {
+                    "'='": true
+                },
+                "assoc array vs \"x\"": {
+                    "'='": false
+                }
+            }
+        },
+        {
+            "label": "r4-assoc-backed-operator-forms",
+            "php": "(new Collection(['a'=>['v'=>5],'b'=>['v'=>6]]))->contains('v', 5, 6) and the data.spec twins",
+            "value": {
+                "non-string-operator-assoc": true,
+                "non-string-operator-list": true,
+                "key-true-assoc": true,
+                "key-operator-true-assoc": true,
+                "key-true-list": true,
+                "null-key-list": true
+            }
+        },
+        {
+            "label": "contains-out-of-order-key-order",
+            "php": "$keys seen by collect(base)->contains($cb returning false)",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "contains-out-of-order-first-match",
+            "php": "collect(base)->contains(fn ($v, $k) => true) stops at the first entry",
+            "value": [
+                2
+            ]
+        },
+        {
+            "label": "contains-out-of-order-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->contains(fn ($v, $k) => false) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "contains-out-of-order-early-exit-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->contains(fn ($v, $k) => $v === 'a') => keys seen",
+            "value": [
+                2,
+                0
+            ]
+        },
+        {
+            "label": "contains-mixed-callback-order",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->contains(fn ($v, $k) => false) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "contains-out-of-order-operator-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->contains(fn ($v, $k) => false, '=', 'q') => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "contains-collision",
+            "php": "(new Collection([1 => 'a', '1' => 'b']))->contains('a')",
+            "value": false
+        },
+        {
+            "label": "C32-C-callback-php-truthiness",
+            "php": "callbacks returning \"0\" or [] are falsy: contains / first / search / every / hasSole / hasMany",
+            "value": {
+                "contains": false,
+                "first": null,
+                "first-array": null,
+                "search": false,
+                "every": false,
+                "hasSole": false,
+                "hasMany": false
+            }
+        },
+        {
+            "label": "C32-C-two-args-null-value",
+            "php": "contains / hasSole / hasMany / sole / firstWhere with (\"a\", null) over [[\"a\" => null], [\"a\" => 1]]",
+            "value": {
+                "contains": true,
+                "contains-none": false,
+                "hasSole": true,
+                "hasMany": true,
+                "sole": {
+                    "a": null
+                },
+                "firstWhere": {
+                    "a": null
+                }
+            }
+        },
+        {
+            "label": "C32-C-collection-rows",
+            "php": "rows that are Collections: contains(\"v\", 1) / where(\"v\", 1)->count() / firstWhere(\"v\", 1)->all() / value(\"v\")",
+            "value": [
+                true,
+                1,
+                {
+                    "v": 1
+                },
+                1
+            ]
+        },
+        {
+            "label": "C32-C-collection-rows-by-backing",
+            "php": "c32c_rows(list | keyed): contains('k', 'a') / where('k', 'b')->keys() / firstWhere('k', 'a')->all() / value('v')",
+            "value": {
+                "list": [
+                    true,
+                    [
+                        0,
+                        2
+                    ],
+                    {
+                        "k": "a",
+                        "v": 2
+                    },
+                    1
+                ],
+                "keyed": [
+                    true,
+                    [
+                        "x",
+                        "z"
+                    ],
+                    {
+                        "k": "a",
+                        "v": 2
+                    },
+                    1
+                ]
+            }
+        },
+        {
+            "label": "C32-C-contains-unit-enum-operand",
+            "php": "(new Collection([[\"n\" => C32StaffEnum::Joe]]))->contains(\"n\", \"Joe\") / contains(\"n\", C32StaffEnum::Joe) / contains(\"n\", \"!=\", \"Joe\")",
+            "value": [
+                true,
+                true,
+                false
+            ]
+        },
+        {
+            "label": "C32-D-array-rows-by-backing",
+            "php": "c32d_array_rows(list | keyed): contains('k', 'a'), where('k', 'b') v's, firstWhere('k', 'a'), value('v'), pluck('v') and pluck('v', 'k'), sortBy('k') v's, groupBy('k') and keyBy('k') v's, whereIn('k', ['a']) v's",
+            "value": {
+                "list": {
+                    "contains": true,
+                    "where": [
+                        1,
+                        3
+                    ],
+                    "firstWhere": {
+                        "k": "a",
+                        "v": 2
+                    },
+                    "value": 1,
+                    "pluck": [
+                        1,
+                        2,
+                        3
+                    ],
+                    "pluckKeyed": {
+                        "b": 3,
+                        "a": 2
+                    },
+                    "sortBy": [
+                        2,
+                        1,
+                        3
+                    ],
+                    "groupBy": {
+                        "b": [
+                            1,
+                            3
+                        ],
+                        "a": [
+                            2
+                        ]
+                    },
+                    "keyBy": {
+                        "b": 3,
+                        "a": 2
+                    },
+                    "whereIn": [
+                        2
+                    ]
+                },
+                "keyed": {
+                    "contains": true,
+                    "where": [
+                        1,
+                        3
+                    ],
+                    "firstWhere": {
+                        "k": "a",
+                        "v": 2
+                    },
+                    "value": 1,
+                    "pluck": [
+                        1,
+                        2,
+                        3
+                    ],
+                    "pluckKeyed": {
+                        "b": 3,
+                        "a": 2
+                    },
+                    "sortBy": [
+                        2,
+                        1,
+                        3
+                    ],
+                    "groupBy": {
+                        "b": [
+                            1,
+                            3
+                        ],
+                        "a": [
+                            2
+                        ]
+                    },
+                    "keyBy": {
+                        "b": 3,
+                        "a": 2
+                    },
+                    "whereIn": [
+                        2
+                    ]
+                }
+            }
+        }
+    ]
+}

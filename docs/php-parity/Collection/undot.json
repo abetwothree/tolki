@@ -1,0 +1,32 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "r4-undot-backings",
+            "php": "(new Collection(5|'a.b'|new ArrayIterator(['a.b'])|null|true))->undot()",
+            "value": {
+                "int": [
+                    5
+                ],
+                "string": [
+                    "a.b"
+                ],
+                "traversable": [
+                    "a.b"
+                ],
+                "null": [],
+                "bool": [
+                    true
+                ],
+                "list": [
+                    1,
+                    2,
+                    3
+                ]
+            }
+        }
+    ]
+}

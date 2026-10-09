@@ -1,0 +1,215 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "search-strict-falsy",
+            "php": "search over [false,0,1,[],''] in strict mode",
+            "value": {
+                "'false'": false,
+                "'1'": false,
+                "false": 0,
+                "0": 1,
+                "1": 2,
+                "[]": 3,
+                "''": 4
+            }
+        },
+        {
+            "label": "search-loose-falsy",
+            "php": "search over [false,0,1,[],''] loosely",
+            "value": {
+                "0": 0,
+                "''": 0,
+                "'1'": 2
+            }
+        },
+        {
+            "label": "search-string-key-hit",
+            "php": "(new Collection(['foo'=>'bar','baz'=>'qux']))->search('qux')",
+            "value": "baz"
+        },
+        {
+            "label": "search-not-found",
+            "php": "search for a missing value, list and assoc",
+            "value": {
+                "list": false,
+                "assoc": false
+            }
+        },
+        {
+            "label": "search-callback",
+            "php": "(new Collection([1,2,3]))->search(fn($v) => $v > 2)",
+            "value": 2
+        },
+        {
+            "label": "search-callback-not-found",
+            "php": "(new Collection([1,2,3]))->search(fn($v) => $v > 9)",
+            "value": false
+        },
+        {
+            "label": "search-callback-key-arg",
+            "php": "(new Collection(['a','b','c']))->search(fn($v,$k) => $k === 2)",
+            "value": 2
+        },
+        {
+            "label": "search-assoc-callback-key-arg",
+            "php": "(new Collection(['x'=>1,'y'=>2]))->search(fn($v,$k) => $k === 'y')",
+            "value": "y"
+        },
+        {
+            "label": "search-array-needle-strict",
+            "php": "collect([[1,2],[3]])->search([1,2], true)",
+            "value": 0
+        },
+        {
+            "label": "search-array-needle-loose",
+            "php": "collect([[1,2],[3]])->search([1,2], false)",
+            "value": 0
+        },
+        {
+            "label": "search-array-needle-wrong-order-strict",
+            "php": "collect([[1,2]])->search([2,1], true)",
+            "value": false
+        },
+        {
+            "label": "search-empty-array-needle-loose",
+            "php": "collect([[]])->search([], false)",
+            "value": 0
+        },
+        {
+            "label": "search-keyed-needle-strict",
+            "php": "collect(['x'=>['a'=>1]])->search(['a'=>1], true)",
+            "value": "x"
+        },
+        {
+            "label": "search-keyed-needle-loose",
+            "php": "collect(['x'=>['a'=>1]])->search(['a'=>1], false)",
+            "value": "x"
+        },
+        {
+            "label": "search-reordered-keys-strict",
+            "php": "collect([['b'=>2,'a'=>1]])->search(['a'=>1,'b'=>2], true)",
+            "value": false
+        },
+        {
+            "label": "search-reordered-keys-loose",
+            "php": "collect([['b'=>2,'a'=>1]])->search(['a'=>1,'b'=>2], false)",
+            "value": 0
+        },
+        {
+            "label": "search-numeric-string-element-strict",
+            "php": "collect([[1,2]])->search([1,'2'], true)",
+            "value": false
+        },
+        {
+            "label": "search-numeric-string-element-loose",
+            "php": "collect([[1,2]])->search([1,'2'], false)",
+            "value": 0
+        },
+        {
+            "label": "search-int-needle-on-numeric-string-strict",
+            "php": "collect(['1',2])->search(1, true)",
+            "value": false
+        },
+        {
+            "label": "search-int-needle-on-numeric-string-loose",
+            "php": "collect(['1',2])->search(1, false)",
+            "value": 0
+        },
+        {
+            "label": "search-string-needle-strict",
+            "php": "collect([0,'a'])->search('a', true)",
+            "value": 1
+        },
+        {
+            "label": "search-string-needle-loose",
+            "php": "collect([0,'a'])->search('a', false)",
+            "value": 1
+        },
+        {
+            "label": "search-null-needle-on-zero-strict",
+            "php": "collect([0])->search(null, true)",
+            "value": false
+        },
+        {
+            "label": "search-null-needle-on-zero-loose",
+            "php": "collect([0])->search(null, false)",
+            "value": 0
+        },
+        {
+            "label": "search-traversable-backing",
+            "php": "collect(gen(1,2))->search(2)",
+            "value": 1
+        },
+        {
+            "label": "search-out-of-order-duplicate-value",
+            "php": "(new Collection([2 => 'x', 0 => 'x', 1 => 'y']))->search('x')",
+            "value": 2
+        },
+        {
+            "label": "search-mixed-duplicate-value",
+            "php": "(new Collection(['x' => 'v', 0 => 'v', 'y' => 'w']))->search('v')",
+            "value": "x"
+        },
+        {
+            "label": "search-out-of-order-callback",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->search(fn () => true)",
+            "value": 2
+        },
+        {
+            "label": "search-out-of-order-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->search(fn ($v, $k) => false) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "search-out-of-order-early-exit-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->search(fn ($v, $k) => $v === 'a') => keys seen",
+            "value": [
+                2,
+                0
+            ]
+        },
+        {
+            "label": "search-mixed-callback",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->search(fn () => true)",
+            "value": "x"
+        },
+        {
+            "label": "search-mixed-callback-order",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->search(fn ($v, $k) => false) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "search-collision",
+            "php": "(new Collection([5 => 'a', 0 => 'b', '5' => 'c']))->search('a')",
+            "value": false
+        },
+        {
+            "label": "search-collision-callback-order",
+            "php": "(new Collection([5 => 'a', 0 => 'b', '5' => 'c']))->search(fn ($v, $k) => false) => keys seen",
+            "value": [
+                5,
+                0
+            ]
+        },
+        {
+            "label": "C32-C-search-numeric-string-record-key",
+            "php": "gettype and value of (new Collection([\"1\" => \"a\", \"x\" => \"b\"]))->search(\"a\")",
+            "value": [
+                "integer",
+                1
+            ]
+        }
+    ]
+}

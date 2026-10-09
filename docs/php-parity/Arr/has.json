@@ -1,0 +1,172 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::has \u2014 literal dotted key",
+            "php": "Arr::has([\"products.desk\"=>[...]], \"products.desk\")",
+            "value": true
+        },
+        {
+            "label": "Arr::has \u2014 numeric key",
+            "php": "Arr::has([123=>\"x\"], 123)",
+            "value": true
+        },
+        {
+            "label": "has-null-value",
+            "php": "Arr::has(['foo' => null, 'bar' => ['baz' => null]], 'foo')",
+            "value": true
+        },
+        {
+            "label": "has-nested-null-value",
+            "php": "Arr::has(['foo' => null, 'bar' => ['baz' => null]], 'bar.baz')",
+            "value": true
+        },
+        {
+            "label": "has-plain-tens-foo",
+            "php": "Arr::has(['foo' => 10, 'bar' => ['baz' => 10]], 'foo')",
+            "value": true
+        },
+        {
+            "label": "has-plain-tens-bar",
+            "php": "Arr::has(['foo' => 10, 'bar' => ['baz' => 10]], 'bar')",
+            "value": true
+        },
+        {
+            "label": "has-plain-tens-bar.baz",
+            "php": "Arr::has(['foo' => 10, 'bar' => ['baz' => 10]], 'bar.baz')",
+            "value": true
+        },
+        {
+            "label": "has-plain-tens-xxx",
+            "php": "Arr::has(['foo' => 10, 'bar' => ['baz' => 10]], 'xxx')",
+            "value": false
+        },
+        {
+            "label": "has-plain-tens-xxx.yyy",
+            "php": "Arr::has(['foo' => 10, 'bar' => ['baz' => 10]], 'xxx.yyy')",
+            "value": false
+        },
+        {
+            "label": "has-plain-tens-foo.xxx",
+            "php": "Arr::has(['foo' => 10, 'bar' => ['baz' => 10]], 'foo.xxx')",
+            "value": false
+        },
+        {
+            "label": "has-plain-tens-bar.xxx",
+            "php": "Arr::has(['foo' => 10, 'bar' => ['baz' => 10]], 'bar.xxx')",
+            "value": false
+        },
+        {
+            "label": "has-assoc-null-key",
+            "php": "Arr::has(['a' => 1], null)",
+            "value": false
+        },
+        {
+            "label": "has-false",
+            "php": "Arr::has(false, 'foo')",
+            "value": false
+        },
+        {
+            "label": "has-null-null",
+            "php": "Arr::has(null, null)",
+            "value": false
+        },
+        {
+            "label": "has-empty-null",
+            "php": "Arr::has([], null)",
+            "value": false
+        },
+        {
+            "label": "has-through-list",
+            "php": "Arr::has(['products' => [['name' => 'desk']]], 'products.0.name')",
+            "value": true
+        },
+        {
+            "label": "has-through-list-miss",
+            "php": "Arr::has(['products' => [['name' => 'desk']]], 'products.0.price')",
+            "value": false
+        },
+        {
+            "label": "has-empty-string-key-null-in-list",
+            "php": "Arr::has(['' => 'some'], [null])",
+            "value": true
+        },
+        {
+            "label": "has-empty-key",
+            "php": "Arr::has(['' => 'some'], '')",
+            "value": true
+        },
+        {
+            "label": "has-empty-key-list",
+            "php": "Arr::has(['' => 'some'], [''])",
+            "value": true
+        },
+        {
+            "label": "has-empty-key-missing",
+            "php": "Arr::has([], '')",
+            "value": false
+        },
+        {
+            "label": "has-empty-key-list-missing",
+            "php": "Arr::has([], [''])",
+            "value": false
+        },
+        {
+            "label": "has-null-key-nonempty-assoc",
+            "php": "Arr::has(['a' => 1], [null, 'a'])",
+            "value": false
+        },
+        {
+            "label": "has-list-non-canonical-index",
+            "php": "Arr::has(['x', 'y'], $k) and Arr::has([['x', 'y']], \"0.$k\")",
+            "value": {
+                "01": {
+                    "top": false,
+                    "nested": false
+                },
+                " 1": {
+                    "top": false,
+                    "nested": false
+                },
+                "1e0": {
+                    "top": false,
+                    "nested": false
+                },
+                "+1": {
+                    "top": false,
+                    "nested": false
+                },
+                "0x1": {
+                    "top": false,
+                    "nested": false
+                },
+                "-0": {
+                    "top": false,
+                    "nested": false
+                },
+                "1 ": {
+                    "top": false,
+                    "nested": false
+                }
+            }
+        },
+        {
+            "label": "has-empty-string-key-null-key",
+            "php": "Arr::has(['' => 'some'], null)",
+            "value": false
+        },
+        {
+            "label": "has-out-of-order",
+            "php": "Arr::has([2 => 'c', 0 => 'a', 1 => 'b'], [0, 2])",
+            "value": true
+        },
+        {
+            "label": "has-out-of-order-missing",
+            "php": "Arr::has([2 => 'c', 0 => 'a', 1 => 'b'], [0, 5])",
+            "value": false
+        }
+    ]
+}

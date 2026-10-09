@@ -1,0 +1,225 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "collapseWithKeys-string-keys",
+            "php": "(new Collection(['first' => ['a' => 1, 'b' => 2], 'second' => ['c' => 3]]))->collapseWithKeys()",
+            "value": [
+                [
+                    "a",
+                    1
+                ],
+                [
+                    "b",
+                    2
+                ],
+                [
+                    "c",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "collapseWithKeys-mixed-keys",
+            "php": "(new Collection([5 => ['a' => 1], 'second' => new Collection(['b' => 2, 'a' => 3])]))->collapseWithKeys()",
+            "value": [
+                [
+                    "a",
+                    3
+                ],
+                [
+                    "b",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "collapseWithKeys-string-keys-lists",
+            "php": "(new Collection(['first' => [1, 2], 'second' => [3]]))->collapseWithKeys()",
+            "value": [
+                3,
+                2
+            ]
+        },
+        {
+            "label": "C32-E-collapseWithKeys-int-key-order",
+            "php": "collect([[1=>'a'],[3=>'c'],[2=>'b'],'drop'])->collapseWithKeys()",
+            "value": [
+                [
+                    1,
+                    "integer",
+                    "a"
+                ],
+                [
+                    3,
+                    "integer",
+                    "c"
+                ],
+                [
+                    2,
+                    "integer",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-collapseWithKeys-skips-object-item",
+            "php": "collect([[1, 2], new DateTime('@0')])->collapseWithKeys()",
+            "value": [
+                [
+                    0,
+                    "integer",
+                    1
+                ],
+                [
+                    1,
+                    "integer",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-collapseWithKeys-out-of-order",
+            "php": "collect([2 => ['c' => 1], 0 => ['a' => 1], 1 => ['b' => 1]])->collapseWithKeys()",
+            "value": [
+                [
+                    "c",
+                    "string",
+                    1
+                ],
+                [
+                    "a",
+                    "string",
+                    1
+                ],
+                [
+                    "b",
+                    "string",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-collapseWithKeys-collection-items",
+            "php": "collect([collect([2 => 'c', 0 => 'a'])]) and collect([collect([1, 2]), [3]]), each ->collapseWithKeys()",
+            "value": {
+                "out-of-order": [
+                    [
+                        2,
+                        "integer",
+                        "c"
+                    ],
+                    [
+                        0,
+                        "integer",
+                        "a"
+                    ]
+                ],
+                "collection-then-list": [
+                    [
+                        0,
+                        "integer",
+                        3
+                    ],
+                    [
+                        1,
+                        "integer",
+                        2
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "collapseWithKeys-mixed-collection-types",
+            "php": "(new Collection([new Collection(['a' => 1, 'b' => 2]), new LazyCollection(['b' => 3, 'c' => 4])]))->collapseWithKeys()",
+            "value": [
+                [
+                    "a",
+                    1
+                ],
+                [
+                    "b",
+                    3
+                ],
+                [
+                    "c",
+                    4
+                ]
+            ]
+        },
+        {
+            "label": "collapseWithKeys-lazy-lists",
+            "php": "(new Collection([new LazyCollection([1, 2]), [3]]))->collapseWithKeys()",
+            "value": [
+                3,
+                2
+            ]
+        },
+        {
+            "label": "collapseWithKeys-lazy-only",
+            "php": "(new Collection([new LazyCollection(['a' => 1]), new LazyCollection(['a' => 2, 'b' => 3])]))->collapseWithKeys()",
+            "value": [
+                [
+                    "a",
+                    2
+                ],
+                [
+                    "b",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "collapseWithKeys-lazy-then-array",
+            "php": "(new Collection([new LazyCollection(['a' => 1, 'b' => 2]), ['b' => 9]]))->collapseWithKeys()",
+            "value": [
+                [
+                    "a",
+                    1
+                ],
+                [
+                    "b",
+                    9
+                ]
+            ]
+        },
+        {
+            "label": "collapseWithKeys-lazy-int-keys",
+            "php": "(new Collection([[5 => 'a'], new LazyCollection([5 => 'b', 6 => 'c'])]))->collapseWithKeys()",
+            "value": [
+                [
+                    5,
+                    "b"
+                ],
+                [
+                    6,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "collapseWithKeys-array-item-all-member-is-data",
+            "php": "(new Collection([['all' => fn () => ['z' => 9], 'b' => 2]]))->collapseWithKeys()->keys()->all()",
+            "value": [
+                "all",
+                "b"
+            ]
+        },
+        {
+            "label": "collapseWithKeys-null-item",
+            "php": "(new Collection([null, ['a' => 1]]))->collapseWithKeys(), then (new Collection([null]))->collapseWithKeys()",
+            "value": [
+                [
+                    [
+                        "a",
+                        1
+                    ]
+                ],
+                []
+            ]
+        }
+    ]
+}

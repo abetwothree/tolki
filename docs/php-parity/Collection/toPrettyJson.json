@@ -1,0 +1,18 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-A-toPrettyJson-list",
+            "php": "collect([1, [2]])->toPrettyJson()",
+            "value": "[\n    1,\n    [\n        2\n    ]\n]"
+        },
+        {
+            "label": "C32-A-toPrettyJson-empty",
+            "php": "collect()->toPrettyJson()",
+            "value": "[]"
+        }
+    ]
+}

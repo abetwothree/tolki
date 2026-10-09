@@ -1,0 +1,49 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::toCssStyles mixed keys",
+            "php": "Arr::toCssStyles([...])",
+            "value": "font-weight: bold; margin-top: 4px; margin-left: 2px;"
+        },
+        {
+            "label": "Arr::toCssStyles with is_numeric edge-case keys",
+            "php": "Arr::toCssStyles(['' => 'foo', ' ' => 'foo', '0x10' => 'foo', '1e3' => 'foo', 'Infinity' => 'foo'])",
+            "value": {
+                "empty": ";",
+                "space": " ;",
+                "hex": "0x10;",
+                "sci": "foo;",
+                "infinity": "Infinity;"
+            }
+        },
+        {
+            "label": "Arr::toCssStyles non-string value at numeric key",
+            "php": "Arr::toCssStyles([0 => 123, 1 => null, 3 => true])",
+            "value": "123; ; 1;"
+        },
+        {
+            "label": "Arr::toCssStyles false value at numeric key",
+            "php": "Arr::toCssStyles([0 => false, 1 => 'x'])",
+            "value": "; x;"
+        },
+        {
+            "label": "toCssStyles-out-of-order",
+            "php": "Arr::toCssStyles([2 => 'c:2', 0 => 'a:0', 1 => 'b:1'])",
+            "value": "c:2; a:0; b:1;"
+        },
+        {
+            "label": "toCssStyles-mixed-booleans",
+            "php": "Arr::toCssStyles(['x:1' => true, 0 => 'z:0', 'off:1' => false, 'y:1' => true])",
+            "value": "x:1; z:0; y:1;"
+        },
+        {
+            "label": "toCssStyles-collision",
+            "php": "Arr::toCssStyles([1 => 'a:1', 0 => 'z:0', '1' => 'b:1'])",
+            "value": "b:1; z:0;"
+        }
+    ]
+}

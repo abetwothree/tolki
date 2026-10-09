@@ -1,0 +1,30 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-D-data-has-collection-target",
+            "php": "data_has over a Collection: a null value, 'a.b', a missing key; and data_has with a null or an empty key",
+            "value": [
+                true,
+                true,
+                false,
+                false,
+                false
+            ]
+        },
+        {
+            "label": "C32-D-data-has-array-and-object-targets",
+            "php": "data_has(['a' => null], 'a') / data_has([10, 20], '1') / data_has([10], '01') / data_has(new C32D_Point, 'p') / data_has(new C32D_Point, 'q')",
+            "value": [
+                true,
+                true,
+                false,
+                true,
+                false
+            ]
+        }
+    ]
+}

@@ -1,0 +1,35 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "krsort on integer keys",
+            "php": "krsort([5=>\"e\",2=>\"b\",9=>\"z\"])",
+            "value": {
+                "9": "z",
+                "5": "e",
+                "2": "b"
+            }
+        },
+        {
+            "label": "krsort on a packed list",
+            "php": "krsort([0=>\"a\",1=>\"b\",2=>\"c\"])",
+            "value": {
+                "2": "c",
+                "1": "b",
+                "0": "a"
+            }
+        },
+        {
+            "label": "krsort mixes integer and string keys",
+            "php": "krsort([10=>\"j\",\"b\"=>\"bee\",2=>\"c\"])",
+            "value": {
+                "b": "bee",
+                "10": "j",
+                "2": "c"
+            }
+        }
+    ]
+}

@@ -1,0 +1,39 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "count-empty",
+            "php": "count([]) via Collection",
+            "value": {
+                "empty": 0,
+                "nested": 2
+            }
+        },
+        {
+            "label": "count-nested-top-level-only",
+            "php": "Collection count only counts top-level items, never descends",
+            "value": {
+                "assoc": 2,
+                "list": 2
+            }
+        },
+        {
+            "label": "count-traversable-backing",
+            "php": "collect(gen(1,2))->count()",
+            "value": 2
+        },
+        {
+            "label": "count-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->count()",
+            "value": 3
+        },
+        {
+            "label": "count-collision",
+            "php": "(new Collection([1 => 'a', 'x' => 'q', '1' => 'b']))->count()",
+            "value": 2
+        }
+    ]
+}

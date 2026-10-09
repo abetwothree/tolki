@@ -1,0 +1,51 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "collection-dot-collection-leaf",
+            "php": "(new Collection([new Collection(['a' => 1])]))->dot() and (new Collection(['c' => new Collection(['a' => 1])]))->dot(): keys",
+            "value": {
+                "list": [
+                    0
+                ],
+                "map": [
+                    "c"
+                ]
+            }
+        },
+        {
+            "label": "C32-E-dot-list-backing",
+            "php": "collect(['a', 'b'])->dot() and collect(['0' => 'a', '1' => 'b'])->undot()",
+            "value": {
+                "dot": [
+                    [
+                        0,
+                        "integer",
+                        "a"
+                    ],
+                    [
+                        1,
+                        "integer",
+                        "b"
+                    ]
+                ],
+                "undot": [
+                    [
+                        0,
+                        "integer",
+                        "a"
+                    ],
+                    [
+                        1,
+                        "integer",
+                        "b"
+                    ]
+                ],
+                "dot-is-list": true
+            }
+        }
+    ]
+}

@@ -1,0 +1,280 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "sortRecursive-literal",
+            "php": "Arr::sortRecursive($sr)",
+            "value": {
+                "20": [
+                    0,
+                    1,
+                    2
+                ],
+                "30": [
+                    "c",
+                    "b",
+                    "a"
+                ],
+                "repositories": [
+                    {
+                        "id": 0
+                    },
+                    {
+                        "id": 1
+                    }
+                ],
+                "users": [
+                    {
+                        "age": 25,
+                        "name": "jane"
+                    },
+                    {
+                        "mail": "joe@example.com",
+                        "name": "joe",
+                        "numbers": [
+                            0,
+                            1,
+                            2
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "label": "sortRecursive-numbers-lexical",
+            "php": "Arr::sortRecursive(['a'=>[10,9,1]])",
+            "value": {
+                "a": [
+                    1,
+                    9,
+                    10
+                ]
+            }
+        },
+        {
+            "label": "sortRecursive-list-of-objects",
+            "php": "Arr::sortRecursive(['r'=>[['id'=>2],['id'=>10],['id'=>1]]])",
+            "value": {
+                "r": [
+                    {
+                        "id": 1
+                    },
+                    {
+                        "id": 2
+                    },
+                    {
+                        "id": 10
+                    }
+                ]
+            }
+        },
+        {
+            "label": "sortRecursive-key-case",
+            "php": "array_keys(Arr::sortRecursive(['b'=>1,'B'=>2,'a'=>3,'_x'=>4]))",
+            "value": [
+                "B",
+                "_x",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "sortRecursive-list-strings-case",
+            "php": "Arr::sortRecursive(['l'=>['b','B','a']])",
+            "value": {
+                "l": [
+                    "B",
+                    "a",
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "sortRecursive-object-leaf",
+            "php": "Arr::sortRecursive(['d' => $date, 'a' => 1]), (['l' => [$date]]), (['o' => (object) ['b' => 1, 'a' => 2]]), (['m' => new ArrayObject(['b' => 1, 'a' => 2])]): keys, identity and the object's own key order",
+            "value": {
+                "map": {
+                    "keys": [
+                        "a",
+                        "d"
+                    ],
+                    "kept": true
+                },
+                "in-list": true,
+                "object": {
+                    "kept": true,
+                    "keys": [
+                        "b",
+                        "a"
+                    ]
+                },
+                "arrayObject": {
+                    "kept": true,
+                    "keys": [
+                        "b",
+                        "a"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "sortRecursive-list-object-leaf",
+            "php": "Arr::sortRecursive([[$date]]), Arr::sortRecursive([$object]), Arr::sortRecursive([['o' => $object]]): whether each object is kept",
+            "value": {
+                "nested-list": true,
+                "list": true,
+                "map-in-list": true
+            }
+        },
+        {
+            "label": "sortRecursive-list-of-ints",
+            "php": "Arr::sortRecursive([3,1,2])",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "sortRecursive-explicit-zero-based-keys",
+            "php": "Arr::sortRecursive([0=>3,1=>1,2=>2])",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "sortRecursive-nested-lists",
+            "php": "Arr::sortRecursive([[3,1,2],[9,8]])",
+            "value": [
+                [
+                    8,
+                    9
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursive-string-keys-stay-ksorted",
+            "php": "Arr::sortRecursive(['b'=>2,'a'=>1])",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "sortRecursive-gapped-int-keys-stay-ksorted",
+            "php": "Arr::sortRecursive([0=>3,2=>1])",
+            "value": {
+                "0": 3,
+                "2": 1
+            }
+        },
+        {
+            "label": "sortRecursive-literal-js-spelling",
+            "php": "Arr::sortRecursive($srJs)",
+            "value": {
+                "20": [
+                    0,
+                    1,
+                    2
+                ],
+                "30": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "repositories": [
+                    {
+                        "id": 0
+                    },
+                    {
+                        "id": 1
+                    }
+                ],
+                "users": [
+                    {
+                        "age": 25,
+                        "name": "jane"
+                    },
+                    {
+                        "mail": "joe@example.com",
+                        "name": "joe",
+                        "numbers": [
+                            0,
+                            1,
+                            2
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "label": "sortRecursive-descending-int-keys",
+            "php": "Arr::sortRecursive([1 => 'a', 0 => 'b'])",
+            "value": [
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "sortRecursive-out-of-order",
+            "php": "Arr::sortRecursive([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "sortRecursive-out-of-order-key-and-value-sorts-disagree",
+            "php": "Arr::sortRecursive([2 => 'a', 0 => 'c', 1 => 'b'])",
+            "value": [
+                "c",
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "sortRecursive-out-of-order-nested",
+            "php": "Arr::sortRecursive([1 => ['b' => 2, 'a' => 1], 0 => 'z'])",
+            "value": [
+                "z",
+                [
+                    [
+                        "a",
+                        1
+                    ],
+                    [
+                        "b",
+                        2
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursive-collision",
+            "php": "Arr::sortRecursive([1 => 'a', 0 => 'c', '1' => 'b'])",
+            "value": [
+                "c",
+                "b"
+            ]
+        },
+        {
+            "label": "sortRecursive-collision-makes-list",
+            "php": "Arr::sortRecursive([0 => 'b', 1 => 'a', '0' => 'c'])",
+            "value": [
+                "a",
+                "c"
+            ]
+        }
+    ]
+}

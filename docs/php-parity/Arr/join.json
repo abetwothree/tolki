@@ -1,0 +1,82 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "join-assoc-two",
+            "php": "Arr::join(['a' => 'a', 'b' => 'b'], ', ', ' and ')",
+            "value": "a and b"
+        },
+        {
+            "label": "join-single",
+            "php": "Arr::join(['a'], ', ', ' and ')",
+            "value": "a"
+        },
+        {
+            "label": "join-empty",
+            "php": "Arr::join([], ', ', ' and ')",
+            "value": ""
+        },
+        {
+            "label": "join-three-no-final-glue",
+            "php": "Arr::join(['a','b','c'], ', ')",
+            "value": "a, b, c"
+        },
+        {
+            "label": "join-assoc-numbers",
+            "php": "Arr::join(['a'=>1,'b'=>2,'c'=>3], ', ')",
+            "value": "1, 2, 3"
+        },
+        {
+            "label": "join-out-of-order",
+            "php": "Arr::join([2 => 'c', 0 => 'a', 1 => 'b'], ', ', ' and ')",
+            "value": "c, a and b"
+        },
+        {
+            "label": "join-out-of-order-no-final-glue",
+            "php": "Arr::join([2 => 'c', 0 => 'a', 1 => 'b'], ', ')",
+            "value": "c, a, b"
+        },
+        {
+            "label": "join-mixed",
+            "php": "Arr::join(['x' => 1, 0 => 2, 'y' => 3], ', ', ' and ')",
+            "value": "1, 2 and 3"
+        },
+        {
+            "label": "join-collision",
+            "php": "Arr::join([1 => 'a', 0 => 'z', '1' => 'b'], ',')",
+            "value": "b,z"
+        },
+        {
+            "label": "C32-H-arr-join-pieces",
+            "php": "Arr::join() casting each piece as implode() does, the final item as . does, and handing a lone item back as it is",
+            "value": {
+                "array piece": "1,Array",
+                "scalars": "1,,,1.5,x",
+                "keyed array piece": "1,Array",
+                "object piece": [
+                    "Error",
+                    "Object of class stdClass could not be converted to string"
+                ],
+                "closure piece": [
+                    "Error",
+                    "Object of class Closure could not be converted to string"
+                ],
+                "toString piece": "1,S:T",
+                "final array piece": "1 and Array",
+                "final object piece": [
+                    "Error",
+                    "Object of class stdClass could not be converted to string"
+                ],
+                "final scalars": "1,  and ",
+                "lone array": [
+                    1,
+                    2
+                ],
+                "lone bool": true
+            }
+        }
+    ]
+}

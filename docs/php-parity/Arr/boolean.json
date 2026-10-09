@@ -1,0 +1,40 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "boolean-string-value",
+            "php": "Arr::boolean(['string' => 'foo bar'], 'string')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [string] must be a boolean, string found."
+        },
+        {
+            "label": "boolean-list-int-key",
+            "php": "Arr::boolean(['foo bar'], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be a boolean, string found."
+        },
+        {
+            "label": "boolean-missing-key-default",
+            "php": "Arr::boolean([], 'missing', true) and Arr::boolean([], 'missing', false)",
+            "value": {
+                "true": true,
+                "false": false
+            }
+        },
+        {
+            "label": "boolean-missing-key-no-default",
+            "php": "Arr::boolean([], 'missing')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [missing] must be a boolean, NULL found."
+        },
+        {
+            "label": "boolean-list-missing-index-no-default",
+            "php": "Arr::boolean([true, false], 5)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [5] must be a boolean, NULL found."
+        }
+    ]
+}

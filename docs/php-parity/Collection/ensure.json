@@ -1,0 +1,125 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-A-ensure-scalar-message",
+            "php": "collect([1, 2, 3, 'foo'])->ensure('int')",
+            "threw": "UnexpectedValueException",
+            "message": "Collection should only include [int] items, but 'string' found at position 3."
+        },
+        {
+            "label": "C32-A-ensure-class-message",
+            "php": "collect([new stdClass, new stdClass, new stdClass, Collection::class])->ensure(stdClass::class)",
+            "threw": "UnexpectedValueException",
+            "message": "Collection should only include [stdClass] items, but 'string' found at position 3."
+        },
+        {
+            "label": "C32-A-ensure-inheritance-message",
+            "php": "collect([new Error, new Error, new Collection])->ensure(Throwable::class)",
+            "threw": "UnexpectedValueException",
+            "message": "Collection should only include [Throwable] items, but 'Illuminate\\Support\\Collection' found at position 2."
+        },
+        {
+            "label": "C32-A-ensure-multiple-message",
+            "php": "collect([new Error, new Error, new Collection])->ensure([Throwable::class, 'int'])",
+            "threw": "UnexpectedValueException",
+            "message": "Collection should only include [Throwable, int] items, but 'Illuminate\\Support\\Collection' found at position 2."
+        },
+        {
+            "label": "C32-A-ensure-null-passes",
+            "php": "collect([null])->ensure('null')->all()",
+            "value": [
+                null
+            ]
+        },
+        {
+            "label": "C32-A-ensure-array-rejects-null",
+            "php": "collect([null])->ensure('array')",
+            "threw": "UnexpectedValueException",
+            "message": "Collection should only include [array] items, but 'null' found at position 0."
+        },
+        {
+            "label": "C32-A-ensure-subclass-passes",
+            "php": "collect([new C32AChild])->ensure(C32AParent::class)->count()",
+            "value": 1
+        },
+        {
+            "label": "C32-A-ensure-returns-same-instance",
+            "php": "$c = collect([1]); $c->ensure('int') === $c",
+            "value": true
+        },
+        {
+            "label": "C32-A-ensure-keyed-position",
+            "php": "collect(['a' => 1, 'b' => 'x'])->ensure('int')",
+            "threw": "UnexpectedValueException",
+            "message": "Collection should only include [int] items, but 'string' found at position 0."
+        },
+        {
+            "label": "C32-A-ensure-numeric-prefix-key-position",
+            "php": "collect(['3x' => 'a'])->ensure('int')",
+            "threw": "UnexpectedValueException",
+            "message": "Collection should only include [int] items, but 'string' found at position 3."
+        },
+        {
+            "label": "C32-A-ensure-assoc-types",
+            "php": "collect(['hello', 'world'])->ensure(['first' => 'string'])->all()",
+            "value": [
+                "hello",
+                "world"
+            ]
+        },
+        {
+            "label": "C32-A-ensure-debug-type-names",
+            "php": "the message collect([$item])->ensure('string') throws for 1, 1.5, NAN, true and ['a' => 1]",
+            "value": [
+                "Collection should only include [string] items, but 'int' found at position 0.",
+                "Collection should only include [string] items, but 'float' found at position 0.",
+                "Collection should only include [string] items, but 'float' found at position 0.",
+                "Collection should only include [string] items, but 'bool' found at position 0.",
+                "Collection should only include [string] items, but 'array' found at position 0."
+            ]
+        },
+        {
+            "label": "C32-A-ensure-array-accepts-assoc",
+            "php": "collect([['a' => 1]])->ensure('array')->count()",
+            "value": 1
+        },
+        {
+            "label": "C32-A-ensure-class-name-string",
+            "php": "collect([new C32AChild])->ensure('C32AChild')->count()",
+            "value": 1
+        },
+        {
+            "label": "C32-A-ensure-closure-and-anonymous-class-names",
+            "php": "the message collect([$item])->ensure('int') throws for new class {} and fn () => 1, then collect([fn () => 1])->ensure(Closure::class)->count()",
+            "value": [
+                [
+                    "UnexpectedValueException",
+                    "Collection should only include [int] items, but 'class@anonymous' found at position 0."
+                ],
+                [
+                    "UnexpectedValueException",
+                    "Collection should only include [int] items, but 'Closure' found at position 0."
+                ],
+                1
+            ]
+        },
+        {
+            "label": "C32-A-ensure-anonymous-subclass-name",
+            "php": "the message collect([$item])->ensure('int') throws for new class extends C32AParent {} and new class extends C32AChild {}",
+            "value": [
+                [
+                    "UnexpectedValueException",
+                    "Collection should only include [int] items, but 'C32AParent@anonymous' found at position 0."
+                ],
+                [
+                    "UnexpectedValueException",
+                    "Collection should only include [int] items, but 'C32AChild@anonymous' found at position 0."
+                ]
+            ]
+        }
+    ]
+}

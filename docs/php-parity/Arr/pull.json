@@ -1,0 +1,42 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::pull \u2014 first-level key containing dots",
+            "php": "Arr::pull($a, \"joe@example.com\")",
+            "value": {
+                "pulled": "Joe",
+                "remaining": {
+                    "jane@localhost": "Jane"
+                }
+            }
+        },
+        {
+            "label": "pull-nested-dotted-key",
+            "php": "Arr::pull($a=['emails'=>['joe@example.com'=>'Joe','jane@localhost'=>'Jane']], 'emails.joe@example.com')",
+            "value": {
+                "value": null,
+                "array": {
+                    "emails": {
+                        "joe@example.com": "Joe",
+                        "jane@localhost": "Jane"
+                    }
+                }
+            }
+        },
+        {
+            "label": "pull-list-non-canonical-index",
+            "php": "$a = ['x', 'y']; Arr::pull($a, '01', 'd')",
+            "value": {
+                "value": "d",
+                "array": [
+                    "x",
+                    "y"
+                ]
+            }
+        }
+    ]
+}

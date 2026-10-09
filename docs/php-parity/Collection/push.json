@@ -1,0 +1,207 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "push onto a {\"01\"}-keyed array",
+            "php": "collect([\"01\"=>\"lead\"])->push(9)",
+            "value": {
+                "01": "lead",
+                "0": 9
+            }
+        },
+        {
+            "label": "push onto a {\"1e2\"}-keyed array",
+            "php": "collect([\"1e2\"=>\"exp\"])->push(9)",
+            "value": {
+                "1e2": "exp",
+                "0": 9
+            }
+        },
+        {
+            "label": "push onto a {\"-1\"}-keyed array",
+            "php": "collect([\"-1\"=>\"neg\"])->push(9)",
+            "value": {
+                "-1": "neg",
+                "0": 9
+            }
+        },
+        {
+            "label": "push onto a {\"5\"}-keyed array",
+            "php": "collect([\"5\"=>\"five\"])->push(9)",
+            "value": {
+                "5": "five",
+                "6": 9
+            }
+        },
+        {
+            "label": "order-push",
+            "php": "$c = collect(base); $c->push('x')",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b",
+                    "3": "x"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b",
+                    "x"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "C32-A-construct-from-collection-copies",
+            "php": "$a = collect([1, 2]); $b = new Collection($a); $b->push(3); [$a->all(), $b->all()]",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-construct-from-array-copies",
+            "php": "$arr = [1, 2]; $c = new Collection($arr); $c->push(3); [$arr, $c->all()]",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-make-collection-copies",
+            "php": "$a = collect([1]); $b = Collection::make($a); $b->push(2); [$a->all(), $b->all()]",
+            "value": [
+                [
+                    1
+                ],
+                [
+                    1,
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-iterator-is-a-snapshot",
+            "php": "$c = collect([1, 2]); foreach ($c as $v) { $seen[] = $v; if (count($seen) < 5) { $c->push(9); } } [$seen, $c->all()]",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    1,
+                    2,
+                    9,
+                    9
+                ]
+            ]
+        },
+        {
+            "label": "C32-B-push-onto-string-keyed-last",
+            "php": "collect(['a' => 1])->push('z')->last()",
+            "value": "z"
+        },
+        {
+            "label": "C32-B-push-many-onto-string-keyed",
+            "php": "$c = collect(['a' => 1])->push('y', 'z'); keys/values/last",
+            "value": {
+                "keys": [
+                    "a",
+                    0,
+                    1
+                ],
+                "values": [
+                    1,
+                    "y",
+                    "z"
+                ],
+                "last": "z"
+            }
+        },
+        {
+            "label": "C32-B-push-many-past-negative-keys-order",
+            "php": "$c = collect([-2 => 'a'])->push('p', 'q', 'r'); keys/values/last",
+            "value": {
+                "keys": [
+                    -2,
+                    -1,
+                    0,
+                    1
+                ],
+                "values": [
+                    "a",
+                    "p",
+                    "q",
+                    "r"
+                ],
+                "last": "r"
+            }
+        },
+        {
+            "label": "C32-B-push-many-onto-mixed-keys-order",
+            "php": "$c = collect(['x' => 'a', -2 => 'b'])->push('p', 'q'); keys/values/last",
+            "value": {
+                "keys": [
+                    "x",
+                    -2,
+                    -1,
+                    0
+                ],
+                "values": [
+                    "a",
+                    "b",
+                    "p",
+                    "q"
+                ],
+                "last": "q"
+            }
+        },
+        {
+            "label": "C32-B-push-many-across-the-index-limit-order",
+            "php": "$c = collect([4294967293 => 'a', 'x' => 'b'])->push('p', 'q'); keys/values/last",
+            "value": {
+                "keys": [
+                    4294967293,
+                    "x",
+                    4294967294,
+                    4294967295
+                ],
+                "values": [
+                    "a",
+                    "b",
+                    "p",
+                    "q"
+                ],
+                "last": "q"
+            }
+        },
+        {
+            "label": "C32-B-push-onto-string-keyed-toJson",
+            "php": "collect(['a' => 1])->push('z')->toJson()",
+            "value": "{\"a\":1,\"0\":\"z\"}"
+        }
+    ]
+}

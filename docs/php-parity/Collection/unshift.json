@@ -1,0 +1,312 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "X5 unshift mutates and renumbers integer keys",
+            "php": "collect([10,20,30,40])->unshift(1,2)",
+            "value": [
+                1,
+                2,
+                10,
+                20,
+                30,
+                40
+            ]
+        },
+        {
+            "label": "unshift via Collection",
+            "php": "collect([10,20,30,40])->unshift(1,2)",
+            "value": [
+                1,
+                2,
+                10,
+                20,
+                30,
+                40
+            ]
+        },
+        {
+            "label": "D1 unshift assoc item onto assoc",
+            "php": "$c = new Collection(['b' => 2]); $c->unshift(['a' => 1]); $c->all()",
+            "value": {
+                "0": {
+                    "a": 1
+                },
+                "b": 2
+            }
+        },
+        {
+            "label": "D1b unshift two assoc items onto assoc",
+            "php": "$c = new Collection(['b' => 2]); $c->unshift(['a' => 1], ['d' => 'house']); $c->all()",
+            "value": {
+                "0": {
+                    "a": 1
+                },
+                "1": {
+                    "d": "house"
+                },
+                "b": 2
+            }
+        },
+        {
+            "label": "D1c testUnshiftWithOneItem sequence on assoc",
+            "php": "$c = new Collection(['x' => 4]); $c->unshift(['a', 'b', 'c']); $c->unshift(['who' => 'Jonny', 'preposition' => 'from', 'where' => 'Laroe']); $c->unshift('Jonny from Laroe')->toArray()",
+            "value": {
+                "0": "Jonny from Laroe",
+                "1": {
+                    "who": "Jonny",
+                    "preposition": "from",
+                    "where": "Laroe"
+                },
+                "2": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "x": 4
+            }
+        },
+        {
+            "label": "D1d unshift spread string-keyed",
+            "php": "$c = new Collection(['b' => 2]); $c->unshift(...['a' => 1]); $c->all()",
+            "threw": "ArgumentCountError",
+            "message": "array_unshift() does not accept unknown named parameters"
+        },
+        {
+            "label": "D1e unshift int-keyed item overlapping",
+            "php": "$c = new Collection(['z' => 3]); $c->unshift([0 => 'zero'], 9); $c->all()",
+            "value": {
+                "0": [
+                    "zero"
+                ],
+                "1": 9,
+                "z": 3
+            }
+        },
+        {
+            "label": "D1f unshift with no items on assoc",
+            "php": "(new Collection([5 => 'a', 'x' => 'b']))->unshift()->all()",
+            "value": {
+                "0": "a",
+                "x": "b"
+            }
+        },
+        {
+            "label": "U1 unshift(null) onto assoc",
+            "php": "$c = new Collection(['a' => 1]); $c->unshift(null); $c->all()",
+            "value": {
+                "0": null,
+                "a": 1
+            }
+        },
+        {
+            "label": "unshift-negative-int-key",
+            "php": "(new Collection([-1 => 'a', 'x' => 'b']))->unshift('z')",
+            "value": {
+                "0": "z",
+                "1": "a",
+                "x": "b"
+            }
+        },
+        {
+            "label": "unshift-fresh-object-and-null-items",
+            "php": "(new Collection(null))->unshift(['a' => 1], null, 'x')",
+            "value": [
+                {
+                    "a": 1
+                },
+                null,
+                "x"
+            ]
+        },
+        {
+            "label": "unshift-numeric-key-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->unshift('x')",
+            "value": {
+                "all": [
+                    "x",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "x",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "unshift-mixed-key-order",
+            "php": "(new Collection([2 => 'c', 'x' => 'v', 0 => 'a']))->unshift('n')",
+            "value": {
+                "all": {
+                    "0": "n",
+                    "1": "c",
+                    "x": "v",
+                    "2": "a"
+                },
+                "values": [
+                    "n",
+                    "c",
+                    "v",
+                    "a"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    "x",
+                    2
+                ]
+            }
+        },
+        {
+            "label": "unshift-no-items-numeric-key-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->unshift()",
+            "value": [
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "order-unshift",
+            "php": "$c = collect(base); $c->unshift('x', 'y')",
+            "value": {
+                "all": [
+                    "x",
+                    "y",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "x",
+                    "y",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4
+                ]
+            }
+        },
+        {
+            "label": "unshift-out-of-order-returns-same-instance",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->unshift('U') === $c",
+            "value": true
+        },
+        {
+            "label": "unshift-out-of-order-after",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->unshift('U'); $c->all()",
+            "value": [
+                "U",
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "unshift-out-of-order-two-values-after",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->unshift('U', 'V'); $c->all()",
+            "value": [
+                "U",
+                "V",
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "unshift-mixed-after",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->unshift('U'); $c->all()",
+            "value": [
+                [
+                    0,
+                    "U"
+                ],
+                [
+                    "x",
+                    1
+                ],
+                [
+                    1,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "unshift-collision-after",
+            "php": "$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); $c->unshift('U'); $c->all()",
+            "value": [
+                [
+                    0,
+                    "U"
+                ],
+                [
+                    1,
+                    "c"
+                ],
+                [
+                    "x",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-construct-from-record-unshift-copies",
+            "php": "$arr = ['b' => 2]; $c = new Collection($arr); $c->unshift(1); caller/all/keys/values",
+            "value": {
+                "caller": {
+                    "b": 2
+                },
+                "all": {
+                    "0": 1,
+                    "b": 2
+                },
+                "keys": [
+                    0,
+                    "b"
+                ],
+                "values": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-A-construct-from-array-unshift-copies",
+            "php": "$arr = [2, 3]; $c = new Collection($arr); $c->unshift(1); [$arr, $c->all()]",
+            "value": [
+                [
+                    2,
+                    3
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        }
+    ]
+}

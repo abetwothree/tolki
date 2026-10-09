@@ -1,0 +1,51 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "NAN is truthy for array_filter",
+            "php": "array_keys(array_filter([\"n\"=>NAN,\"z\"=>0.0]))",
+            "value": {
+                "bool_cast": true,
+                "kept": [
+                    "n"
+                ]
+            }
+        },
+        {
+            "label": "phpArrayKey-extra-string-keys",
+            "php": "array_keys(['-0' => 1, 'abc' => 2, '' => 3])",
+            "value": [
+                "-0",
+                "abc",
+                ""
+            ]
+        },
+        {
+            "label": "C32-A-toArray-plain-item-members-are-data",
+            "php": "$item = collect([['toArray' => fn () => [9], 'b' => 2]])->toArray()[0]; [array_keys($item), $item['b']]",
+            "value": [
+                [
+                    "toArray",
+                    "b"
+                ],
+                2
+            ]
+        },
+        {
+            "label": "C32-A-jsonSerialize-plain-item-members-are-data",
+            "php": "$item = collect([['toArray' => fn () => [9], 'toJson' => fn () => '[1]', 'jsonSerialize' => fn () => 1, 'b' => 2]])->jsonSerialize()[0]; [array_keys($item), $item['b']]",
+            "value": [
+                [
+                    "toArray",
+                    "toJson",
+                    "jsonSerialize",
+                    "b"
+                ],
+                2
+            ]
+        }
+    ]
+}

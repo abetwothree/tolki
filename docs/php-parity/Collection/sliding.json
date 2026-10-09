@@ -1,0 +1,248 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-G-sliding-assoc",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->sliding()",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            "a",
+                            1
+                        ],
+                        [
+                            "b",
+                            2
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            "b",
+                            2
+                        ],
+                        [
+                            "c",
+                            3
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-sliding-size-over-count",
+            "php": "(new Collection([1, 2, 3]))->sliding(5)->all()",
+            "value": []
+        },
+        {
+            "label": "C32-G-sliding-subclass",
+            "php": "get_class of (new SubCollection([1, 2, 3]))->sliding() and of its first window",
+            "value": [
+                true,
+                true
+            ]
+        },
+        {
+            "label": "C32-G-sliding-counts",
+            "php": "(new Collection([1, 2, 3, 4, 5]))->sliding($size) for 1.5, 2.5, NAN, INF and 1e19, ->sliding(2, $step) for 1.5, NAN, INF and 1e19, and (new Collection([]))->sliding(2, INF)",
+            "value": {
+                "size": {
+                    "1.5": [
+                        [
+                            0,
+                            [
+                                [
+                                    0,
+                                    1
+                                ]
+                            ]
+                        ],
+                        [
+                            1,
+                            [
+                                [
+                                    1,
+                                    2
+                                ]
+                            ]
+                        ],
+                        [
+                            2,
+                            [
+                                [
+                                    2,
+                                    3
+                                ]
+                            ]
+                        ],
+                        [
+                            3,
+                            [
+                                [
+                                    3,
+                                    4
+                                ]
+                            ]
+                        ]
+                    ],
+                    "2.5": [
+                        [
+                            0,
+                            [
+                                [
+                                    0,
+                                    1
+                                ],
+                                [
+                                    1,
+                                    2
+                                ]
+                            ]
+                        ],
+                        [
+                            1,
+                            [
+                                [
+                                    1,
+                                    2
+                                ],
+                                [
+                                    2,
+                                    3
+                                ]
+                            ]
+                        ],
+                        [
+                            2,
+                            [
+                                [
+                                    2,
+                                    3
+                                ],
+                                [
+                                    3,
+                                    4
+                                ]
+                            ]
+                        ]
+                    ],
+                    "NAN": [
+                        "ValueError",
+                        "range(): Argument #2 ($end) must be a finite number, NAN provided"
+                    ],
+                    "INF": [],
+                    "1e19": []
+                },
+                "step": {
+                    "1.5": [
+                        [
+                            0,
+                            [
+                                [
+                                    0,
+                                    1
+                                ],
+                                [
+                                    1,
+                                    2
+                                ]
+                            ]
+                        ],
+                        [
+                            1,
+                            [
+                                [
+                                    1,
+                                    2
+                                ],
+                                [
+                                    2,
+                                    3
+                                ]
+                            ]
+                        ],
+                        [
+                            2,
+                            [
+                                [
+                                    3,
+                                    4
+                                ],
+                                [
+                                    4,
+                                    5
+                                ]
+                            ]
+                        ]
+                    ],
+                    "NAN": [
+                        "ValueError",
+                        "range(): Argument #2 ($end) must be a finite number, NAN provided"
+                    ],
+                    "INF": [
+                        "TypeError",
+                        "array_slice(): Argument #2 ($offset) must be of type int, float given"
+                    ],
+                    "1e19": [
+                        [
+                            0,
+                            [
+                                [
+                                    0,
+                                    1
+                                ],
+                                [
+                                    1,
+                                    2
+                                ]
+                            ]
+                        ]
+                    ]
+                },
+                "empty step INF": [
+                    "TypeError",
+                    "array_slice(): Argument #2 ($offset) must be of type int, float given"
+                ]
+            }
+        },
+        {
+            "label": "C32-G-sliding-out-of-order-keys",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->sliding()",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            2,
+                            "c"
+                        ],
+                        [
+                            0,
+                            "a"
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            0,
+                            "a"
+                        ],
+                        [
+                            1,
+                            "b"
+                        ]
+                    ]
+                ]
+            ]
+        }
+    ]
+}

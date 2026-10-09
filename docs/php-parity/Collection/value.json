@@ -1,0 +1,32 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-C-value-collection-row-null",
+            "php": "(new Collection([new Collection(['v' => null]), new Collection(['v' => 1])]))->value('v', 'def')",
+            "value": null
+        },
+        {
+            "label": "C32-C-value-default",
+            "php": "(new Collection([[\"a\" => 1]]))->value(\"b\", fn () => \"d\") / value(\"b\", \"d\") / (new Collection([]))->value(\"a\")",
+            "value": [
+                "d",
+                "d",
+                null
+            ]
+        },
+        {
+            "label": "C32-C-value-null-key",
+            "php": "(new Collection([['a' => 1]]))->value(null) / value(null, 'd') / value(null, fn () => 'lazy') / (new Collection([]))->value(null, 'd'): data_get() hands back its null target for a null key",
+            "value": [
+                null,
+                null,
+                null,
+                null
+            ]
+        }
+    ]
+}

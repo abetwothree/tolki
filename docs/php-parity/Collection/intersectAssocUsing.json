@@ -1,0 +1,45 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "intersectAssocUsing(null)",
+            "php": "$c->intersectAssocUsing(null, $cb)",
+            "value": []
+        },
+        {
+            "label": "C9 intersectAssocUsing strcasecmp",
+            "php": "(new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red']))->intersectAssocUsing(new Collection(['a' => 'GREEN', 'B' => 'brown', 'yellow', 'red']), 'strcasecmp')->all()",
+            "value": {
+                "b": "brown"
+            }
+        },
+        {
+            "label": "intersectAssocUsing-list-collection-operand",
+            "php": "(new Collection([1, 2, 3]))->intersectAssocUsing(new Collection([1, 2, 9]), fn ($a, $b) => $a <=> $b)",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "intersectAssocUsing-list-keyed-operand",
+            "php": "(new Collection([1, 2]))->intersectAssocUsing(['a' => 1, 'b' => 2], $cmp); (new Collection(['a', 'b']))->intersectAssocUsing([1 => 'b'], $cmp)",
+            "value": {
+                "assoc": [],
+                "offset": [
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "intersectAssocUsing-scalar-backing",
+            "php": "(new Collection(5))->intersectAssocUsing([5], fn ($a, $b) => strcasecmp((string) $a, (string) $b))",
+            "value": [
+                5
+            ]
+        }
+    ]
+}

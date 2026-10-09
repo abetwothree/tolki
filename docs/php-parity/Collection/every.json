@@ -1,0 +1,280 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "every-out-of-order-key-order",
+            "php": "$keys seen by collect(base)->every($cb returning true)",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "C32-C-every-two-args-key-value",
+            "php": "(new Collection([[\"age\" => 18], [\"age\" => 18]]))->every(\"age\", 18) / (new Collection([[\"status\" => \"active\"], [\"status\" => \"active\"]]))->every(\"status\", \"active\")",
+            "value": [
+                true,
+                true
+            ]
+        },
+        {
+            "label": "C32-C-every-two-args-null-value",
+            "php": "(new Collection([[\"x\" => null], [\"x\" => null]]))->every(\"x\", null) / (new Collection([[\"x\" => 1]]))->every(\"x\", null)",
+            "value": [
+                true,
+                false
+            ]
+        },
+        {
+            "label": "C32-C-every-callback-key-types",
+            "php": "key types an always-true every callback sees on [\"a\", \"b\"] and on [\"1\" => \"a\", \"x\" => \"b\"]",
+            "value": {
+                "list": [
+                    [
+                        "integer",
+                        0
+                    ],
+                    [
+                        "integer",
+                        1
+                    ]
+                ],
+                "record": [
+                    [
+                        "integer",
+                        1
+                    ],
+                    [
+                        "string",
+                        "x"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-C-every-path-php-falsy",
+            "php": "(new Collection([[\"a\" => \"0\"]]))->every(\"a\") / (new Collection([[\"a\" => []]]))->every(\"a\") / (new Collection([\"0\"]))->every(null)",
+            "value": [
+                false,
+                false,
+                false
+            ]
+        },
+        {
+            "label": "C32-C-every-null-operator",
+            "php": "(new Collection([['x' => 5], ['x' => '5']]))->every('x', null, 5) / (new Collection([['x' => 5], ['x' => 6]]))->every('x', null, 5)",
+            "value": [
+                true,
+                false
+            ]
+        },
+        {
+            "label": "C32-E-callback-key-types-sweep",
+            "php": "[gettype($k), $k] for each key a callback sees on ['a', 'b'] and on ['1' => 'a', 'x' => 'b']; sortKeysUsing lists the distinct keys it compared, sorted",
+            "value": {
+                "every": {
+                    "list": [
+                        [
+                            "integer",
+                            0
+                        ],
+                        [
+                            "integer",
+                            1
+                        ]
+                    ],
+                    "record": [
+                        [
+                            "integer",
+                            1
+                        ],
+                        [
+                            "string",
+                            "x"
+                        ]
+                    ]
+                },
+                "each": {
+                    "list": [
+                        [
+                            "integer",
+                            0
+                        ],
+                        [
+                            "integer",
+                            1
+                        ]
+                    ],
+                    "record": [
+                        [
+                            "integer",
+                            1
+                        ],
+                        [
+                            "string",
+                            "x"
+                        ]
+                    ]
+                },
+                "groupBy": {
+                    "list": [
+                        [
+                            "integer",
+                            0
+                        ],
+                        [
+                            "integer",
+                            1
+                        ]
+                    ],
+                    "record": [
+                        [
+                            "integer",
+                            1
+                        ],
+                        [
+                            "string",
+                            "x"
+                        ]
+                    ]
+                },
+                "countBy": {
+                    "list": [
+                        [
+                            "integer",
+                            0
+                        ],
+                        [
+                            "integer",
+                            1
+                        ]
+                    ],
+                    "record": [
+                        [
+                            "integer",
+                            1
+                        ],
+                        [
+                            "string",
+                            "x"
+                        ]
+                    ]
+                },
+                "sortBy": {
+                    "list": [
+                        [
+                            "integer",
+                            0
+                        ],
+                        [
+                            "integer",
+                            1
+                        ]
+                    ],
+                    "record": [
+                        [
+                            "integer",
+                            1
+                        ],
+                        [
+                            "string",
+                            "x"
+                        ]
+                    ]
+                },
+                "reduceSpread": {
+                    "list": [
+                        [
+                            "integer",
+                            0
+                        ],
+                        [
+                            "integer",
+                            1
+                        ]
+                    ],
+                    "record": [
+                        [
+                            "integer",
+                            1
+                        ],
+                        [
+                            "string",
+                            "x"
+                        ]
+                    ]
+                },
+                "mapWithKeys": {
+                    "list": [
+                        [
+                            "integer",
+                            0
+                        ],
+                        [
+                            "integer",
+                            1
+                        ]
+                    ],
+                    "record": [
+                        [
+                            "integer",
+                            1
+                        ],
+                        [
+                            "string",
+                            "x"
+                        ]
+                    ]
+                },
+                "keyBy": {
+                    "list": [
+                        [
+                            "integer",
+                            0
+                        ],
+                        [
+                            "integer",
+                            1
+                        ]
+                    ],
+                    "record": [
+                        [
+                            "integer",
+                            1
+                        ],
+                        [
+                            "string",
+                            "x"
+                        ]
+                    ]
+                },
+                "sortKeysUsing": {
+                    "list": [
+                        [
+                            "integer",
+                            0
+                        ],
+                        [
+                            "integer",
+                            1
+                        ]
+                    ],
+                    "record": [
+                        [
+                            "integer",
+                            1
+                        ],
+                        [
+                            "string",
+                            "x"
+                        ]
+                    ]
+                }
+            }
+        }
+    ]
+}

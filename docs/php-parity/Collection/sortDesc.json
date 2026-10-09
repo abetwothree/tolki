@@ -1,0 +1,71 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "sortDesc over the same fixture",
+            "php": "collect([30,10,20])->sortDesc()",
+            "value": {
+                "0": 30,
+                "2": 20,
+                "1": 10
+            }
+        },
+        {
+            "label": "sortDesc ties fall back to original order, not a full reverse",
+            "php": "collect([[id=a,k=2],[id=b,k=1],[id=c,k=2],[id=d,k=3]])->sortByDesc(fn($i)=>$i[\"k\"])->pluck(\"id\")->values()->all()",
+            "value": [
+                "d",
+                "a",
+                "c",
+                "b"
+            ]
+        },
+        {
+            "label": "sortDesc on integer-keyed collection reorders values (PHP)",
+            "php": "collect([0=>3,1=>1,2=>2])->sortDesc()->all()",
+            "value": {
+                "0": 3,
+                "2": 2,
+                "1": 1
+            }
+        },
+        {
+            "label": "Collection::sortDesc \u2014 a string callback is a sort flag, not a field path",
+            "php": "sortDesc(\"\"), sortDesc(\"0\"), sortDesc(\"age\")",
+            "value": {
+                "empty_string": {
+                    "threw": "TypeError",
+                    "message": "arsort(): Argument #2 ($flags) must be of type int, string given"
+                },
+                "zero_string": {
+                    "a": 3,
+                    "c": 2,
+                    "b": 1
+                },
+                "non_numeric_string": {
+                    "threw": "TypeError",
+                    "message": "arsort(): Argument #2 ($flags) must be of type int, string given"
+                }
+            }
+        },
+        {
+            "label": "Collection::sortDesc orders numeric strings numerically",
+            "php": "collect([\"9\",\"10\",\"1\",5])->sortDesc()->values()",
+            "value": [
+                "10",
+                "9",
+                5,
+                "1"
+            ]
+        },
+        {
+            "label": "C32-G-sortDesc-callback-throws",
+            "php": "(new Collection([1, 3, 2]))->sortDesc(fn ($v) => $v)",
+            "threw": "TypeError",
+            "message": "arsort(): Argument #2 ($flags) must be of type int, Closure given"
+        }
+    ]
+}

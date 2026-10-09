@@ -1,0 +1,174 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-E-countBy-bools",
+            "php": "collect([true, true, false, false, false])->countBy()",
+            "value": [
+                [
+                    1,
+                    "integer",
+                    2
+                ],
+                [
+                    0,
+                    "integer",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-countBy-pure-enum",
+            "php": "collect([Staff::James, Staff::Joe, Staff::Taylor])->countBy()",
+            "value": [
+                [
+                    "James",
+                    "string",
+                    1
+                ],
+                [
+                    "Joe",
+                    "string",
+                    1
+                ],
+                [
+                    "Taylor",
+                    "string",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-countBy-key-backed-enum",
+            "php": "collect([['key'=>IntEnum::A],['key'=>IntEnum::B],['key'=>IntEnum::B]])->countBy('key')",
+            "value": [
+                [
+                    1,
+                    "integer",
+                    1
+                ],
+                [
+                    2,
+                    "integer",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-countBy-callback-bool",
+            "php": "collect([1, 2, 3, 4, 5])->countBy(fn ($i) => $i % 2 === 0)",
+            "value": [
+                [
+                    0,
+                    "integer",
+                    3
+                ],
+                [
+                    1,
+                    "integer",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-countBy-callback-string-enum",
+            "php": "collect(['A','A','B','A'])->countBy(fn ($i) => StrEnum::from($i))",
+            "value": [
+                [
+                    "A",
+                    "string",
+                    3
+                ],
+                [
+                    "B",
+                    "string",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-countBy-int-key-order",
+            "php": "collect([3, 1, 3])->countBy()",
+            "value": [
+                [
+                    3,
+                    "integer",
+                    2
+                ],
+                [
+                    1,
+                    "integer",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-countBy-float",
+            "php": "@collect([1.5, 1.7, 2.5])->countBy()",
+            "value": [
+                [
+                    1,
+                    "integer",
+                    2
+                ],
+                [
+                    2,
+                    "integer",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-countBy-callback-key-type",
+            "php": "collect(['a', 'b'])->countBy(fn ($v, $k) => gettype($k))",
+            "value": [
+                [
+                    "integer",
+                    "string",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-countBy-array-key",
+            "php": "(new Collection([1]))->countBy(fn () => [1, 2])",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type array in isset or empty"
+        },
+        {
+            "label": "C32-E-countBy-assoc-key",
+            "php": "(new Collection([1]))->countBy(fn () => ['a' => 1])",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type array in isset or empty"
+        },
+        {
+            "label": "C32-E-countBy-date-key",
+            "php": "(new Collection([1]))->countBy(fn () => new DateTime('@0'))",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type DateTime in isset or empty"
+        },
+        {
+            "label": "C32-E-countBy-stringable-key",
+            "php": "(new Collection([1]))->countBy(fn () => new Stringable('Lara'))",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type Illuminate\\Support\\Stringable in isset or empty"
+        },
+        {
+            "label": "C32-E-countBy-tostring-key",
+            "php": "(new Collection([1]))->countBy(fn () => an object with __toString)",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type class@anonymous in isset or empty"
+        },
+        {
+            "label": "C32-E-countBy-null-key",
+            "php": "(new Collection([['url' => null], ['url' => 'a'], []]))->countBy('url')",
+            "value": {
+                "": 2,
+                "a": 1
+            }
+        }
+    ]
+}

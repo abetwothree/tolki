@@ -1,0 +1,95 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-E-eachSpread-scalar-row",
+            "php": "collect([10, 20])->eachSpread(fn (...$a) => null)",
+            "threw": "Error",
+            "message": "Cannot use a scalar value as an array"
+        },
+        {
+            "label": "C32-E-eachSpread-null-row",
+            "php": "collect([null, [1]]) and collect(['x' => null]), each ->eachSpread(fn (...$a) => ...): every $a",
+            "value": {
+                "list": [
+                    [
+                        0
+                    ],
+                    [
+                        1,
+                        1
+                    ]
+                ],
+                "keyed": [
+                    [
+                        "x"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-E-eachSpread-int-keyed-row",
+            "php": "collect([[5 => 'a', 7 => 'b'], []]) and collect(['x' => [5 => 'a', 7 => 'b']]), each ->eachSpread(fn (...$a) => ...): every $a",
+            "value": {
+                "list": [
+                    [
+                        "a",
+                        "b",
+                        0
+                    ],
+                    [
+                        1
+                    ]
+                ],
+                "keyed": [
+                    [
+                        "a",
+                        "b",
+                        "x"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-E-eachSpread-int-keyed-collection-row",
+            "php": "collect([new Collection([5 => 'a', 7 => 'b'])]) and collect(['x' => ...]), each ->eachSpread(fn (...$a) => ...): every $a",
+            "value": {
+                "list": [
+                    [
+                        "a",
+                        "b",
+                        0
+                    ]
+                ],
+                "keyed": [
+                    [
+                        "a",
+                        "b",
+                        "x"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-E-eachSpread-string-keyed-row",
+            "php": "collect([['a' => 1, 'b' => 2]])->eachSpread(fn (...$a) => null)",
+            "threw": "Error",
+            "message": "Cannot use positional argument after named argument during unpacking"
+        },
+        {
+            "label": "C32-E-eachSpread-string-keyed-collection-row",
+            "php": "collect([new Collection(['a' => 1, 'b' => 2])])->eachSpread(fn (...$a) => null)",
+            "threw": "Error",
+            "message": "Cannot use positional argument after named argument during unpacking"
+        },
+        {
+            "label": "C32-E-eachSpread-object-row",
+            "php": "collect([new DateTime('@0')])->eachSpread(fn (...$a) => null)",
+            "threw": "Error",
+            "message": "Cannot use object of type DateTime as array"
+        }
+    ]
+}

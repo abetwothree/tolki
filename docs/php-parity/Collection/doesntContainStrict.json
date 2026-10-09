@@ -1,0 +1,22 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "doesntContainStrict-list-null-callback",
+            "php": "(new Collection([1, null, 2]))->doesntContainStrict(fn ($v) => is_null($v))",
+            "value": false
+        },
+        {
+            "label": "C32-C-doesntContainStrict-three-args",
+            "php": "(new Collection([['v' => 1]]))->doesntContainStrict('v', 1) / doesntContainStrict('v', '=', 1) / (new Collection(['v']))->doesntContainStrict('v', '=', 1): with a third argument containsStrict() reads the key alone",
+            "value": [
+                false,
+                true,
+                false
+            ]
+        }
+    ]
+}

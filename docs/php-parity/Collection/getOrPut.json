@@ -1,0 +1,59 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "getOrPut-dot-path-is-a-literal-key",
+            "php": "$c = collect(['a' => ['b' => 1]]); $returned = $c->getOrPut('a.b', 9)",
+            "value": {
+                "returned": 9,
+                "all": {
+                    "a": {
+                        "b": 1
+                    },
+                    "a.b": 9
+                }
+            }
+        },
+        {
+            "label": "C32-B-getOrPut-string-key-on-list",
+            "php": "$c = collect([1, 2]); $r = $c->getOrPut('x', 3); views",
+            "value": {
+                "returned": 3,
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "x": 3
+                },
+                "count": 3,
+                "keys": [
+                    0,
+                    1,
+                    "x"
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "get": 3,
+                "has": true,
+                "last": 3
+            }
+        },
+        {
+            "label": "C32-B-getOrPut-memoizes-on-empty",
+            "php": "$c = collect(); getOrPut('k', counter) twice",
+            "value": {
+                "first": "v1",
+                "second": "v1",
+                "calls": 1,
+                "all": {
+                    "k": "v1"
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,71 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-H-sum-numeric-strings",
+            "php": "(new Collection(['1', '2', '3']))->sum()",
+            "value": 6
+        },
+        {
+            "label": "C32-H-sum-float-strings",
+            "php": "(new Collection(['1.5', '2']))->sum()",
+            "value": 3.5
+        },
+        {
+            "label": "C32-H-sum-key-numeric-strings",
+            "php": "(new Collection([['foo' => '4'], ['foo' => '2']]))->sum('foo')",
+            "value": 6
+        },
+        {
+            "label": "C32-H-sum-non-numeric-string",
+            "php": "(new Collection([1, 'a']))->sum()",
+            "threw": "TypeError",
+            "message": "Unsupported operand types: int + string"
+        },
+        {
+            "label": "C32-H-sum-null-and-bools",
+            "php": "[sum([1, null, 2]), sum([true, true, false])]",
+            "value": [
+                3,
+                2
+            ]
+        },
+        {
+            "label": "C32-H-sum-dot-path",
+            "php": "(new Collection([['a' => ['b' => 1]], ['a' => ['b' => 2]]]))->sum('a.b')",
+            "value": 3
+        },
+        {
+            "label": "C32-H-sum-leading-numeric-string",
+            "php": "@(new Collection([1, '2abc']))->sum()",
+            "value": 3
+        },
+        {
+            "label": "C32-H-sum-array-items",
+            "php": "(new Collection([[1], [2]]))->sum()",
+            "threw": "TypeError",
+            "message": "Unsupported operand types: int + array"
+        },
+        {
+            "label": "C32-H-sum-object-item",
+            "php": "(new Collection([new stdClass]))->sum()",
+            "threw": "TypeError",
+            "message": "Unsupported operand types: int + stdClass"
+        },
+        {
+            "label": "C32-H-sum-float-total-non-numeric-string",
+            "php": "(new Collection([1.5, 'a']))->sum()",
+            "threw": "TypeError",
+            "message": "Unsupported operand types: float + string"
+        },
+        {
+            "label": "C32-H-sum-closure-item",
+            "php": "(new Collection([1, fn () => 1]))->sum()",
+            "threw": "TypeError",
+            "message": "Unsupported operand types: int + Closure"
+        }
+    ]
+}

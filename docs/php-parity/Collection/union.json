@@ -1,0 +1,411 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Collection::union",
+            "php": "$c->union([\"a\"=>1,\"b\"=>2])",
+            "value": {
+                "a": null,
+                "b": 2
+            }
+        },
+        {
+            "label": "X20 union lets the left operand win, null value included",
+            "php": "['a'=>null] + ['a'=>1]",
+            "value": {
+                "nullWins": {
+                    "a": null
+                },
+                "ints": [
+                    10,
+                    20,
+                    50,
+                    60
+                ]
+            }
+        },
+        {
+            "label": "union treats null as an empty operand",
+            "php": "collect([10,20])->union(null)",
+            "value": [
+                10,
+                20
+            ]
+        },
+        {
+            "label": "C17 union array",
+            "php": "(new Collection(['name' => 'Hello']))->union(['id' => 1])->all()",
+            "value": {
+                "name": "Hello",
+                "id": 1
+            }
+        },
+        {
+            "label": "C18 union collection",
+            "php": "(new Collection(['name' => 'Hello']))->union(new Collection(['name' => 'World', 'id' => 1]))->all()",
+            "value": {
+                "name": "Hello",
+                "id": 1
+            }
+        },
+        {
+            "label": "union-list-operand",
+            "php": "(new Collection(['a' => 1]))->union([5])",
+            "value": {
+                "a": 1,
+                "0": 5
+            }
+        },
+        {
+            "label": "union-list-keyed-operand",
+            "php": "(new Collection([1, 2]))->union([2 => 'z']), (new Collection([1]))->union([3 => 'd'])->union([9, 8, 7, 6])->sortKeys(), (new Collection([1]))->union([3 => 'd']), (new Collection([1, 2]))->union(['a' => 5])",
+            "value": {
+                "offset": [
+                    1,
+                    2,
+                    "z"
+                ],
+                "gap-filled": [
+                    1,
+                    8,
+                    7,
+                    "d"
+                ],
+                "gap": {
+                    "0": 1,
+                    "3": "d"
+                },
+                "string-key": {
+                    "0": 1,
+                    "1": 2,
+                    "a": 5
+                }
+            }
+        },
+        {
+            "label": "list-backing-keyed-operand",
+            "php": "(new Collection(['a', 'b']))->union([2 => 'z']) and (new Collection(['a', 'b', 'c']))->intersectByKeys([0 => 'x', 2 => 'y'])",
+            "value": {
+                "union": [
+                    "a",
+                    "b",
+                    "z"
+                ],
+                "intersectByKeys": [
+                    "a",
+                    "c"
+                ]
+            }
+        },
+        {
+            "label": "union-all-nullish",
+            "php": "(new Collection(null))->union(null)",
+            "value": []
+        },
+        {
+            "label": "union-list-backing-keyed-result",
+            "php": "(new Collection())->union(['a' => 1]), (new Collection([1, 2]))->union(['a' => 1, 5 => 9]), ([1, 2])->union([-1 => 9]), ([1])->union([3 => 4]), ([1])->union([3 => 4])->union([9, 8, 7, 6])",
+            "value": {
+                "empty-string-key": {
+                    "a": 1
+                },
+                "string-key-and-gap": {
+                    "0": 1,
+                    "1": 2,
+                    "a": 1,
+                    "5": 9
+                },
+                "negative-key": {
+                    "0": 1,
+                    "1": 2,
+                    "-1": 9
+                },
+                "gap": {
+                    "0": 1,
+                    "3": 4
+                },
+                "gap-then-filled": {
+                    "0": 1,
+                    "3": 4,
+                    "1": 8,
+                    "2": 7
+                }
+            }
+        },
+        {
+            "label": "union-function-valued-member",
+            "php": "(new Collection(['all' => $fn, 'admin' => 'a']))->union(['guest' => 1]), (['toJSON' => fn () => 'J', 'b' => 2])->union(['c' => 3]), (['toArray' => fn () => [9], 'b' => 2])->union(['c' => 3]): the keys, and how often $fn ran",
+            "value": {
+                "all": [
+                    "all",
+                    "admin",
+                    "guest"
+                ],
+                "toJSON": [
+                    "toJSON",
+                    "b",
+                    "c"
+                ],
+                "toArray": [
+                    "toArray",
+                    "b",
+                    "c"
+                ],
+                "calls": 0
+            }
+        },
+        {
+            "label": "d7-union-scalar-backing",
+            "php": "(new Collection(5))->union([9]) and (new Collection('x'))->union([9])",
+            "value": {
+                "int": [
+                    5
+                ],
+                "string": [
+                    "x"
+                ]
+            }
+        },
+        {
+            "label": "d7-union-traversable-backing",
+            "php": "(new Collection(new ArrayIterator([1, 2])))->union(['d' => 4]) and ->union([9, 9, 9])",
+            "value": {
+                "keyed-operand": {
+                    "0": 1,
+                    "1": 2,
+                    "d": 4
+                },
+                "list-operand": [
+                    1,
+                    2,
+                    9
+                ]
+            }
+        },
+        {
+            "label": "plain-object-toArray-member-union-keeps-its-keys",
+            "php": "collect((object) ['toArray' => fn () => [9], 'b' => 2])->union(['c' => 3])->keys()->all()",
+            "value": [
+                "toArray",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "plain-object-toArray-member-union-keeps-its-values",
+            "php": "array_diff_key(collect((object) ['toArray' => fn () => [9], 'b' => 2])->union(['c' => 3])->all(), ['toArray' => null])",
+            "value": {
+                "b": 2,
+                "c": 3
+            }
+        },
+        {
+            "label": "order-union-leaves-the-receiver-alone",
+            "php": "$c = collect([1, 2, 3]); $c->union([7 => 'x', 3 => 'y']); $c",
+            "value": {
+                "all": [
+                    1,
+                    2,
+                    3
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "order-union-result",
+            "php": "collect([1, 2, 3])->union([7 => 'x', 3 => 'y'])",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "2": 3,
+                    "7": "x",
+                    "3": "y"
+                },
+                "values": [
+                    1,
+                    2,
+                    3,
+                    "x",
+                    "y"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    7,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "union-list-out-of-order-operand",
+            "php": "(new Collection(['a']))->union([2 => 'c', 1 => 'b'])",
+            "value": [
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "union-list-in-order-operand",
+            "php": "(new Collection(['a']))->union([1 => 'b', 2 => 'c'])",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "union-list-length-key-operand",
+            "php": "(new Collection(['a']))->union(['length' => 5])",
+            "value": [
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    "length",
+                    5
+                ]
+            ]
+        },
+        {
+            "label": "union-list-length-key-then-int-operand",
+            "php": "(new Collection(['a']))->union(['length' => 5])->union([1 => 'x'])",
+            "value": [
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    "length",
+                    5
+                ],
+                [
+                    1,
+                    "x"
+                ]
+            ]
+        },
+        {
+            "label": "union-list-two-operands-out-of-order",
+            "php": "(new Collection(['a']))->union([1 => 'b'])->union([3 => 'd', 2 => 'c'])",
+            "value": [
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    3,
+                    "d"
+                ],
+                [
+                    2,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "union-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->union([3 => 'd', 'k' => 'e'])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    3,
+                    "d"
+                ],
+                [
+                    "k",
+                    "e"
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-union-null-is-a-new-instance",
+            "php": "$a = collect([1]); $b = $a->union(null); $b->push(2);",
+            "value": {
+                "same": false,
+                "receiver": [
+                    1
+                ],
+                "result": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-F-union-null-keeps-keys",
+            "php": "collect([5 => 'a', 'k' => 'b'])->union(null)",
+            "value": {
+                "all": {
+                    "5": "a",
+                    "k": "b"
+                },
+                "keys": [
+                    5,
+                    "k"
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-union-assoc-then-list",
+            "php": "collect(['a' => 1])->union([5])",
+            "value": {
+                "all": {
+                    "a": 1,
+                    "0": 5
+                },
+                "keys": [
+                    "a",
+                    0
+                ],
+                "values": [
+                    1,
+                    5
+                ]
+            }
+        }
+    ]
+}

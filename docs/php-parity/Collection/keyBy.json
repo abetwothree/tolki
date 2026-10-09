@@ -1,0 +1,269 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "\"__proto__\" is an ordinary array key in every keyed Collection result",
+            "php": "collect([[\"k\"=>\"__proto__\"]])->keyBy(\"k\")",
+            "value": {
+                "keyBy": {
+                    "__proto__": {
+                        "k": "__proto__",
+                        "v": 1
+                    }
+                },
+                "groupBy": {
+                    "__proto__": [
+                        {
+                            "k": "__proto__"
+                        }
+                    ]
+                },
+                "groupBy_preserve_keys": {
+                    "z": {
+                        "__proto__": {
+                            "k": "z"
+                        }
+                    }
+                },
+                "countBy": {
+                    "__proto__": 1
+                },
+                "mapToDictionary": {
+                    "__proto__": [
+                        1
+                    ]
+                },
+                "sortKeys": {
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "a": 1,
+                    "c": 3
+                },
+                "sortKeysUsing": {
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "a": 1,
+                    "c": 3
+                },
+                "unshift": {
+                    "0": 9,
+                    "a": 1,
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "c": 3
+                },
+                "mergeRecursive": {
+                    "z": 1,
+                    "a": 1,
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "c": 3
+                },
+                "mergeRecursive_nested": {
+                    "z": {
+                        "q": 1,
+                        "__proto__": {
+                            "polluted": true
+                        }
+                    }
+                },
+                "diffAssoc": {
+                    "a": 1,
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "c": 3
+                },
+                "diffKeys": {
+                    "a": 1,
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "c": 3
+                },
+                "diffUsing": {
+                    "a": 1,
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "c": 3
+                },
+                "duplicates": {
+                    "__proto__": 1
+                },
+                "offsetSet": {
+                    "a": 1,
+                    "__proto__": 2
+                },
+                "pull_leaves_the_rest": {
+                    "a": 1,
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "c": 3
+                }
+            }
+        },
+        {
+            "label": "collection-keyBy-scalar-key-cast",
+            "php": "(new Collection(['a' => ['k' => true], 'b' => ['k' => false], 'c' => ['k' => null]]))->keyBy('k') and @(new Collection([['v' => 1]]))->keyBy(fn () => 2.5): the keys",
+            "value": {
+                "field": [
+                    1,
+                    0,
+                    ""
+                ],
+                "float": [
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-E-keyBy-int-key-order",
+            "php": "collect([['id'=>3],['id'=>1],['id'=>2]])->keyBy('id')->keys()",
+            "value": [
+                3,
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-E-keyBy-enum-keys",
+            "php": "keyBy over int-backed B then A, and keyBy(fn => pure A)",
+            "value": {
+                "int": [
+                    [
+                        2,
+                        "integer",
+                        1
+                    ],
+                    [
+                        1,
+                        "integer",
+                        2
+                    ]
+                ],
+                "pure": [
+                    "A"
+                ]
+            }
+        },
+        {
+            "label": "C32-E-keyBy-stringable-keys",
+            "php": "keyBy(fn => object with __toString) and keyBy(fn => new Stringable('Lara'))",
+            "value": {
+                "toString": [
+                    "Framework"
+                ],
+                "stringable": [
+                    "Lara"
+                ]
+            }
+        },
+        {
+            "label": "C32-E-keyBy-callback-key-type",
+            "php": "collect([1 => 'a', 'x' => 'b'])->keyBy(fn ($v, $k) => $v.':'.gettype($k))->keys()",
+            "value": [
+                "a:integer",
+                "b:string"
+            ]
+        },
+        {
+            "label": "C32-E-keyBy-array-path",
+            "php": "collect([['a'=>['b'=>'z']]])->keyBy(['a','b']) and collect([['id'=>1,'name'=>'John']])->keyBy(['id','name'])",
+            "value": {
+                "nested": [
+                    "z"
+                ],
+                "jsdoc": [
+                    ""
+                ]
+            }
+        },
+        {
+            "label": "C32-E-keyBy-collection-rows",
+            "php": "c32c_rows(list | keyed)->keyBy('k'): each row's 'v'",
+            "value": {
+                "list": {
+                    "b": 3,
+                    "a": 2
+                },
+                "keyed": {
+                    "b": 3,
+                    "a": 2
+                }
+            }
+        },
+        {
+            "label": "C32-E-keyBy-array-key",
+            "php": "(new Collection([1]))->keyBy(fn () => [1, 2])",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type array on array"
+        },
+        {
+            "label": "C32-E-keyBy-assoc-key",
+            "php": "(new Collection([1]))->keyBy(fn () => ['a' => 1])",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type array on array"
+        },
+        {
+            "label": "C32-E-keyBy-date-key",
+            "php": "(new Collection([1]))->keyBy(fn () => new DateTime('@0'))",
+            "threw": "Error",
+            "message": "Object of class DateTime could not be converted to string"
+        },
+        {
+            "label": "C32-E-keyed-results-out-of-order-receiver",
+            "php": "a receiver whose integer keys run 2, 0: keyBy('id'), groupBy('g') and countBy() keys, mapToDictionary(fn => [$v => $k]), and flip() over 'x', 'y', 'x'",
+            "value": {
+                "keyBy": [
+                    5,
+                    4
+                ],
+                "groupBy": [
+                    5,
+                    4
+                ],
+                "countBy": [
+                    5,
+                    4
+                ],
+                "mapToDictionary": [
+                    [
+                        5,
+                        "integer",
+                        [
+                            2
+                        ]
+                    ],
+                    [
+                        4,
+                        "integer",
+                        [
+                            0
+                        ]
+                    ]
+                ],
+                "flip": [
+                    [
+                        "x",
+                        "string",
+                        1
+                    ],
+                    [
+                        "y",
+                        "string",
+                        0
+                    ]
+                ]
+            }
+        }
+    ]
+}

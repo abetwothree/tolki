@@ -1,0 +1,33 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "percentage-rounds-to-zero",
+            "php": "Number::percentage(-0.4)",
+            "value": "0%"
+        },
+        {
+            "label": "percentage-rounds-to-zero-one-digit",
+            "php": "Number::percentage(-0.04, precision: 1)",
+            "value": "0.0%"
+        },
+        {
+            "label": "percentage-keeps-sign-one-digit",
+            "php": "Number::percentage(-0.4, precision: 1)",
+            "value": "-0.4%"
+        },
+        {
+            "label": "percentage-keeps-sign",
+            "php": "Number::percentage(-5)",
+            "value": "-5%"
+        },
+        {
+            "label": "percentage-max-precision-rounds-to-zero",
+            "php": "Number::percentage(-0.004, maxPrecision: 2)",
+            "value": "0%"
+        }
+    ]
+}

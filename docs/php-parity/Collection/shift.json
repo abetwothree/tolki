@@ -1,0 +1,380 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "shift() on an assoc collection",
+            "php": "(new Collection([...]))->shift()",
+            "value": {
+                "returned": 1,
+                "remaining": {
+                    "y": 2,
+                    "z": 3
+                }
+            }
+        },
+        {
+            "label": "shift(-1) \u2014 negative count",
+            "php": "(new Collection([\"x\"=>1]))->shift(-1)",
+            "threw": "InvalidArgumentException",
+            "message": "Number of shifted items may not be less than zero."
+        },
+        {
+            "label": "shift(3) on empty",
+            "php": "(new Collection([]))->shift(3)",
+            "value": []
+        },
+        {
+            "label": "shift(0) on non-empty",
+            "php": "(new Collection([\"x\"=>1]))->shift(0)",
+            "value": []
+        },
+        {
+            "label": "X2 shift mutates and returns the first value",
+            "php": "collect([10,20,30,40])->shift()",
+            "value": {
+                "shift": 10,
+                "after": [
+                    20,
+                    30,
+                    40
+                ],
+                "shift2": [
+                    10,
+                    20
+                ],
+                "after2": [
+                    30,
+                    40
+                ]
+            }
+        },
+        {
+            "label": "X3 shift throws on a negative count",
+            "php": "collect([10,20,30,40])->shift(-1)",
+            "threw": "InvalidArgumentException",
+            "message": "Number of shifted items may not be less than zero."
+        },
+        {
+            "label": "X4 shift on empty returns null only for a count of 1",
+            "php": "collect([])->shift(3)",
+            "value": {
+                "count3": [],
+                "count1": null
+            }
+        },
+        {
+            "label": "D6 shift/pop on collect(null)",
+            "php": "['shift2' => (new Collection(null))->shift(2), 'shift1' => (new Collection(null))->shift(), 'pop3' => (new Collection(null))->pop(3)->all()]",
+            "value": {
+                "shift2": [],
+                "shift1": null,
+                "pop3": []
+            }
+        },
+        {
+            "label": "SH1 shift sequence on assoc",
+            "php": "$c = new Collection(['first' => 'Taylor', 'last' => 'Otwell']); [$c->shift(), $c->first(), $c->shift(), $c->first()]",
+            "value": [
+                "Taylor",
+                "Otwell",
+                "Otwell",
+                null
+            ]
+        },
+        {
+            "label": "SH2 shift(2), shift(6), shift(0) on assoc",
+            "php": "$c = new Collection(['a' => 'foo', 'b' => 'bar', 'c' => 'baz']); ['two' => $c->shift(2)->all(), 'first' => $c->first(), 'rem' => $c->all(), 'six' => (new Collection(['a' => 'foo', 'b' => 'bar', 'c' => 'baz']))->shift(6)->all(), 'zero' => $c0->shift(0)->all(), 'after0' => $c0->all()]",
+            "value": {
+                "two": [
+                    "foo",
+                    "bar"
+                ],
+                "first": "baz",
+                "rem": {
+                    "c": "baz"
+                },
+                "six": [
+                    "foo",
+                    "bar",
+                    "baz"
+                ],
+                "zero": [],
+                "after0": {
+                    "a": "foo",
+                    "b": "bar",
+                    "c": "baz"
+                }
+            }
+        },
+        {
+            "label": "SH3 shift(-2) throws",
+            "php": "(new Collection(['a' => 1]))->shift(-2)",
+            "threw": "InvalidArgumentException",
+            "message": "Number of shifted items may not be less than zero."
+        },
+        {
+            "label": "shift-negative-int-keys",
+            "php": "$c = new Collection(['x' => 'a', -1 => 'b', 'y' => 'c']); $c->shift(); and $d = new Collection(['x' => 'a', -1 => 'b', -2 => 'c', 'y' => 'd']); $d->shift(2)",
+            "value": {
+                "one": {
+                    "shifted": "a",
+                    "rest": {
+                        "0": "b",
+                        "y": "c"
+                    }
+                },
+                "two": {
+                    "shifted": [
+                        "a",
+                        "b"
+                    ],
+                    "rest": {
+                        "0": "c",
+                        "y": "d"
+                    }
+                }
+            }
+        },
+        {
+            "label": "order-shift",
+            "php": "$c = collect(base); $returned = $c->shift()",
+            "value": {
+                "returned": "c",
+                "all": [
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-shift-two",
+            "php": "$c = collect(base); $returned = $c->shift(2)",
+            "value": {
+                "returned": [
+                    "c",
+                    "a"
+                ],
+                "all": [
+                    "b"
+                ],
+                "values": [
+                    "b"
+                ],
+                "keys": [
+                    0
+                ]
+            }
+        },
+        {
+            "label": "order-shift-past-the-end",
+            "php": "$c = collect(base); $returned = $c->shift(5)",
+            "value": {
+                "returned": [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "all": [],
+                "values": [],
+                "keys": []
+            }
+        },
+        {
+            "label": "order-mixed-shift",
+            "php": "$c = collect([2 => 'c', 'x' => 'a', 1 => 'b']); $returned = $c->shift()",
+            "value": {
+                "returned": "c",
+                "all": {
+                    "x": "a",
+                    "0": "b"
+                },
+                "values": [
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    "x",
+                    0
+                ]
+            }
+        },
+        {
+            "label": "shift-out-of-order-returns",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->shift()",
+            "value": "c"
+        },
+        {
+            "label": "shift-out-of-order-remaining",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->shift(); $c->all()",
+            "value": [
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "shift-out-of-order-count-2-returns",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->shift(2)",
+            "value": [
+                "c",
+                "a"
+            ]
+        },
+        {
+            "label": "shift-out-of-order-count-2-remaining",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->shift(2); $c->all()",
+            "value": [
+                "b"
+            ]
+        },
+        {
+            "label": "shift-mixed-returns",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->shift()",
+            "value": 1
+        },
+        {
+            "label": "shift-mixed-remaining",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->shift(); $c->all()",
+            "value": [
+                [
+                    0,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "shift-mixed-count-2-returns",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->shift(2)",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "shift-mixed-count-2-remaining",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->shift(2); $c->all()",
+            "value": [
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "shift-collision-returns",
+            "php": "$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); $c->shift()",
+            "value": "c"
+        },
+        {
+            "label": "shift-collision-remaining",
+            "php": "$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); $c->shift(); $c->all()",
+            "value": [
+                [
+                    "x",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "shift-out-of-order-count-0-returns",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a']); $c->shift(0)",
+            "value": []
+        },
+        {
+            "label": "shift-out-of-order-count-0-remaining",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a']); $c->shift(0); $c->all()",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "C32-B-shift-negative-on-empty-throws",
+            "php": "collect([])->shift(-1)",
+            "threw": "InvalidArgumentException",
+            "message": "Number of shifted items may not be less than zero."
+        },
+        {
+            "label": "C32-B-shift-one-on-list-returns-value",
+            "php": "$c = collect([1, 2, 3]); $c->shift(1)",
+            "value": {
+                "returned": 1,
+                "all": [
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "shift-null-backed-counts",
+            "php": "shift(), shift(0) and shift(2) on new Collection(null)",
+            "value": {
+                "none": {
+                    "returned": null,
+                    "left": []
+                },
+                "0": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                },
+                "2": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                }
+            }
+        },
+        {
+            "label": "shift-empty-subclass",
+            "php": "get_class() of shift(2) and shift(0) on an empty subclass of Collection",
+            "value": {
+                "2": "Task33Basket",
+                "0": "Task33Basket"
+            }
+        },
+        {
+            "label": "shift-drained-then-again",
+            "php": "$c = collect([1, 2, 3]); $c->shift(2) three times, then $c->shift()",
+            "value": [
+                {
+                    "collection": [
+                        1,
+                        2
+                    ]
+                },
+                {
+                    "collection": [
+                        3
+                    ]
+                },
+                {
+                    "collection": []
+                },
+                null
+            ]
+        }
+    ]
+}

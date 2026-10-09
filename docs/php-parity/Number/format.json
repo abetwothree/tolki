@@ -1,0 +1,43 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "format-negative-zero",
+            "php": "Number::format(-0.0)",
+            "value": "0"
+        },
+        {
+            "label": "format-rounds-to-zero",
+            "php": "Number::format(-0.4, precision: 0)",
+            "value": "0"
+        },
+        {
+            "label": "format-rounds-to-zero-one-digit",
+            "php": "Number::format(-0.04, precision: 1)",
+            "value": "0.0"
+        },
+        {
+            "label": "format-keeps-sign",
+            "php": "Number::format(-0.06, precision: 1)",
+            "value": "-0.1"
+        },
+        {
+            "label": "format-default-precision",
+            "php": "Number::format(-0.4)",
+            "value": "-0.4"
+        },
+        {
+            "label": "format-max-precision-rounds-to-zero",
+            "php": "Number::format(-0.0004, maxPrecision: 2)",
+            "value": "0"
+        },
+        {
+            "label": "format-rounds-to-zero-de",
+            "php": "Number::format(-0.04, precision: 1, locale: 'de')",
+            "value": "0,0"
+        }
+    ]
+}

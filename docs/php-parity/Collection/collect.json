@@ -1,0 +1,28 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-A-collect-method-copies",
+            "php": "$a = collect([1, 2]); $b = $a->collect(); $b->push(3); [$a->all(), $b->all()]",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-collect-method-returns-base-class",
+            "php": "get_class(C32ASub::make([1])->collect())",
+            "value": "Illuminate\\Support\\Collection"
+        }
+    ]
+}

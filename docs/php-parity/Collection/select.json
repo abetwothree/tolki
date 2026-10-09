@@ -1,0 +1,221 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-D-select-dot-path-literal",
+            "php": "(new Collection([['id' => 1, 'details' => ['age' => 30, 'city' => 'NY']]]))->select(['id', 'details.age'])",
+            "value": [
+                [
+                    [
+                        "id",
+                        1
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-object-null-prop",
+            "php": "(new Collection([(object) ['a' => null, 'b' => 1]]))->select('a', 'b')",
+            "value": [
+                [
+                    [
+                        "b",
+                        1
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-array-null-value",
+            "php": "(new Collection([['a' => null, 'b' => 1]]))->select('a', 'b')",
+            "value": [
+                [
+                    [
+                        "a",
+                        null
+                    ],
+                    [
+                        "b",
+                        1
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-scalar-items",
+            "php": "(new Collection([1, 'x', null]))->select('a')",
+            "value": [
+                [],
+                [],
+                []
+            ]
+        },
+        {
+            "label": "C32-D-select-object-method-name",
+            "php": "(new Collection([new Collection(['a' => 1])]))->select('all', 'a')",
+            "value": [
+                [
+                    [
+                        "a",
+                        1
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-null-then-key",
+            "php": "(new Collection([['a' => 1, 'b' => 2]]))->select(null, 'a')",
+            "value": [
+                [
+                    [
+                        "a",
+                        1
+                    ],
+                    [
+                        "b",
+                        2
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-int-key",
+            "php": "(new Collection([[10, 20, 30]]))->select([0, 2])",
+            "value": [
+                [
+                    [
+                        0,
+                        10
+                    ],
+                    [
+                        2,
+                        30
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-collection-rows",
+            "php": "(new Collection([new Collection(['a' => 1, 'b' => 2])]))->select('a')",
+            "value": [
+                [
+                    [
+                        "a",
+                        1
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-prototype-key-names",
+            "php": "(new Collection([['a' => 1]]))->select('toString', 'constructor', 'a')",
+            "value": [
+                [
+                    [
+                        "a",
+                        1
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-string-index-and-length",
+            "php": "(new Collection([[10, 20, 30]]))->select(['1', 'length'])",
+            "value": [
+                [
+                    [
+                        1,
+                        20
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-integer-string-key",
+            "php": "(new Collection([['a' => 1, 1 => 'x']]))->select('1', 'a')",
+            "value": [
+                [
+                    [
+                        1,
+                        "x"
+                    ],
+                    [
+                        "a",
+                        1
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-object-falsy-props",
+            "php": "(new Collection([(object) ['a' => null, 'b' => 1, 'c' => 0, 'd' => '']]))->select('a', 'b', 'c', 'd', 'e')",
+            "value": [
+                [
+                    [
+                        "b",
+                        1
+                    ],
+                    [
+                        "c",
+                        0
+                    ],
+                    [
+                        "d",
+                        ""
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-keyed-collection-arg",
+            "php": "(new Collection([['first' => 'T', 'last' => 'O', 'email' => 'e']]))->select(new Collection(['x' => 'first', 'y' => 'email']))",
+            "value": [
+                [
+                    [
+                        "first",
+                        "T"
+                    ],
+                    [
+                        "email",
+                        "e"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-array-then-extra-arg",
+            "php": "(new Collection([['first' => 'T', 'last' => 'O']]))->select(['first'], 'last')",
+            "value": [
+                [
+                    [
+                        "first",
+                        "T"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-arrayaccess-rows",
+            "php": "(new Collection([new C32D_SelectAccess(['a' => 'offset-a', 'n' => null])]))->select('a', 'n', 'p', 'q', 'missing'), with public $a = 'prop-a', $p = 'prop-p', $q = null",
+            "value": [
+                [
+                    [
+                        "a",
+                        "offset-a"
+                    ],
+                    [
+                        "n",
+                        null
+                    ],
+                    [
+                        "p",
+                        "prop-p"
+                    ]
+                ]
+            ]
+        }
+    ]
+}

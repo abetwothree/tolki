@@ -1,0 +1,29 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "order-sortKeys",
+            "php": "collect(base)->sortKeys()",
+            "value": {
+                "all": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "values": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        }
+    ]
+}

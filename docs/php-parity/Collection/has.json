@@ -1,0 +1,118 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "has-traversable-backing",
+            "php": "(new Collection(new ArrayIterator([1, 2, 3])))->has(0)",
+            "value": true
+        },
+        {
+            "label": "has-traversable-backing-last-index",
+            "php": "(new Collection(new ArrayIterator([1, 2, 3])))->has(2)",
+            "value": true
+        },
+        {
+            "label": "has-traversable-backing-past-end",
+            "php": "(new Collection(new ArrayIterator([1, 2, 3])))->has(3)",
+            "value": false
+        },
+        {
+            "label": "has-dot-path-is-a-literal-key",
+            "php": "collect(['a' => ['b' => 1]])->has('a.b')",
+            "value": false
+        },
+        {
+            "label": "C32-B-has-null-key",
+            "php": "[collect(['a' => 1])->has(null), collect(['' => 1])->has(null)]",
+            "value": [
+                false,
+                true
+            ]
+        },
+        {
+            "label": "C32-B-has-empty-key-list",
+            "php": "[collect(['a' => 1])->has([]), collect([])->has([])]",
+            "value": [
+                true,
+                true
+            ]
+        },
+        {
+            "label": "C32-B-has-array-ignores-extra-args",
+            "php": "[collect(['first' => 1])->has(['first'], 'third'), collect(['first' => 1])->hasAny(['third'], 'first')]",
+            "value": [
+                true,
+                false
+            ]
+        },
+        {
+            "label": "C32-B-has-illegal-key",
+            "php": "has([['a']]), has([$first, ['b']]) and has(['zz', ['b']]) over both backings, $first the backing's first key",
+            "value": [
+                [
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    }
+                ],
+                [
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    }
+                ],
+                [
+                    {
+                        "outcome": false,
+                        "all": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "outcome": false,
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    }
+                ]
+            ]
+        }
+    ]
+}

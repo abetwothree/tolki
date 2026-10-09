@@ -1,0 +1,138 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "take-positive",
+            "php": "Arr::take([1..6], 3)",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "take-negative",
+            "php": "Arr::take([1..6], -3)",
+            "value": [
+                4,
+                5,
+                6
+            ]
+        },
+        {
+            "label": "take-zero",
+            "php": "Arr::take([1..6], 0)",
+            "value": []
+        },
+        {
+            "label": "take-over-size",
+            "php": "Arr::take([1..6], 10)",
+            "value": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+            ]
+        },
+        {
+            "label": "take-negative-over-size",
+            "php": "Arr::take([1..6], -10)",
+            "value": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+            ]
+        },
+        {
+            "label": "take-empty",
+            "php": "Arr::take([], 3) and Arr::take([], -3)",
+            "value": {
+                "positive": [],
+                "negative": []
+            }
+        },
+        {
+            "label": "take-assoc-positive",
+            "php": "Arr::take(['a'=>1,'b'=>2,'c'=>3,'d'=>4], 2)",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "take-assoc-negative",
+            "php": "Arr::take(['a'=>1,'b'=>2,'c'=>3,'d'=>4], -2)",
+            "value": {
+                "c": 3,
+                "d": 4
+            }
+        },
+        {
+            "label": "take-assoc-over-size",
+            "php": "Arr::take(['a'=>1,'b'=>2], 10)",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "take-assoc-negative-over-size",
+            "php": "Arr::take(['a'=>1,'b'=>2], -10)",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "take-out-of-order",
+            "php": "Arr::take([2 => 'c', 0 => 'a', 1 => 'b'], 2)",
+            "value": [
+                "c",
+                "a"
+            ]
+        },
+        {
+            "label": "take-out-of-order-negative",
+            "php": "Arr::take([2 => 'c', 0 => 'a', 1 => 'b'], -1)",
+            "value": [
+                "b"
+            ]
+        },
+        {
+            "label": "take-mixed",
+            "php": "Arr::take(['x' => 1, 0 => 2, 'y' => 3], 2)",
+            "value": [
+                [
+                    "x",
+                    1
+                ],
+                [
+                    0,
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "take-mixed-negative",
+            "php": "Arr::take(['x' => 1, 0 => 2, 'y' => 3], -2)",
+            "value": [
+                [
+                    0,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        }
+    ]
+}

@@ -1,0 +1,127 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C2 flip one",
+            "php": "(new Collection(['name' => 'taylor']))->flip()->all()",
+            "value": {
+                "taylor": "name"
+            }
+        },
+        {
+            "label": "C3 flip two",
+            "php": "(new Collection(['name' => 'taylor', 'framework' => 'laravel']))->flip()->all()",
+            "value": {
+                "taylor": "name",
+                "laravel": "framework"
+            }
+        },
+        {
+            "label": "C4 flip empty",
+            "php": "(new Collection)->flip()->all()",
+            "value": []
+        },
+        {
+            "label": "D9 flip numeric-string value",
+            "php": "(new Collection(['a' => '1', 'b' => '01', 'c' => '-0']))->flip()->all()",
+            "value": {
+                "1": "a",
+                "01": "b",
+                "-0": "c"
+            }
+        },
+        {
+            "label": "flip-int-key-type",
+            "php": "array_map('gettype', (new Collection([0 => 'a', 'b' => 'c']))->flip()->all())",
+            "value": {
+                "a": "integer",
+                "c": "string"
+            }
+        },
+        {
+            "label": "flip-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->flip()",
+            "value": [
+                [
+                    "c",
+                    2
+                ],
+                [
+                    "a",
+                    0
+                ],
+                [
+                    "b",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "flip-out-of-order-duplicate-values",
+            "php": "(new Collection([2 => 'v', 0 => 'v']))->flip()",
+            "value": [
+                [
+                    "v",
+                    0
+                ]
+            ]
+        },
+        {
+            "label": "flip-mixed-duplicate-values",
+            "php": "(new Collection(['x' => 'v', 0 => 'v']))->flip()",
+            "value": [
+                [
+                    "v",
+                    0
+                ]
+            ]
+        },
+        {
+            "label": "flip-collision",
+            "php": "(new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->flip()",
+            "value": [
+                [
+                    "c",
+                    1
+                ],
+                [
+                    "b",
+                    "x"
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-flip-int-key-order",
+            "php": "collect(['x' => 3, 'y' => 1])->flip() and the testFlipSkipsUnsupportedValues order",
+            "value": {
+                "ints": [
+                    [
+                        3,
+                        "integer",
+                        "x"
+                    ],
+                    [
+                        1,
+                        "integer",
+                        "y"
+                    ]
+                ],
+                "skips": [
+                    [
+                        "taylor",
+                        "string",
+                        "string"
+                    ],
+                    [
+                        1,
+                        "integer",
+                        "integer"
+                    ]
+                ]
+            }
+        }
+    ]
+}

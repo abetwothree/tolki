@@ -1,0 +1,242 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-G-split-int-keys-renumber",
+            "php": "(new Collection([5 => 'a', 6 => 'b', 7 => 'c']))->split(2)",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            0,
+                            "a"
+                        ],
+                        [
+                            1,
+                            "b"
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            0,
+                            "c"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-split-assoc-keys",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->split(2)",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            "a",
+                            1
+                        ],
+                        [
+                            "b",
+                            2
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            "c",
+                            3
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-split-more-groups-than-items",
+            "php": "(new Collection([1, 2, 3]))->split(5)",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            0,
+                            1
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            0,
+                            2
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            0,
+                            3
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-split-infinite-groups",
+            "php": "(new Collection([1, 2, 3]))->split(INF)",
+            "threw": "DivisionByZeroError",
+            "message": "Modulo by zero"
+        },
+        {
+            "label": "C32-G-split-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->split(2) and (new Collection([2 => 'c', 'x' => 'a', 1 => 'b']))->split(2)",
+            "value": {
+                "out-of-order": [
+                    [
+                        0,
+                        [
+                            [
+                                0,
+                                "c"
+                            ],
+                            [
+                                1,
+                                "a"
+                            ]
+                        ]
+                    ],
+                    [
+                        1,
+                        [
+                            [
+                                0,
+                                "b"
+                            ]
+                        ]
+                    ]
+                ],
+                "mixed": [
+                    [
+                        0,
+                        [
+                            [
+                                0,
+                                "c"
+                            ],
+                            [
+                                "x",
+                                "a"
+                            ]
+                        ]
+                    ],
+                    [
+                        1,
+                        [
+                            [
+                                0,
+                                "b"
+                            ]
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-G-split-counts",
+            "php": "(new Collection([1, 2, 3, 4, 5]))->split($groups) for 1.5, 2.5, 5.5 and NAN, and (new Collection([]))->split($groups) for NAN and INF",
+            "value": {
+                "groups": {
+                    "1.5": [
+                        [
+                            0,
+                            [
+                                [
+                                    0,
+                                    1
+                                ],
+                                [
+                                    1,
+                                    2
+                                ],
+                                [
+                                    2,
+                                    3
+                                ]
+                            ]
+                        ],
+                        [
+                            1,
+                            [
+                                [
+                                    0,
+                                    4
+                                ],
+                                [
+                                    1,
+                                    5
+                                ]
+                            ]
+                        ]
+                    ],
+                    "2.5": [
+                        [
+                            0,
+                            [
+                                [
+                                    0,
+                                    1
+                                ],
+                                [
+                                    1,
+                                    2
+                                ],
+                                [
+                                    2,
+                                    3
+                                ]
+                            ]
+                        ],
+                        [
+                            1,
+                            [
+                                [
+                                    0,
+                                    4
+                                ],
+                                [
+                                    1,
+                                    5
+                                ]
+                            ]
+                        ],
+                        [
+                            2,
+                            []
+                        ]
+                    ],
+                    "5.5": [],
+                    "NAN": [
+                        "DivisionByZeroError",
+                        "Modulo by zero"
+                    ]
+                },
+                "empty": {
+                    "NAN": [],
+                    "INF": []
+                }
+            }
+        }
+    ]
+}

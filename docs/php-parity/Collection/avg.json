@@ -1,0 +1,19 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-H-avg-non-numeric-string",
+            "php": "(new Collection([10, 'house', 20]))->avg()",
+            "threw": "TypeError",
+            "message": "Unsupported operand types: int + string"
+        },
+        {
+            "label": "C32-H-avg-callback-arity",
+            "php": "(new Collection(['a' => 1]))->avg(fn (...$args) => count($args))",
+            "value": 1
+        }
+    ]
+}

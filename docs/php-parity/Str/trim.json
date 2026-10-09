@@ -1,0 +1,161 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "trim-long-interior-run",
+            "php": "StrTest::testTrimAndRtrimHandleLongInteriorWhitespaceRuns: its two long comparisons as booleans, its four short results as they are",
+            "value": {
+                "trim": true,
+                "rtrim": true,
+                "trim-run": "",
+                "rtrim-run": "",
+                "trim-mixed": "a b c",
+                "rtrim-mixed": " a  b"
+            }
+        },
+        {
+            "label": "trim-charlist-long-interior-run",
+            "php": "Str::trim($x.'['.$x.'y'.$x, 'x') === '['.$x.'y' for $x = str_repeat('x', 120000)",
+            "value": true
+        },
+        {
+            "label": "trim-default-characters",
+            "php": "every code point Str::trim() removes by default, as hex ranges; ltrim and rtrim remove the same ones",
+            "value": {
+                "count": 65,
+                "ranges": [
+                    "0000",
+                    "0009-000D",
+                    "0020",
+                    "0085",
+                    "00A0",
+                    "00AD",
+                    "034F",
+                    "061C",
+                    "115F-1160",
+                    "1680",
+                    "17B4-17B5",
+                    "180E",
+                    "2000-200F",
+                    "2028-2029",
+                    "202F",
+                    "205F-2065",
+                    "206A-206F",
+                    "2800",
+                    "3000",
+                    "3164",
+                    "FEFF",
+                    "FFA0",
+                    "1D159",
+                    "1D173-1D17A",
+                    "E0020"
+                ],
+                "ltrim-and-rtrim-agree": true
+            }
+        },
+        {
+            "label": "trim-cases",
+            "php": "Str::trim($value, $charlist) for each [$value, $charlist], a null charlist being the default, recorded as [$value, $charlist, result]",
+            "value": [
+                [
+                    " foo bar ",
+                    "",
+                    " foo bar "
+                ],
+                [
+                    "  hello  ",
+                    "",
+                    "  hello  "
+                ],
+                [
+                    " foo bar ",
+                    " ",
+                    "foo bar"
+                ],
+                [
+                    "-foo  bar_",
+                    "-_",
+                    "foo  bar"
+                ],
+                [
+                    "\n                foo bar\n            ",
+                    null,
+                    "foo bar"
+                ],
+                [
+                    "\n                foo\n                bar\n            ",
+                    null,
+                    "foo\n                bar"
+                ],
+                [
+                    "\n    hello\n    world\n",
+                    null,
+                    "hello\n    world"
+                ],
+                [
+                    "    line1\nline2\n",
+                    null,
+                    "line1\nline2"
+                ],
+                [
+                    "  first\n  second\n  third\n",
+                    null,
+                    "first\n  second\n  third"
+                ],
+                [
+                    "   \n   \n   ",
+                    null,
+                    ""
+                ],
+                [
+                    "hello\nworld",
+                    null,
+                    "hello\nworld"
+                ],
+                [
+                    "\u0085a\u0085",
+                    null,
+                    "a"
+                ],
+                [
+                    "-^a^-",
+                    "^-",
+                    "a"
+                ],
+                [
+                    "\\a\\",
+                    "\\",
+                    "a"
+                ],
+                [
+                    "[[[hello]]]",
+                    "[]",
+                    "hello"
+                ],
+                [
+                    "\ud83d\ude00a\ud83d\ude00",
+                    "\ud83d\ude00",
+                    "a"
+                ],
+                [
+                    "\u4f60\u597d\u4f60\u597dhello\u4f60\u597d\u4f60\u597d",
+                    "\u4f60\u597d",
+                    "hello"
+                ],
+                [
+                    "\ud834\udd59a\udb40\udc20\ud834\udd73",
+                    null,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "trim-charlist-range-not-ported",
+            "php": "Str::trim('abcxcba', 'a..c'): PHP reads a..c as the range a to c",
+            "value": "x"
+        }
+    ]
+}

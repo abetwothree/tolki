@@ -1,0 +1,68 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "sortByMany forced descending over the same mixed items",
+            "php": "collect($mixed)->sortByDesc([\"item\"])->values()->pluck(\"item\")",
+            "value": [
+                20,
+                "10",
+                5,
+                "1"
+            ]
+        },
+        {
+            "label": "Collection::sortByDesc(null) orders numeric strings numerically",
+            "php": "collect([\"9\",\"10\",\"1\",5])->sortByDesc(null)->values()",
+            "value": [
+                "10",
+                "9",
+                5,
+                "1"
+            ]
+        },
+        {
+            "label": "C32-G-sortByDesc-descriptor-mixed-directions",
+            "php": "sortByDesc([['name', 'asc'], ['age', 'desc']]) over four people",
+            "value": [
+                {
+                    "name": "b",
+                    "age": 2
+                },
+                {
+                    "name": "b",
+                    "age": 1
+                },
+                {
+                    "name": "a",
+                    "age": 3
+                },
+                {
+                    "name": "a",
+                    "age": 1
+                }
+            ]
+        },
+        {
+            "label": "C32-G-sortByDesc-id-then-name",
+            "php": "sortByDesc(['id'])->sortByDesc(['id', 'name']) (testSortByCallableStringDesc)",
+            "value": [
+                {
+                    "id": 2,
+                    "name": "baz"
+                },
+                {
+                    "id": 2,
+                    "name": "bar"
+                },
+                {
+                    "id": 1,
+                    "name": "foo"
+                }
+            ]
+        }
+    ]
+}

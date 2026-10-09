@@ -1,0 +1,29 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "whereNotBetween over numeric strings and falsy values",
+            "php": "collect($between)->whereNotBetween(\"v\",[\"1\",\"5\"])->pluck(\"v\")",
+            "value": [
+                "9",
+                "10",
+                null,
+                0
+            ]
+        },
+        {
+            "label": "C32-D-whereNotBetween-collection-values",
+            "php": "whereNotBetween('v', new Collection([1, 3])) over v = 0..4",
+            "value": [
+                0,
+                1,
+                2,
+                3,
+                4
+            ]
+        }
+    ]
+}

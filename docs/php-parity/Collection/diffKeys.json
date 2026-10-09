@@ -1,0 +1,91 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "d6-diff-keys",
+            "php": "(new Collection(['id' => 1, 'first_word' => 'Hello']))->diffKeys(['id' => 123, 'foo_bar' => 'Hello'])",
+            "value": {
+                "assoc": {
+                    "first_word": "Hello"
+                },
+                "assoc-value-ignored": {
+                    "b": 2
+                },
+                "list": {
+                    "2": 3
+                },
+                "list-keyed-operand": [
+                    1
+                ],
+                "nullish-operand": {
+                    "a": 1
+                },
+                "collection-operand": {
+                    "b": 2
+                }
+            }
+        },
+        {
+            "label": "d6-list-operand-edges",
+            "php": "(new Collection([1, 2]))->diffKeys([999]) / ->diffKeys(null) / ->diffKeys(new Collection([9])) and the diffUsing / intersectUsing twins",
+            "value": {
+                "diffKeys-value-ignored": {
+                    "1": 2
+                },
+                "diffKeys-nullish-operand": [
+                    1,
+                    2
+                ],
+                "diffKeys-collection-operand": {
+                    "1": 2
+                },
+                "diffUsing-nullish-operand": [
+                    "green"
+                ],
+                "diffUsing-collection-operand": {
+                    "1": "brown"
+                },
+                "intersectUsing-nullish-operand": [],
+                "intersectUsing-collection-operand": [
+                    "green"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-diffKeys-length-key",
+            "php": "collect(['length' => 5, 'b' => 2])->diffKeys(['x'])",
+            "value": {
+                "all": {
+                    "length": 5,
+                    "b": 2
+                },
+                "keys": [
+                    "length",
+                    "b"
+                ],
+                "values": [
+                    5,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-F-diffKeys-signature-examples",
+            "php": "collect(['a' => 1, 'b' => 2, 'c' => 3])->diffKeys(['b' => 2]) / collect([1, 3, 5, 7, 8])->diffKeys([1, 3, 5]) / collect([1, 3, 5])->diffKeys([1, 3, 5, 7, 8])",
+            "value": {
+                "assoc": {
+                    "a": 1,
+                    "c": 3
+                },
+                "list": {
+                    "3": 7,
+                    "4": 8
+                },
+                "list-emptied": []
+            }
+        }
+    ]
+}

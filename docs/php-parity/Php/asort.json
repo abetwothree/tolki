@@ -1,0 +1,75 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "asort over PHP-falsy mixed values",
+            "php": "asort([0, null, false, []])",
+            "value": {
+                "falsy_keys": [
+                    "a",
+                    "b",
+                    "d",
+                    "e"
+                ],
+                "arsort_falsy_values": {
+                    "c": 5,
+                    "b": 0,
+                    "a": -1
+                },
+                "null_vs_zero": [
+                    0,
+                    0
+                ],
+                "false_vs_zero": [
+                    0,
+                    0
+                ],
+                "empty_array_vs_zero": [
+                    1,
+                    -1
+                ],
+                "null_vs_empty_array": [
+                    0,
+                    0
+                ],
+                "empty_array_vs_one": [
+                    1,
+                    -1
+                ]
+            }
+        },
+        {
+            "label": "asort ties zero and null, keeping insertion order",
+            "php": "asort([\"user1\"=>0,\"user2\"=>null,\"user3\"=>25])",
+            "value": [
+                "user1",
+                "user2",
+                "user3"
+            ]
+        },
+        {
+            "label": "asort ties null and an empty array, keeping insertion order",
+            "php": "asort([\"user2\"=>null,\"user4\"=>[],...])",
+            "value": [
+                "user2",
+                "user3",
+                "user1",
+                "user0",
+                "user4"
+            ]
+        },
+        {
+            "label": "asort over a keyed mix of numeric strings and an int",
+            "php": "asort([\"a\"=>\"9\",\"b\"=>\"10\",\"c\"=>\"1\",\"d\"=>5])",
+            "value": [
+                "1",
+                5,
+                "9",
+                "10"
+            ]
+        }
+    ]
+}

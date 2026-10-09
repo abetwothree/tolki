@@ -1,0 +1,31 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "from-stdclass",
+            "php": "Arr::from((object)['foo'=>'bar'])",
+            "value": {
+                "foo": "bar"
+            }
+        },
+        {
+            "label": "from-true-key-collision",
+            "php": "Arr::from([1 => 'a', true => 'b'])",
+            "value": [
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-arr-from-scalar-throws",
+            "php": "Arr::from(123)",
+            "threw": "InvalidArgumentException",
+            "message": "Items cannot be represented by a scalar value."
+        }
+    ]
+}

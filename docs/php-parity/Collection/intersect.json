@@ -1,0 +1,104 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "intersect \u2014 values only, left keys",
+            "php": "$c->intersect([...])",
+            "value": {
+                "first_word": "Hello"
+            }
+        },
+        {
+            "label": "intersect(null)",
+            "php": "$c->intersect(null)",
+            "value": []
+        },
+        {
+            "label": "intersect on array-backed collection",
+            "php": "$c->intersect([2,4,6])",
+            "value": {
+                "1": 2,
+                "3": 4
+            }
+        },
+        {
+            "label": "X12 intersect compares values only",
+            "php": "collect([10,20,30,40])->intersect([20,40])",
+            "value": {
+                "1": 20,
+                "3": 40
+            }
+        },
+        {
+            "label": "X14 intersect variants treat null as empty",
+            "php": "collect([10,20,30,40])->intersect(null)",
+            "value": {
+                "intersect": [],
+                "intersectAssoc": [],
+                "intersectByKeys": []
+            }
+        },
+        {
+            "label": "intersect accepts an operand of any shape",
+            "php": "collect([1])->intersect([\"x\"=>1])",
+            "value": {
+                "list_data_assoc_other": [
+                    1
+                ],
+                "assoc_data_list_other": {
+                    "a": 1
+                },
+                "assoc_data_list_other_two": {
+                    "b": 2
+                },
+                "nums_assoc_other": {
+                    "1": 20,
+                    "3": 40
+                },
+                "null_data_list_other": [],
+                "assoc_data_scalar_other": {
+                    "b": "x"
+                },
+                "list_data_scalar_other": {
+                    "1": "x"
+                },
+                "assoc_data_null_other": []
+            }
+        },
+        {
+            "label": "intersect with a Collection operand",
+            "php": "collect([\"a\"=>10,\"b\"=>20])->intersect(collect([20]))",
+            "value": {
+                "b": 20
+            }
+        },
+        {
+            "label": "intersect over array items collapses to \"Array\"",
+            "php": "collect([[\"id\"=>1],[\"id\"=>2]])->intersect([[\"id\"=>1]])",
+            "value": [
+                {
+                    "id": 1
+                },
+                {
+                    "id": 2
+                }
+            ]
+        },
+        {
+            "label": "intersect-scalar-backing",
+            "php": "(new Collection(5))->intersect([5])",
+            "value": [
+                5
+            ]
+        },
+        {
+            "label": "plain-object-toArray-member-as-an-operand-is-never-unwrapped",
+            "php": "collect(['b' => 2, 'c' => 3])->intersect((object) ['toArray' => fn () => [9], 'b' => 2])",
+            "threw": "Error",
+            "message": "Object of class Closure could not be converted to string"
+        }
+    ]
+}

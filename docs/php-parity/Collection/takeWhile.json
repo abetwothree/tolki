@@ -1,0 +1,43 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-D-takeWhile-strict-value",
+            "php": "(new Collection([1, 1, 2]))->takeWhile('1')",
+            "value": []
+        },
+        {
+            "label": "C32-D-takeWhile-keyed",
+            "php": "(new Collection(['a' => 1, 'b' => 1, 'c' => 2, 'd' => 1]))->takeWhile(1)",
+            "value": [
+                [
+                    "a",
+                    1
+                ],
+                [
+                    "b",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-takeWhile-callback-key",
+            "php": "(new Collection(['x', 'y', 'z']))->takeWhile(fn ($v, $k) => $k < 2)",
+            "value": [
+                "x",
+                "y"
+            ]
+        },
+        {
+            "label": "C32-D-takeWhile-null-value",
+            "php": "(new Collection([null, null, 0]))->takeWhile(null)",
+            "value": [
+                null,
+                null
+            ]
+        }
+    ]
+}

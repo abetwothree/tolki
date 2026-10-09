@@ -1,0 +1,15 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-D-where-strict-array-by-value",
+            "php": "(new Collection([['v' => [1, 2]], ['v' => ['1', '2']], ['v' => [2, 1]]]))->whereStrict('v', [1, 2])->keys()",
+            "value": [
+                0
+            ]
+        }
+    ]
+}

@@ -1,0 +1,81 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-D-skipWhile-keyed",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 1]))->skipWhile(1)",
+            "value": [
+                [
+                    "b",
+                    2
+                ],
+                [
+                    "c",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-skipWhile-list-keys",
+            "php": "(new Collection([1, 1, 2, 1]))->skipWhile(1)",
+            "value": [
+                [
+                    2,
+                    2
+                ],
+                [
+                    3,
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-skipWhile-strict-value",
+            "php": "(new Collection([1, 1, 2]))->skipWhile('1')",
+            "value": [
+                1,
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-D-skipWhile-callback-key",
+            "php": "(new Collection(['x', 'y', 'z']))->skipWhile(fn ($v, $k) => $k < 1)",
+            "value": [
+                [
+                    1,
+                    "y"
+                ],
+                [
+                    2,
+                    "z"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-skip-take-out-of-order-keys",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b'])): skipWhile('c'), takeUntil('a') and takeWhile('c')",
+            "value": {
+                "skipWhile": [
+                    "a",
+                    "b"
+                ],
+                "takeUntil": [
+                    [
+                        2,
+                        "c"
+                    ]
+                ],
+                "takeWhile": [
+                    [
+                        2,
+                        "c"
+                    ]
+                ]
+            }
+        }
+    ]
+}

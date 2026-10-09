@@ -1,0 +1,177 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-F-merge-null-is-a-new-instance",
+            "php": "$a = collect([1]); $b = $a->merge(null); $b->push(2);",
+            "value": {
+                "same": false,
+                "receiver": [
+                    1
+                ],
+                "result": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-F-merge-null-renumbers",
+            "php": "collect([5 => 'a', 'k' => 'b'])->merge(null)",
+            "value": {
+                "all": {
+                    "0": "a",
+                    "k": "b"
+                },
+                "keys": [
+                    0,
+                    "k"
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-merge-assoc-then-list",
+            "php": "collect(['a' => 1, 'b' => 2])->merge([3, 4])",
+            "value": {
+                "all": {
+                    "a": 1,
+                    "b": 2,
+                    "0": 3,
+                    "1": 4
+                },
+                "keys": [
+                    "a",
+                    "b",
+                    0,
+                    1
+                ],
+                "values": [
+                    1,
+                    2,
+                    3,
+                    4
+                ]
+            }
+        },
+        {
+            "label": "C32-F-merge-int-keyed-record-then-list",
+            "php": "collect(['a' => 1, 5 => 'x'])->merge(['y'])",
+            "value": {
+                "all": {
+                    "a": 1,
+                    "0": "x",
+                    "1": "y"
+                },
+                "keys": [
+                    "a",
+                    0,
+                    1
+                ],
+                "values": [
+                    1,
+                    "x",
+                    "y"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-merge-same-int-key-appends",
+            "php": "collect([5 => 'a'])->merge([5 => 'b'])",
+            "value": {
+                "all": [
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-merge-scalar-operand",
+            "php": "collect(['hello'])->merge(1)",
+            "value": [
+                "hello",
+                1
+            ]
+        },
+        {
+            "label": "C32-F-merge-string-key-keeps-its-place",
+            "php": "collect(['a' => 1, 'b' => 2])->merge(['c' => 3, 'a' => 9])",
+            "value": {
+                "all": {
+                    "a": 9,
+                    "b": 2,
+                    "c": 3
+                },
+                "keys": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "values": [
+                    9,
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "C32-F-merge-list-then-out-of-order-int-keys",
+            "php": "collect([1])->merge([3 => 'x', 1 => 'y'])",
+            "value": {
+                "all": [
+                    1,
+                    "x",
+                    "y"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ],
+                "values": [
+                    1,
+                    "x",
+                    "y"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-merge-out-of-order-receiver",
+            "php": "collect([2 => 'c', 0 => 'a', 1 => 'b'])->merge(['d'])",
+            "value": {
+                "all": [
+                    "c",
+                    "a",
+                    "b",
+                    "d"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    3
+                ],
+                "values": [
+                    "c",
+                    "a",
+                    "b",
+                    "d"
+                ]
+            }
+        }
+    ]
+}

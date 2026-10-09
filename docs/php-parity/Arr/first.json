@@ -1,0 +1,269 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "first-assoc-no-match",
+            "php": "Arr::first(['a' => 100, 'b' => 200, 'c' => 300], fn ($v) => $v > 300)",
+            "value": null
+        },
+        {
+            "label": "first-assoc-closure-default",
+            "php": "Arr::first(assoc, fn > 300, fn () => 'baz')",
+            "value": "baz"
+        },
+        {
+            "label": "first-assoc-falsy-match",
+            "php": "Arr::first(['a' => 0, 'b' => 10, 'c' => 20], fn ($v) => $v === 0)",
+            "value": 0
+        },
+        {
+            "label": "first-assoc-key-callback",
+            "php": "Arr::first(['a' => 100, 'b' => 200, 'c' => 300], fn ($v, $k) => $k !== 'a')",
+            "value": 200
+        },
+        {
+            "label": "callback-key first",
+            "php": "Arr::first([1 => \"a\", \"x\" => \"b\"], $cb returning false)",
+            "value": [
+                "integer",
+                "string"
+            ]
+        },
+        {
+            "label": "arr-first-out-of-order",
+            "php": "Arr::first([2 => \"c\", 0 => \"a\", 1 => \"b\"])",
+            "value": "c"
+        },
+        {
+            "label": "arr-first-out-of-order-callback",
+            "php": "Arr::first(base, fn ($v) => $v !== 'c')",
+            "value": "a"
+        },
+        {
+            "label": "arr-first-out-of-order-key-order",
+            "php": "$keys seen by Arr::first(base, $cb returning false)",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "first-out-of-order",
+            "php": "Arr::first([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": "c"
+        },
+        {
+            "label": "first-mixed",
+            "php": "Arr::first(['x' => 1, 0 => 2, 'y' => 3])",
+            "value": 1
+        },
+        {
+            "label": "first-out-of-order-callback",
+            "php": "Arr::first([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v) => $v !== 'a')",
+            "value": "c"
+        },
+        {
+            "label": "first-out-of-order-callback-order",
+            "php": "Arr::first([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => false) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "first-collision",
+            "php": "Arr::first([1 => 'a', '1' => 'b'])",
+            "value": "b"
+        },
+        {
+            "label": "first-true-key-collision",
+            "php": "Arr::first([1 => 'a', true => 'b'])",
+            "value": "b"
+        },
+        {
+            "label": "C32-C-arr-callback-php-truthiness",
+            "php": "Arr::first / last / every / some / sole / where / reject / partition over c32c_items(list | keyed), sole over its first item alone, with a callback answering '0', [] and new DateTime('@0')",
+            "value": {
+                "list": {
+                    "first": [
+                        null,
+                        null,
+                        "a"
+                    ],
+                    "last": [
+                        null,
+                        null,
+                        "b"
+                    ],
+                    "every": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "some": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "sole": [
+                        "ItemNotFoundException",
+                        "ItemNotFoundException",
+                        "a"
+                    ],
+                    "where": [
+                        [],
+                        [],
+                        [
+                            "a",
+                            "b"
+                        ]
+                    ],
+                    "reject": [
+                        [
+                            "a",
+                            "b"
+                        ],
+                        [
+                            "a",
+                            "b"
+                        ],
+                        []
+                    ],
+                    "partition": [
+                        [
+                            [],
+                            [
+                                "a",
+                                "b"
+                            ]
+                        ],
+                        [
+                            [],
+                            [
+                                "a",
+                                "b"
+                            ]
+                        ],
+                        [
+                            [
+                                "a",
+                                "b"
+                            ],
+                            []
+                        ]
+                    ]
+                },
+                "keyed": {
+                    "first": [
+                        null,
+                        null,
+                        "a"
+                    ],
+                    "last": [
+                        null,
+                        null,
+                        "b"
+                    ],
+                    "every": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "some": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "sole": [
+                        "ItemNotFoundException",
+                        "ItemNotFoundException",
+                        "a"
+                    ],
+                    "where": [
+                        [],
+                        [],
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ]
+                    ],
+                    "reject": [
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ],
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ],
+                        []
+                    ],
+                    "partition": [
+                        [
+                            [],
+                            [
+                                [
+                                    "x",
+                                    "a"
+                                ],
+                                [
+                                    "y",
+                                    "b"
+                                ]
+                            ]
+                        ],
+                        [
+                            [],
+                            [
+                                [
+                                    "x",
+                                    "a"
+                                ],
+                                [
+                                    "y",
+                                    "b"
+                                ]
+                            ]
+                        ],
+                        [
+                            [
+                                [
+                                    "x",
+                                    "a"
+                                ],
+                                [
+                                    "y",
+                                    "b"
+                                ]
+                            ],
+                            []
+                        ]
+                    ]
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,97 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-B-hasAny-null-key",
+            "php": "[collect(['' => 1])->hasAny(null), collect(['a' => 1])->hasAny(null), collect(['' => 1])->hasAny([null])]",
+            "value": [
+                true,
+                false,
+                true
+            ]
+        },
+        {
+            "label": "C32-B-hasAny-dot-path-is-literal",
+            "php": "[collect(['a' => ['b' => 1]])->hasAny('a.b'), collect(['a.b' => 1])->hasAny('a.b')]",
+            "value": [
+                false,
+                true
+            ]
+        },
+        {
+            "label": "C32-B-hasAny-illegal-key",
+            "php": "hasAny([['a']]), hasAny([$first, ['b']]) and hasAny(['zz', ['b']]) over both backings, $first the backing's first key, then hasAny([['a']]) over collect([])",
+            "value": [
+                [
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    }
+                ],
+                [
+                    {
+                        "outcome": true,
+                        "all": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "outcome": true,
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    }
+                ],
+                [
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    }
+                ],
+                false
+            ]
+        },
+        {
+            "label": "C32-B-hasAny-empty-reads-no-key",
+            "php": "collect()->hasAny('key', 'any', [0, 1], 'test')",
+            "value": false
+        }
+    ]
+}

@@ -1,0 +1,18 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-A-json-encode-collection",
+            "php": "json_encode(collect([1, 2]))",
+            "value": "[1,2]"
+        },
+        {
+            "label": "C32-A-json-encode-nested-collection",
+            "php": "json_encode(['users' => collect([['id' => 1]])])",
+            "value": "{\"users\":[{\"id\":1}]}"
+        }
+    ]
+}

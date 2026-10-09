@@ -1,0 +1,73 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "flatten depth 0 via Collection",
+            "php": "collect([1,[2,[3]]])->flatten(0)->all()",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "flatten depth 1 for comparison",
+            "php": "collect([1,[2,[3]]])->flatten(1)->all()",
+            "value": [
+                1,
+                2,
+                [
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "collection-flatten-object-leaf",
+            "php": "(new Collection([$date, [1], new Collection([2, [3]])]))->flatten() and (new Collection(['a' => $o, 'b' => [$date]]))->flatten(): what is kept",
+            "value": {
+                "list": {
+                    "count": 4,
+                    "kept": true,
+                    "rest": [
+                        1,
+                        2,
+                        3
+                    ]
+                },
+                "map": {
+                    "count": 2,
+                    "kept": true
+                }
+            }
+        },
+        {
+            "label": "flatten-traversable-backing",
+            "php": "(new Collection(new ArrayIterator([1, 2, 3])))->flatten()",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "flatten-string-backing",
+            "php": "(new Collection('abc'))->flatten()",
+            "value": [
+                "abc"
+            ]
+        },
+        {
+            "label": "flatten-mixed-collection-types",
+            "php": "(new Collection([new Collection(['#foo', new LazyCollection(['#bar'])]), new LazyCollection(['#baz', new Collection(['#zap'])])]))->flatten()->all()",
+            "value": [
+                "#foo",
+                "#bar",
+                "#baz",
+                "#zap"
+            ]
+        }
+    ]
+}

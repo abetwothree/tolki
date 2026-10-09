@@ -1,0 +1,64 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C1 values resets int keys",
+            "php": "(new Collection([1 => 'a', 2 => 'b', 3 => 'c']))->values()->all()",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "values-empty",
+            "php": "(new Collection([]))->values()",
+            "value": []
+        },
+        {
+            "label": "values-traversable-backing",
+            "php": "(new Collection(new ArrayIterator([1, 2, 3])))->values()",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "values-string-backing",
+            "php": "(new Collection('abc'))->values()",
+            "value": [
+                "abc"
+            ]
+        },
+        {
+            "label": "values-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->values()",
+            "value": [
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "values-mixed",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->values()",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "values-collision",
+            "php": "(new Collection([1 => 'a', 0 => 'z', '1' => 'b']))->values()",
+            "value": [
+                "b",
+                "z"
+            ]
+        }
+    ]
+}

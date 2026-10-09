@@ -1,0 +1,39 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "uniqueStrict-duplicatesStrict-key-order",
+            "php": "(new Collection([['x' => 1, 'y' => 2], ['y' => 2, 'x' => 1]]))->uniqueStrict() and ->duplicatesStrict()",
+            "value": {
+                "uniqueStrict": [
+                    {
+                        "x": 1,
+                        "y": 2
+                    },
+                    {
+                        "y": 2,
+                        "x": 1
+                    }
+                ],
+                "duplicatesStrict": []
+            }
+        },
+        {
+            "label": "C32-D-unique-arrays-strict",
+            "php": "(new Collection([[1, 2], ['1', 2], [1, 2]]))->uniqueStrict()",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    "1",
+                    2
+                ]
+            ]
+        }
+    ]
+}

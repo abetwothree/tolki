@@ -1,0 +1,49 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-A-times-fractional-count",
+            "php": "Collection::times(2.7)->all()",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-A-times-non-finite-count",
+            "php": "Collection::times(NAN), times(INF) and times(-INF)",
+            "value": [
+                [
+                    "ValueError",
+                    "range(): Argument #2 ($end) must be a finite number, NAN provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #2 ($end) must be a finite number, INF provided"
+                ],
+                []
+            ]
+        },
+        {
+            "label": "C32-A-times-past-maximum-array-size",
+            "php": "Collection::times(1e19), times(2147483648) and times(1073741824): the class and message thrown",
+            "value": {
+                "1e19": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 9999999998926258176.0 elements: start=1.0, end=10000000000000000000.0, step=1.0. Max size: 1073741824"
+                ],
+                "2147483648": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 1073741824 elements: start=1, end=2147483648, step=1. Calculated size: 2147483647. Maximum size: 1073741824."
+                ],
+                "1073741824": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 0 elements: start=1, end=1073741824, step=1. Calculated size: 1073741823. Maximum size: 1073741824."
+                ]
+            }
+        }
+    ]
+}

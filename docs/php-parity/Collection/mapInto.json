@@ -1,0 +1,52 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-E-mapInto-constructor-args",
+            "php": "collect(['first', 'second'])->mapInto(C32E_Args::class) ctor args",
+            "value": [
+                [
+                    "first",
+                    0
+                ],
+                [
+                    "second",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-mapInto-constructor-args-assoc",
+            "php": "collect(['x' => 'first'])->mapInto(C32E_Args::class) ctor args",
+            "value": {
+                "x": [
+                    "first",
+                    "x"
+                ]
+            }
+        },
+        {
+            "label": "C32-E-mapInto-backed-enums",
+            "php": "collect([1, 2])->mapInto(IntEnum) and collect(['A','B'])->mapInto(StrEnum): case names",
+            "value": {
+                "int": [
+                    "A",
+                    "B"
+                ],
+                "string": [
+                    "A",
+                    "B"
+                ]
+            }
+        },
+        {
+            "label": "C32-E-mapInto-pure-enum",
+            "php": "(new Collection(['A']))->mapInto(C32E_Pure::class)",
+            "threw": "Error",
+            "message": "Cannot instantiate enum C32E_Pure"
+        }
+    ]
+}

@@ -1,0 +1,77 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "after-strict-falsy",
+            "php": "after(0, true) and after('', true) over [false,0,1,[],'']",
+            "value": {
+                "zero": 1,
+                "last": null
+            }
+        },
+        {
+            "label": "after-array-needle",
+            "php": "collect([[1,2],[9]])->after([1,2])",
+            "value": [
+                9
+            ]
+        },
+        {
+            "label": "after-keyed-needle",
+            "php": "collect(['a'=>['k'=>0],'b'=>['k'=>1]])->after(['k'=>0])",
+            "value": {
+                "k": 1
+            }
+        },
+        {
+            "label": "after-traversable-backing",
+            "php": "collect(gen(1,2))->after(1)",
+            "value": 2
+        },
+        {
+            "label": "after-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->after('c')",
+            "value": "a"
+        },
+        {
+            "label": "after-out-of-order-last-item",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->after('b')",
+            "value": null
+        },
+        {
+            "label": "after-mixed",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->after(1)",
+            "value": 2
+        },
+        {
+            "label": "after-out-of-order-callback",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->after(fn ($v, $k) => $v === 'c')",
+            "value": "a"
+        },
+        {
+            "label": "after-out-of-order-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->after(fn ($v, $k) => $v === 'c') => keys seen",
+            "value": [
+                2
+            ]
+        },
+        {
+            "label": "after-collision",
+            "php": "(new Collection([5 => 'a', 0 => 'b', '5' => 'c']))->after('c')",
+            "value": "b"
+        },
+        {
+            "label": "after-loose-key-position",
+            "php": "(new Collection(['01' => 'a', 1 => 'b']))->after('b')",
+            "value": "b"
+        },
+        {
+            "label": "after-loose-key-position-record-order",
+            "php": "(new Collection([1 => 'b', '01' => 'a']))->after('a')",
+            "value": "a"
+        }
+    ]
+}

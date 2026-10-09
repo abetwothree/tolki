@@ -1,0 +1,218 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-B-offset-illegal-key",
+            "php": "offsetGet($key), offsetExists($key) and offsetUnset($key) over both backings, for $key = ['a'], new stdClass and fn () => 1",
+            "value": {
+                "array": {
+                    "offsetGet": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type array on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type array on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "offsetExists": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type array in isset or empty"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type array in isset or empty"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "offsetUnset": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type array on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type array on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ]
+                },
+                "object": {
+                    "offsetGet": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type stdClass on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type stdClass on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "offsetExists": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type stdClass in isset or empty"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type stdClass in isset or empty"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "offsetUnset": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type stdClass on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type stdClass on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ]
+                },
+                "closure": {
+                    "offsetGet": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type Closure on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type Closure on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "offsetExists": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type Closure in isset or empty"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type Closure in isset or empty"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "offsetUnset": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type Closure on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type Closure on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

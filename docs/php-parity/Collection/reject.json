@@ -1,0 +1,75 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "reject-no-callback",
+            "php": "(new Collection([1, null, 2, false, 3, '']))->reject()",
+            "value": {
+                "1": null,
+                "3": false,
+                "5": ""
+            }
+        },
+        {
+            "label": "C32-D-reject-none-php-falsy",
+            "php": "(new Collection([[], '0', 0.0, 'a', '', null, true]))->reject()->values()",
+            "value": [
+                [],
+                "0",
+                0,
+                "",
+                null
+            ]
+        },
+        {
+            "label": "C32-D-reject-false-loose",
+            "php": "(new Collection([null, 0, '', 'a', [], true, false]))->reject(false)->values()",
+            "value": [
+                "a",
+                true
+            ]
+        },
+        {
+            "label": "C32-D-reject-null-loose",
+            "php": "(new Collection([0, '', false, [], 'a', '0']))->reject(null)->values()",
+            "value": [
+                "a",
+                "0"
+            ]
+        },
+        {
+            "label": "C32-D-reject-zero-loose",
+            "php": "(new Collection(['a', '0', 0, null, false, '', '0.0']))->reject(0)->values()",
+            "value": [
+                "a",
+                ""
+            ]
+        },
+        {
+            "label": "C32-D-reject-numeric-string-loose",
+            "php": "(new Collection([1, '01', '1.0', true, '1e0', 'x']))->reject('1')->values()",
+            "value": [
+                "x"
+            ]
+        },
+        {
+            "label": "C32-D-reject-array-value",
+            "php": "(new Collection([[1, 2], [2, 1], ['1', '2'], 'x']))->reject([1, 2])->values()",
+            "value": [
+                [
+                    2,
+                    1
+                ],
+                "x"
+            ]
+        },
+        {
+            "label": "C32-D-reject-none-empty-objects",
+            "php": "(new Collection([new DateTime('@0'), new stdClass]))->reject()->count()",
+            "value": 0
+        }
+    ]
+}

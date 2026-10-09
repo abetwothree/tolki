@@ -1,0 +1,320 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "pop() on an assoc collection",
+            "php": "(new Collection([\"x\"=>1,\"y\"=>2,\"z\"=>3]))->pop()",
+            "value": {
+                "returned": 3,
+                "remaining": {
+                    "x": 1,
+                    "y": 2
+                }
+            }
+        },
+        {
+            "label": "pop(2) \u2014 reverse order, source keys kept",
+            "php": "(new Collection([...]))->pop(2)",
+            "value": {
+                "returned": [
+                    3,
+                    2
+                ],
+                "remaining": {
+                    "x": 1
+                }
+            }
+        },
+        {
+            "label": "pop(0) \u2014 count < 1",
+            "php": "(new Collection([\"x\"=>1]))->pop(0)",
+            "value": {
+                "returned": [],
+                "remaining": {
+                    "x": 1
+                }
+            }
+        },
+        {
+            "label": "X1 pop mutates and returns the last value",
+            "php": "collect([10,20,30,40])->pop()",
+            "value": {
+                "pop": 40,
+                "after": [
+                    10,
+                    20,
+                    30
+                ],
+                "pop2": [
+                    40,
+                    30
+                ],
+                "after2": [
+                    10,
+                    20
+                ]
+            }
+        },
+        {
+            "label": "D8 pop(2) on assoc returns list",
+            "php": "$c = new Collection(['a' => 1, 'b' => 2, 'c' => 3]); ['returned' => $c->pop(2)->all(), 'remaining' => $c->all()]",
+            "value": {
+                "returned": [
+                    3,
+                    2
+                ],
+                "remaining": {
+                    "a": 1
+                }
+            }
+        },
+        {
+            "label": "P1 pop on assoc",
+            "php": "$c = new Collection(['foo' => 'f', 'bar' => 'b']); ['popped' => $c->pop(), 'first' => $c->first(), 'all' => $c->all()]",
+            "value": {
+                "popped": "b",
+                "first": "f",
+                "all": {
+                    "foo": "f"
+                }
+            }
+        },
+        {
+            "label": "P2 pop(2)/pop(6) on assoc",
+            "php": "$c = new Collection(['foo' => 'f', 'bar' => 'b', 'baz' => 'z']); ['two' => $c->pop(2)->all(), 'first' => $c->first(), 'six' => (new Collection(['foo' => 'f', 'bar' => 'b', 'baz' => 'z']))->pop(6)->all()]",
+            "value": {
+                "two": [
+                    "z",
+                    "b"
+                ],
+                "first": "f",
+                "six": [
+                    "z",
+                    "b",
+                    "f"
+                ]
+            }
+        },
+        {
+            "label": "pop-list-count-exceeds-length",
+            "php": "(new Collection(['foo','bar','baz']))->pop(2) then a fresh pop(6)",
+            "value": {
+                "two": [
+                    "baz",
+                    "bar"
+                ],
+                "first": "foo",
+                "six": [
+                    "baz",
+                    "bar",
+                    "foo"
+                ]
+            }
+        },
+        {
+            "label": "pop-empty-default-count",
+            "php": "(new Collection([]))->pop()",
+            "value": null
+        },
+        {
+            "label": "order-pop",
+            "php": "$c = collect(base); $returned = $c->pop()",
+            "value": {
+                "returned": "b",
+                "all": {
+                    "2": "c",
+                    "0": "a"
+                },
+                "values": [
+                    "c",
+                    "a"
+                ],
+                "keys": [
+                    2,
+                    0
+                ]
+            }
+        },
+        {
+            "label": "order-pop-two",
+            "php": "$c = collect(base); $returned = $c->pop(2)",
+            "value": {
+                "returned": [
+                    "b",
+                    "a"
+                ],
+                "all": {
+                    "2": "c"
+                },
+                "values": [
+                    "c"
+                ],
+                "keys": [
+                    2
+                ]
+            }
+        },
+        {
+            "label": "order-pop-past-the-end",
+            "php": "$c = collect(base); $returned = $c->pop(5)",
+            "value": {
+                "returned": [
+                    "b",
+                    "a",
+                    "c"
+                ],
+                "all": [],
+                "values": [],
+                "keys": []
+            }
+        },
+        {
+            "label": "order-pop-after-emptying",
+            "php": "$c = collect(base); $c->shift(3); $returned = $c->pop()",
+            "value": {
+                "returned": null,
+                "all": [],
+                "values": [],
+                "keys": []
+            }
+        },
+        {
+            "label": "order-pop-then-push",
+            "php": "$c = collect(base); $c->pop(); $c->push('x')",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "3": "x"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "x"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "pop-out-of-order-returns",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->pop()",
+            "value": "b"
+        },
+        {
+            "label": "pop-out-of-order-remaining",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->pop(); $c->all()",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "pop-out-of-order-count-2-returns",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->pop(2)",
+            "value": [
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "pop-out-of-order-count-2-remaining",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->pop(2); $c->all()",
+            "value": [
+                [
+                    2,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "pop-mixed-returns",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->pop()",
+            "value": 3
+        },
+        {
+            "label": "pop-mixed-remaining",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->pop(); $c->all()",
+            "value": [
+                [
+                    "x",
+                    1
+                ],
+                [
+                    0,
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "pop-mixed-count-2-returns",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->pop(2)",
+            "value": [
+                3,
+                2
+            ]
+        },
+        {
+            "label": "pop-mixed-count-2-remaining",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->pop(2); $c->all()",
+            "value": [
+                [
+                    "x",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "pop-collision-returns",
+            "php": "$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); $c->pop()",
+            "value": "b"
+        },
+        {
+            "label": "pop-collision-remaining",
+            "php": "$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); $c->pop(); $c->all()",
+            "value": [
+                [
+                    1,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "pop-collision-three-times-returns",
+            "php": "$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); [$c->pop(), $c->pop(), $c->pop()]",
+            "value": [
+                "b",
+                "c",
+                null
+            ]
+        },
+        {
+            "label": "pop-collision-three-times-remaining",
+            "php": "$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); [$c->pop(), $c->pop(), $c->pop()]; $c->all()",
+            "value": []
+        },
+        {
+            "label": "C32-B-pop-one-on-list-returns-value",
+            "php": "$c = collect([1, 2, 3]); $c->pop(1)",
+            "value": {
+                "returned": 3,
+                "all": [
+                    1,
+                    2
+                ]
+            }
+        }
+    ]
+}

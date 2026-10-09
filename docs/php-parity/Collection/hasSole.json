@@ -1,0 +1,49 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-C-string-key-one-arg-forms-throw",
+            "php": "(new Collection([[\"name\" => \"foo\"]]))->hasSole(\"name\") / hasMany(\"name\") / sole(\"name\") / firstOrFail(\"name\")",
+            "value": {
+                "hasSole": "TypeError",
+                "hasMany": "TypeError",
+                "sole": "TypeError",
+                "firstOrFail": "TypeError"
+            }
+        },
+        {
+            "label": "C32-C-hasSole-hasMany-keep-falsy-items",
+            "php": "(new Collection([0]))->hasSole() / (new Collection([null]))->hasSole() / (new Collection([0, null]))->hasMany()",
+            "value": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "label": "C32-C-filtered-predicates-out-of-order-visits",
+            "php": "keys an always-false callback sees in hasSole / hasMany / sole on (new Collection([2 => 'c', 0 => 'a', 1 => 'b'])), and what sole answers for a callback true only on its first call",
+            "value": {
+                "hasSole": [
+                    2,
+                    0,
+                    1
+                ],
+                "hasMany": [
+                    2,
+                    0,
+                    1
+                ],
+                "sole": [
+                    2,
+                    0,
+                    1
+                ],
+                "sole-first-call-only": "c"
+            }
+        }
+    ]
+}

@@ -1,0 +1,34 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-D-whereNotIn-null-loose",
+            "php": "whereNotIn('v', [null]) over v = 0, '', false, null, '0', 'a', []",
+            "value": [
+                4,
+                5
+            ]
+        },
+        {
+            "label": "C32-D-whereNotIn-true-loose",
+            "php": "whereNotIn('v', [true]) over v = 'x', 1, 0, '', null, '0', [1]",
+            "value": [
+                2,
+                3,
+                4,
+                5
+            ]
+        },
+        {
+            "label": "C32-D-whereNotIn-numbers-and-strings-loose",
+            "php": "whereNotIn('v', [1, 'abc']) over v = 1, '1', 'abc', 'ABC', 2, true",
+            "value": [
+                3,
+                4
+            ]
+        }
+    ]
+}

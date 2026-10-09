@@ -1,0 +1,245 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "L9 containsStrict (assoc)",
+            "php": "containsStrict() over (new Collection(['a'=>1,'b'=>3,'c'=>5,'d'=>'02'])) with 1,'1',2,'02',true,fn($v)=>$v<5,fn($v)=>$v>5; then ['a'=>0] with 0,'0',false,null; ['a'=>1,'b'=>null] with null,0,false; ['a'=>'date','b'=>'class','c'=>(object)['foo'=>50],'d'=>''] with 'date','class','foo',null,''",
+            "value": {
+                "mixed": [
+                    true,
+                    false,
+                    false,
+                    true,
+                    false,
+                    true,
+                    false
+                ],
+                "zero": [
+                    true,
+                    false,
+                    false,
+                    false
+                ],
+                "onenull": [
+                    true,
+                    false,
+                    false
+                ],
+                "date": [
+                    true,
+                    true,
+                    false,
+                    false,
+                    true
+                ]
+            }
+        },
+        {
+            "label": "D2 containsStrict callback matching a null value",
+            "php": "['strict' => (new Collection(['a' => null, 'b' => 1]))->containsStrict(fn ($v) => is_null($v)), 'loose' => (new Collection(['a' => null, 'b' => 1]))->contains(fn ($v) => is_null($v))]",
+            "value": {
+                "strict": true,
+                "loose": true
+            }
+        },
+        {
+            "label": "D3 containsStrict NAN",
+            "php": "['strict' => (new Collection(['a' => NAN]))->containsStrict(NAN), 'loose' => (new Collection(['a' => NAN]))->contains(NAN)]",
+            "value": {
+                "strict": false,
+                "loose": false
+            }
+        },
+        {
+            "label": "D4 containsStrict array by value",
+            "php": "['strict_list' => (new Collection(['a' => [1]]))->containsStrict([1]), 'strict_assoc' => (new Collection(['a' => ['x' => 1]]))->containsStrict(['x' => 1]), 'loose_assoc' => (new Collection(['a' => ['x' => 1]]))->contains(['x' => '1'])]",
+            "value": {
+                "strict_list": true,
+                "strict_assoc": true,
+                "loose_assoc": true
+            }
+        },
+        {
+            "label": "D10 contains strict vs loose -0/0",
+            "php": "['s' => (new Collection(['a' => -0.0]))->containsStrict(0.0)]",
+            "value": {
+                "s": true
+            }
+        },
+        {
+            "label": "containsStrict-key-order",
+            "php": "['a' => 1, 'b' => 2] === ['b' => 2, 'a' => 1], and containsStrict / in_array(\u2026, true) with a reordered array",
+            "value": {
+                "identical": false,
+                "same-order": true,
+                "map": false,
+                "list": false,
+                "nested": false
+            }
+        },
+        {
+            "label": "containsStrict-two-args-by-value",
+            "php": "containsStrict('tags', ['a', 'b']), ('t', a reordered array), ('name', null) with the key null, missing or set",
+            "value": {
+                "array": true,
+                "reordered": false,
+                "null": true,
+                "null-missing": true,
+                "null-none": false,
+                "doesnt": false
+            }
+        },
+        {
+            "label": "containsStrict-numeric-string",
+            "php": "(new Collection([1, 3, 5, '02']))->containsStrict('02') and ->containsStrict(2)",
+            "value": {
+                "'02'": true,
+                "2": false
+            }
+        },
+        {
+            "label": "containsStrict-out-of-order-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->containsStrict(fn ($v, $k) => false) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "containsStrict-out-of-order-null-first-callback",
+            "php": "(new Collection([2 => null, 0 => 'a']))->containsStrict(fn () => true)",
+            "value": true
+        },
+        {
+            "label": "containsStrict-mixed-null-first-callback",
+            "php": "(new Collection(['x' => null, 0 => 'a']))->containsStrict(fn () => true)",
+            "value": true
+        },
+        {
+            "label": "containsStrict-out-of-order-non-null-first-callback",
+            "php": "(new Collection([2 => 'a', 0 => null]))->containsStrict(fn () => true)",
+            "value": true
+        },
+        {
+            "label": "containsStrict-collision",
+            "php": "(new Collection([1 => 'a', '1' => 'b']))->containsStrict('a')",
+            "value": false
+        },
+        {
+            "label": "containsStrict-list-null-callback",
+            "php": "(new Collection([1, null, 2]))->containsStrict(fn ($v) => is_null($v))",
+            "value": true
+        },
+        {
+            "label": "containsStrict-list-zero-callback",
+            "php": "(new Collection([1, null, 2]))->containsStrict(fn ($v) => $v === 0)",
+            "value": false
+        },
+        {
+            "label": "containsStrict-assoc-null-callback",
+            "php": "(new Collection(['a' => 1, 'b' => null, 'c' => 2]))->containsStrict(fn ($v) => is_null($v))",
+            "value": true
+        },
+        {
+            "label": "containsStrict-assoc-zero-callback",
+            "php": "(new Collection(['a' => 1, 'b' => null, 'c' => 2]))->containsStrict(fn ($v) => $v === 0)",
+            "value": false
+        },
+        {
+            "label": "containsStrict-null-first-callback",
+            "php": "(new Collection([null, 'a']))->containsStrict(fn () => true)",
+            "value": true
+        },
+        {
+            "label": "containsStrict-out-of-order-callback-keys",
+            "php": "keys a false-answering containsStrict callback sees on [2 => 'c', 0 => 'a', 1 => 'b']",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "containsStrict-stops-at-first-match",
+            "php": "keys an is_null callback sees on ['a', null, 'c']",
+            "value": [
+                0,
+                1
+            ]
+        },
+        {
+            "label": "C32-C-callback-key-types-numeric-string-record",
+            "php": "key types each callback sees on [\"1\" => \"a\", \"x\" => \"b\"]: containsStrict / search / hasSole / sole / firstOrFail",
+            "value": {
+                "containsStrict": [
+                    [
+                        "integer",
+                        1
+                    ],
+                    [
+                        "string",
+                        "x"
+                    ]
+                ],
+                "search": [
+                    [
+                        "integer",
+                        1
+                    ],
+                    [
+                        "string",
+                        "x"
+                    ]
+                ],
+                "hasSole": [
+                    [
+                        "integer",
+                        1
+                    ],
+                    [
+                        "string",
+                        "x"
+                    ]
+                ],
+                "sole": [
+                    [
+                        "integer",
+                        1
+                    ],
+                    [
+                        "string",
+                        "x"
+                    ]
+                ],
+                "firstOrFail": [
+                    [
+                        "integer",
+                        1
+                    ],
+                    [
+                        "string",
+                        "x"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-C-containsStrict-two-args-dot-path",
+            "php": "containsStrict('user.id', 2) and ('user.id', '2') over [['user' => ['id' => 1]], ['user' => ['id' => 2]]] (list) and ['r' => ['user' => ['id' => 2]]] (keyed)",
+            "value": {
+                "list": [
+                    true,
+                    false
+                ],
+                "keyed": [
+                    true,
+                    false
+                ]
+            }
+        }
+    ]
+}

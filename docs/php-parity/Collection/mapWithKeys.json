@@ -1,0 +1,87 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "mapWithKeys-traversable-backing",
+            "php": "collect(gen(1,2))->mapWithKeys(fn ($v, $k) => [$k => $v])",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-E-mapWithKeys-overwriting-keys",
+            "php": "collect([['id'=>1,'name'=>'A'],['id'=>2,'name'=>'B'],['id'=>1,'name'=>'C']])->mapWithKeys(fn ($i) => [$i['id'] => $i['name']])",
+            "value": [
+                [
+                    1,
+                    "integer",
+                    "C"
+                ],
+                [
+                    2,
+                    "integer",
+                    "B"
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-mapWithKeys-multiple-rows-order",
+            "php": "collect(rows 1..3)->mapWithKeys(fn ($i) => [$i['id'] => $i['name'], $i['name'] => $i['id']])->keys()",
+            "value": [
+                1,
+                "A",
+                2,
+                "B",
+                3,
+                "C"
+            ]
+        },
+        {
+            "label": "C32-E-mapWithKeys-callback-key-type",
+            "php": "collect([1 => 'a', 'x' => 'b'])->mapWithKeys(fn ($v, $k) => [$v => gettype($k)])",
+            "value": {
+                "a": "integer",
+                "b": "string"
+            }
+        },
+        {
+            "label": "C32-E-mapWithKeys-returns-collection",
+            "php": "collect([1, 2])->mapWithKeys(fn ($v) => collect(['k'.$v => $v]))",
+            "value": {
+                "k1": 1,
+                "k2": 2
+            }
+        },
+        {
+            "label": "C32-E-keyed-results-empty",
+            "php": "collect([])->mapWithKeys(...), ->groupBy('x'), ->countBy(), ->keyBy('x'), ->flip()",
+            "value": {
+                "mapWithKeys": [],
+                "groupBy": [],
+                "countBy": [],
+                "keyBy": [],
+                "flip": []
+            }
+        },
+        {
+            "label": "C32-E-mapWithKeys-out-of-order-return",
+            "php": "collect([1])->mapWithKeys(fn () => [2 => 'c', 0 => 'a'])",
+            "value": [
+                [
+                    2,
+                    "integer",
+                    "c"
+                ],
+                [
+                    0,
+                    "integer",
+                    "a"
+                ]
+            ]
+        }
+    ]
+}

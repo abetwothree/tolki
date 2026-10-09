@@ -1,0 +1,84 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "dirname: parent of a file",
+            "php": "Str::of('/framework/src/Str.php')->dirname(1)",
+            "value": "/framework/src"
+        },
+        {
+            "label": "dirname: parent of a directory",
+            "php": "Str::of('/framework/tests/Support')->dirname(1)",
+            "value": "/framework/tests"
+        },
+        {
+            "label": "dirname: two levels up",
+            "php": "Str::of('/framework/tests/Support')->dirname(2)",
+            "value": "/framework"
+        },
+        {
+            "label": "dirname: root stays root",
+            "php": "Str::of('/')->dirname(1)",
+            "value": "/"
+        },
+        {
+            "label": "dirname: empty path stays empty",
+            "php": "Str::of('')->dirname(1)",
+            "value": ""
+        },
+        {
+            "label": "dirname: bare name has dot parent",
+            "php": "Str::of('foo')->dirname(1)",
+            "value": "."
+        },
+        {
+            "label": "dirname: top-level file has root parent",
+            "php": "Str::of('/foo')->dirname(1)",
+            "value": "/"
+        },
+        {
+            "label": "dirname: dot stays dot",
+            "php": "Str::of('.')->dirname(1)",
+            "value": "."
+        },
+        {
+            "label": "dirname: dot-dot becomes dot",
+            "php": "Str::of('..')->dirname(1)",
+            "value": "."
+        },
+        {
+            "label": "dirname: trailing slash is ignored",
+            "php": "Str::of('/a/b/c/')->dirname(1)",
+            "value": "/a/b"
+        },
+        {
+            "label": "dirname: repeated slashes collapse",
+            "php": "Str::of('a//b')->dirname(1)",
+            "value": "a"
+        },
+        {
+            "label": "dirname: levels beyond the top stop at dot",
+            "php": "Str::of('a/b/c')->dirname(5)",
+            "value": "."
+        },
+        {
+            "label": "dirname: levels reach the root",
+            "php": "Str::of('/a/b/c')->dirname(3)",
+            "value": "/"
+        },
+        {
+            "label": "dirname: relative levels reach dot",
+            "php": "Str::of('a/b/c')->dirname(3)",
+            "value": "."
+        },
+        {
+            "label": "dirname: levels below one throws",
+            "php": "Str::of('a')->dirname(0)",
+            "threw": "ValueError",
+            "message": "dirname(): Argument #2 ($levels) must be greater than or equal to 1"
+        }
+    ]
+}

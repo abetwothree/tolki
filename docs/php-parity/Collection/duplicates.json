@@ -1,0 +1,109 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-D-duplicates-keyed",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 1]))->duplicates()",
+            "value": [
+                [
+                    "c",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-duplicates-list-first-key",
+            "php": "(new Collection(['x', 'y', 'x']))->duplicates()->keys()",
+            "value": [
+                2
+            ]
+        },
+        {
+            "label": "C32-D-duplicates-callback-key-arg",
+            "php": "(new Collection(['a' => 1, 'b' => 2]))->duplicates(fn ($v, $k) => $k === 'b' ? 1 : $v)",
+            "value": [
+                [
+                    "b",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-duplicates-loose-sort-regular",
+            "php": "(new Collection(['a', 0, 'b', '0', 'a']))->duplicates()",
+            "value": [
+                [
+                    3,
+                    "0"
+                ],
+                [
+                    4,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-duplicates-non-transitive-loose",
+            "php": "(new Collection(['abc', '0', false, '']))->duplicates()",
+            "value": [
+                [
+                    2,
+                    false
+                ],
+                [
+                    3,
+                    ""
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-duplicates-out-of-order",
+            "php": "(new Collection([2 => 'a', 0 => 'b', 1 => 'a']))->duplicates()",
+            "value": [
+                [
+                    1,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-duplicates-list-then-push",
+            "php": "(new Collection(['x', 'y', 'x']))->duplicates()->push('z')",
+            "value": [
+                [
+                    2,
+                    "x"
+                ],
+                [
+                    3,
+                    "z"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-duplicates-collection-rows",
+            "php": "c32c_rows(list | keyed)->duplicates('k'): keys and values",
+            "value": {
+                "list": [
+                    [
+                        2
+                    ],
+                    [
+                        "b"
+                    ]
+                ],
+                "keyed": [
+                    [
+                        "z"
+                    ],
+                    [
+                        "b"
+                    ]
+                ]
+            }
+        }
+    ]
+}

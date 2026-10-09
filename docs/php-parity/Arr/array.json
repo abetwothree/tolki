@@ -1,0 +1,64 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::array requires an array at the key",
+            "php": "Arr::array([1,2,3], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an array, integer found."
+        },
+        {
+            "label": "Arr::array through an explicit null",
+            "php": "Arr::array([null,[\"valid\"]], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an array, NULL found."
+        },
+        {
+            "label": "Arr::array through a float",
+            "php": "Arr::array([1.5], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an array, double found."
+        },
+        {
+            "label": "array-list-value",
+            "php": "Arr::array(['string' => 'foo bar', 'array' => ['foo', 'bar']], 'array')",
+            "value": [
+                "foo",
+                "bar"
+            ]
+        },
+        {
+            "label": "array-null-value",
+            "php": "Arr::array(['a' => null], 'a')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [a] must be an array, NULL found."
+        },
+        {
+            "label": "array-int-value",
+            "php": "Arr::array(['a' => 5], 'a')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [a] must be an array, integer found."
+        },
+        {
+            "label": "array-float-value",
+            "php": "Arr::array(['a' => 1.5], 'a')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [a] must be an array, double found."
+        },
+        {
+            "label": "array-bool-value",
+            "php": "Arr::array(['a' => true], 'a')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [a] must be an array, boolean found."
+        },
+        {
+            "label": "array-missing-on-list",
+            "php": "Arr::array([['name' => 'John']], 'name')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [name] must be an array, NULL found."
+        }
+    ]
+}

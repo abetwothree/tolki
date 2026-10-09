@@ -1,0 +1,292 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "crossJoin-no-args",
+            "php": "Arr::crossJoin()",
+            "value": [
+                []
+            ]
+        },
+        {
+            "label": "crossJoin-string-spread",
+            "php": "Arr::crossJoin(...['size' => ['S','M'], 'color' => ['red','blue']])",
+            "value": [
+                {
+                    "size": "S",
+                    "color": "red"
+                },
+                {
+                    "size": "S",
+                    "color": "blue"
+                },
+                {
+                    "size": "M",
+                    "color": "red"
+                },
+                {
+                    "size": "M",
+                    "color": "blue"
+                }
+            ]
+        },
+        {
+            "label": "crossJoin-string-spread-empty",
+            "php": "Arr::crossJoin(...['a' => [], 'b' => ['x']])",
+            "value": []
+        },
+        {
+            "label": "crossJoin-string-spread-3",
+            "php": "Arr::crossJoin(...['a' => [1, 2], 'b' => ['x'], 'c' => ['I', 'II']])",
+            "value": [
+                {
+                    "a": 1,
+                    "b": "x",
+                    "c": "I"
+                },
+                {
+                    "a": 1,
+                    "b": "x",
+                    "c": "II"
+                },
+                {
+                    "a": 2,
+                    "b": "x",
+                    "c": "I"
+                },
+                {
+                    "a": 2,
+                    "b": "x",
+                    "c": "II"
+                }
+            ]
+        },
+        {
+            "label": "crossJoin-string-spread-map-dimension",
+            "php": "Arr::crossJoin(...['a' => [1, 2], 'b' => ['k' => 'x', 'j' => 'y']]) and Arr::crossJoin(...['a' => [1], 'b' => new ArrayIterator(['k' => 'x', 'j' => 'y'])])",
+            "value": {
+                "map": [
+                    {
+                        "a": 1,
+                        "b": "x"
+                    },
+                    {
+                        "a": 1,
+                        "b": "y"
+                    },
+                    {
+                        "a": 2,
+                        "b": "x"
+                    },
+                    {
+                        "a": 2,
+                        "b": "y"
+                    }
+                ],
+                "iterator": [
+                    {
+                        "a": 1,
+                        "b": "x"
+                    },
+                    {
+                        "a": 1,
+                        "b": "y"
+                    }
+                ]
+            }
+        },
+        {
+            "label": "crossJoin-string-spread-no-values",
+            "php": "@Arr::crossJoin(...['a' => [1], 'b' => 'x']) and Arr::crossJoin(...['a' => [1], 'b' => new DateTime('@0')])",
+            "value": {
+                "scalar": [],
+                "date": []
+            }
+        },
+        {
+            "label": "crossJoin-list-map-dimension",
+            "php": "Arr::crossJoin([1, 2], ['a' => 'x', 'b' => 'y']), (\u2026, new ArrayIterator(['a' => 'x', 'b' => 'y'])), Arr::crossJoin([1], new Collection(['x', 'y'])), Arr::crossJoin([1], new DateTime('@0'))",
+            "value": {
+                "map": [
+                    [
+                        1,
+                        "x"
+                    ],
+                    [
+                        1,
+                        "y"
+                    ],
+                    [
+                        2,
+                        "x"
+                    ],
+                    [
+                        2,
+                        "y"
+                    ]
+                ],
+                "iterator": [
+                    [
+                        1,
+                        "x"
+                    ],
+                    [
+                        1,
+                        "y"
+                    ],
+                    [
+                        2,
+                        "x"
+                    ],
+                    [
+                        2,
+                        "y"
+                    ]
+                ],
+                "collection": [
+                    [
+                        1,
+                        "x"
+                    ],
+                    [
+                        1,
+                        "y"
+                    ]
+                ],
+                "date": []
+            }
+        },
+        {
+            "label": "crossJoin-list-empty-dimension",
+            "php": "Arr::crossJoin([1, 2], [])",
+            "value": []
+        },
+        {
+            "label": "crossJoin-out-of-order-spread",
+            "php": "Arr::crossJoin(...[2 => ['c1', 'c2'], 0 => ['a1'], 1 => ['b1', 'b2']])",
+            "value": [
+                [
+                    "c1",
+                    "a1",
+                    "b1"
+                ],
+                [
+                    "c1",
+                    "a1",
+                    "b2"
+                ],
+                [
+                    "c2",
+                    "a1",
+                    "b1"
+                ],
+                [
+                    "c2",
+                    "a1",
+                    "b2"
+                ]
+            ]
+        },
+        {
+            "label": "crossJoin-mixed-spread",
+            "php": "Arr::crossJoin(...['x' => ['x1', 'x2'], 0 => ['z1'], 'y' => ['y1']])",
+            "threw": "Error",
+            "message": "Cannot use positional argument after named argument during unpacking"
+        },
+        {
+            "label": "crossJoin-string-keys-spread",
+            "php": "Arr::crossJoin(...['b' => ['b1', 'b2'], 'a' => ['a1', 'a2']])",
+            "value": [
+                [
+                    [
+                        "b",
+                        "b1"
+                    ],
+                    [
+                        "a",
+                        "a1"
+                    ]
+                ],
+                [
+                    [
+                        "b",
+                        "b1"
+                    ],
+                    [
+                        "a",
+                        "a2"
+                    ]
+                ],
+                [
+                    [
+                        "b",
+                        "b2"
+                    ],
+                    [
+                        "a",
+                        "a1"
+                    ]
+                ],
+                [
+                    [
+                        "b",
+                        "b2"
+                    ],
+                    [
+                        "a",
+                        "a2"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "crossJoin-string-keys-two-spreads",
+            "php": "Arr::crossJoin(...['b' => ['b1', 'b2']], ...['a' => ['a1', 'a2']])",
+            "value": [
+                [
+                    [
+                        "b",
+                        "b1"
+                    ],
+                    [
+                        "a",
+                        "a1"
+                    ]
+                ],
+                [
+                    [
+                        "b",
+                        "b1"
+                    ],
+                    [
+                        "a",
+                        "a2"
+                    ]
+                ],
+                [
+                    [
+                        "b",
+                        "b2"
+                    ],
+                    [
+                        "a",
+                        "a1"
+                    ]
+                ],
+                [
+                    [
+                        "b",
+                        "b2"
+                    ],
+                    [
+                        "a",
+                        "a2"
+                    ]
+                ]
+            ]
+        }
+    ]
+}

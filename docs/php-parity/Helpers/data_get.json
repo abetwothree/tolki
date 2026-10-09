@@ -1,0 +1,66 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-D-data-get-literal-dotted-key",
+            "php": "data_get(['a.b' => 1, 'a' => ['b' => 2]], 'a.b') and data_get(['a.b' => 1], 'a.b', 'miss')",
+            "value": [
+                2,
+                "miss"
+            ]
+        },
+        {
+            "label": "C32-D-data-get-collection-target",
+            "php": "data_get over a Collection: 'a.b', '*.b' over Collection rows, a null value with a default, and the protected 'items' property",
+            "value": [
+                1,
+                [
+                    1,
+                    2
+                ],
+                null,
+                null
+            ]
+        },
+        {
+            "label": "C32-D-data-get-arrayaccess-target",
+            "php": "an ArrayAccess that is not Enumerable: data_get 'a', data_has 'n' (null) and 'a', data_get 'missing' with a default",
+            "value": [
+                1,
+                false,
+                true,
+                "def"
+            ]
+        },
+        {
+            "label": "C32-D-data-get-offset-exists-php-truthiness",
+            "php": "[data_get($t, 'a'), data_has($t, 'a')] for $t = new C32D_AnsweringAccess(['a' => 1], $answer), offsetExists answering '0', [], new DateTime('@0') and 'x'",
+            "value": [
+                [
+                    null,
+                    false
+                ],
+                [
+                    null,
+                    false
+                ],
+                [
+                    1,
+                    true
+                ],
+                [
+                    1,
+                    true
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-data-get-array-path-dotted-segment",
+            "php": "data_get(['a.b' => 1, 'a' => ['b' => 2]], ['a.b'])",
+            "value": 1
+        }
+    ]
+}

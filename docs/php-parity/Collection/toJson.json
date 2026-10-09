@@ -1,0 +1,38 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-A-toJson-integer-keys-in-order-are-a-list",
+            "php": "collect([0 => 'a', 1 => 'b'])->toJson()",
+            "value": "[\"a\",\"b\"]"
+        },
+        {
+            "label": "C32-A-toJson-integer-keys-from-one-are-an-object",
+            "php": "collect([1 => 'a', 2 => 'b'])->toJson()",
+            "value": "{\"1\":\"a\",\"2\":\"b\"}"
+        },
+        {
+            "label": "C32-A-toJson-emptied-keyed-is-a-list",
+            "php": "collect(['a' => 1])->forget('a')->toJson()",
+            "value": "[]"
+        },
+        {
+            "label": "C32-A-toJson-integer-keys-out-of-order",
+            "php": "collect([2 => 'a', 1 => 'b'])->toJson()",
+            "value": "{\"2\":\"a\",\"1\":\"b\"}"
+        },
+        {
+            "label": "C32-A-toJson-list-keys-out-of-order-are-an-object",
+            "php": "collect([1 => 'b', 0 => 'a'])->toJson()",
+            "value": "{\"1\":\"b\",\"0\":\"a\"}"
+        },
+        {
+            "label": "C32-A-toJson-escapes-slash-and-unicode",
+            "php": "collect(['a/b', '\u00e9'])->toJson()",
+            "value": "[\"a\\/b\",\"\\u00e9\"]"
+        }
+    ]
+}

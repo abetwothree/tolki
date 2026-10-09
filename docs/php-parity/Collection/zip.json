@@ -1,0 +1,104 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-F-zip-receiver-shorter",
+            "php": "collect(['a', 'b'])->zip([1, 2, 3])",
+            "value": [
+                [
+                    "a",
+                    1
+                ],
+                [
+                    "b",
+                    2
+                ],
+                [
+                    null,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-zip-empty-receiver",
+            "php": "collect([])->zip([1, 2])",
+            "value": [
+                [
+                    null,
+                    1
+                ],
+                [
+                    null,
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-zip-null-operand",
+            "php": "collect([1, 2])->zip(null)",
+            "value": [
+                [
+                    1,
+                    null
+                ],
+                [
+                    2,
+                    null
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-zip-assoc-receiver-longer-operand",
+            "php": "collect(['a' => 1, 'b' => 2])->zip(['x' => 'p', 'y' => 'q', 'z' => 'r'])",
+            "value": [
+                [
+                    1,
+                    "p"
+                ],
+                [
+                    2,
+                    "q"
+                ],
+                [
+                    null,
+                    "r"
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-zip-operand-shorter",
+            "php": "collect([1, 2, 3])->zip([4, 5])",
+            "value": [
+                [
+                    1,
+                    4
+                ],
+                [
+                    2,
+                    5
+                ],
+                [
+                    3,
+                    null
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-zip-assoc-operand",
+            "php": "collect([1, 2])->zip(['a' => 'x', 'b' => 'y'])",
+            "value": [
+                [
+                    1,
+                    "x"
+                ],
+                [
+                    2,
+                    "y"
+                ]
+            ]
+        }
+    ]
+}

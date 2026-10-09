@@ -1,0 +1,48 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "push/prepend equivalent of array_unshift",
+            "php": "array_unshift on assoc",
+            "value": {
+                "0": 9,
+                "x": 1,
+                "y": 2
+            }
+        },
+        {
+            "label": "unshift renumbers existing integer keys",
+            "php": "array_unshift([10,20,30,40],1,2)",
+            "value": [
+                1,
+                2,
+                10,
+                20,
+                30,
+                40
+            ]
+        },
+        {
+            "label": "unshift keeps string keys, prepends at 0",
+            "php": "array_unshift(['x'=>1,'y'=>2],9)",
+            "value": {
+                "0": 9,
+                "x": 1,
+                "y": 2
+            }
+        },
+        {
+            "label": "unshift on mixed keys: integers renumber, strings stay",
+            "php": "array_unshift([0=>'a','x'=>1,1=>'b'],9)",
+            "value": {
+                "0": 9,
+                "1": "a",
+                "x": 1,
+                "2": "b"
+            }
+        }
+    ]
+}

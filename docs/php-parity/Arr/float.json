@@ -1,0 +1,43 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "Arr::float rejects a whole-number int",
+            "php": "Arr::float([\"k\"=>1], \"k\")",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [k] must be a float, integer found."
+        },
+        {
+            "label": "float-string-value",
+            "php": "Arr::float(['string' => 'foo bar'], 'string')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [string] must be a float, string found."
+        },
+        {
+            "label": "float-list-int-key",
+            "php": "Arr::float(['foo bar'], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be a float, string found."
+        },
+        {
+            "label": "float-missing-key-default",
+            "php": "Arr::float([], 'missing', 1.5)",
+            "value": 1.5
+        },
+        {
+            "label": "float-missing-key-no-default",
+            "php": "Arr::float([], 'missing')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [missing] must be a float, NULL found."
+        },
+        {
+            "label": "float-list-missing-index-no-default",
+            "php": "Arr::float([], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be a float, NULL found."
+        }
+    ]
+}

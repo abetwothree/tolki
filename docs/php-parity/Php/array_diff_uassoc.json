@@ -1,0 +1,21 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "diffAssocUsing / diffKeysUsing with a real comparator",
+            "php": "array_diff_uassoc / array_diff_ukey",
+            "value": {
+                "assoc": {
+                    "1": 20
+                },
+                "keys": {
+                    "0": 10,
+                    "2": 30
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,52 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "hasAll-empty-and-null-values-count-as-present",
+            "php": "Arr::hasAll(['name'=>'Taylor','age'=>'','city'=>null], \u2026)",
+            "value": {
+                "'name'": true,
+                "'age'": true,
+                "'city'": true,
+                "['age','car']": false,
+                "['city','some']": false,
+                "['name','age','city']": true,
+                "['name','age','city','country']": false
+            }
+        },
+        {
+            "label": "hasAll-dot-paths",
+            "php": "Arr::hasAll(['user'=>['name'=>'Taylor']], 'user.name' | 'user.age')",
+            "value": {
+                "hit": true,
+                "miss": false
+            }
+        },
+        {
+            "label": "hasAll-all-missing",
+            "php": "Arr::hasAll($hasAll, 'foo') and Arr::hasAll($hasAll, ['foo','bar','baz','bar'])",
+            "value": {
+                "scalar": false,
+                "list": false
+            }
+        },
+        {
+            "label": "hasAll-empty-key-list",
+            "php": "Arr::hasAll(['a' => 1], [])",
+            "value": false
+        },
+        {
+            "label": "hasAll-through-list",
+            "php": "Arr::hasAll([['name' => 'John']], '0.name')",
+            "value": true
+        },
+        {
+            "label": "hasAll-empty-key-list-list",
+            "php": "Arr::hasAll([1, 2, 3], [])",
+            "value": false
+        }
+    ]
+}

@@ -1,0 +1,41 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-A-fromJson-invalid-is-empty",
+            "php": "Collection::fromJson('{bad')->all()",
+            "value": []
+        },
+        {
+            "label": "C32-A-fromJson-scalar-is-wrapped",
+            "php": "Collection::fromJson('5')->all()",
+            "value": [
+                5
+            ]
+        },
+        {
+            "label": "C32-A-fromJson-null-is-empty",
+            "php": "Collection::fromJson('null')->all()",
+            "value": []
+        },
+        {
+            "label": "C32-A-fromJson-list",
+            "php": "Collection::fromJson('[\"a\",\"b\"]')->all()",
+            "value": [
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "C32-A-fromJson-integer-keys-out-of-order",
+            "php": "Collection::fromJson('{\"2\":\"a\",\"1\":\"b\"}')->keys()->all()",
+            "value": [
+                2,
+                1
+            ]
+        }
+    ]
+}

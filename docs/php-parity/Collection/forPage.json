@@ -1,0 +1,46 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-G-forPage-edges",
+            "php": "forPage(-1, 2), forPage(2, 0), forPage(1, -1) over ['one','two','three','four']",
+            "value": {
+                "negative_page": [
+                    [
+                        0,
+                        "one"
+                    ],
+                    [
+                        1,
+                        "two"
+                    ]
+                ],
+                "zero_per_page": [],
+                "negative_per_page": [
+                    [
+                        0,
+                        "one"
+                    ],
+                    [
+                        1,
+                        "two"
+                    ],
+                    [
+                        2,
+                        "three"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-G-forPage-assoc",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->forPage(2, 1)->all()",
+            "value": {
+                "b": 2
+            }
+        }
+    ]
+}
