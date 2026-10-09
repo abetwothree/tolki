@@ -60,6 +60,19 @@
                 },
                 "b": 1
             }
+        },
+        {
+            "label": "C32-A-jsonSerialize-plain-item-members-are-data",
+            "php": "$item = collect([['toArray' => fn () => [9], 'toJson' => fn () => '[1]', 'jsonSerialize' => fn () => 1, 'b' => 2]])->jsonSerialize()[0]; [array_keys($item), $item['b']]",
+            "value": [
+                [
+                    "toArray",
+                    "toJson",
+                    "jsonSerialize",
+                    "b"
+                ],
+                2
+            ]
         }
     ]
 }

@@ -130,6 +130,10 @@ mutation('shift-out-of-order-count-0', "\$c = new Collection([2 => 'c', 0 => 'a'
 $views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
 probe('C32-B-shift-negative-on-empty-throws', "collect([])->shift(-1)", fn () => collect([])->shift(-1));
 probe('C32-B-shift-one-on-list-returns-value', "\$c = collect([1, 2, 3]); \$c->shift(1)", function () { $c = collect([1, 2, 3]); return ['returned' => $c->shift(1), 'all' => $c->all()]; });
+
+// shift($count) on an empty collection answers an empty collection unless $count is 1 (laravel/framework#61723).
+$counts = ['0' => 0, '1' => 1, '2' => 2, '3' => 3, '0.5' => 0.5, '1.5' => 1.5, '2.5' => 2.5, 'NAN' => NAN, 'INF' => INF];
+probe('shift-empty-counts', 'shift() and shift($count) on collect([]) for 0, 1, 2, 3, 0.5, 1.5, 2.5, NAN and INF: what it returns and what is left', fn () => ['none' => shifted([])] + array_map(fn ($count) => shifted([], $count), $counts));
 probe('shift-null-backed-counts', 'shift(), shift(0) and shift(2) on new Collection(null)', fn () => ['none' => shifted(null), '0' => shifted(null, 0), '2' => shifted(null, 2)]);
 probe('shift-empty-subclass', 'get_class() of shift(2) and shift(0) on an empty subclass of Collection', fn () => ['2' => get_class((new Task33Basket([]))->shift(2)), '0' => get_class((new Task33Basket([]))->shift(0))]);
 probe('shift-drained-then-again', '$c = collect([1, 2, 3]); $c->shift(2) three times, then $c->shift()', function () {

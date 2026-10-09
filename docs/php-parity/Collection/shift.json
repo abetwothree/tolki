@@ -326,6 +326,68 @@
             }
         },
         {
+            "label": "shift-empty-counts",
+            "php": "shift() and shift($count) on collect([]) for 0, 1, 2, 3, 0.5, 1.5, 2.5, NAN and INF: what it returns and what is left",
+            "value": {
+                "none": {
+                    "returned": null,
+                    "left": []
+                },
+                "0": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                },
+                "1": {
+                    "returned": null,
+                    "left": []
+                },
+                "2": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                },
+                "3": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                },
+                "0.5": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                },
+                "1.5": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                },
+                "2.5": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                },
+                "NAN": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                },
+                "INF": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                }
+            }
+        },
+        {
             "label": "shift-null-backed-counts",
             "php": "shift(), shift(0) and shift(2) on new Collection(null)",
             "value": {

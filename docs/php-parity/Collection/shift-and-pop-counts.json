@@ -1,0 +1,370 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-B-shift-fractional-and-non-finite-counts",
+            "php": "shift($count) over collect([1, 2, 3, 4]) and collect(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4]) for 2.5, 1.5, 0.5, NAN, INF and 1e19, and over collect([9]) and collect([]) for 1.5: what it returns, or the class and message thrown, and what the collection holds after",
+            "value": {
+                "list": {
+                    "2.5": {
+                        "returned": [
+                            1,
+                            2
+                        ],
+                        "all": [
+                            3,
+                            4
+                        ]
+                    },
+                    "1.5": {
+                        "returned": [
+                            "ValueError",
+                            "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)"
+                        ],
+                        "all": [
+                            1,
+                            2,
+                            3,
+                            4
+                        ]
+                    },
+                    "0.5": {
+                        "returned": [
+                            "ValueError",
+                            "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)"
+                        ],
+                        "all": [
+                            1,
+                            2,
+                            3,
+                            4
+                        ]
+                    },
+                    "NAN": {
+                        "returned": [
+                            1,
+                            2,
+                            3,
+                            4
+                        ],
+                        "all": []
+                    },
+                    "INF": {
+                        "returned": [
+                            1,
+                            2,
+                            3,
+                            4
+                        ],
+                        "all": []
+                    },
+                    "1e19": {
+                        "returned": [
+                            1,
+                            2,
+                            3,
+                            4
+                        ],
+                        "all": []
+                    }
+                },
+                "keyed": {
+                    "2.5": {
+                        "returned": [
+                            1,
+                            2
+                        ],
+                        "all": {
+                            "c": 3,
+                            "d": 4
+                        }
+                    },
+                    "1.5": {
+                        "returned": [
+                            "ValueError",
+                            "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)"
+                        ],
+                        "all": {
+                            "a": 1,
+                            "b": 2,
+                            "c": 3,
+                            "d": 4
+                        }
+                    },
+                    "0.5": {
+                        "returned": [
+                            "ValueError",
+                            "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)"
+                        ],
+                        "all": {
+                            "a": 1,
+                            "b": 2,
+                            "c": 3,
+                            "d": 4
+                        }
+                    },
+                    "NAN": {
+                        "returned": [
+                            1,
+                            2,
+                            3,
+                            4
+                        ],
+                        "all": []
+                    },
+                    "INF": {
+                        "returned": [
+                            1,
+                            2,
+                            3,
+                            4
+                        ],
+                        "all": []
+                    },
+                    "1e19": {
+                        "returned": [
+                            1,
+                            2,
+                            3,
+                            4
+                        ],
+                        "all": []
+                    }
+                },
+                "one item": {
+                    "returned": [
+                        9
+                    ],
+                    "all": []
+                },
+                "empty": {
+                    "returned": [],
+                    "all": []
+                }
+            }
+        },
+        {
+            "label": "C32-B-pop-fractional-and-non-finite-counts",
+            "php": "pop($count) over collect([1, 2, 3, 4]) and collect(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4]) for 2.5, 1.5, 0.5, NAN, INF and 1e19, and over collect([9]) and collect([]) for 1.5: what it returns, or the class and message thrown, and what the collection holds after",
+            "value": {
+                "list": {
+                    "2.5": {
+                        "returned": [
+                            4,
+                            3
+                        ],
+                        "all": [
+                            1,
+                            2
+                        ]
+                    },
+                    "1.5": {
+                        "returned": [
+                            "ValueError",
+                            "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)"
+                        ],
+                        "all": [
+                            1,
+                            2,
+                            3,
+                            4
+                        ]
+                    },
+                    "0.5": {
+                        "returned": [],
+                        "all": [
+                            1,
+                            2,
+                            3,
+                            4
+                        ]
+                    },
+                    "NAN": {
+                        "returned": [
+                            4,
+                            3,
+                            2,
+                            1
+                        ],
+                        "all": []
+                    },
+                    "INF": {
+                        "returned": [
+                            4,
+                            3,
+                            2,
+                            1
+                        ],
+                        "all": []
+                    },
+                    "1e19": {
+                        "returned": [
+                            4,
+                            3,
+                            2,
+                            1
+                        ],
+                        "all": []
+                    }
+                },
+                "keyed": {
+                    "2.5": {
+                        "returned": [
+                            4,
+                            3
+                        ],
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    },
+                    "1.5": {
+                        "returned": [
+                            "ValueError",
+                            "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)"
+                        ],
+                        "all": {
+                            "a": 1,
+                            "b": 2,
+                            "c": 3,
+                            "d": 4
+                        }
+                    },
+                    "0.5": {
+                        "returned": [],
+                        "all": {
+                            "a": 1,
+                            "b": 2,
+                            "c": 3,
+                            "d": 4
+                        }
+                    },
+                    "NAN": {
+                        "returned": [
+                            4,
+                            3,
+                            2,
+                            1
+                        ],
+                        "all": []
+                    },
+                    "INF": {
+                        "returned": [
+                            4,
+                            3,
+                            2,
+                            1
+                        ],
+                        "all": []
+                    },
+                    "1e19": {
+                        "returned": [
+                            4,
+                            3,
+                            2,
+                            1
+                        ],
+                        "all": []
+                    }
+                },
+                "one item": {
+                    "returned": [
+                        9
+                    ],
+                    "all": []
+                },
+                "empty": {
+                    "returned": [],
+                    "all": []
+                }
+            }
+        },
+        {
+            "label": "C32-B-shift-and-pop-counts-out-of-order-keys",
+            "php": "shift($count) and pop($count) over collect([2 => 'c', 0 => 'a', 1 => 'b']) for 2.5, 1.5 and NAN: what each returns, or the class and message thrown, and the keys and values left",
+            "value": {
+                "shift": {
+                    "2.5": {
+                        "returned": [
+                            "c",
+                            "a"
+                        ],
+                        "keys": [
+                            0
+                        ],
+                        "values": [
+                            "b"
+                        ]
+                    },
+                    "1.5": {
+                        "returned": [
+                            "ValueError",
+                            "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)"
+                        ],
+                        "keys": [
+                            2,
+                            0,
+                            1
+                        ],
+                        "values": [
+                            "c",
+                            "a",
+                            "b"
+                        ]
+                    },
+                    "NAN": {
+                        "returned": [
+                            "c",
+                            "a",
+                            "b"
+                        ],
+                        "keys": [],
+                        "values": []
+                    }
+                },
+                "pop": {
+                    "2.5": {
+                        "returned": [
+                            "b",
+                            "a"
+                        ],
+                        "keys": [
+                            2
+                        ],
+                        "values": [
+                            "c"
+                        ]
+                    },
+                    "1.5": {
+                        "returned": [
+                            "ValueError",
+                            "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)"
+                        ],
+                        "keys": [
+                            2,
+                            0,
+                            1
+                        ],
+                        "values": [
+                            "c",
+                            "a",
+                            "b"
+                        ]
+                    },
+                    "NAN": {
+                        "returned": [
+                            "b",
+                            "a",
+                            "c"
+                        ],
+                        "keys": [],
+                        "values": []
+                    }
+                }
+            }
+        }
+    ]
+}

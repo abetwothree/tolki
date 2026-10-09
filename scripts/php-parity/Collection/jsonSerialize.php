@@ -27,5 +27,6 @@ probe('C32-A-jsonSerialize-prefers-toJson-over-toArray', 'collect([new C32AArray
 probe('C32-A-jsonSerialize-invalid-jsonable-is-null', 'collect([new C32ABadJsonable])->jsonSerialize()', fn () => collect([new C32ABadJsonable])->jsonSerialize());
 probe('C32-A-jsonSerialize-other-object-is-kept', '$o = new C32AParent; collect([$o])->jsonSerialize()[0] === $o', function () { $o = new C32AParent; return collect([$o])->jsonSerialize()[0] === $o; });
 probe('C32-A-jsonSerialize-keyed', "collect(['a' => new TestArrayableObject, 'b' => 1])->jsonSerialize()", fn () => collect(['a' => new TestArrayableObject, 'b' => 1])->jsonSerialize());
+probe('C32-A-jsonSerialize-plain-item-members-are-data', "\$item = collect([['toArray' => fn () => [9], 'toJson' => fn () => '[1]', 'jsonSerialize' => fn () => 1, 'b' => 2]])->jsonSerialize()[0]; [array_keys(\$item), \$item['b']]", function () { $item = collect([['toArray' => fn () => [9], 'toJson' => fn () => '[1]', 'jsonSerialize' => fn () => 1, 'b' => 2]])->jsonSerialize()[0]; return [array_keys($item), $item['b']]; });
 
 emit();

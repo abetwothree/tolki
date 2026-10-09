@@ -137,6 +137,41 @@
                 "a": 1,
                 "b": 2
             }
+        },
+        {
+            "label": "C32-A-construct-colliding-keys",
+            "php": "keys, values and count of new Collection([true => 'a', 1 => 'b', 0 => 'z']), [null => 'n', '' => 'e'] and [1.5 => 'f', 1 => 'i']",
+            "value": {
+                "bool": {
+                    "keys": [
+                        1,
+                        0
+                    ],
+                    "values": [
+                        "b",
+                        "z"
+                    ],
+                    "count": 2
+                },
+                "null": {
+                    "keys": [
+                        ""
+                    ],
+                    "values": [
+                        "e"
+                    ],
+                    "count": 1
+                },
+                "float": {
+                    "keys": [
+                        1
+                    ],
+                    "values": [
+                        "i"
+                    ],
+                    "count": 1
+                }
+            }
         }
     ]
 }

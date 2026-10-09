@@ -151,6 +151,13 @@ mutation('splice-mixed-replacement', "\$c = new Collection(['x' => 1, 0 => 2, 'y
 mutation('splice-string-keys-out-of-order-replacement', "\$c = new Collection(['k' => 'K', 'j' => 'J']); \$c->splice(0, 1, [2 => 'c', 0 => 'a', 1 => 'b'])", ['k' => 'K', 'j' => 'J'], fn (Collection $c) => $c->splice(0, 1, OUT_OF_ORDER));
 mutation('splice-collision-offset-length', "\$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); \$c->splice(0, 1)", [1 => 'a', 'x' => 'b', '1' => 'c'], fn (Collection $c) => $c->splice(0, 1));
 mutation('splice-out-of-order-replacement-collision', "\$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); \$c->splice(1, 1, [1 => 'p', 'x' => 'q', '1' => 'r'])", OUT_OF_ORDER, fn (Collection $c) => $c->splice(1, 1, [1 => 'p', 'x' => 'q', '1' => 'r']));
+$rangeOutcome = function (array $arguments) {
+    try {
+        return Collection::range(...$arguments)->all();
+    } catch (\Throwable $e) {
+        return [get_class($e), $e->getMessage()];
+    }
+};
 
 // ---- Family B ------------------------------------------------------------
 
@@ -172,5 +179,42 @@ probe('C32-B-splice-replacement-order', "splice(1, 0, [2 => 'c', 0 => 'a', 1 => 
 
     return ['keys' => $c->keys()->all(), 'values' => $c->values()->all()];
 }, [['x', 'y'], ['a' => 1, 'b' => 2]]));
+
+// keys no PHP array can hold: each call over a list and a keyed backing, and what each holds after
+$overBackings = fn (callable $call) => array_map(fn (Collection $c) => ['outcome' => c32c_outcome(fn () => $call($c)), 'all' => $c->all()], [collect(['a', 'b']), collect(['a' => 1, 'b' => 2])]);
+
+$keysAndValues = fn (Collection $c) => ['keys' => $c->keys()->all(), 'values' => $c->values()->all()];
+
+// shift() and pop() take their items one by one over range(1, min($count, count())), and PHP's min() answers the count
+// of items over a NAN; range() refuses a float end less than one step from 1
+$takeOutcome = function (string $method, array $items, $count) {
+    $c = collect($items);
+    $returned = c32c_outcome(function () use ($c, $method, $count) {
+        $result = $c->$method($count);
+
+        return $result instanceof Collection ? $result->all() : $result;
+    });
+
+    return ['returned' => $returned, 'all' => $c->all()];
+};
+$spliceOutcome = function (array $items, array $arguments) use ($keysAndValues) {
+    $c = collect($items);
+    $removed = c32c_outcome(fn () => $keysAndValues(@$c->splice(...$arguments)));
+
+    return ['removed' => $removed] + $keysAndValues($c);
+};
+$spliceBackings = ['list' => [1, 2, 3, 4], 'keyed' => ['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4]];
+probe('C32-B-splice-fractional-and-non-finite-offsets', "splice(\$offset) and splice(\$offset, 1) over collect([1, 2, 3, 4]) and collect(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4]) for 1.5, -1.5, NAN, INF and 1e19: the keys and values removed, or the class and message thrown, and the keys and values left", fn () => array_map(fn (array $items) => array_map(fn ($offset) => [
+    'offset only' => $spliceOutcome($items, [$offset]),
+    'length 1' => $spliceOutcome($items, [$offset, 1]),
+], ['1.5' => 1.5, '-1.5' => -1.5, 'NAN' => NAN, 'INF' => INF, '1e19' => 1e19]), $spliceBackings));
+probe('C32-B-splice-fractional-and-non-finite-lengths', "splice(1, \$length) and splice(1, \$length, ['x']) over collect([1, 2, 3, 4]) and collect(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4]) for 1.5, -1.5, NAN, INF, -INF and 1e19: the keys and values removed, or the class and message thrown, and the keys and values left", fn () => array_map(fn (array $items) => array_map(fn ($length) => [
+    'no replacement' => $spliceOutcome($items, [1, $length]),
+    'replacement' => $spliceOutcome($items, [1, $length, ['x']]),
+], ['1.5' => 1.5, '-1.5' => -1.5, 'NAN' => NAN, 'INF' => INF, '-INF' => -INF, '1e19' => 1e19]), $spliceBackings));
+probe('C32-B-splice-null-length-to-the-end', "splice(1, null) and splice(-1, null) over collect([1, 2, 3, 4]) and collect(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4]): the keys and values removed, and the keys and values left", fn () => array_map(fn (array $items) => [
+    '1' => $spliceOutcome($items, [1, null]),
+    '-1' => $spliceOutcome($items, [-1, null]),
+], $spliceBackings));
 
 emit();
