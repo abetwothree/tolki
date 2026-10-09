@@ -169,17 +169,16 @@ An instance or static method's value publishes as `json_encode()` writes it, whi
 A value that `json_encode()` can't write, such as `NAN` or a string that isn't valid UTF-8, publishes as `null`.
 
 ::: warning Arrays With Out-of-Order Integer Keys
-An array whose integer keys don't count up from 0 in order publishes as an object keyed by those numbers, because that's how `json_encode()` writes it. `array_filter()` keeps each item's key, so it returns such an array whenever it removes an item that isn't last. An `EnumResource` response sends the same value as a list, so `ts:publish` warns about the method. Wrap the array in `array_values()` to publish and send a list:
+An array whose integer keys don't count up from 0 in order publishes as an object keyed by those numbers, because that's how `json_encode()` writes it. `array_filter()` keeps each item's key, so it returns such an array whenever it removes an item before one it keeps. An `EnumResource` response sends the same value as a list, so `ts:publish` warns about the method. Wrap the array in `array_values()` to publish and send a list:
 
 ```php
 #[TsEnumMethod]
-public function lowerPriorities(): array
+public function higherPriorities(): array
 {
-    return array_values(array_filter(self::cases(), fn (self $case) => $case->value < $this->value));
+    return array_values(array_filter(self::cases(), fn (self $case) => $case->value > $this->value));
 }
 ```
 
-`ts:publish` doesn't analyze a class again while the [generation cache](./generating-cache.md) holds it, so a warning may not repeat on the next run. Run `php artisan ts:publish --fresh` to list every warning.
 :::
 
 ### `#[TsEnumStaticMethod]`

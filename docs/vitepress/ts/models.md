@@ -377,7 +377,7 @@ export interface Product {
 
 `#[TsType]` also takes a plain string, such as `#[TsType('{width: number, height: number}')]`, when the type needs no import. Without `#[TsType]`, a custom cast publishes the return type of its `get()` method.
 
-When `get()`'s native type is missing or vague, such as a bare `array`, the `@return` docblock sets the type, so `@return list<LegDto>` publishes a list of `LegDto`'s public properties, the shape `json_encode()` writes. A `@return` whose type would need an import, such as `list<User>` for a model, keeps the native type, `unknown[]` for a bare `array`. A `get()` that declares neither publishes `unknown`.
+When `get()`'s native type is missing or vague, such as a bare `array`, the `@return` docblock sets the type, so `@return list<LegDto>` publishes a list of `LegDto`'s public properties, the shape `json_encode()` writes. A `@return` that names a model, such as `list<User>`, or another class that doesn't publish as an inline shape keeps `unknown[]`. A `get()` that declares neither publishes `unknown`.
 
 ## Laravel 13 Model Attributes
 
@@ -706,7 +706,7 @@ Optional is separate from nullable. A property that is neither promoted nor give
 
 This only applies to `Arrayable`. A `JsonSerializable` DTO is typed from a `@return array{...}` docblock on `jsonSerialize()` and never from its properties, because `jsonSerialize()` can return anything. A `jsonSerialize()` that declares `string` or `?string`, in its signature or its `@return`, publishes `string` or `string | null`. Without either, the DTO isn't inlined, and the property publishes by other rules, such as the DTO's class name.
 
-`json_encode()` ignores `__toString()`, so a class with only `__toString()` doesn't publish `string`. With no public properties, it publishes `Record<string, never>`, the `{}` that `json_encode()` writes for it. An accessor whose getter returns a first-class callable, such as `Attribute::get(fn () => strlen(...))`, publishes `Record<string, never>` too, because Laravel sends the `Closure` as `{}`. Call the function in the getter instead.
+`json_encode()` ignores `__toString()`, so a class with only `__toString()` doesn't publish `string`. It publishes what `json_encode()` writes: its typed public properties as a shape, or `Record<string, never>`, the `{}`, when it has no public properties. An accessor whose getter returns a first-class callable, such as `Attribute::get(fn () => strlen(...))`, publishes `Record<string, never>` too, because Laravel sends the `Closure` as `{}`. Call the function in the getter instead.
 
 ### Annotation Checklist
 
@@ -814,7 +814,7 @@ To change how a type publishes everywhere, add it to `custom_ts_mappings`. Keys 
 'custom_ts_mappings' => [
     'binary' => 'Blob',
     'json' => 'Record<string, unknown>', // overrides the default 'object' mapping
-    'money' => 'number',                  // adds a new mapping
+    'money' => 'number',                  // keeps money columns a number on every driver
 ],
 ```
 
@@ -836,13 +836,15 @@ The package maps database column types and casts to these TypeScript types by de
 
 ### Numbers
 
-`bigint`, `decimal`, `double`, `double precision`, `float`, `integer`, `int`, `numeric`, `number`, `mediumint`, `smallint`, `year`, `real`, `money`, `smallmoney`, `serial`, `bigserial`, `smallserial` → **`number`**
+`bigint`, `decimal`, `double`, `double precision`, `float`, `integer`, `int`, `numeric`, `number`, `mediumint`, `smallint`, `year`, `real`, `money`, `smallmoney`, `serial`, `bigserial`, `smallserial` → **`number`**. An uncast `decimal`, `numeric` or PostgreSQL `money` column can publish `string` instead, as described below.
 
 A bare `tinyint`, as created by `tinyInteger()` on MySQL and SQL Server, is also **`number`**. Only `tinyint(1)`, the type Laravel's `boolean()` column has on MySQL and SQLite, means boolean. See [Booleans](#booleans).
 
 A `decimal:N` cast, such as `decimal:2`, publishes **`string`**, because Laravel returns a decimal cast as a string on every database.
 
-A `decimal` or `numeric` column with no cast follows the driver of the connection you publish on. It publishes **`string`** on MySQL, MariaDB and PostgreSQL, and **`number`** on SQLite and SQL Server. Publish against the database driver your app runs in production, or cast the column `decimal:N` to publish `string` on every driver. To keep another type on every driver, map the column type in [`custom_ts_mappings`](./configuration-reference.md#custom-ts-mappings), such as `'decimal' => 'number'` on MySQL or `'numeric' => 'number'` on PostgreSQL.
+A `decimal`, `numeric` or PostgreSQL `money` column with no cast follows the driver of the connection you publish on. It publishes **`string`** on MySQL, MariaDB and PostgreSQL, and **`number`** on SQLite and SQL Server. Publish against the database driver your app runs in production, or cast the column `decimal:N` to publish `string` on every driver. To keep another type on every driver, map the column type in [`custom_ts_mappings`](./configuration-reference.md#custom-ts-mappings), such as `'decimal' => 'number'` on MySQL (this also covers `decimal:N` casts) or `'numeric' => 'number'` on PostgreSQL.
+
+On SQL Server, cast the column `decimal:N`, because the `pdo_sqlsrv` driver returns a decimal as a string while the package publishes `number`.
 
 ### Booleans
 
