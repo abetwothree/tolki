@@ -36,6 +36,16 @@ A merge of `$this->resource`, passed as it is or returned from a closure, now pu
 
 A key built from literal text around a variable, written straight into the returned array, a merged array or a nested array, now publishes a template-literal index signature. It was left out before. Beside a key the pattern matches but whose type the signature can't take, `tsc` reports TS2411, and `ts:publish` warns and names the key. See [Interpolated Keys](./api-resources.md#interpolated-keys).
 
+### Values Publish as Laravel Sends Them
+
+These values now publish the type of what Laravel sends, so some generated types change:
+
+- **Numeric keys in API resources**: a resource sends an array whose keys are all numeric as a list. A key whose method returns `[1 => 'Basic', 2 => 'Pro']` published `{ "1": string; "2": string }`, and now publishes `string[]`. A numeric key beside a named key stays, and a resource with `$preserveKeys` keeps every key. See [Methods Declared as a Bare `array`](./api-resources.md#methods-declared-as-a-bare-array).
+- **Top-level integer keys on a page, shared data, or an event**: Inertia and Laravel merge a page's props, shared data, and a `broadcastWith()` payload with `array_merge()`, which renumbers integer keys from `0`. Such a key now publishes on the key Laravel sends, so `42 =>` publishes `"0"` where it published `"42"`. A numeric `#[TsCasts]` key there moves the same way, and `ts:publish` warns for each one. Use a string key instead.
+- **List literals**: a bare array literal such as `['a', 'b']` publishes the list it encodes as, `string[]`, as `collect([...])` does. It published `Record<string, unknown>` before. A list holding an element the package can't type publishes `unknown[]`.
+- **Enum cases**: a bare case such as `'status' => Status::Active` publishes the enum's type alias, `StatusType`, in resources, page props, shared data, events, and model metadata. In a model metadata provider, such a case used to stop the run.
+- **Resources built around `null`**: `new UserResource(null)` publishes `null`, the value Laravel sends, where it published `UserResource | null`.
+
 ### Published Templates
 
 If you published the package's templates, check these:
