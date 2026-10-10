@@ -1,14 +1,14 @@
 # Upgrade Guide
 
-## Upgrading From 2.6
+## Upgrading From 2.7
 
-The release after 2.6 changes what some `#[TsCasts]` entries publish. Run `php artisan ts:publish` after you update, and check the changes below against your generated files.
+The release after 2.7 changes what some `#[TsCasts]` entries publish, and what a merged model publishes. Run `php artisan ts:publish` after you update, and check the changes below against your generated files.
 
 ### `#[TsCasts]` Changes
 
 #### Entries Publish Exactly What You Write
 
-An entry over a key that wraps an enum in `EnumResource::make()` used to publish the wrap. For example, `'status' => 'StatusType'` published `AsEnum<typeof Status>`. It now publishes `StatusType`, as written. To keep the wrap, write it in the entry:
+An entry that names an enum's type, over a key that wraps the enum in `EnumResource::make()`, used to publish the wrap. For example, `'status' => 'StatusType'` published `AsEnum<typeof Status>`. It now publishes `StatusType`, as written. To keep the wrap, write it in the entry:
 
 ```php
 #[TsCasts(['status' => 'AsEnum<typeof Status>'])]
@@ -23,16 +23,20 @@ An entry on `toArray()`, or on a method it spreads, now wins over the backing mo
 An entry that leaves out `'optional'` now keeps the flag the key gets without the entry, so a key can publish optional where it published required:
 
 - **API resources**: a resource entry keeps the `?` from the model's entry for the same key.
-- **Inertia shared data**: an entry keeps the `?` from the `share()` docblock's `key?:`. `'optional'` also works here now.
+- **Inertia shared data**: an entry keeps the `?` from the `share()` docblock's `key?:`, or, for a key the docblock doesn't name, the `?` the package infers, such as for a key `share()` returns on only some paths. `'optional'` also works here now.
 - **Inertia page props**: an entry on the controller method keeps the prop's own `?`. `'optional'` also works here now.
 
 To keep such a key required, add `'optional' => false` to its entry.
+
+### A Merged Model Publishes Its Keys
+
+A merge of `$this->resource`, passed as it is or returned from a closure, now publishes the keys the model's `toArray()` writes, each optional behind a condition. See [Merge Operations](./api-resources.md#merge-operations).
 
 ### Published Templates
 
 If you published the package's templates, check these:
 
-- **`resource`**: a resource file imports `AsEnum` from `@tolki/ts` only when one of its types uses it. Your published copy follows the same rule with no change.
+- **`resource`**: needs no change. A resource file now imports `AsEnum` from `@tolki/ts` only when one of its types uses it, and a published copy does the same.
 - **`broadcast-event` and `globals`**: a copy published before this release prints an event's index signature as a quoted property name instead of a signature. Merge the package's new templates into your copies, as [Publishing and Editing Templates](./customizing-the-pipeline.md#publishing-and-editing-templates) describes.
 
 ### Custom Inertia Analyzers

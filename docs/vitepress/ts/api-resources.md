@@ -531,7 +531,7 @@ $this->merge(function () {
 
 The closure publishes `user_name?: string` and `user_email?: string`.
 
-A merge can also take the resource's own model, `$this->resource`, or a method call such as `$this->labelFields()`, passed as it is or returned from a closure:
+A merge can also take the resource's own model, `$this->resource`, or a call to one of the resource's methods, such as `$this->labelFields()`, passed as it is or returned from a closure:
 
 ```php
 return [
@@ -541,9 +541,9 @@ return [
 ];
 ```
 
-A method call merges the keys the method returns. The model merges the keys its `toArray()` writes, with the model's own `#[TsCasts]` applied. That's the same set a resource with no `toArray()` publishes, as [JsonResource Base Delegation](#jsonresource-base-delegation) describes. Behind `mergeWhen()`, each merged key is optional.
+A method call merges the keys the method returns. The model merges the keys its `toArray()` writes, with the model's own `#[TsCasts]` applied. That's the same set a resource with no `toArray()` publishes, as [JsonResource Base Delegation](#jsonresource-base-delegation) describes. Behind `mergeWhen()` or `mergeUnless()`, each merged key is optional.
 
-A key the array sets before a merge publishes as it would without the merge, because Laravel doesn't let a merged key replace it. Here `id` stays a required `number`, though the model's own `id` merges after it.
+A key the array sets before a merge publishes as it would without the merge, because Laravel doesn't let a merged key replace it. Here `id` stays a required `number`, though the model also has an `id`.
 
 ### Closure & Arrow Function Values
 
@@ -1359,7 +1359,7 @@ When the body can't type the value, the method's `@return array<string, V>` does
 [key: `${string}_tag`]: string | undefined;
 ```
 
-The key doesn't need a loop. Written straight into the returned array, into an array that `merge()` or `mergeWhen()` adds, or into a nested array, it publishes a signature too. In a nested array, the signature becomes part of that property's object type:
+The key doesn't need a loop. A key written straight into the returned array, into an array a merge adds, or into a nested array publishes a signature too. In a nested array, the signature becomes part of that property's object type:
 
 ```php
 return [
@@ -1381,9 +1381,9 @@ A backslash in the literal text is doubled, because TypeScript reads a single on
 
 A literal key whose text reads as an index signature, such as `'[key: string]'`, is left out, and `ts:publish` warns. Printed as written, it would type every other key, so rename it.
 
-To retype a signature with `#[TsCasts]`, use its published name as the key. Write it in single quotes, because PHP reads `${string}` inside double quotes as a variable. You can paste the name straight from the published file. PHP reads each `\\` in a single-quoted string as one backslash, and the entry still finds its signature.
+To retype a signature with `#[TsCasts]`, use its published name as the key. Write it in single quotes, because PHP reads `${string}` inside double quotes as a variable. You can paste the name straight from the published file. PHP reads each `\\` in single quotes as one backslash, but the entry still finds its signature.
 
-A pasted key that could name two signatures retypes neither, and `ts:publish` warns. Write each one exactly instead, such as ``'[key: `${string}\\\\unit`]'`` for ``[key: `${string}\\unit`]``. On a resource, that entry still adds a key of its own, as an entry for any key `toArray()` doesn't return does.
+A pasted key that could name two signatures retypes neither, and `ts:publish` warns. Write each one exactly instead, such as ``'[key: `${string}\\\\unit`]'`` for ``[key: `${string}\\unit`]``. On a resource, the entry still adds its key as a new property, like any entry for a key `toArray()` doesn't return.
 
 TypeScript checks an index signature against every named key its pattern matches, and against every signature whose pattern contains its own. So each named key the pattern matches, `#[TsCasts]` keys included, joins the signature's value type, and so does another signature with the same pattern. Beside `price_tag: number`, the `_tag` signature publishes `string | number | undefined`.
 
@@ -1397,7 +1397,7 @@ A signature keeps only the value its body gives it, which is `unknown | undefine
 - **An overlapping pattern**: another signature's pattern may overlap its own. A plain `[key: string]` or `[key: number]` signature always counts as overlapping.
 - **An extends clause**: the interface extends a type, through `#[TsExtends]` or a `ts_extends` config entry, whose keys the package can't see.
 
-When a key the pattern matches is the only thing that keeps the union out, `ts:publish` warns, naming the key and the signature.
+When a key the pattern matches is all that stops the union, `ts:publish` warns and names the key and the signature.
 
 A signature needs both a literal part and a variable part. A fully literal key publishes as a named property, and a fully dynamic key, such as `$data[$name]`, isn't published. A key whose literal text contains a backtick isn't published either.
 
@@ -1849,7 +1849,7 @@ When more than one place names a key, the place lower in this list wins:
 
 So the resource's own entries, on the class or on a method, take precedence over the model's. The order holds even when two places spell an index signature's name differently.
 
-An entry that leaves out `'optional'` keeps the flag from a place above it in the list, or else the inferred one. Over the `Address` entry above, a `toArray()` entry `'latitude' => 'Latitude'` publishes `latitude?: Latitude`.
+An entry that leaves out `'optional'` keeps the flag of the nearest place above it in the list that sets one, or else the inferred one. Over the `Address` entry above, a `toArray()` entry `'latitude' => 'Latitude'` on a plain `'latitude' => $this->latitude` publishes `latitude?: Latitude`.
 
 ## Nullable Relations
 

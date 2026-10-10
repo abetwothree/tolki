@@ -102,7 +102,7 @@ Each key from `share()` takes its type from the first of these that covers it:
 
 A key that `#[TsCasts]` or the docblock names but `share()` doesn't return is added to the type.
 
-In a `#[TsCasts]` entry, `'optional' => true` adds a `?` and `'optional' => false` removes one. An entry that leaves out `'optional'` keeps the flag the next source gives the key. For an entry on `share()`, that's the class's entry for the same key, if it sets `'optional'`. After that, the docblock's entry decides, with or without its `?`, and inference decides a key the docblock doesn't name.
+In a `#[TsCasts]` entry, `'optional' => true` adds a `?` and `'optional' => false` removes one. An entry that leaves out `'optional'` takes the flag from the next source down. For an entry on `share()`, that's first the class's entry for the same key, if it sets `'optional'`. Next comes the docblock, where `key?:` makes the key optional and `key:` makes it required. Inference decides a key neither names.
 
 An entry on a controller method for a route's [page props](./routing.md#overriding-props-with-tscasts) takes `'optional'` the same way. Without it, the prop keeps its own `?`.
 

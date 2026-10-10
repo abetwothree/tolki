@@ -109,7 +109,7 @@ Some shapes come only from a full `ts:publish` run. In these cases, `analyze()` 
 
 **Inertia page props.** [Page props](./routing.md#inertia-integration) come from the props argument of an `Inertia::render()` call in a controller action, not from a method's return value. `analyze()` on a controller action returns that method's own return shape, not its page props. There's no public entry point for page props.
 
-**Inertia shared data.** `analyze($middleware, 'share')` returns what inference finds in `share()`. Unlike on other methods, it leaves out the `#[TsCasts]` on `share()` itself. The published `SharedData` applies `#[TsCasts]` first, then the `@return array{...}` docblock on `share()`, then inference, as [Type Resolution Priority](./inertia.md#type-resolution-priority) describes. It also drops the `errors` key that `Inertia\Middleware::share()` adds, because `@inertiajs/core` types `page.props.errors` itself.
+**Inertia shared data.** `analyze($middleware, 'share')` returns what inference finds in `share()`. It also leaves out a `#[TsCasts]` on `share()`, though `analyze()` applies one on any other method it analyzes. The published `SharedData` applies `#[TsCasts]` first, then the `@return array{...}` docblock on `share()`, then inference, as [Type Resolution Priority](./inertia.md#type-resolution-priority) describes. It also drops the `errors` key that `Inertia\Middleware::share()` adds, because `@inertiajs/core` types `page.props.errors` itself.
 
 For example, a `share()` whose docblock declares `filters?: array<string, string>` and whose body returns `(array) $request->query('filters', [])` comes back from `analyze()` as `filters: unknown[]`. The published `SharedData` has `filters?: Record<string, string>`.
 
@@ -127,7 +127,7 @@ For example, a `share()` whose docblock declares `filters?: array<string, string
 
 On a `#[TsExtends]` resource, `analyze()` returns ``[key: `${string}_tag`]: string | undefined`` where the published interface has `unknown | undefined`.
 
-The difference can also run the other way. Where a key the method returns can't join the fill, `analyze()` returns `unknown | undefined`. Once a class-level or model-level `#[TsCasts]` entry types that key, `ts:publish` joins the fill with the entry's type. On a resource whose class-level entry is `'main_tag' => 'number'`, over a `main_tag` the method leaves untyped, `analyze()` returns ``[key: `${string}_tag`]: unknown | undefined``, and the published interface has ``[key: `${string}_tag`]: string | number | undefined``.
+The difference can also run the other way. Where a key the method returns can't join the fill, `analyze()` returns `unknown | undefined`. Once a class-level or model-level `#[TsCasts]` entry gives that key a type that can join, `ts:publish` joins the fill with it. On a resource whose `_tag` keys only a `@return array<string, string>` docblock types, beside a `main_tag` that only a class-level entry `'main_tag' => 'number'` types, `analyze()` returns ``[key: `${string}_tag`]: unknown | undefined``, and the published interface has ``[key: `${string}_tag`]: string | number | undefined``.
 
 Outside those cases, `analyze()` runs the same inference that resources, broadcast events, model metadata, Inertia page props, and Inertia shared data publish from. What each of those features adds on top is on its own page, linked above.
 
