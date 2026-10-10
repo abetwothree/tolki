@@ -371,6 +371,8 @@ If two enums in different namespaces share a class name, such as `App\Enums\Stat
 
 A prop the package can't read is typed `unknown`, and the run carries on. Use [`#[TsCasts]`](#overriding-props-with-tscasts) to set its type.
 
+Inertia merges page props over shared data with `array_merge()`, so a top-level integer prop key publishes on its renumbered key, such as `"0"` for `42`, and `ts:publish` warns that you probably meant a string key. Nested keys keep theirs.
+
 Sometimes the package can't analyze an action at all, for example because a class the action depends on fails to load. That route then publishes as a plain helper with no page-props type, and `ts:publish` names the action in a warning after the run. The rest of the run still finishes.
 
 ### Overriding Props With `#[TsCasts]`

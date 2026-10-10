@@ -2,7 +2,7 @@
 
 ## Upgrading From 2.7
 
-The release after 2.7 changes what some `#[TsCasts]` entries publish, and what a merged model publishes. Run `php artisan ts:publish` after you update, and check the changes below against your generated files.
+The release after 2.7 changes what some `#[TsCasts]` entries publish, and what a merged model publishes. Numeric keys, list literals, enum cases, values built with `new`, and top-level integer keys now publish as Laravel sends them too. Run `php artisan ts:publish` after you update, and check the changes below against your generated files.
 
 ### `#[TsCasts]` Changes
 
