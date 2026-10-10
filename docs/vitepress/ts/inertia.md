@@ -88,17 +88,23 @@ Each part of the file does one job:
 
 The file imports only the names its types use. A key you override with `#[TsCasts]` drops the import its inferred type needed.
 
+A key that isn't a plain identifier, such as `'can-edit'` or `42`, is quoted, as in `"can-edit": boolean`. Route files quote a page prop's key the same way.
+
 A value the package can't read stays `unknown`. `'flash' => ['success' => fn () => $request->session()->get('success')]` would publish `flash: { success: unknown }`, because `session()` isn't one of the typed request methods. Give such a key its type with [`#[TsCasts]` or a `@return` docblock](#type-resolution-priority).
 
 ## Type Resolution Priority
 
 Each key from `share()` takes its type from the first of these that covers it:
 
-1. **`#[TsCasts]`** on the middleware class or on its `share()` method. When both name a key, the method's entry wins. It's the same attribute [models](./models.md#tscasts), [API resources](./api-resources.md#overriding-property-types-with-tscasts) and [broadcast events](./broadcast-events.md#overriding-property-types-with-tscasts) use.
+1. **`#[TsCasts]`** on the middleware class or on its `share()` method. When both name a key, the method's entry wins, even when the two spell an index signature's name differently. It's the same attribute [models](./models.md#tscasts), [API resources](./api-resources.md#overriding-property-types-with-tscasts) and [broadcast events](./broadcast-events.md#overriding-property-types-with-tscasts) use.
 2. **A `@return array{...}` docblock** on `share()`. You write the shape by hand, for a key the package can't infer, such as a method call whose return type says nothing. A `key?:` entry makes that key optional.
 3. **Inference from your code**, the default. It covers plain values, nested arrays, conditionals, closures, spreads, `array_merge()`, `config()`, the request and auth helpers, and Inertia's prop wrappers.
 
 A key that `#[TsCasts]` or the docblock names but `share()` doesn't return is added to the type.
+
+In a `#[TsCasts]` entry, `'optional' => true` adds a `?` and `'optional' => false` removes one. An entry that leaves out `'optional'` keeps the flag the next source gives the key. For an entry on `share()`, that's the class's entry for the same key, if it sets `'optional'`. After that, the docblock's entry decides, with or without its `?`, and inference decides a key the docblock doesn't name.
+
+An entry on a controller method for a route's [page props](./routing.md#overriding-props-with-tscasts) takes `'optional'` the same way. Without it, the prop keeps its own `?`.
 
 In this middleware, one key takes its type from each override:
 
