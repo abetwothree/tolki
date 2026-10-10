@@ -138,7 +138,7 @@ export interface PostScheduled {
 
 The body still wins wherever it types a value. The docblock only fills a key the body left `unknown`, so a stale `@return` can't overwrite a type the body already found. A `key?:` entry in the docblock makes that key optional.
 
-A spread helper that builds its keys by interpolation, such as `"{$name}_tag"`, gives the payload an index signature. When the helper's body can't type the values, its `@return array<string, V>` docblock types them. [Interpolated Keys](./api-resources.md#interpolated-keys) on the API Resources page describes how the event's `#[TsCasts]` and `extends` clause then apply.
+A spread helper that builds its keys by interpolation, such as `"{$name}_tag"`, adds an index signature to the interface, for example ``[key: `${string}_tag`]: string | undefined``. When the helper's body can't type the values, its `@return array<string, V>` docblock types them. [Interpolated Keys](./api-resources.md#interpolated-keys) on the API Resources page describes how the event's `#[TsCasts]` and `extends` clause then apply.
 
 When an event has `broadcastWith()`, including one inherited from a parent class or a trait, only that method shapes the payload. The public properties aren't read. A key it renames, computes or drops shows up exactly that way. `['team' => $this->teamId, 'kind' => 'message', 'count' => count($this->items)]` becomes `{ team: number; kind: string; count: number }`, with no `teamId`.
 
@@ -315,7 +315,11 @@ class OrderShipped implements ShouldBroadcast
 }
 ```
 
-This override gives `trackingNumber` its template-literal type, and gives `metadata` its `Record<string, unknown>` type and its `?`, in the [Anatomy](#anatomy-of-a-generated-event-file) example. Each entry is a type string, or an array with `type`, `optional` and `import` keys for a custom type that needs an import. A key that names no payload property doesn't add one.
+This override gives `trackingNumber` its template-literal type, and gives `metadata` its `Record<string, unknown>` type and its `?`, in the [Anatomy](#anatomy-of-a-generated-event-file) example. Each entry is a type string, or an array with `type`, `optional` and `import` keys for a custom type that needs an import.
+
+An entry publishes its type exactly as written, without the `Partial<>` a model property otherwise gets, and the file imports only the types the interface names. A class-level entry for a key the payload doesn't have adds neither the key nor its import. An entry on `broadcastWith()` does add a key the payload lacks, as a resource's `toArray()` entry does.
+
+You can also put `#[TsCasts]` on `broadcastWith()`. It works the same way as on the class, and the class's entry wins when both name a key.
 
 ## Extending Interfaces: Global Config vs. `#[TsExtends]`
 

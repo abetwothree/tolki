@@ -531,6 +531,20 @@ $this->merge(function () {
 
 The closure publishes `user_name?: string` and `user_email?: string`.
 
+A merge can also take the resource's own model, `$this->resource`, or a call to one of the resource's methods, such as `$this->labelFields()`, passed as it is or returned from a closure:
+
+```php
+return [
+    'id' => $this->id,
+    $this->merge(fn () => $this->labelFields()),
+    $this->mergeWhen($this->color !== null, $this->resource),
+];
+```
+
+A method call merges the keys the method returns. The model merges the keys its `toArray()` writes, with the model's own `#[TsCasts]` applied. That's the same set a resource with no `toArray()` publishes, as [JsonResource Base Delegation](#jsonresource-base-delegation) describes. Behind `mergeWhen()` or `mergeUnless()`, each merged key is optional.
+
+A key the array sets before a merge publishes as it would without the merge, because Laravel doesn't let a merged key replace it. Here `id` stays a required `number`, though the model also has an `id`.
+
 ### Closure & Arrow Function Values
 
 A closure or an arrow function in value position is typed from what it returns:
@@ -1345,7 +1359,31 @@ When the body can't type the value, the method's `@return array<string, V>` does
 [key: `${string}_tag`]: string | undefined;
 ```
 
+The key doesn't need a loop. A key written straight into the returned array, into an array a merge adds, or into a nested array publishes a signature too. In a nested array, the signature becomes part of that property's object type:
+
+```php
+return [
+    'tag_'.$this->id => true,
+    'box' => ["{$this->id}_inner" => 5, 'x' => 1],
+];
+```
+
+Both keys become signatures:
+
+```typescript
+export interface TagBoxResource {
+  [key: `tag_${string}`]: boolean | undefined;
+  box: { [key: `${string}_inner`]: number | undefined; x: number };
+}
+```
+
 A backslash in the literal text is doubled, because TypeScript reads a single one as an escape. `$data["{$name}\\unit"]`, whose keys end in `\unit`, publishes ``[key: `${string}\\unit`]``.
+
+A literal key whose text reads as an index signature, such as `'[key: string]'`, is left out, and `ts:publish` warns. Printed as written, it would type every other key, so rename it.
+
+To retype a signature with `#[TsCasts]`, use its published name as the key. Write it in single quotes, because PHP reads `${string}` inside double quotes as a variable. You can paste the name straight from the published file. PHP reads each `\\` in single quotes as one backslash, but the entry still finds its signature.
+
+A pasted key that could name two signatures retypes neither, and `ts:publish` warns. Write each one exactly instead, such as ``'[key: `${string}\\\\unit`]'`` for ``[key: `${string}\\unit`]``. On a resource, the entry still adds its key as a new property, like any entry for a key `toArray()` doesn't return.
 
 TypeScript checks an index signature against every named key its pattern matches, and against every signature whose pattern contains its own. So each named key the pattern matches, `#[TsCasts]` keys included, joins the signature's value type, and so does another signature with the same pattern. Beside `price_tag: number`, the `_tag` signature publishes `string | number | undefined`.
 
@@ -1358,6 +1396,8 @@ A signature keeps only the value its body gives it, which is `unknown | undefine
   - it brings a class import, unless the import comes from `#[TsCasts]`
 - **An overlapping pattern**: another signature's pattern may overlap its own. A plain `[key: string]` or `[key: number]` signature always counts as overlapping.
 - **An extends clause**: the interface extends a type, through `#[TsExtends]` or a `ts_extends` config entry, whose keys the package can't see.
+
+When a key the pattern matches is all that stops the union, `ts:publish` warns and names the key and the signature.
 
 A signature needs both a literal part and a variable part. A fully literal key publishes as a named property, and a fully dynamic key, such as `$data[$name]`, isn't published. A key whose literal text contains a backtick isn't published either.
 
@@ -1789,9 +1829,27 @@ export interface CommentResource {
 }
 ```
 
+An entry publishes its type exactly as you write it, and the file imports only the types its interface names. So an entry over a key that wraps an enum in [`EnumResource::make()`](#enum-properties-with-enumresource), such as `'status' => 'StatusType'`, publishes `status: StatusType` instead of `AsEnum<typeof Status>`. To keep the wrap, write it in the entry, as in `'status' => 'AsEnum<typeof Status>'`. The package then imports `AsEnum` and `Status` for that key.
+
+Entries also work on two less common kinds of key:
+
+- **An index signature**: use its published name as the key, such as ``'[key: `${string}_tag`]' => 'string'``. `'optional' => true` adds `| undefined` to its value instead of a `?`, because `[key: T]?:` isn't valid TypeScript. [Interpolated Keys](#interpolated-keys) covers how to write the key.
+- **A numeric key**: `'42' => 'boolean'` publishes `"42": boolean`.
+
 You can put `#[TsCasts]` on the resource class, on `toArray()` itself, or on a trait or helper method that `toArray()` spreads. On a method, it works the same way as on the class. See [Trait Method Spread](#trait-method-spread).
 
-The backing model's own `#[TsCasts]` applies here too. An entry on the model retypes the resource property with the same name, including its `optional` flag. For example, an `Address` model entry `'latitude' => ['type' => 'number | null', 'optional' => true]` makes a resource's `'latitude' => $this->whenNotNull($this->latitude)` publish `latitude?: number | null`. The resource's own entries take precedence, and a model entry never adds a property.
+The backing model's own `#[TsCasts]` applies here too. An entry on the model retypes the resource property with the same name, including its `optional` flag. For example, an `Address` model entry `'latitude' => ['type' => 'number | null', 'optional' => true]` makes a resource's `'latitude' => $this->whenNotNull($this->latitude)` publish `latitude?: number | null`. A model entry never adds a property.
+
+When more than one place names a key, the place lower in this list wins:
+
+1. The backing model's entries: on its class, then on `$casts`, then on `casts()`.
+2. A method that `toArray()` spreads.
+3. `toArray()`.
+4. The resource class.
+
+So the resource's own entries, on the class or on a method, take precedence over the model's. The order holds even when two places spell an index signature's name differently.
+
+An entry that leaves out `'optional'` keeps the flag of the nearest place above it in the list that sets one, or else the inferred one. Over the `Address` entry above, a `toArray()` entry `'latitude' => 'Latitude'` on a plain `'latitude' => $this->latitude` publishes `latitude?: Latitude`.
 
 ## Nullable Relations
 

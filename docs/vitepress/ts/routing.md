@@ -393,6 +393,8 @@ public function index(): Response
 }
 ```
 
+An entry's `'optional' => true` makes the prop optional, and an entry that leaves out `'optional'` keeps the prop's own `?`.
+
 The `import` key writes the import line into the route file:
 
 ```typescript

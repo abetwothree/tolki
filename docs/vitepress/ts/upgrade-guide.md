@@ -1,5 +1,59 @@
 # Upgrade Guide
 
+## Upgrading From 2.7
+
+The release after 2.7 changes what some `#[TsCasts]` entries publish, and what a merged model publishes. Run `php artisan ts:publish` after you update, and check the changes below against your generated files.
+
+### `#[TsCasts]` Changes
+
+#### Entries Publish Exactly What You Write
+
+An entry that names an enum's type, over a key that wraps the enum in `EnumResource::make()`, used to publish the wrap. For example, `'status' => 'StatusType'` published `AsEnum<typeof Status>`. It now publishes `StatusType`, as written. To keep the wrap, write it in the entry:
+
+```php
+#[TsCasts(['status' => 'AsEnum<typeof Status>'])]
+```
+
+#### The Resource's Own Entries Win Over the Model's
+
+An entry on `toArray()`, or on a method it spreads, now wins over the backing model's entry for the same key, as an entry on the resource class already did. See [Overriding Property Types With `#[TsCasts]`](./api-resources.md#overriding-property-types-with-tscasts) for the full order.
+
+#### An Entry Without `'optional'` Keeps the Key's `?`
+
+An entry that leaves out `'optional'` now keeps the flag the key gets without the entry, so a key can publish optional where it published required:
+
+- **API resources**: a resource entry keeps the `?` from the model's entry for the same key.
+- **Inertia shared data**: an entry keeps the `?` from the `share()` docblock's `key?:`, or, for a key the docblock doesn't name, the `?` the package infers, such as for a key `share()` returns on only some paths. `'optional'` also works here now.
+- **Inertia page props**: an entry on the controller method keeps the prop's own `?`. `'optional'` also works here now.
+
+To keep such a key required, add `'optional' => false` to its entry.
+
+### A Merged Model Publishes Its Keys
+
+A merge of `$this->resource`, passed as it is or returned from a closure, now publishes the keys the model's `toArray()` writes, each optional behind a condition. See [Merge Operations](./api-resources.md#merge-operations).
+
+### Interpolated Keys in Arrays Publish an Index Signature
+
+A key built from literal text around a variable, written straight into the returned array, a merged array or a nested array, now publishes a template-literal index signature. It was left out before. Beside a key the pattern matches but whose type the signature can't take, `tsc` reports TS2411, and `ts:publish` warns and names the key. See [Interpolated Keys](./api-resources.md#interpolated-keys).
+
+### Published Templates
+
+If you published the package's templates, check these:
+
+- **`resource`**: needs no change. A resource file now imports `AsEnum` from `@tolki/ts` only when one of its types uses it, and a published copy does the same.
+- **`broadcast-event` and `globals`**: a copy published before this release prints an event's index signature as a quoted property name instead of a signature. Merge the package's new templates into your copies, as [Publishing and Editing Templates](./customizing-the-pipeline.md#publishing-and-editing-templates) describes.
+
+### Custom Inertia Analyzers
+
+If your app binds its own subclass of `InertiaPageAnalyzer` or `InertiaSharedDataAnalyzer` in the container, update its overrides:
+
+- `InertiaPageAnalyzer::buildPageData()`, `InertiaPageAnalyzer::buildTypeStringWithOverrides()` and `InertiaSharedDataAnalyzer::normalizeOverrideKeys()` take new optional parameters. Add them to your override's signature, or PHP rejects the class.
+- `InertiaPageAnalyzer::parseTsCastsFromMethod()` and `InertiaSharedDataAnalyzer::parseTsCastsFromMiddleware()` also return an `optionalOverrides` map of each entry's `'optional'` flag. An override that returns the old shape still works, but its entries' imports and `'optional'` flags are ignored.
+
+### Custom Resource Transformers
+
+If you subclass `ResourceTransformer` and read the protected `castKeysWithImport()` method or the `$importedCastKeys` property, move to the new cast record. Both are gone.
+
 ## Upgrading to 2.0 From 1.x
 
 Version 2 aims to match everything Laravel Wayfinder provides, with a few things done differently.
