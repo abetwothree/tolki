@@ -317,7 +317,7 @@ class OrderShipped implements ShouldBroadcast
 
 This override gives `trackingNumber` its template-literal type, and gives `metadata` its `Record<string, unknown>` type and its `?`, in the [Anatomy](#anatomy-of-a-generated-event-file) example. Each entry is a type string, or an array with `type`, `optional` and `import` keys for a custom type that needs an import.
 
-An entry publishes its type exactly as written, without the `Partial<>` a model property otherwise gets, and the file imports only the types the interface names. An entry for a key the payload doesn't have adds neither the key nor its import.
+An entry publishes its type exactly as written, without the `Partial<>` a model property otherwise gets, and the file imports only the types the interface names. A class-level entry for a key the payload doesn't have adds neither the key nor its import. An entry on `broadcastWith()` does add a key the payload lacks, as a resource's `toArray()` entry does.
 
 You can also put `#[TsCasts]` on `broadcastWith()`. It works the same way as on the class, and the class's entry wins when both name a key.
 

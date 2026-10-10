@@ -32,6 +32,10 @@ To keep such a key required, add `'optional' => false` to its entry.
 
 A merge of `$this->resource`, passed as it is or returned from a closure, now publishes the keys the model's `toArray()` writes, each optional behind a condition. See [Merge Operations](./api-resources.md#merge-operations).
 
+### Interpolated Keys in Arrays Publish an Index Signature
+
+A key built from literal text around a variable, written straight into the returned array, a merged array or a nested array, now publishes a template-literal index signature. It was left out before. Beside a key the pattern matches but whose type the signature can't take, `tsc` reports TS2411, and `ts:publish` warns and names the key. See [Interpolated Keys](./api-resources.md#interpolated-keys).
+
 ### Published Templates
 
 If you published the package's templates, check these:
@@ -44,7 +48,11 @@ If you published the package's templates, check these:
 If your app binds its own subclass of `InertiaPageAnalyzer` or `InertiaSharedDataAnalyzer` in the container, update its overrides:
 
 - `InertiaPageAnalyzer::buildPageData()`, `InertiaPageAnalyzer::buildTypeStringWithOverrides()` and `InertiaSharedDataAnalyzer::normalizeOverrideKeys()` take new optional parameters. Add them to your override's signature, or PHP rejects the class.
-- `InertiaPageAnalyzer::parseTsCastsFromMethod()` and `InertiaSharedDataAnalyzer::parseTsCastsFromMiddleware()` also return an `optionalOverrides` map of each entry's `'optional'` flag. An override that returns the old shape still works, but its entries' `'optional'` flags are ignored.
+- `InertiaPageAnalyzer::parseTsCastsFromMethod()` and `InertiaSharedDataAnalyzer::parseTsCastsFromMiddleware()` also return an `optionalOverrides` map of each entry's `'optional'` flag. An override that returns the old shape still works, but its entries' imports and `'optional'` flags are ignored.
+
+### Custom Resource Transformers
+
+If you subclass `ResourceTransformer` and read the protected `castKeysWithImport()` method or the `$importedCastKeys` property, move to the new cast record. Both are gone.
 
 ## Upgrading to 2.0 From 1.x
 
