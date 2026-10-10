@@ -2,7 +2,7 @@
 
 ## Upgrading From 2.7
 
-The release after 2.7 changes what some `#[TsCasts]` entries publish, and what a merged model publishes. Numeric keys, list literals, enum cases, values built with `new`, and top-level integer keys now publish as Laravel sends them too. Run `php artisan ts:publish` after you update, and check the changes below against your generated files.
+The release after 2.7 changes what some `#[TsCasts]` entries publish, and what a merged model publishes. Numeric keys, list literals, enum cases, values built with `new`, and top-level integer keys also now publish as Laravel sends them. Run `php artisan ts:publish` after you update, and check the changes below against your generated files.
 
 ### `#[TsCasts]` Changes
 
@@ -38,13 +38,14 @@ A key built from literal text around a variable, written straight into the retur
 
 ### Values Publish as Laravel Sends Them
 
-These values now publish the type of what Laravel sends, so some generated types change:
+These values now publish what Laravel sends, so some generated types change:
 
 - **Numeric keys in API resources**: a resource sends an array whose keys are all numeric as a list. A key whose method returns `[1 => 'Basic', 2 => 'Pro']` published `{ "1": string; "2": string }`, and now publishes `string[]`. A numeric key beside a named key stays, and a resource with `$preserveKeys` keeps every key. See [Methods Declared as a Bare `array`](./api-resources.md#methods-declared-as-a-bare-array).
-- **Top-level integer keys on a page, shared data, or an event**: Inertia and Laravel merge a page's props, shared data, and a `broadcastWith()` payload with `array_merge()`, which renumbers integer keys from `0`. Such a key now publishes on the key Laravel sends, so `42 =>` publishes `"0"` where it published `"42"`. A numeric `#[TsCasts]` key there moves the same way, and `ts:publish` warns for each one. Use a string key instead.
+- **Top-level integer keys on a page, shared data, or an event**: Inertia merges shared data and page props, and Laravel merges a `broadcastWith()` payload, with `array_merge()`, which renumbers integer keys from `0`. A top-level `42 => …` key therefore publishes as `"0"` where it published `"42"`, and a numeric `#[TsCasts]` key there moves the same way. `ts:publish` warns that you probably meant a string key. Nested keys keep theirs.
 - **List literals**: a bare array literal such as `['a', 'b']` publishes the list it encodes as, `string[]`, as `collect([...])` does. It published `Record<string, unknown>` before. A list holding an element the package can't type publishes `unknown[]`.
 - **Enum cases**: a bare case such as `'status' => Status::Active` publishes the enum's type alias, `StatusType`, in resources, page props, shared data, events, and model metadata. In a model metadata provider, such a case used to stop the run.
 - **Resources built around `null`**: `new UserResource(null)` publishes `null`, the value Laravel sends, where it published `UserResource | null`.
+- **Values built with `new`**: a value built in place publishes what `json_encode()` writes, so `new DateTime()` publishes the date object and `new RuntimeException('x')` publishes `Record<string, never>`. Both published `unknown` before. See [Method Return Types](./api-resources.md#method-return-types) for the values that stay `unknown`.
 
 ### Published Templates
 
