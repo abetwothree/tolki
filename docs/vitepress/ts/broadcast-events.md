@@ -142,6 +142,8 @@ A spread helper that builds its keys by interpolation, such as `"{$name}_tag"`, 
 
 When an event has `broadcastWith()`, including one inherited from a parent class or a trait, only that method shapes the payload. The public properties aren't read. A key it renames, computes or drops shows up exactly that way. `['team' => $this->teamId, 'kind' => 'message', 'count' => count($this->items)]` becomes `{ team: number; kind: string; count: number }`, with no `teamId`.
 
+Laravel merges a `broadcastWith()` payload with `array_merge()`, which renumbers integer keys from `0`. A top-level `42 => …` key therefore publishes as `"0"`, and `ts:publish` warns that you probably meant a string key. Nested keys keep theirs.
+
 `broadcastWith()` can also build its array in a variable and return it. A key it writes on only some paths, such as inside an `if`, is optional:
 
 ```php

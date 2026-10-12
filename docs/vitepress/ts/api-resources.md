@@ -134,6 +134,8 @@ status: StatusType;
 
 `$this->resource->name` reads the same attribute, so it publishes the same type. A property you declare on the resource class itself, such as a promoted constructor parameter, takes its type from that declaration. It wins over a model attribute with the same name, as it does in PHP.
 
+An untyped property that nothing in the class, its parents, or its traits writes takes its default's type, so `protected $stage = Status::Draft;` publishes `StatusType`. A protected or private one declared without a value, such as `protected $name;`, publishes `null`.
+
 ### Conditional Methods
 
 Laravel's conditional methods publish optional properties (`?`), because the key can be missing from the response. Passing a default argument makes the property required, because the key is then always present. See [Passing a Default Argument](#passing-a-default-argument).
@@ -201,6 +203,8 @@ Laravel calls a default closure with no arguments, except in `transform()`. A cl
 ```
 
 A closure whose parameter has its own default, such as `fn ($notes = '') => strlen($notes)`, runs without arguments, and the parameter holds its default's type. Its return type joins the union as usual, and the property publishes `string | number`.
+
+On PHP 8.5 the default can also be a static closure or a first-class callable, such as `fn ($notes = strlen(...)) => $notes`. The parameter then holds `Record<string, never>`, because Laravel sends a `Closure` as `{}`.
 
 `transform()` calls its default with the blank value, so a one-parameter default runs, and its parameter holds the value's full type, `null` included. `$this->transform($this->rating, fn ($r) => 'x', fn ($r) => $r)` publishes `string | number | null`.
 
@@ -345,6 +349,8 @@ owner: UserResource | null;
 
 Inside another resource, Laravel sends a nested resource whose payload is `null` as `null`. So a resource built around a relation that can load `null` adds `| null`, as [Nullable Relations](#nullable-relations) describes. When the foreign key isn't nullable, `author` and `owner` publish `UserResource` without it. A list of resources, such as `tags`, never adds `| null`.
 
+A resource built around a literal `null`, such as `new UserResource(null)`, publishes `null`.
+
 A resource can reference itself:
 
 ```php
@@ -451,6 +457,8 @@ export interface TeamResource {
   audit: { status: AsEnum<typeof Status>[] | StatusType[] };
 }
 ```
+
+Without the wrapper, a bare case such as `'status' => Status::Active` publishes the enum's type alias, `StatusType`, which matches the value Laravel sends for a backed enum. A pure enum's case publishes its alias too.
 
 ### Merge Operations
 
@@ -620,6 +628,15 @@ Some of Laravel's own methods declare loose types, so the package reads the mode
 
 A method that returns a plain PHP `DateTime` or `DateTimeImmutable` publishes `{ date: string; timezone_type: number; timezone: string }`, the object `json_encode()` writes for it. A Carbon date publishes `string`, or `Date` under `timestamps_as_date`, and so do the `now()` and `today()` helpers, which return one. A `DateTimeInterface` can hold either kind, so it publishes the Carbon date's type or that object, and a `CarbonPeriod` publishes a list of the Carbon date's type. A `CarbonInterval` publishes the `DateInterval` fields `json_encode()` writes for it, such as `y`, `m`, `d` and `days`. `str($value)` publishes `string`, and `str()` with no argument publishes `Record<string, never>`. `url($path)` publishes `string` when the path can't be `null`, and `unknown` when it can or has no type.
 
+A value built in place publishes what `json_encode()` writes for it as well, so `new DateTime()` publishes that date object and `new RuntimeException('x')` publishes `Record<string, never>`. `new Collection($items)` publishes as `collect($items)` does. These values stay `unknown` when built in place:
+
+- An `Arrayable` or a `Responsable`
+- An Inertia `ProvidesInertiaProperty` class
+- A model
+- A class with no public property and no `__toString()`, such as `stdClass`
+
+Type such a key with [`#[TsCasts]`](#overriding-property-types-with-tscasts).
+
 A method that returns the base `Model` class, `Illuminate\Foundation\Auth\User`, an abstract model, or a model that isn't published, such as one in `models.excluded`, publishes `unknown`, because no published file has a type for it. Declare the concrete model as the return type, such as `: Order`, to type the value.
 
 #### Methods Declared as a Bare `array`
@@ -649,16 +666,18 @@ final class PriceQuoteService
 'tiers' => PriceQuoteService::tierLabels(),
 ```
 
-Both properties publish the shape of the returned array:
+Both properties publish the returned array as the resource sends it:
 
 ```typescript
 export interface QuoteResource {
   quote: { unit: string; minimum: number; discounted: { unit: string } };
-  tiers: { "1": string; "2": string };
+  tiers: string[];
 }
 ```
 
-Integer keys, written literally or as a constant such as `self::TIER_BASIC`, publish quoted, because JSON encodes such an array as an object. Resources drop integer keys from their own arrays and methods, so this applies only to classes that aren't resources.
+Integer keys, written literally or as a constant such as `self::TIER_BASIC`, publish as Laravel sends them. A resource sends an array whose keys are all numeric as a list, so `tiers` publishes `string[]`. A numeric key beside a named key stays, as in `{ name: string; "42": boolean }`, and a resource with `$preserveKeys`, or `#[PreserveKeys]` on Laravel 13, keeps every key.
+
+Outside a resource, such as in an Inertia page prop, `tiers` publishes `{ "1": string; "2": string }`, because JSON encodes such an array as an object. In a resource, `collect([...])` keeps its keys as the value of a top-level key, so `'codes' => collect([200 => 'OK', 404 => 'Not Found'])` publishes `{ "200": string; "404": string }`.
 
 A `?array` declaration keeps its `null`, so the method publishes the shape `| null`. An `array|false` declaration keeps its `false` the same way.
 
@@ -882,7 +901,7 @@ export interface PostResource {
 These helpers and methods publish as follows:
 
 - **`all()` and `values()`**: a collection and the array behind it both publish `X[]`, so `all()` changes nothing. A method that breaks sequential keys, such as `filter()`, `sortBy()`, or `keyBy()`, adds a `Record<string, X>` arm, because `json_encode()` writes such a collection as an object. `values()` restores sequential keys and removes that arm.
-- **`collect()`**: the element type comes from the argument, and the `map()` parameter holds that element, which is why `$word` above is a `string`. On its own, `collect([...])` publishes the list or object its array encodes as, such as `number[]` for `collect([1, 2])` or `{ title: string }` for `collect(['title' => $this->title])`. `collect()` with no argument publishes `never[]`.
+- **`collect()`**: the element type comes from the argument, and the `map()` parameter holds that element, which is why `$word` above is a `string`. On its own, `collect([...])` publishes the list or object its array encodes as, such as `number[]` for `collect([1, 2])` or `{ title: string }` for `collect(['title' => $this->title])`. `collect()` with no argument publishes `never[]`. A bare array literal publishes the same way, so `['a', 'b']` publishes `string[]`. A list holding an element the package can't type publishes `unknown[]`.
 - **`data_get()`**: `data_get($target, 'a.b')` publishes what `$target?->a?->b` would. A default joins the type instead of removing `null`, because `data_get()` returns the default only when the key is missing, not when its value is `null`.
 - **Typed `map()` parameters**: a model type hint on a `map()` parameter types every read through it, chained and nullsafe reads included, when you call `map()` on a variable such as a local or a `whenLoaded()` parameter. With `$rows = $this->resource->getRelation('comments')`, `$rows->map(fn (Comment $comment) => $comment->user?->name ?: null)->all()` publishes `(string | null)[]`. A relation chain such as `$this->comments->map(...)` uses the relation's model the same way. On a `collect(...)` root, or on a `map()` called straight on a method's result, such as `$this->resource->getRelation('comments')->map(...)`, the parameter holds no model, so reads through it publish `unknown`.
 
@@ -1244,6 +1263,8 @@ These rules decide each key:
 - **Other `return` statements**: the variable counts as one branch beside the method's other returns, so a `return []` guard, or a returned array literal that leaves a key out, makes that key optional.
 
 The package doesn't follow `$data[] = ...`, a key computed at runtime such as `$data[$key]`, a nested key such as `$data['meta']['label']`, or `unset()`. It also reads the method in one pass. A key written after an early `return $data;` publishes required when that write always runs, though the early return sends the array without it. In either case, return an array literal on each path, or list the keys with [`#[TsCasts]`](#overriding-property-types-with-tscasts), which can also mark a key optional.
+
+`+` publishes PHP's array union, where the left side's keys win and the right side adds the keys it lacks. That holds in a key's value, so `['code' => 'in'] + ['code' => 0, 'lane' => 2]` publishes `{ code: string; lane: number }`, and in a whole return, such as `return parent::toArray($request) + ['note' => 'none'];`.
 
 ### Return Branches and `@return` Shapes
 

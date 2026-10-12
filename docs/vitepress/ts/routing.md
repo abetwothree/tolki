@@ -357,7 +357,7 @@ These expressions are typed:
 
 - **Eloquent finders and collections**, typed from the model the chain starts at. `find()`, `first()` and `firstWhere()` are `Model | null`. `findOrFail()`, `firstOrFail()`, `sole()`, `create()`, `make()`, `firstOrCreate()`, `firstOrNew()` and `updateOrCreate()` are `Model`. `all()` and `get()` are `Model[]`. `paginate()`, `simplePaginate()` and `cursorPaginate()` are `LengthAwarePaginator<Model>`, `SimplePaginator<Model>` and `CursorPaginator<Model>`, imported from `@tolki/types`. `count()` is `number` and `exists()` is `boolean`.
 - **Route-bound model parameters**: a `Post $post` parameter is `Post` wherever a prop uses it.
-- **PHP enums**: a prop holding an enum is the enum's `{Name}Type` alias, imported from the generated [enums](./enums.md). A rename with [`#[TsEnum]`](./enums.md#tsenum) carries over, so `#[TsEnum(name: 'Size')] enum ShirtSize` gives you `size: SizeType`.
+- **PHP enums**: a prop holding an enum is the enum's `{Name}Type` alias, imported from the generated [enums](./enums.md). That includes a bare case, such as `'status' => Status::Active`. A rename with [`#[TsEnum]`](./enums.md#tsenum) carries over, so `#[TsEnum(name: 'Size')] enum ShirtSize` gives you `size: SizeType`.
 - **`$request->user()`**, typed through your `auth` config the same way [shared data](./inertia.md) is, and the typed `Request` reads such as `integer()`, `boolean()`, `string()` and `url()`.
 - **`compact()` and `array_merge()`**: passed as the whole props argument, as in `Inertia::render('Posts/Show', compact('post', 'comments'))` or `array_merge($base, [...])`, each types the same as the array literal it builds.
 - **Inertia v2 prop wrappers**: `defer()`, `optional()` and `lazy()` type as the value they wrap and make the key optional, since a partial reload can leave it out. `always()`, `merge()` and `deepMerge()` type as the value they wrap.
@@ -370,6 +370,8 @@ If two enums in different namespaces share a class name, such as `App\Enums\Stat
 :::
 
 A prop the package can't read is typed `unknown`, and the run carries on. Use [`#[TsCasts]`](#overriding-props-with-tscasts) to set its type.
+
+Inertia merges shared data and page props with `array_merge()`, which renumbers integer keys from `0`. A top-level `42 => …` key therefore publishes as `"0"`, and `ts:publish` warns that you probably meant a string key. Nested keys keep theirs.
 
 Sometimes the package can't analyze an action at all, for example because a class the action depends on fails to load. That route then publishes as a plain helper with no page-props type, and `ts:publish` names the action in a warning after the run. The rest of the run still finishes.
 
