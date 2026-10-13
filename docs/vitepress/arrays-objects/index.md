@@ -41,7 +41,7 @@ yarn add @tolki/data
 
 ## Choosing a package
 
-Each package holds the same helpers, so the choice comes down to what your data looks like. `@tolki/data` depends on the other two, so installing it also installs them.
+The packages share almost all of their helpers, so the choice comes down to what your data looks like. `@tolki/data` depends on the other two, so installing it also installs them.
 
 | Package                                                    | Works on                                         | Function names                      | Pick it when                                                         |
 | ---------------------------------------------------------- | ------------------------------------------------ | ----------------------------------- | -------------------------------------------------------------------- |
@@ -49,7 +49,7 @@ Each package holds the same helpers, so the choice comes down to what your data 
 | [`@tolki/obj`](https://www.npmjs.com/package/@tolki/obj)   | Plain objects                                    | `get`, `first`, `pluck`             | Your data is always a keyed record.                                  |
 | [`@tolki/data`](https://www.npmjs.com/package/@tolki/data) | Arrays, plain objects and Maps, decided per call | `dataGet`, `dataFirst`, `dataPluck` | The shape is only known at runtime, as with parsed JSON or API data. |
 
-`@tolki/arr` and `@tolki/obj` use the same names, so switching between them means changing the import. `@tolki/data` prefixes its names with `data`, so they can sit next to either package without a clash.
+`@tolki/arr` and `@tolki/obj` use the same names for the helpers they share, so switching between them usually means changing the import. A few exist in only one or two packages: `flattenDot` is only in `@tolki/obj`, and `count`, `search`, `before` and `after` are only in `@tolki/data`. `@tolki/data` prefixes its names with `data`, so they can sit next to either package without a clash.
 
 ## How `@tolki/data` decides
 
