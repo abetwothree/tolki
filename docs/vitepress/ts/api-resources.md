@@ -778,16 +778,28 @@ public function toArray(Request $request): array
 
 A closure that captures the variable by value, with `use ($member)`, and reassigns it doesn't change the outer variable either. Only `use (&$member)` does. An arrow function never does.
 
-A variable you write more than once publishes `unknown`, because the package can't tell which value reaches the response. That includes a second assignment inside an `if` or a loop, a `foreach` that assigns it, a `catch`, `unset()`, `static` or `global`, and changes through `.=`, `++`, or a reference. It also includes passing the variable to a by-reference parameter, such as `preg_match()`'s `$matches`, `settype()`, `parse_str()`, or one of your own methods. A variable assigned only inside an `if`, a loop, or another block also publishes `unknown`. Variables assigned inside a closure body follow the same rules within that closure.
+A variable you write more than once publishes `unknown`, because the package can't tell which value reaches the response. That includes a second assignment inside an `if` or a loop, a `foreach` that assigns it, a `catch`, `unset()`, `static` or `global`, and changes through `.=`, `++`, or a reference. It also includes passing the variable to a by-reference parameter, such as `preg_match()`'s `$matches`, `settype()`, `parse_str()`, or one of your own methods. A variable assigned only inside an `if`, a loop, or another block also publishes `unknown`. Variables assigned inside a closure body follow the same rules within that closure. A reassignment inside an `if` branch that ends in `return` or `throw` applies only inside that branch, so the code after it keeps reading the original variable.
 
 A by-reference built-in that keeps the value's form keeps its type:
 
-- `ksort()` and `uksort()` keep any array.
+- `ksort()` keeps any array. With flags that compare keys as strings, such as `SORT_STRING`, it keeps only an array that publishes as an object.
+- `uksort()`, `krsort()`, `asort()`, `arsort()`, `uasort()`, `natsort()` and `natcasesort()` keep only an array that publishes as an object, such as `{ b: number; a: number }`.
 - `sort()`, `rsort()`, `usort()` and `shuffle()` keep a list, such as `string[]`. They re-index an array that publishes as an object, so such a variable publishes `unknown`.
-- `asort()`, `arsort()`, `krsort()`, `uasort()`, `natsort()` and `natcasesort()` keep an array that publishes as an object, such as `{ b: number; a: number }`.
+- `array_pop()` and `array_shift()` keep a list. On an array that publishes as an object the variable publishes `unknown`, because a key the shape requires may be gone.
+- `array_push()`, `array_unshift()` and `array_splice()` keep a list when each value you add fits its element type.
 - The `$count` argument of `str_replace()`, `str_ireplace()`, `preg_replace()` and `preg_replace_callback()` keeps `number`.
-- `array_push()` and `array_unshift()` keep a list when each value you add fits its element type.
 - `array_walk()` and a `foreach` by reference keep the type when each write in the callback or the loop fits the element's type. `array_walk_recursive()` keeps a nested array's type when each write fits the leaves it visits.
+
+A key-keeping sort on a list reorders its keys, so what it publishes depends on where the value goes. In an API resource it still publishes the list, because Laravel re-indexes the result. In Inertia props and other places that send the value as-is, it publishes `Record<number, T>`.
+
+In an `array_walk()` callback, a compound write counts as the operation it performs: `.=` writes a string, and `+=`, `-=`, `*=`, `/=`, `%=`, `**=` and `++` write a number. The callback sees only its own parameters and its `use` imports. An arrow function also sees the outer scope.
+
+A copy taken before the call keeps the type the variable had, and a copy taken after it reads what the call left:
+
+```php
+$copy = $original;
+sort($original); // $copy keeps the type $original had before the sort
+```
 
 A call on one of a local's keys, such as `sort($groups['x'])`, keeps the local's type when it keeps that key's form.
 
