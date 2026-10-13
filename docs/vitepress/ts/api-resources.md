@@ -138,7 +138,7 @@ An untyped property that nothing in the class, its parents, or its traits writes
 
 ### Conditional Methods
 
-Laravel's conditional methods publish optional properties (`?`), because the key can be missing from the response. Passing a default argument makes the property required, because the key is then always present. See [Passing a Default Argument](#passing-a-default-argument).
+Laravel's conditional methods publish optional properties (`?`), because the key can be missing from the response. Passing a default argument makes the property required, because the key is then always present. The exception is a value or a default that is itself a conditional value, such as `$this->whenLoaded('author')`. See [Passing a Default Argument](#passing-a-default-argument).
 
 | Method                                                    | Includes the key when                       | Published type                                                                                                                         |
 | --------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
@@ -169,7 +169,7 @@ To see when `whenLoaded()` or a resource built around a relation adds `| null`, 
 
 #### Passing a Default Argument
 
-Every conditional method accepts a trailing default argument. When you pass one, Laravel always includes the key, so the property is required. The default's type joins the value's type:
+Every conditional method accepts a trailing default argument. When you pass one, Laravel includes the key whether or not the condition holds, so the property is required, unless the value or the default can itself be missing. The default's type joins the value's type:
 
 ```php
 'discount' => $this->when($this->has_discount, $this->discount_percent),        // discount?: number
@@ -189,7 +189,14 @@ A default of the value's own type makes the property required without widening i
 
 An explicit `null` counts as a default, because Laravel checks whether you passed the argument, not what it holds. So `$this->whenLoaded('user', fn ($user) => $user, null)` is required, and it publishes `User | null` instead of `User`.
 
-A default always makes the property required, but two cases leave its type as it was:
+A value or a default that is itself a conditional value keeps the property optional, because Laravel still drops the key when that value is missing:
+
+```php
+'author' => $this->when($flag, $this->whenLoaded('author'), 'none'), // author?: User | string
+'author' => $this->when($flag, 'none', $this->whenLoaded('author')), // author?: string | User
+```
+
+Any other default makes the property required, but two cases leave its type as it was:
 
 - **A default the package can't type**: the value's type stands alone. This covers an expression or closure the package can't read.
 - **A value the package can't type**: for `when()`, `unless()`, `whenHas()`, `whenAppended()`, `whenPivotLoaded()`, and `whenPivotLoadedAs()`, the property publishes `unknown`, which already covers any default.
@@ -626,6 +633,10 @@ A property read works the same way. Once `$post` holds a `Post`, `$post?->author
 
 Some of Laravel's own methods declare loose types, so the package reads the model instead. `getKey()` publishes the model's key type, `number` or `string`, and `modelKeys()` publishes a list of it. That's why `comment_ids` above is `number[]`. `resolveRouteBinding()` publishes the model you call it on, or `null`, so `$this->author?->resolveRouteBinding($this->user_id)` publishes `User | null`.
 
+A model you build in place with `new`, `replicate()`, `replicateQuietly()` or `newInstance()` has no key until you save it, so its `getKey()` adds `| null`: `(new Post)->getKey()` publishes `number | null`. On a model whose `$primaryKey` is `null`, `getKey()` publishes `null`.
+
+On an abstract model, `getKey()` publishes the key type the class declares, through `$keyType`, `HasUuids`, `HasUlids` or Laravel 13's `#[Table]`, joined with the key type of each published model that extends it. So a base whose subclasses key by integer and by UUID publishes `number | string`. When the abstract model works its key out in code, such as in an overridden `getKeyType()`, `getKey()` publishes `unknown`.
+
 A method that returns a plain PHP `DateTime` or `DateTimeImmutable` publishes `{ date: string; timezone_type: number; timezone: string }`, the object `json_encode()` writes for it. A Carbon date publishes `string`, or `Date` under `timestamps_as_date`, and so do the `now()` and `today()` helpers, which return one. A `DateTimeInterface` can hold either kind, so it publishes the Carbon date's type or that object, and a `CarbonPeriod` publishes a list of the Carbon date's type. A `CarbonInterval` publishes the `DateInterval` fields `json_encode()` writes for it, such as `y`, `m`, `d` and `days`. `str($value)` publishes `string`, and `str()` with no argument publishes `Record<string, never>`. `url($path)` publishes `string` when the path can't be `null`, and `unknown` when it can or has no type.
 
 A value built in place publishes what `json_encode()` writes for it as well, so `new DateTime()` publishes that date object and `new RuntimeException('x')` publishes `Record<string, never>`. `new Collection($items)` publishes as `collect($items)` does. These values stay `unknown` when built in place:
@@ -681,14 +692,31 @@ Outside a resource, such as in an Inertia page prop, `tiers` publishes `{ "1": s
 
 A `?array` declaration keeps its `null`, so the method publishes the shape `| null`. An `array|false` declaration keeps its `false` the same way.
 
-In these cases, the package can't use the method body, and the property publishes `unknown`:
+What the body reads from the method's parameters is typed too, whether you use its result as a value or spread it. Each parameter holds its declared type, from the signature, or from a `@param` tag when the signature's type is missing or vague, such as `array`. A parameter with no type, or only `mixed`, holds what each call passes. A closure you pass is the exception: in `$this->hold(fn () => 5)`, the parameter holds `unknown`, because a resource sends a closure as `{}`. A first-class callable that Laravel calls gets the value Laravel calls it with, as in `whenLoaded()`:
 
-- The method can return something other than an array literal, apart from a `null`, boolean, string, or number literal its declaration allows. Returning another method call, a generator, or a bare `return;` all count.
-- A value in the array is an enum or a model. A method body can't supply the import these need. Give the method a native return type, or a `@return array{...}` docblock, to type it.
+```php
+'card' => $this->card($this->resource),                              // card: { id: number; title: string }
+'author_card' => $this->authorCard($this->author),                    // author_card: { name: string }
+'loaded_card' => $this->whenLoaded('author', $this->authorCard(...)), // loaded_card?: { name: string }
 
-A model's own `toArray()`, called as a value, also publishes `unknown`, because the relations it includes depend on what's loaded at runtime. Spread it instead, as [Model `toArray()` Spread](#model-toarray-spread) shows.
+private function card(Post $post): array
+{
+    return ['id' => $post->id, 'title' => $post->title];
+}
 
-An `only()` or `except()` call is the exception to the enum-and-model rule. Its result names no class, so the rest of the shape survives:
+private function authorCard($author): array
+{
+    return ['name' => $author->name];
+}
+```
+
+The package can't use the method body when the method can return something other than an array literal, apart from a `null`, boolean, string, or number literal its declaration allows. Returning another method call, a generator, or a bare `return;` all count. The property then publishes `unknown`.
+
+When you use the method's result as a value, a value in the array that is an enum or a model publishes `unknown`, because a method body can't supply the import it needs. The rest of the shape keeps its types. Spreading the same method keeps an enum's type. To type that value, build the array in `toArray()` itself, or override the property with [`#[TsCasts]`](#overriding-property-types-with-tscasts) and a type your frontend exports, as in `['type' => 'StatusPayload', 'import' => '@/types/payloads']`. An entry imports only a type it names whole, so a type named inside a shape you write in the entry isn't imported.
+
+A model's own `toArray()`, called as a value, publishes `Record<string, unknown>`, because the relations it includes depend on what's loaded at runtime. A relation's collection, as in `$this->comments->toArray()`, publishes `Record<string, unknown>[]`. To publish the model's keys, spread it instead, as [Model `toArray()` Spread](#model-toarray-spread) shows.
+
+An `only()` or `except()` call names no class, so its result keeps its shape:
 
 - A literal key list publishes its inline shape, with any enum- or model-typed member left `unknown`.
 - A runtime key list publishes `Record<string, unknown>`.
@@ -732,6 +760,8 @@ public function toArray(Request $request): array
 }
 ```
 
+A conditional value keeps its `?` through the variable, and through a `??` or a ternary. With `$loaded = $this->whenLoaded('author')`, `'author' => $loaded ?? 'none'` publishes `author?: User | string`: a missing value isn't `null`, so `??` returns it, and Laravel drops the key.
+
 A closure or arrow-function parameter with the same name doesn't affect the outer variable. Inside its own closure, the parameter holds its own value:
 
 ```php
@@ -746,7 +776,32 @@ public function toArray(Request $request): array
 }
 ```
 
-A variable you write more than once publishes `unknown`, because the package can't tell which value reaches the response. That includes a second assignment inside an `if` or a loop, a `foreach` that assigns it, and changes through `.=`, `++`, or a reference. A variable assigned only inside an `if`, a loop, or another block also publishes `unknown`. Variables assigned inside a closure body follow the same rules within that closure.
+A closure that captures the variable by value, with `use ($member)`, and reassigns it doesn't change the outer variable either. Only `use (&$member)` does. An arrow function never does.
+
+A variable you write more than once publishes `unknown`, because the package can't tell which value reaches the response. That includes a second assignment inside an `if` or a loop, a `foreach` that assigns it, a `catch`, `unset()`, `static` or `global`, and changes through `.=`, `++`, or a reference. It also includes passing the variable to a by-reference parameter, such as `preg_match()`'s `$matches`, `settype()`, `parse_str()`, or one of your own methods. A variable assigned only inside an `if`, a loop, or another block also publishes `unknown`. Variables assigned inside a closure body follow the same rules within that closure. A reassignment inside an `if` branch that ends in `return` or `throw` applies only inside that branch, so the code after it keeps reading the original variable.
+
+A by-reference built-in that keeps the value's form keeps its type:
+
+- `ksort()` keeps any array. With flags that compare keys as strings, such as `SORT_STRING`, it keeps only an array that publishes as an object.
+- `uksort()`, `krsort()`, `asort()`, `arsort()`, `uasort()`, `natsort()` and `natcasesort()` keep only an array that publishes as an object, such as `{ b: number; a: number }`.
+- `sort()`, `rsort()`, `usort()` and `shuffle()` keep a list, such as `string[]`. They re-index an array that publishes as an object, so such a variable publishes `unknown`.
+- `array_pop()` and `array_shift()` keep a list. On an array that publishes as an object the variable publishes `unknown`, because a key the shape requires may be gone.
+- `array_push()`, `array_unshift()` and `array_splice()` keep a list when each value you add fits its element type.
+- The `$count` argument of `str_replace()`, `str_ireplace()`, `preg_replace()` and `preg_replace_callback()` keeps `number`.
+- `array_walk()` and a `foreach` by reference keep the type when each write in the callback or the loop fits the element's type. `array_walk_recursive()` keeps a nested array's type when each write fits the leaves it visits.
+
+A key-keeping sort on a list reorders its keys, so what it publishes depends on where the value goes. In an API resource it still publishes the list, because Laravel re-indexes the result. In Inertia props and other places that send the value as-is, it publishes `Record<number, T>`.
+
+In an `array_walk()` callback, a compound write counts as the operation it performs: `.=` writes a string, and `+=`, `-=`, `*=`, `/=`, `%=`, `**=` and `++` write a number. The callback sees only its own parameters and its `use` imports. An arrow function also sees the outer scope.
+
+A copy taken before the call keeps the type the variable had, and a copy taken after it reads what the call left:
+
+```php
+$copy = $original;
+sort($original); // $copy keeps the type $original had before the sort
+```
+
+A call on one of a local's keys, such as `sort($groups['x'])`, keeps the local's type when it keeps that key's form.
 
 These rules cover a variable you read as a value. For a variable that `toArray()` returns, the package follows each write instead, as [Building the Array in a Variable](#building-the-array-in-a-variable) describes.
 
@@ -858,18 +913,21 @@ The annotation follows these rules:
 - **Span**: it types the reads after that statement, up to the next statement that writes the variable. A loop that writes the variable ends the span where the loop starts. So an annotation also types a variable you reassign, until its next write.
 - **Precedence**: it applies only where the package's own reading of the value is `unknown`, or is only the `null` left after an arm it can't type was dropped. Any other reading stands, whatever the annotation says: `/** @var int $n */ $n = $this->title;` still publishes `string`. To override a type the package got wrong, use [`#[TsCasts]`](#overriding-property-types-with-tscasts).
 
-A conditional value stays optional, so `/** @var User $reviewer */ $reviewer = $this->whenLoaded('reviewer');` publishes `reviewer?: User`. When `$x` is a closure parameter or a `foreach` variable bound to a model, `$x->prop` and `$x->m()` keep reading that model, even after an annotated reassignment.
+A conditional value stays optional, so `/** @var User $reviewer */ $reviewer = $this->whenLoaded('reviewer');` publishes `reviewer?: User`.
+
+A closure parameter you reassign reads the new value from that statement on, when the value or an annotation names its class. In `function (User $author)`, `$author = $author->profile;` makes the reads after it use `Profile`. The package can't tell which class `$author->comments->first()` returns, so after `$author = $author->comments->first();` the reads keep using `User` until you annotate the assignment with `/** @var Comment $author */`. A `foreach` variable bound to a model keeps reading that model.
 
 The annotation's type counts only when it's built from these forms, and when every part of it resolves:
 
 - Scalars: `int`, `string`, `bool`, `float`, `null`, `true`, and `false`
 - A class, interface, or enum that the file imports or writes in full
-- Unions of these, such as `Comment|User|null`, and `?` before a scalar or a class
-- `list<X>`, `array<int, X>`, and `array<string, X>`
-- `array{...}` shapes with plain identifier keys
+- `list<X>`, `array<int, X>`, `array<string, X>`, and `array<'a'|'b', X>`
+- `array{...}` and `object{...}` shapes with plain or quoted keys, and `list{...}` tuples
 - `Collection<K, X>`, for both Laravel's support collection and its Eloquent collection
+- A `callable` as a shape's member, which publishes `unknown`
+- Unions of these forms, such as `Comment|User|null` or `list<User>|User`, and `?` before any form
 
-Any other type is ignored. Write `array{a: int}|null` instead of `?array{a: int}`, and `list<int>` instead of `int[]`. A union that names a class both alone and inside a list, such as `list<User>|User`, is ignored too, and so is a model inside a shape.
+Any other type is ignored, so write `list<int>` instead of `int[]`. A model or enum inside a shape is ignored too. A `?` before a shape adds `| null` even when a member already holds `null`, so `?array{a: ?int}` publishes `{ a: number | null } | null`.
 
 ### Collection Pipelines
 
@@ -1426,7 +1484,7 @@ A value the body typed itself stands, even beside a key it can't take in, an ove
 
 ### Model `toArray()` Spread
 
-Spreading a model's own `toArray()` into an array literal with other keys intersects the model's interface with those keys, instead of publishing `unknown[]`:
+Spreading a model's own `toArray()` into an array literal with other keys intersects the model's interface with those keys, instead of publishing `Record<string, unknown>`:
 
 ```php
 'members' => $this->whenLoaded('members', fn ($members) => $members->map(
