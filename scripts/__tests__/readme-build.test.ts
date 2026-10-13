@@ -1,0 +1,283 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { describe, expect, it } from "vitest";
+
+import {
+    assembleDocsContent,
+    filterPackageVariants,
+    rewriteRelativeDocLinks,
+} from "../readme-build.ts";
+
+const DOCS_DIR = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "..",
+    "docs",
+    "vitepress",
+);
+
+const FENCE = "```";
+
+/**
+ * Builds a code group whose tabs are the given titles.
+ *
+ * @param titles - Tab titles in order.
+ * @returns The group as VitePress source.
+ */
+function group(...titles: string[]): string {
+    const tabs = titles.map(
+        (title) => `${FENCE}ts [${title}]\nuse("${title}");\n${FENCE}`,
+    );
+
+    return `::: code-group\n\n${tabs.join("\n\n")}\n\n:::`;
+}
+
+const THREE = group("@tolki/arr", "@tolki/obj", "@tolki/data");
+
+describe("filterPackageVariants", () => {
+    it("keeps only the package's tab", () => {
+        const result = filterPackageVariants(
+            `### get\n\nRead a value.\n\n${THREE}\n`,
+            "@tolki/obj",
+        );
+
+        expect(result).toContain('use("@tolki/obj");');
+        expect(result).not.toContain('use("@tolki/arr");');
+        expect(result).not.toContain('use("@tolki/data");');
+        expect(result).not.toContain("[@tolki/arr]");
+    });
+
+    it("drops a section the package lacks", () => {
+        const doc = [
+            "[count](#count) [get](#get)",
+            "",
+            "### count",
+            "",
+            "Count items.",
+            "",
+            group("@tolki/data"),
+            "",
+            "### get",
+            "",
+            "Read a value.",
+            "",
+            group("@tolki/arr", "@tolki/data"),
+            "",
+        ].join("\n");
+        const result = filterPackageVariants(doc, "@tolki/arr");
+
+        expect(result).not.toContain("### count");
+        expect(result).not.toContain("Count items.");
+        expect(result).not.toContain("[count](#count)");
+        expect(result).toContain("[get](#get)");
+        expect(result.startsWith("[get](#get)\n")).toBe(true);
+        expect(result).toContain("### get");
+    });
+
+    it("removes one space beside a dropped chip wherever it sits", () => {
+        const doc = [
+            "[a](#a) [count](#count) [b](#b) [count](#count)",
+            "",
+            "### a",
+            "",
+            group("@tolki/arr"),
+            "",
+            "### count",
+            "",
+            group("@tolki/data"),
+            "",
+            "### b",
+            "",
+            group("@tolki/arr"),
+            "",
+        ].join("\n");
+
+        expect(filterPackageVariants(doc, "@tolki/arr").split("\n")[0]).toBe(
+            "[a](#a) [b](#b)",
+        );
+    });
+
+    it("keeps a section shared by all three", () => {
+        const result = filterPackageVariants(
+            `### get\n\nRead a value.\n\n${THREE}\n`,
+            "@tolki/arr",
+        );
+
+        expect(result).toContain("### get");
+        expect(result).toContain("Read a value.");
+        expect(result).toContain('use("@tolki/arr");');
+    });
+
+    it("ends a section at the next heading of the same or a higher level", () => {
+        const doc = [
+            "## Group",
+            "",
+            "### count",
+            "",
+            group("@tolki/data"),
+            "",
+            "#### detail",
+            "",
+            "Detail text.",
+            "",
+            "### get",
+            "",
+            group("@tolki/arr"),
+            "",
+        ].join("\n");
+        const result = filterPackageVariants(doc, "@tolki/arr");
+
+        expect(result).toContain("## Group");
+        expect(result).not.toContain("### count");
+        expect(result).not.toContain("#### detail");
+        expect(result).not.toContain("Detail text.");
+        expect(result).toContain("### get");
+    });
+
+    it("computes dropped slugs on the unfiltered document", () => {
+        const doc = [
+            "[x](#dup) [y](#dup-1)",
+            "",
+            "### dup",
+            "",
+            group("@tolki/arr"),
+            "",
+            "### dup",
+            "",
+            group("@tolki/data"),
+            "",
+        ].join("\n");
+
+        expect(filterPackageVariants(doc, "@tolki/arr").split("\n")[0]).toBe(
+            "[x](#dup)",
+        );
+    });
+
+    it("ignores headings and chips inside fences", () => {
+        const doc = [
+            `${FENCE}md`,
+            "### literal",
+            "[count](#count)",
+            FENCE,
+            "",
+            "### count",
+            "",
+            group("@tolki/data"),
+            "",
+        ].join("\n");
+        const result = filterPackageVariants(doc, "@tolki/arr");
+
+        expect(result).toContain("### literal");
+        expect(result).toContain("[count](#count)");
+        expect(result).not.toContain("### count\n");
+    });
+
+    it("leaves package-manager groups alone", () => {
+        const doc = `### Install\n\n${group("npm", "yarn", "pnpm")}\n`;
+
+        expect(filterPackageVariants(doc, "@tolki/arr")).toBe(doc);
+    });
+
+    it("leaves a group that mixes package and other titles alone", () => {
+        const doc = `### Mixed\n\n${group("@tolki/obj", "npm")}\n`;
+
+        expect(filterPackageVariants(doc, "@tolki/arr")).toBe(doc);
+    });
+
+    it("drops only the group when no heading encloses it", () => {
+        const doc = `Intro.\n\n${group("@tolki/data")}\n\nOutro.\n`;
+        const result = filterPackageVariants(doc, "@tolki/arr");
+
+        expect(result).toContain("Intro.");
+        expect(result).toContain("Outro.");
+        expect(result).not.toContain("@tolki/data");
+    });
+
+    it("keeps untitled fences inside a variant group", () => {
+        const doc = [
+            "### get",
+            "",
+            "::: code-group",
+            "",
+            `${FENCE}ts`,
+            "plain();",
+            FENCE,
+            "",
+            `${FENCE}ts [@tolki/obj]`,
+            "other();",
+            FENCE,
+            "",
+            ":::",
+            "",
+        ].join("\n");
+        const result = filterPackageVariants(doc, "@tolki/obj");
+
+        expect(result).toContain("### get");
+        expect(result).toContain("other();");
+        expect(result).toContain("plain();");
+    });
+
+    it("keeps a section when every tab matches", () => {
+        const doc = `### get\n\n${group("@tolki/arr")}\n`;
+
+        expect(filterPackageVariants(doc, "@tolki/arr")).toBe(
+            `### get\n\n::: code-group\n\n${FENCE}ts [@tolki/arr]\nuse("@tolki/arr");\n${FENCE}\n\n:::\n`,
+        );
+    });
+
+    it("is the identity for pages without variant groups", () => {
+        for (const page of [
+            "strings/string-utilities-list.md",
+            "numbers/number-utilities-list.md",
+            "typescript/typescript-utilities-list.md",
+            "ts/index.md",
+        ]) {
+            const raw = fs.readFileSync(path.join(DOCS_DIR, page), "utf-8");
+
+            expect(filterPackageVariants(raw, "@tolki/arr")).toBe(raw);
+        }
+    });
+});
+
+describe("rewriteRelativeDocLinks", () => {
+    it("rewrites sibling doc links", () => {
+        expect(
+            rewriteRelativeDocLinks("[x](./foo.md#bar) [y](./baz.md)", "ts"),
+        ).toBe(
+            "[x](https://tolki.abe.dev/ts/foo.html#bar) [y](https://tolki.abe.dev/ts/baz.html)",
+        );
+    });
+
+    it("rewrites parent-relative doc links", () => {
+        expect(
+            rewriteRelativeDocLinks(
+                "[x](../collections/methods-list.md#pluck)",
+                "arrays-objects",
+            ),
+        ).toBe(
+            "[x](https://tolki.abe.dev/collections/methods-list.html#pluck)",
+        );
+    });
+
+    it("rewrites a parent-relative link without a fragment", () => {
+        expect(
+            rewriteRelativeDocLinks("[x](../collections/differences.md)", "a"),
+        ).toBe("[x](https://tolki.abe.dev/collections/differences.html)");
+    });
+});
+
+describe("assembleDocsContent", () => {
+    it("filters a shared page to the package's own tab", () => {
+        const withPackage = assembleDocsContent(["ts/index.md"], "@tolki/arr");
+
+        expect(withPackage).toBe(assembleDocsContent(["ts/index.md"]));
+    });
+
+    it("skips a missing doc file", () => {
+        expect(assembleDocsContent(["does/not-exist.md"], "@tolki/arr")).toBe(
+            "",
+        );
+    });
+});
