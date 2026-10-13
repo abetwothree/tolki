@@ -692,7 +692,7 @@ Outside a resource, such as in an Inertia page prop, `tiers` publishes `{ "1": s
 
 A `?array` declaration keeps its `null`, so the method publishes the shape `| null`. An `array|false` declaration keeps its `false` the same way.
 
-What the body reads from the method's parameters is typed too, whether you use its result as a value or spread it. Each parameter holds its declared type, from the signature, or from a `@param` tag when the signature's type is missing or vague, such as `array`. A parameter with no type, or only `mixed`, holds what each call passes, and a first-class callable gets the value Laravel calls it with, as in `whenLoaded()`:
+What the body reads from the method's parameters is typed too, whether you use its result as a value or spread it. Each parameter holds its declared type, from the signature, or from a `@param` tag when the signature's type is missing or vague, such as `array`. A parameter with no type, or only `mixed`, holds what each call passes. A closure you pass is the exception: in `$this->hold(fn () => 5)`, the parameter holds `unknown`, because a resource sends a closure as `{}`. A first-class callable that Laravel calls gets the value Laravel calls it with, as in `whenLoaded()`:
 
 ```php
 'card' => $this->card($this->resource),                              // card: { id: number; title: string }
@@ -712,7 +712,7 @@ private function authorCard($author): array
 
 The package can't use the method body when the method can return something other than an array literal, apart from a `null`, boolean, string, or number literal its declaration allows. Returning another method call, a generator, or a bare `return;` all count. The property then publishes `unknown`.
 
-A value in the array that is an enum or a model publishes `unknown`, because a method body can't supply the import it needs. The rest of the shape keeps its types. To type that value, override the property with [`#[TsCasts]`](#overriding-property-types-with-tscasts) and an `import`.
+When you use the method's result as a value, a value in the array that is an enum or a model publishes `unknown`, because a method body can't supply the import it needs. The rest of the shape keeps its types. Spreading the same method keeps an enum's type. To type that value, build the array in `toArray()` itself, or override the property with [`#[TsCasts]`](#overriding-property-types-with-tscasts) and a type your frontend exports, as in `['type' => 'StatusPayload', 'import' => '@/types/payloads']`. An entry imports only a type it names whole, so a type named inside a shape you write in the entry isn't imported.
 
 A model's own `toArray()`, called as a value, publishes `Record<string, unknown>`, because the relations it includes depend on what's loaded at runtime. A relation's collection, as in `$this->comments->toArray()`, publishes `Record<string, unknown>[]`. To publish the model's keys, spread it instead, as [Model `toArray()` Spread](#model-toarray-spread) shows.
 
@@ -776,7 +776,20 @@ public function toArray(Request $request): array
 }
 ```
 
-A variable you write more than once publishes `unknown`, because the package can't tell which value reaches the response. That includes a second assignment inside an `if` or a loop, a `foreach` that assigns it, a `catch`, `unset()`, `static` or `global`, changes through `.=`, `++`, or a reference, and passing it to a by-reference parameter, as `sort($items)` does. A variable assigned only inside an `if`, a loop, or another block also publishes `unknown`. Variables assigned inside a closure body follow the same rules within that closure.
+A closure that captures the variable by value, with `use ($member)`, and reassigns it doesn't change the outer variable either. Only `use (&$member)` does. An arrow function never does.
+
+A variable you write more than once publishes `unknown`, because the package can't tell which value reaches the response. That includes a second assignment inside an `if` or a loop, a `foreach` that assigns it, a `catch`, `unset()`, `static` or `global`, and changes through `.=`, `++`, or a reference. It also includes passing the variable to a by-reference parameter, such as `preg_match()`'s `$matches`, `settype()`, `parse_str()`, or one of your own methods. A variable assigned only inside an `if`, a loop, or another block also publishes `unknown`. Variables assigned inside a closure body follow the same rules within that closure.
+
+A by-reference built-in that keeps the value's form keeps its type:
+
+- `ksort()` and `uksort()` keep any array.
+- `sort()`, `rsort()`, `usort()` and `shuffle()` keep a list, such as `string[]`. They re-index an array that publishes as an object, so such a variable publishes `unknown`.
+- `asort()`, `arsort()`, `krsort()`, `uasort()`, `natsort()` and `natcasesort()` keep an array that publishes as an object, such as `{ b: number; a: number }`.
+- The `$count` argument of `str_replace()`, `str_ireplace()`, `preg_replace()` and `preg_replace_callback()` keeps `number`.
+- `array_push()` and `array_unshift()` keep a list when each value you add fits its element type.
+- `array_walk()` and a `foreach` by reference keep the type when each write in the callback or the loop fits the element's type. `array_walk_recursive()` keeps a nested array's type when each write fits the leaves it visits.
+
+A call on one of a local's keys, such as `sort($groups['x'])`, keeps the local's type when it keeps that key's form.
 
 These rules cover a variable you read as a value. For a variable that `toArray()` returns, the package follows each write instead, as [Building the Array in a Variable](#building-the-array-in-a-variable) describes.
 

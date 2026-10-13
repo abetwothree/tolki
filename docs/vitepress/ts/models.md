@@ -476,7 +476,7 @@ class Message extends Model { ... }
 
 `$to` and `$headers` publish as `string[] | null` and `Record<string, string> | null` instead of `unknown[] | null`, and PHPStan and Larastan type the same properties.
 
-A tag can also spell a tuple, an object shape, quoted or string literal keys, or a nullable shape inside another. `list{int, string}` publishes the tuple `[number, string]`, `object{a: int}` publishes `{ a: number }`, `array<'a'|'b', int>` publishes `{ a?: number; b?: number }`, and `array{a: ?array{b: int}}` publishes `{ a: { b: number } | null }`. A `callable` publishes `unknown`.
+A tag can also spell a tuple, an object shape, quoted or string literal keys, or a nullable shape inside another. `list{int, string}` publishes the tuple `[number, string]`, `object{a: int}` publishes `{ a: number }`, `array<'a'|'b', int>` publishes `{ a?: number; b?: number }`, and `array{a: ?array{b: int}}` publishes `{ a: { b: number } | null }`. A `callable` inside a shape publishes `unknown`.
 
 On a nullable column, the tag's type gains `| null` unless it already holds `null` at its top level. A `null` inside a shape doesn't count, so `@property array{a: ?int} $meta` publishes `{ a: number | null } | null`.
 
