@@ -24,6 +24,7 @@ export type CoverageIssue =
       };
 
 type PackageName = "arr" | "obj" | "data";
+type PageScope = "arrays-objects" | "collections";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DOCS_ROOT = path.join(ROOT, "docs", "vitepress");
@@ -318,11 +319,11 @@ function selected(
 /**
  * Checks both list pages, their anchors and their tabs.
  *
- * @param options - `only` limits `missing` issues to those names.
+ * @param options - `only` limits `missing` issues to those names; `page` keeps one section's issues.
  * @returns Every issue found.
  */
 export function coverageReport(
-    options: { only?: string[] } = {},
+    options: { only?: string[]; page?: PageScope } = {},
 ): CoverageIssue[] {
     const issues: CoverageIssue[] = [];
     const utilities = readPage(UTILITIES_PAGE);
@@ -378,7 +379,9 @@ export function coverageReport(
         }
     }
 
-    return issues;
+    return options.page === undefined
+        ? issues
+        : issues.filter((issue) => issue.page.startsWith(`${options.page}/`));
 }
 
 /**
@@ -409,7 +412,23 @@ function main(argv: string[]): void {
         flag === -1
             ? undefined
             : (argv[flag + 1] ?? "").split(",").filter((name) => name !== "");
-    const issues = coverageReport({ only });
+    const pageFlag = argv.indexOf("--page");
+    const page = pageFlag === -1 ? undefined : argv[pageFlag + 1];
+
+    if (
+        page !== undefined &&
+        page !== "arrays-objects" &&
+        page !== "collections"
+    ) {
+        console.error(
+            "usage: docs-coverage [--only a,b,c] [--page arrays-objects|collections]",
+        );
+        process.exitCode = 2;
+
+        return;
+    }
+
+    const issues = coverageReport({ only, page });
 
     for (const issue of issues) {
         console.log(formatIssue(issue));

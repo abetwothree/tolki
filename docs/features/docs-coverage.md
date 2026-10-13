@@ -20,7 +20,7 @@ Exports and members come from `ts.createSourceFile`, not from importing the pack
 ## CLI
 
 ```bash
-pnpm docs:coverage [--only a,b,c]
+pnpm docs:coverage [--page arrays-objects|collections] [--only a,b,c]
 ```
 
 One issue per line, then exit code 1 if any were printed:
@@ -31,8 +31,12 @@ anchor <page>:<line> #<slug>
 fence <page>:<line> <title> imports <module>
 ```
 
-Pages are relative to `docs/vitepress/`. `owner` is `arr`, `obj`, `data` or `collection`.
+An unknown `--page` value prints a usage line to stderr and exits 2. Pages are relative to `docs/vitepress/`. `owner` is `arr`, `obj`, `data` or `collection`.
 
 ## Using `--only`
 
 `--only` limits `missing` lines to those names, so a content task checks just the sections it wrote while the pages are partial. Anchor and fence issues are always reported. A name matches an export or member exactly. For `@tolki/data` it also matches the export without its `data` prefix, so `--only get` reports `dataGet` as well as arr `get`, obj `get` and Collection `get`.
+
+## Using `--page`
+
+`--page arrays-objects` or `--page collections` keeps only the issues (missing, anchor and fence) of that section's page. Content tasks write one page at a time, so they run `pnpm docs:coverage --page <page> --only <names>`.

@@ -108,6 +108,32 @@ describe("coverageReport", () => {
         );
     });
 
+    it("scopes to the arrays-objects page", () => {
+        const issues = coverageReport({
+            only: ["get"],
+            page: "arrays-objects",
+        });
+
+        expect(
+            issues.map((issue) =>
+                issue.kind === "missing" ? `${issue.owner}:${issue.name}` : "",
+            ),
+        ).toEqual(["arr:get", "obj:get", "data:dataGet"]);
+    });
+
+    it("scopes to the collections page", () => {
+        const issues = coverageReport({ only: ["get"], page: "collections" });
+
+        expect(issues).toEqual([
+            {
+                kind: "missing",
+                page: "collections/methods-list.md",
+                owner: "collection",
+                name: "get",
+            },
+        ]);
+    });
+
     it("reports every collection member for a missing page", () => {
         const missing = coverageReport({ only: ["toJSON"] }).filter(
             (issue) => issue.kind === "missing" && issue.owner === "collection",
