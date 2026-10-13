@@ -17,6 +17,7 @@
         "noFallthroughCasesInSwitch": true,
         "noPropertyAccessFromIndexSignature": true,
         "noUncheckedSideEffectImports": true,
+        "rewriteRelativeImportExtensions": true,
         "strict": true,
         "verbatimModuleSyntax": true,
         "isolatedModules": true,
