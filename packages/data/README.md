@@ -6,7 +6,7 @@ This package provides utilities for working with JavaScript objects and arrays i
 
 ## Documentation
 
-The full documentation for the data utilities can be found at [https://tolki.abe.dev](https://tolki.abe.dev/data/).
+The full documentation for the data utilities can be found at [https://tolki.abe.dev](https://tolki.abe.dev/arrays-objects/).
 
 <!-- AUTO-GENERATED-DOCS:START -->
 

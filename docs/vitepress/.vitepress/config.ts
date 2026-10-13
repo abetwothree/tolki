@@ -73,13 +73,17 @@ export default defineConfig({
             { text: "Home", link: "/" },
             { text: "Packages", link: "/packages" },
             { text: "TS & Laravel", link: "/ts/" },
-            { text: "Numbers", link: "/numbers/" },
-            { text: "Strings", link: "/strings/" },
+            {
+                text: "Utilities",
+                activeMatch: "^/(strings|numbers|arrays-objects|collections)/",
+                items: [
+                    { text: "Strings", link: "/strings/" },
+                    { text: "Numbers", link: "/numbers/" },
+                    { text: "Arrays & Objects", link: "/arrays-objects/" },
+                    { text: "Collections", link: "/collections/" },
+                ],
+            },
             { text: "TS Types", link: "/typescript/" },
-            // { text: "Arrays", link: "/arrays/" },
-            // { text: "Objects", link: "/objects/" },
-            // { text: "Collections", link: "/collections/" },
-            // { text: "Examples", link: "/markdown-examples" },
         ],
 
         sidebar: [
@@ -227,6 +231,24 @@ export default defineConfig({
                 ],
             },
             {
+                text: "Arrays & Objects",
+                items: [
+                    {
+                        text: "Installation & Usage",
+                        link: "/arrays-objects/",
+                    },
+                ],
+            },
+            {
+                text: "Collections",
+                items: [
+                    {
+                        text: "Installation & Usage",
+                        link: "/collections/",
+                    },
+                ],
+            },
+            {
                 text: "TypeScript Type Utilities",
                 items: [
                     {
@@ -239,32 +261,6 @@ export default defineConfig({
                     },
                 ],
             },
-            // {
-            //     text: "Array Utilities",
-            //     items: [
-            //         {
-            //             text: "Installation & Usage",
-            //             link: "/array-utilities/",
-            //         },
-            //         {
-            //             text: "Documentation",
-            //             link: "/arrays/documentation",
-            //         },
-            //     ],
-            // },
-            // {
-            //     text: "Collection Utilities",
-            //     items: [
-            //         {
-            //             text: "Installation & Usage",
-            //             link: "/collections/",
-            //         },
-            //         {
-            //             text: "Documentation",
-            //             link: "/collections/documentation",
-            //         },
-            //     ],
-            // },
             // {
             //     text: "Examples",
             //     items: [

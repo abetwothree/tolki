@@ -6,7 +6,7 @@ This package provides array utility functions similar to Laravel's Arr class fac
 
 ## Documentation
 
-The full documentation for the array utilities can be found at [https://tolki.abe.dev](https://tolki.abe.dev/arrays/).
+The full documentation for the array utilities can be found at [https://tolki.abe.dev](https://tolki.abe.dev/arrays-objects/).
 
 <!-- AUTO-GENERATED-DOCS:START -->
 
