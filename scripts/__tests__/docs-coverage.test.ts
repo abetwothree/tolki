@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import {
     brokenAnchors,
+    type CoverageIssue,
     coverageReport,
     importedNames,
     listCollectionMembers,
@@ -93,36 +94,58 @@ describe("mismatchedVariantFences", () => {
 });
 
 describe("coverageReport", () => {
-    it("limits missing issues to the requested names", () => {
-        const issues = coverageReport({ only: ["get"] });
-        const missing = issues.filter((issue) => issue.kind === "missing");
+    const docsRoot = path.join(
+        path.dirname(fileURLToPath(import.meta.url)),
+        "fixtures",
+        "docs-coverage-root",
+    );
+    const ids = (issues: CoverageIssue[]): string[] =>
+        issues.flatMap((issue) =>
+            issue.kind === "missing" ? [`${issue.owner}:${issue.name}`] : [],
+        );
 
-        expect(missing.map((issue) => `${issue.owner}:${issue.name}`)).toEqual([
-            "arr:get",
-            "obj:get",
-            "data:dataGet",
+    it("does not report a documented name and reports an undocumented one", () => {
+        const found = ids(coverageReport({ docsRoot }));
+
+        expect(found).not.toContain("arr:get");
+        expect(found).not.toContain("obj:get");
+        expect(found).not.toContain("data:dataGet");
+        expect(found).toContain("arr:first");
+        expect(found).toContain("data:dataFirst");
+    });
+
+    it("limits missing issues to the requested names", () => {
+        expect(ids(coverageReport({ docsRoot, only: ["get"] }))).toEqual([
             "collection:get",
         ]);
-        expect(missing.every((issue) => issue.page.endsWith("-list.md"))).toBe(
-            true,
-        );
+        expect(ids(coverageReport({ docsRoot, only: ["first"] }))).toEqual([
+            "arr:first",
+            "obj:first",
+            "data:dataFirst",
+            "collection:first",
+        ]);
     });
 
     it("scopes to the arrays-objects page", () => {
         const issues = coverageReport({
-            only: ["get"],
+            docsRoot,
+            only: ["first"],
             page: "arrays-objects",
         });
 
-        expect(
-            issues.map((issue) =>
-                issue.kind === "missing" ? `${issue.owner}:${issue.name}` : "",
-            ),
-        ).toEqual(["arr:get", "obj:get", "data:dataGet"]);
+        expect(ids(issues)).toEqual([
+            "arr:first",
+            "obj:first",
+            "data:dataFirst",
+        ]);
     });
 
     it("scopes to the collections page", () => {
-        const issues = coverageReport({ only: ["get"], page: "collections" });
+        const issues = coverageReport({
+            docsRoot,
+            only: ["get"],
+            page: "collections",
+        });
 
         expect(issues).toEqual([
             {
@@ -135,10 +158,10 @@ describe("coverageReport", () => {
     });
 
     it("reports every collection member for a missing page", () => {
-        const missing = coverageReport({ only: ["toJSON"] }).filter(
-            (issue) => issue.kind === "missing" && issue.owner === "collection",
-        );
+        const found = ids(coverageReport({ docsRoot, page: "collections" }));
 
-        expect(missing).toHaveLength(1);
+        expect(found).toEqual(
+            listCollectionMembers().map((name) => `collection:${name}`),
+        );
     });
 });

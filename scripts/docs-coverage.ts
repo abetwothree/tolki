@@ -279,11 +279,12 @@ export function mismatchedVariantFences(
 /**
  * Reads a docs page.
  *
- * @param page - The page path relative to `docs/vitepress/`.
+ * @param root - The docs root directory.
+ * @param page - The page path relative to the root.
  * @returns The source, or null when the page does not exist yet.
  */
-function readPage(page: string): string | null {
-    const file = path.join(DOCS_ROOT, page);
+function readPage(root: string, page: string): string | null {
+    const file = path.join(root, page);
 
     return existsSync(file) ? readFileSync(file, "utf8") : null;
 }
@@ -319,15 +320,17 @@ function selected(
 /**
  * Checks both list pages, their anchors and their tabs.
  *
- * @param options - `only` limits `missing` issues to those names; `page` keeps one section's issues.
+ * @param options - `only` limits `missing` issues to those names; `page` keeps one section's issues;
+ * `docsRoot` replaces `docs/vitepress`.
  * @returns Every issue found.
  */
 export function coverageReport(
-    options: { only?: string[]; page?: PageScope } = {},
+    options: { only?: string[]; page?: PageScope; docsRoot?: string } = {},
 ): CoverageIssue[] {
+    const root = options.docsRoot ?? DOCS_ROOT;
     const issues: CoverageIssue[] = [];
-    const utilities = readPage(UTILITIES_PAGE);
-    const methods = readPage(METHODS_PAGE);
+    const utilities = readPage(root, UTILITIES_PAGE);
+    const methods = readPage(root, METHODS_PAGE);
     const documented =
         utilities === null
             ? new Map<string, Set<string>>()

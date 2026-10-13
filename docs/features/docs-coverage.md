@@ -40,3 +40,7 @@ An unknown `--page` value prints a usage line to stderr and exits 2. Pages are r
 ## Using `--page`
 
 `--page arrays-objects` or `--page collections` keeps only the issues (missing, anchor and fence) of that section's page. Content tasks write one page at a time, so they run `pnpm docs:coverage --page <page> --only <names>`.
+
+## Testing
+
+`coverageReport` takes a `docsRoot` option, so its tests run against `scripts/__tests__/fixtures/docs-coverage-root/` and never read the live pages. The CLI always uses `docs/vitepress`.
