@@ -476,6 +476,10 @@ class Message extends Model { ... }
 
 `$to` and `$headers` publish as `string[] | null` and `Record<string, string> | null` instead of `unknown[] | null`, and PHPStan and Larastan type the same properties.
 
+A tag can also spell a tuple, an object shape, quoted or string literal keys, or a nullable shape inside another. `list{int, string}` publishes the tuple `[number, string]`, `object{a: int}` publishes `{ a: number }`, `array<'a'|'b', int>` publishes `{ a?: number; b?: number }`, and `array{a: ?array{b: int}}` publishes `{ a: { b: number } | null }`. A `callable` publishes `unknown`.
+
+On a nullable column, the tag's type gains `| null` unless it already holds `null` at its top level. A `null` inside a shape doesn't count, so `@property array{a: ?int} $meta` publishes `{ a: number | null } | null`.
+
 A tag applies only when the column's own type is vague. It never overrides a specific type, such as an accessor's return type, an enum cast or a custom `CastsAttributes` class. A subclass's tag wins over its parent's. `@property-write` tags are ignored, because they describe the setter.
 
 A tag that is still partly vague is used when it's more specific than the type it replaces. `@property array<string, mixed>|null $settings` turns a plain `'array'` cast into `Record<string, unknown> | null`: the type still names `unknown`, but it beats `unknown[] | null`. A tag that is exactly as vague as the original is ignored: `unknown`, `unknown[]`, `object`, or the `unknown[] | Record<string, unknown>` of a bare collection.
@@ -497,7 +501,7 @@ final readonly class PresetDto { ... }
 class Preset extends Model { ... }
 ```
 
-`$config` publishes as `{ filters?: Record<string, unknown>; sorts?: string[] } | null`. The alias expands inline, so `PresetDto` isn't imported, optional keys keep their `?`, and PHPStan checks the same alias. The package also reads `@phpstan-import-type ... as Alias`, `@psalm-type` and `@psalm-import-type`. An alias can use another imported alias, and an import cycle publishes `unknown` instead of stalling the run. For a shape that's already worth documenting for static analysis, prefer an alias over `#[TsCasts]`.
+`$config` publishes as `{ filters?: Record<string, unknown>; sorts?: string[] } | null`. The alias expands inline, so `PresetDto` isn't imported, optional keys keep their `?`, and PHPStan checks the same alias. The package also reads `@phpstan-import-type ... as Alias`, `@psalm-type` and `@psalm-import-type`. An alias also expands inside a list or a shape, as in `list<PresetConfig>|null` or `array{preset: PresetConfig}`, and in a promoted constructor property's `@var`. An alias can use another imported alias, and an import cycle publishes `unknown` instead of stalling the run. For a shape that's already worth documenting for static analysis, prefer an alias over `#[TsCasts]`.
 
 ### Nullable and Intersection Docblock Types
 

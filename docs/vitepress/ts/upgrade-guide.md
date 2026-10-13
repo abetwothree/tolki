@@ -2,7 +2,7 @@
 
 ## Upgrading From 2.7
 
-The release after 2.7 changes what some `#[TsCasts]` entries publish, and what a merged model publishes. Numeric keys, list literals, enum cases, values built with `new`, and top-level integer keys also now publish as Laravel sends them. Run `php artisan ts:publish` after you update, and check the changes below against your generated files.
+The release after 2.7 changes what some `#[TsCasts]` entries publish, and what a merged model publishes. Numeric keys, list literals, enum cases, values built with `new`, and top-level integer keys also now publish as Laravel sends them. Some inferred types change too, where the package guessed a type, read the wrong class, or misread a docblock. Run `php artisan ts:publish` after you update, and check the changes below against your generated files.
 
 ### `#[TsCasts]` Changes
 
@@ -46,6 +46,37 @@ These values now publish what Laravel sends, so some generated types change:
 - **Enum cases**: a bare case such as `'status' => Status::Active` publishes the enum's type alias, `StatusType`, in resources, page props, shared data, events, and model metadata. In a model metadata provider, such a case used to stop the run.
 - **Resources built around `null`**: `new UserResource(null)` publishes `null`, the value Laravel sends, where it published `UserResource | null`.
 - **Values built with `new`**: a value built in place publishes what `json_encode()` writes, so `new DateTime()` publishes the date object and `new RuntimeException('x')` publishes `Record<string, never>`. Both published `unknown` before. See [Method Return Types](./api-resources.md#method-return-types) for the values that stay `unknown`.
+
+### Inferred Types That No Longer Guess
+
+These types now follow your code and what Laravel runs, so some generated types change.
+
+#### Model Keys and Auth IDs
+
+- **`getKey()` on an abstract model**: publishes the key type the class declares, joined with the key types of its published subclasses, such as `number | string`. It was `string` through `$this->resource`, and `unknown` otherwise. Where code works the key out, such as an overridden `getKeyType()`, it publishes `unknown`. See [Method Return Types](./api-resources.md#method-return-types).
+- **`getKey()` on a model built in place**: after `new`, `replicate()`, `replicateQuietly()` or `newInstance()`, it adds `| null`, such as `number | null`. It was the bare key type.
+- **`getKey()` with a `null` `$primaryKey`**: publishes `null`. It was `number`.
+- **`auth()->id()` and `Auth::id()`**: for an auth model the package can't create an instance of, they publish the key type the class declares, with `| null`. They published `string | null`. Where code works out such a model's key, they publish `unknown`. An auth model that overrides `getAuthIdentifierName()` or `getAuthIdentifier()` publishes `unknown` too, where it published the key type. See [Inertia](./inertia.md#how-the-augmentation-file-is-generated).
+
+#### Reads Through Properties, Helpers, and Variables
+
+- **Calls and reads on `$this->prop`**: a call or a property read on a relation or a property, such as `$this->author->commentsCount()`, types from the class `author` holds, and `$this` inside a relation's closure still means the resource. Before, such a read could use the wrong model, the resource's or the closure's. A method or column that only the wrong model declared then published a type, where Laravel throws or sends `null`. It now publishes `unknown`.
+- **`$this->resource->m()`**: publishes what `$this->m()` does, so a model method declared as a bare `array` publishes the shape its body returns. It was `unknown[]`.
+- **A model's `toArray()` as a value**: `$this->author->toArray()` and `$this->resource->toArray()` publish `Record<string, unknown>`, and a relation's collection publishes `Record<string, unknown>[]`. They were `unknown[]`.
+- **Helper method parameters**: a helper's body reads each parameter as its declared type, or as what each call passes when it has none, whether you spread the helper or use its result as a value. A first-class callable passed to `whenLoaded()`, such as `$this->card(...)`, gets the loaded relation as its argument. These reads published `unknown`. See [Methods Declared as a Bare `array`](./api-resources.md#methods-declared-as-a-bare-array).
+- **An enum or model in a helper's array**: that value publishes `unknown`, and the rest of the shape keeps its types. The whole array was left untyped before.
+- **Inertia actions and model metadata providers**: a typed parameter you read, such as `'id' => $id` from `int $id`, publishes its type, where it published `unknown`. A nullable model parameter read bare, such as `'post' => $post` from `?Post $post = null`, publishes `Post | null`, where it published `Post`. An abstract `Model $model` parameter read bare publishes `unknown`, where it published `Model`, a type no generated file exports.
+- **A reassigned closure parameter**: once you assign it a value of another class, the reads after it use that class. They kept using the parameter's model. See [Typing a Variable With `@var`](./api-resources.md#typing-a-variable-with-var).
+- **More kinds of write**: a `catch`, `unset()`, `static`, `global`, or a by-reference argument now counts as a write to a local variable, so such a variable publishes `unknown` where it published its first value's type. A closure that writes only its own parameter no longer changes an outer variable of the same name. See [Local Variables and Narrowing](./api-resources.md#local-variables-and-narrowing).
+- **Optional keys through `??`, a ternary, or a default**: a key whose value can be a missing conditional value stays optional, as `$this->whenLoaded('author') ?? 'none'` and `$this->when($flag, $this->whenLoaded('author'), 'none')` do. They were required. See [Passing a Default Argument](./api-resources.md#passing-a-default-argument).
+
+#### Docblock Tags
+
+- **Docblock tags with spaces**: a `@return` or `@var` tag is read whole, so `@return string | null` keeps its `| null`. It was cut at the first space. A `$resource` property tagged `@var ?Post`, or tagged with a model from the resource's own namespace that the file doesn't import, now finds its backing model.
+- **Docblock shapes**: `list{int, string}` publishes the tuple `[number, string]`, `object{a: int}` publishes `{ a: number }`, `array<'a'|'b', int>` publishes `{ a?: number; b?: number }`, and quoted keys and a nested `?array{...}` publish as written. Each was misread or ignored, such as `list{int, string}` read as `number`. A `callable` publishes `unknown`, where it published the first type inside it. A local `@var` accepts these forms too. See [Typing `array` Casts With `@property`](./models.md#typing-array-casts-with-property).
+- **A bare class beside its container**: `@return User[]|User` publishes `User[] | User`. It was `User[]`. A model enum column typed `Status[]|Status` publishes `AsEnum<typeof Status>[] | AsEnum<typeof Status>` in the model's `{Model}Resource` interface, where it published `AsEnum<typeof Status>[]`.
+- **`@phpstan-type` aliases inside a list or a shape**: `@property list<Row>|null` publishes a list of the alias's shape, where it published `unknown[] | null`. A promoted constructor property's `@var` reads an alias too, where it published the property's native type. See [Typing JSON Columns With `@phpstan-type` Aliases](./models.md#typing-json-columns-with-phpstan-type-aliases).
+- **A nullable `array` column with a nested `null`**: `@property array{a: ?int}` on a nullable column publishes `{ a: number | null } | null`. It was `{ a: number | null }`.
 
 ### Published Templates
 
