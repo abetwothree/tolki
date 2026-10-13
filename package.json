@@ -47,6 +47,7 @@
         "docs:dev": "vitepress dev docs/vitepress",
         "docs:build": "vitepress build docs/vitepress",
         "docs:preview": "vitepress preview docs/vitepress",
+        "docs:coverage": "ts-node ./scripts/docs-coverage.ts",
         "list:functions": "ts-node ./scripts/functions-list.ts",
         "stubs": "run-s stubs:*",
         "stubs:pull": "ts-node ./scripts/pull-framework-repos.ts",
