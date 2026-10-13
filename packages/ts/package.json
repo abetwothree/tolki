@@ -44,6 +44,7 @@
         "tolki"
     ],
     "dependencies": {
+        "@tolki/enum": "workspace:^",
         "@tolki/types": "workspace:^",
         "@tolki/utils": "workspace:^"
     },

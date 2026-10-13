@@ -336,6 +336,9 @@ importers:
 
   packages/ts:
     dependencies:
+      "@tolki/enum":
+        specifier: workspace:^
+        version: link:../enum
       "@tolki/types":
         specifier: workspace:^
         version: link:../types
