@@ -438,13 +438,16 @@ export function discoverPackages(filterName?: string): PackageInfo[] {
  * @param docFiles - Array of doc file paths relative to docs/vitepress/.
  * @param packageName - Package whose code-group tabs to keep. Omit to keep
  *   every tab.
+ * @param docsRoot - Directory the doc files resolve against. Defaults to
+ *   docs/vitepress/.
  * @returns Assembled and cleaned markdown content.
  */
 export function assembleDocsContent(
     docFiles: string[],
     packageName?: string,
+    docsRoot?: string,
 ): string {
-    const docsDir = path.join(MONOREPO_ROOT, "docs", "vitepress");
+    const docsDir = docsRoot ?? path.join(MONOREPO_ROOT, "docs", "vitepress");
     const sections: string[] = [];
 
     for (const docFile of docFiles) {

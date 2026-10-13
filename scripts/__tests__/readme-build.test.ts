@@ -18,6 +18,12 @@ const DOCS_DIR = path.resolve(
     "vitepress",
 );
 
+const FIXTURE_ROOT = path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "fixtures",
+    "readme-build-root",
+);
+
 const FENCE = "```";
 
 /**
@@ -269,10 +275,30 @@ describe("rewriteRelativeDocLinks", () => {
 });
 
 describe("assembleDocsContent", () => {
-    it("filters a shared page to the package's own tab", () => {
-        const withPackage = assembleDocsContent(["ts/index.md"], "@tolki/arr");
+    it("keeps only the package's tab, sections and links from a shared page", () => {
+        const pages = ["arrays-objects/shared.md"];
+        const result = assembleDocsContent(pages, "@tolki/arr", FIXTURE_ROOT);
 
-        expect(withPackage).toBe(assembleDocsContent(["ts/index.md"]));
+        expect(result).toContain("arrGet();");
+        expect(result).not.toContain("objGet();");
+        expect(result).not.toContain("dataGet();");
+        expect(result).not.toContain("dataCount();");
+        expect(result).not.toContain("#### count");
+        expect(result).not.toContain("Count items.");
+        expect(result).not.toContain("[count](#count)");
+        expect(result).toContain("[get](#get)");
+        expect(result).toContain("#### get");
+        expect(result).toContain(
+            "https://tolki.abe.dev/collections/methods-list.html#pluck",
+        );
+        expect(result).not.toContain(":::");
+
+        const unfiltered = assembleDocsContent(pages, undefined, FIXTURE_ROOT);
+
+        expect(unfiltered).toContain("arrGet();");
+        expect(unfiltered).toContain("objGet();");
+        expect(unfiltered).toContain("dataGet();");
+        expect(unfiltered).toContain("dataCount();");
     });
 
     it("skips a missing doc file", () => {
