@@ -39,6 +39,27 @@ const comparators = [
   },
   { label: "exactly equal", value: (a, b) => (a === b ? 0 : 1) },
 ];
+
+const mappers = [
+  { label: "doubled", value: (v) => v * 2 },
+  { label: "squared", value: (v) => v * v },
+  { label: "plus its key", value: (v, k) => v + k },
+];
+
+const spreadCallbacks = [
+  { label: "sum of the row", value: (a, b) => a + b },
+  { label: "product of the row", value: (a, b) => a * b },
+];
+
+const groupCallbacks = [
+  { label: "even or odd", value: (v) => ({ [v % 2 === 0 ? "even" : "odd"]: v }) },
+  { label: "the value itself", value: (v) => ({ [v]: v }) },
+];
+
+const pairCallbacks = [
+  { label: "n-value keyed, doubled", value: (v) => ({ ["n" + v]: v * 2 }) },
+  { label: "key kept, value squared", value: (v, k) => ({ [k]: v * v }) },
+];
 </script>
 
 These are the methods of the `Collection` class. Every example builds a collection with [`collect()`](./index.md#creating-collections) and reads the items back with `all()` or `toArray()`. Each section ends with a box you can edit to try the method.
@@ -47,7 +68,7 @@ These are the methods of the `Collection` class. Every example builds a collecti
 
 <div class="collection-method-list" markdown="1">
 
-[add](#add) [after](#after) [all](#all) [average](#average) [avg](#avg) [before](#before) [chunk](#chunk) [chunkBy](#chunkby) [chunkWhile](#chunkwhile) [collapse](#collapse) [collapseWithKeys](#collapsewithkeys) [collect](#collect) [combine](#combine) [concat](#concat) [contains](#contains) [containsManyItems](#containsmanyitems) [containsOneItem](#containsoneitem) [containsStrict](#containsstrict) [count](#count) [countBy](#countby) [crossJoin](#crossjoin) [diff](#diff) [diffAssoc](#diffassoc) [diffAssocUsing](#diffassocusing) [diffKeys](#diffkeys) [diffKeysUsing](#diffkeysusing) [diffUsing](#diffusing) [doesntContain](#doesntcontain) [doesntContainStrict](#doesntcontainstrict) [dot](#dot) [dump](#dump) [duplicates](#duplicates) [duplicatesStrict](#duplicatesstrict) [each](#each) [eachSpread](#eachspread) [empty](#empty) [ensure](#ensure) [escapeWhenCastingToString](#escapewhencastingtostring) [every](#every) [except](#except) [filter](#filter) [first](#first) [firstOrFail](#firstorfail) [firstWhere](#firstwhere) [flatMap](#flatmap) [flatten](#flatten) [flip](#flip) [forget](#forget) [forPage](#forpage) [fromJson](#fromjson) [get](#get) [getIterator](#getiterator) [getOrPut](#getorput) [groupBy](#groupby) [has](#has) [hasAny](#hasany) [hasMany](#hasmany) [hasSole](#hassole) [implode](#implode) [intersect](#intersect)
+[add](#add) [after](#after) [all](#all) [average](#average) [avg](#avg) [before](#before) [chunk](#chunk) [chunkBy](#chunkby) [chunkWhile](#chunkwhile) [collapse](#collapse) [collapseWithKeys](#collapsewithkeys) [collect](#collect) [combine](#combine) [concat](#concat) [contains](#contains) [containsManyItems](#containsmanyitems) [containsOneItem](#containsoneitem) [containsStrict](#containsstrict) [count](#count) [countBy](#countby) [crossJoin](#crossjoin) [diff](#diff) [diffAssoc](#diffassoc) [diffAssocUsing](#diffassocusing) [diffKeys](#diffkeys) [diffKeysUsing](#diffkeysusing) [diffUsing](#diffusing) [doesntContain](#doesntcontain) [doesntContainStrict](#doesntcontainstrict) [dot](#dot) [dump](#dump) [duplicates](#duplicates) [duplicatesStrict](#duplicatesstrict) [each](#each) [eachSpread](#eachspread) [empty](#empty) [ensure](#ensure) [escapeWhenCastingToString](#escapewhencastingtostring) [every](#every) [except](#except) [filter](#filter) [first](#first) [firstOrFail](#firstorfail) [firstWhere](#firstwhere) [flatMap](#flatmap) [flatten](#flatten) [flip](#flip) [forget](#forget) [forPage](#forpage) [fromJson](#fromjson) [get](#get) [getIterator](#getiterator) [getOrPut](#getorput) [groupBy](#groupby) [has](#has) [hasAny](#hasany) [hasMany](#hasmany) [hasSole](#hassole) [implode](#implode) [intersect](#intersect) [intersectAssoc](#intersectassoc) [intersectAssocUsing](#intersectassocusing) [intersectByKeys](#intersectbykeys) [intersectUsing](#intersectusing) [isEmpty](#isempty) [isNotEmpty](#isnotempty) [join](#join) [jsonSerialize](#jsonserialize) [keyBy](#keyby) [keys](#keys) [last](#last) [length](#length) [make](#make) [map](#map) [mapInto](#mapinto) [mapSpread](#mapspread) [mapToDictionary](#maptodictionary) [mapToGroups](#maptogroups) [mapWithKeys](#mapwithkeys) [max](#max) [median](#median) [merge](#merge) [mergeRecursive](#mergerecursive) [min](#min) [mode](#mode) [multiply](#multiply) [nth](#nth) [offsetExists](#offsetexists) [offsetGet](#offsetget) [offsetSet](#offsetset)
 
 </div>
 
@@ -445,7 +466,7 @@ Append the values of an array, object or collection onto the end of the collecti
 
 Laravel: [`concat()`](https://laravel.com/docs/collections#method-concat)
 
-The appended values get new integer keys, even when they came from a keyed source. To keep keys, use `merge()`.
+The appended values get new integer keys, even when they came from a keyed source. To keep keys, use [`merge()`](#merge).
 
 ```js
 import { collect } from "@tolki/collection";
@@ -581,7 +602,7 @@ Get the total number of items in the collection.
 
 Laravel: [`count()`](https://laravel.com/docs/collections#method-count)
 
-The `length` property gives the same number. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#count).
+The [`length`](#length) property gives the same number. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#count).
 
 ```js
 import { collect } from "@tolki/collection";
@@ -1881,4 +1902,831 @@ collect([1, 2, 3]).intersect(["2"]).all();
 <FnTry label="collect(items).intersect(other)" :fn="(items, other) => collect(items).intersect(other).all()" :args="[
   { name: 'items', type: 'json', default: ['Desk', 'Sofa', 'Chair'] },
   { name: 'other', type: 'json', default: ['Desk', 'Chair', 'Bookcase'] },
+]" />
+
+### intersectAssoc
+
+Keep the key and value pairs that are present in the collection and in the given array or collection.
+
+Laravel: [`intersectAssoc()`](https://laravel.com/docs/collections#method-intersectAssoc)
+
+A pair stays only when both its key and its value match. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#intersectassoc).
+
+```js
+import { collect } from "@tolki/collection";
+
+collect({ color: "red", size: "M", material: "cotton" })
+  .intersectAssoc({ color: "blue", size: "M", material: "polyester" })
+  .all();
+// => { size: "M" }
+
+collect([1, 2, 3]).intersectAssoc([1, 2, 9]).all();
+// => [1, 2]
+```
+
+<FnTry label="collect(items).intersectAssoc(other)" :fn="(items, other) => collect(items).intersectAssoc(other).all()" :args="[
+  { name: 'items', type: 'json', default: { color: 'red', size: 'M', material: 'cotton' } },
+  { name: 'other', type: 'json', default: { color: 'blue', size: 'M', material: 'polyester' } },
+]" />
+
+### intersectAssocUsing
+
+Keep the key and value pairs that are present in the collection and in the given items, comparing keys with a callback of your own.
+
+Laravel: [`intersectAssocUsing()`](https://laravel.com/docs/collections#method-intersectassocusing)
+
+The callback receives two keys and answers `0`, or `true`, when they match. Values are still compared strictly. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#intersectassocusing).
+
+```js
+import { collect } from "@tolki/collection";
+
+const ignoreCase = (a, b) =>
+  String(a).toLowerCase() === String(b).toLowerCase() ? 0 : 1;
+
+collect({ color: "red", Size: "M", material: "cotton" })
+  .intersectAssocUsing(
+    { color: "blue", size: "M", material: "polyester" },
+    ignoreCase,
+  )
+  .all();
+// => { Size: "M" }
+```
+
+<FnTry label="collect(items).intersectAssocUsing(other, callback)" :fn="(items, other, callback) => collect(items).intersectAssocUsing(other, callback).all()" :args="[
+  { name: 'items', type: 'json', default: { color: 'red', Size: 'M', material: 'cotton' } },
+  { name: 'other', type: 'json', default: { color: 'blue', size: 'M', material: 'polyester' } },
+  { name: 'callback', type: 'select', default: comparators[0].value, options: comparators },
+]" />
+
+### intersectByKeys
+
+Keep the items whose keys are present in the given array or collection.
+
+Laravel: [`intersectByKeys()`](https://laravel.com/docs/collections#method-intersectbykeys)
+
+Values are ignored. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#intersectbykeys).
+
+```js
+import { collect } from "@tolki/collection";
+
+collect({ serial: "UX301", type: "screen", year: 2009 })
+  .intersectByKeys({ reference: "UX404", type: "tab", year: 2011 })
+  .all();
+// => { type: "screen", year: 2009 }
+```
+
+<FnTry label="collect(items).intersectByKeys(other)" :fn="(items, other) => collect(items).intersectByKeys(other).all()" :args="[
+  { name: 'items', type: 'json', default: { serial: 'UX301', type: 'screen', year: 2009 } },
+  { name: 'other', type: 'json', default: { reference: 'UX404', type: 'tab', year: 2011 } },
+]" />
+
+### intersectUsing
+
+Remove the values that are not in the given array or collection, comparing the values with a callback of your own.
+
+Laravel: [`intersectUsing()`](https://laravel.com/docs/collections#method-intersectusing)
+
+The callback receives two values and answers `0`, or `true`, when they match. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#intersectusing).
+
+<!-- docs/php-parity/Collection/intersectUsing.json, "C32-F-intersectUsing-spaceship-comparator" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
+
+```js
+import { collect } from "@tolki/collection";
+
+const ignoreCase = (a, b) => a.toLowerCase().localeCompare(b.toLowerCase());
+
+collect(["Desk", "Sofa", "Chair"])
+  .intersectUsing(["desk", "chair", "bookcase"], ignoreCase)
+  .all();
+// => ["Desk", "Chair"]
+```
+
+<FnTry label="collect(items).intersectUsing(other, callback)" :fn="(items, other, callback) => collect(items).intersectUsing(other, callback).all()" :args="[
+  { name: 'items', type: 'json', default: ['Desk', 'Sofa', 'Chair'] },
+  { name: 'other', type: 'json', default: ['desk', 'chair', 'bookcase'] },
+  { name: 'callback', type: 'select', default: comparators[0].value, options: comparators },
+]" />
+
+### isEmpty
+
+Determine whether the collection has no items.
+
+Laravel: [`isEmpty()`](https://laravel.com/docs/collections#method-isempty)
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([]).isEmpty();
+// => true
+
+collect([1, 2, 3]).isEmpty();
+// => false
+```
+
+<FnTry label="collect(items).isEmpty()" :fn="(items) => collect(items).isEmpty()" :args="[
+  { name: 'items', type: 'json', default: [] },
+]" />
+
+### isNotEmpty
+
+Determine whether the collection has at least one item.
+
+Laravel: [`isNotEmpty()`](https://laravel.com/docs/collections#method-isnotempty)
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([]).isNotEmpty();
+// => false
+
+collect([1, 2, 3]).isNotEmpty();
+// => true
+```
+
+<FnTry label="collect(items).isNotEmpty()" :fn="(items) => collect(items).isNotEmpty()" :args="[
+  { name: 'items', type: 'json', default: [1, 2, 3] },
+]" />
+
+### join
+
+Join the items into a string, with a separate glue for the last item if you want one.
+
+Laravel: [`join()`](https://laravel.com/docs/collections#method-join)
+
+The second argument is placed before the last item. With one item, that item is returned as it is. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#join).
+
+```js
+import { collect } from "@tolki/collection";
+
+collect(["a", "b", "c"]).join(", ");
+// => "a, b, c"
+
+collect(["a", "b", "c"]).join(", ", ", and ");
+// => "a, b, and c"
+
+collect(["a", "b"]).join(", ", " and ");
+// => "a and b"
+
+collect(["a"]).join(", ", " and ");
+// => "a"
+
+collect([]).join(", ", " and ");
+// => ""
+```
+
+<FnTry label="collect(items).join(glue, finalGlue)" :fn="(items, glue, finalGlue) => collect(items).join(glue, finalGlue)" :args="[
+  { name: 'items', type: 'json', default: ['a', 'b', 'c'] },
+  { name: 'glue', type: 'string', default: ', ' },
+  { name: 'finalGlue', type: 'string', default: ', and ' },
+]" />
+
+### jsonSerialize
+
+Get the items in a form that `JSON.stringify` can encode.
+
+A list, or a collection whose keys run `0..n-1` in order, gives an array. Any other keyed collection gives a record. Nested collections are converted too. See [Keys and order](./differences.md#keys-and-order) for how a keyed collection holds integer keys.
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([1, 2]).jsonSerialize();
+// => [1, 2]
+
+collect({ a: 1, b: 2 }).jsonSerialize();
+// => { a: 1, b: 2 }
+
+collect({ 0: "a", 1: "b" }).jsonSerialize();
+// => ["a", "b"]
+
+collect([collect([1]), { a: 1 }]).jsonSerialize();
+// => [[1], { a: 1 }]
+```
+
+<FnTry label="collect(items).jsonSerialize()" :fn="(items) => collect(items).jsonSerialize()" :args="[
+  { name: 'items', type: 'json', default: { 0: 'a', 1: 'b' } },
+]" />
+
+### keyBy
+
+Key the collection by a field of each item, or by what a callback returns.
+
+Laravel: [`keyBy()`](https://laravel.com/docs/collections#method-keyby)
+
+When several items give the same key, only the last one is kept. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#keyby).
+
+```js
+import { collect } from "@tolki/collection";
+
+const products = collect([
+  { product_id: "prod-100", name: "Desk" },
+  { product_id: "prod-200", name: "Chair" },
+]);
+
+products.keyBy("product_id").all();
+// => {
+//   "prod-100": { product_id: "prod-100", name: "Desk" },
+//   "prod-200": { product_id: "prod-200", name: "Chair" },
+// }
+
+products.keyBy((item) => item.product_id.toUpperCase()).all();
+// => {
+//   "PROD-100": { product_id: "prod-100", name: "Desk" },
+//   "PROD-200": { product_id: "prod-200", name: "Chair" },
+// }
+```
+
+<FnTry label="collect(items).keyBy(key)" :fn="(items, key) => collect(items).keyBy(key).all()" :args="[
+  { name: 'items', type: 'json', default: [{ product_id: 'prod-100', name: 'Desk' }, { product_id: 'prod-200', name: 'Chair' }] },
+  { name: 'key', type: 'string', default: 'product_id' },
+]" />
+
+### keys
+
+Get the keys of the collection as a new collection.
+
+Laravel: [`keys()`](https://laravel.com/docs/collections#method-keys)
+
+The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#keys).
+
+```js
+import { collect } from "@tolki/collection";
+
+collect({
+  "prod-100": { product_id: "prod-100", name: "Desk" },
+  "prod-200": { product_id: "prod-200", name: "Chair" },
+})
+  .keys()
+  .all();
+// => ["prod-100", "prod-200"]
+
+collect(["a", "b", "c"]).keys().all();
+// => [0, 1, 2]
+```
+
+<FnTry label="collect(items).keys()" :fn="(items) => collect(items).keys().all()" :args="[
+  { name: 'items', type: 'json', default: { 'prod-100': 1, 'prod-200': 2 } },
+]" />
+
+### last
+
+Get the last item, or the last item that passes a test.
+
+Laravel: [`last()`](https://laravel.com/docs/collections#method-last)
+
+With no match, `last` returns `null`, or the default you pass as the second argument, which may be a callback. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#last).
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([1, 2, 3, 4]).last((value) => value < 3);
+// => 2
+
+collect([1, 2, 3, 4]).last();
+// => 4
+
+collect([]).last();
+// => null
+
+collect([1, 2]).last((value) => value > 5, "none");
+// => "none"
+```
+
+<FnTry label="collect(items).last(callback)" :fn="(items, callback) => collect(items).last(callback)" :args="[
+  { name: 'items', type: 'json', default: [1, 2, 3, 4] },
+  { name: 'callback', type: 'select', default: predicates[2].value, options: predicates },
+]" />
+
+### length
+
+<Badge type="info" text="JS only" />
+
+Get the number of items in the collection, as a property.
+
+It gives the same number as [`count()`](#count), and lets a collection work with APIs that read `length`, such as `Array.from()`.
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([1, 2, 3]).length;
+// => 3
+
+collect({ a: 1, b: 2 }).length;
+// => 2
+```
+
+<FnTry label="collect(items).length" :fn="(items) => collect(items).length" :args="[
+  { name: 'items', type: 'json', default: [1, 2, 3] },
+]" />
+
+### make
+
+Create a new collection from the given items.
+
+Laravel: [`make()`](https://laravel.com/docs/collections#method-make)
+
+The static `make` method does the same as [`collect()`](./index.md#creating-collections). Called on a subclass, it builds an instance of that subclass.
+
+```js
+import { Collection } from "@tolki/collection";
+
+Collection.make([1, 2, 3]).all();
+// => [1, 2, 3]
+
+Collection.make({ a: 1, b: 2 }).all();
+// => { a: 1, b: 2 }
+
+Collection.make(null).all();
+// => []
+```
+
+<FnTry label="Collection.make(items)" :fn="(items) => Collection.make(items).all()" :args="[
+  { name: 'items', type: 'json', default: [1, 2, 3] },
+]" />
+
+### map
+
+Run a callback over every item and collect the results in a new collection.
+
+Laravel: [`map()`](https://laravel.com/docs/collections#method-map)
+
+The callback receives the value and the key, and the keys are kept. Like most collection methods, `map` returns a new collection and leaves the original as it was. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#map).
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([1, 2, 3, 4, 5])
+  .map((value) => value * 2)
+  .all();
+// => [2, 4, 6, 8, 10]
+
+collect({ a: 1, b: 2 })
+  .map((value, key) => `${key}${value}`)
+  .all();
+// => { a: "a1", b: "b2" }
+```
+
+<FnTry label="collect(items).map(callback)" :fn="(items, callback) => collect(items).map(callback).all()" :args="[
+  { name: 'items', type: 'json', default: [1, 2, 3, 4, 5] },
+  { name: 'callback', type: 'select', default: mappers[0].value, options: mappers },
+]" />
+
+### mapInto
+
+Turn every item into a new instance of a class.
+
+Laravel: [`mapInto()`](https://laravel.com/docs/collections#method-mapinto)
+
+The class constructor receives each value, and then its key. The example maps each instance to its `code`, so the result is readable.
+
+```js
+import { collect } from "@tolki/collection";
+
+class Currency {
+  constructor(code) {
+    this.code = code;
+  }
+}
+
+collect(["USD", "EUR", "GBP"])
+  .mapInto(Currency)
+  .map((currency) => currency.code)
+  .all();
+// => ["USD", "EUR", "GBP"]
+```
+
+### mapSpread
+
+Run a callback over every nested row, passing the items of the row as separate arguments.
+
+Laravel: [`mapSpread()`](https://laravel.com/docs/collections#method-mapspread)
+
+The key of the row comes after its items. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#mapspread).
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+  .chunk(2)
+  .mapSpread((even, odd) => even + odd)
+  .all();
+// => [1, 5, 9, 13, 17]
+
+collect([
+  [1, "a"],
+  [2, "b"],
+])
+  .mapSpread((number, letter, key) => `${number}${letter}${key}`)
+  .all();
+// => ["1a0", "2b1"]
+```
+
+<FnTry label="collect(items).mapSpread(callback)" :fn="(items, callback) => collect(items).mapSpread(callback).all()" :args="[
+  { name: 'items', type: 'json', default: [[1, 2], [3, 4]] },
+  { name: 'callback', type: 'select', default: spreadCallbacks[0].value, options: spreadCallbacks },
+]" />
+
+### mapToDictionary
+
+Run a callback that gives one key and value pair for each item, and gather the values under their keys as arrays.
+
+The callback returns an object with a single pair. Only its first pair is read, so a list it returns files its first value under key `0`.
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([
+  { id: 1, name: "A" },
+  { id: 2, name: "B" },
+  { id: 3, name: "A" },
+])
+  .mapToDictionary((item) => ({ [item.name]: item.id }))
+  .all();
+// => { A: [1, 3], B: [2] }
+
+collect([{ id: 1, name: "A" }])
+  .mapToDictionary((item) => [item.name, item.id])
+  .all();
+// => { 0: ["A"] }
+```
+
+<FnTry label="collect(items).mapToDictionary(callback)" :fn="(items, callback) => collect(items).mapToDictionary(callback).all()" :args="[
+  { name: 'items', type: 'json', default: [1, 2, 3, 4] },
+  { name: 'callback', type: 'select', default: groupCallbacks[0].value, options: groupCallbacks },
+]" />
+
+### mapToGroups
+
+Run a callback that gives one key and value pair for each item, and gather the values into collections under their keys.
+
+Laravel: [`mapToGroups()`](https://laravel.com/docs/collections#method-maptogroups)
+
+The callback returns an object with a single pair. Each group is a collection, so use `.toArray()` to read them all at once.
+
+```js
+import { collect } from "@tolki/collection";
+
+const grouped = collect([
+  { name: "John Doe", department: "Sales" },
+  { name: "Jane Doe", department: "Sales" },
+  { name: "Johnny Doe", department: "Marketing" },
+]).mapToGroups((item) => ({ [item.department]: item.name }));
+
+grouped.toArray();
+// => {
+//   Sales: ["John Doe", "Jane Doe"],
+//   Marketing: ["Johnny Doe"],
+// }
+
+grouped.get("Sales").all();
+// => ["John Doe", "Jane Doe"]
+```
+
+<FnTry label="collect(items).mapToGroups(callback)" :fn="(items, callback) => collect(items).mapToGroups(callback).toArray()" :args="[
+  { name: 'items', type: 'json', default: [1, 2, 3, 4] },
+  { name: 'callback', type: 'select', default: groupCallbacks[0].value, options: groupCallbacks },
+]" />
+
+### mapWithKeys
+
+Run a callback that gives one key and value pair for each item, and build a collection from the pairs.
+
+Laravel: [`mapWithKeys()`](https://laravel.com/docs/collections#method-mapwithkeys)
+
+The callback returns an object with a single pair. When two items give the same key, the later one wins. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#mapwithkeys).
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([
+  { name: "John", department: "Sales", email: "john@example.com" },
+  { name: "Jane", department: "Marketing", email: "jane@example.com" },
+])
+  .mapWithKeys((item) => ({ [item.email]: item.name }))
+  .all();
+// => { "john@example.com": "John", "jane@example.com": "Jane" }
+```
+
+<FnTry label="collect(items).mapWithKeys(callback)" :fn="(items, callback) => collect(items).mapWithKeys(callback).all()" :args="[
+  { name: 'items', type: 'json', default: [1, 2, 3] },
+  { name: 'callback', type: 'select', default: pairCallbacks[0].value, options: pairCallbacks },
+]" />
+
+### max
+
+Get the largest value, or the largest value at a key.
+
+Laravel: [`max()`](https://laravel.com/docs/collections#method-max)
+
+Pass a key or path, or a callback that gives the value to compare. `null` items are skipped, and an empty collection gives `null`.
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([{ foo: 10 }, { foo: 20 }]).max("foo");
+// => 20
+
+collect([1, 2, 3, 4, 5]).max();
+// => 5
+
+collect([1, null, 3]).max();
+// => 3
+
+collect([]).max();
+// => null
+```
+
+<FnTry label="collect(items).max(key)" :fn="(items, key) => collect(items).max(key || null)" :args="[
+  { name: 'items', type: 'json', default: [{ foo: 10 }, { foo: 20 }] },
+  { name: 'key', type: 'string', default: 'foo' },
+]" />
+
+### median
+
+Get the median of the values, or of the values at a key.
+
+Laravel: [`median()`](https://laravel.com/docs/collections#method-median)
+
+An odd count gives the middle value, and an even count the average of the two in the middle. `null` items are skipped, and a collection with nothing left gives `null`.
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([{ foo: 10 }, { foo: 10 }, { foo: 20 }, { foo: 40 }]).median("foo");
+// => 15
+
+collect([1, 1, 2, 4]).median();
+// => 1.5
+
+collect([3, 1, 2]).median();
+// => 2
+
+collect([]).median();
+// => null
+```
+
+<FnTry label="collect(items).median(key)" :fn="(items, key) => collect(items).median(key || null)" :args="[
+  { name: 'items', type: 'json', default: [1, 1, 2, 4] },
+  { name: 'key', type: 'string', default: '' },
+]" />
+
+### merge
+
+Merge the given array or collection into the collection.
+
+Laravel: [`merge()`](https://laravel.com/docs/collections#method-merge)
+
+A string key in the given items overwrites the same key in the collection. Integer keys are not matched: the given values are appended after the collection's own, and the result is renumbered.
+
+```js
+import { collect } from "@tolki/collection";
+
+collect({ product_id: 1, price: 100 })
+  .merge({ price: 200, discount: false })
+  .all();
+// => { product_id: 1, price: 200, discount: false }
+
+collect(["Desk", "Chair"]).merge(["Bookcase", "Door"]).all();
+// => ["Desk", "Chair", "Bookcase", "Door"]
+```
+
+<FnTry label="collect(items).merge(other)" :fn="(items, other) => collect(items).merge(other).all()" :args="[
+  { name: 'items', type: 'json', default: { product_id: 1, price: 100 } },
+  { name: 'other', type: 'json', default: { price: 200, discount: false } },
+]" />
+
+### mergeRecursive
+
+Merge the given array or collection into the collection, going down into the values they share.
+
+Laravel: [`mergeRecursive()`](https://laravel.com/docs/collections#method-mergerecursive)
+
+When both sides hold a string key, their values are merged into an array, and arrays are merged again at every depth. Integer keys are appended.
+
+```js
+import { collect } from "@tolki/collection";
+
+collect({ product_id: 1, price: 100 })
+  .mergeRecursive({ product_id: 2, price: 200, discount: false })
+  .all();
+// => { product_id: [1, 2], price: [100, 200], discount: false }
+
+collect({ a: { b: 1 } })
+  .mergeRecursive({ a: { c: 2 } })
+  .all();
+// => { a: { b: 1, c: 2 } }
+
+collect({ a: { b: 1 } })
+  .mergeRecursive({ a: { b: 2 } })
+  .all();
+// => { a: { b: [1, 2] } }
+```
+
+<FnTry label="collect(items).mergeRecursive(other)" :fn="(items, other) => collect(items).mergeRecursive(other).all()" :args="[
+  { name: 'items', type: 'json', default: { product_id: 1, price: 100 } },
+  { name: 'other', type: 'json', default: { product_id: 2, price: 200, discount: false } },
+]" />
+
+### min
+
+Get the smallest value, or the smallest value at a key.
+
+Laravel: [`min()`](https://laravel.com/docs/collections#method-min)
+
+Pass a key or path, or a callback that gives the value to compare. `null` items are skipped, and an empty collection gives `null`.
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([{ foo: 10 }, { foo: 20 }]).min("foo");
+// => 10
+
+collect([1, 2, 3, 4, 5]).min();
+// => 1
+
+collect([null]).min();
+// => null
+```
+
+<FnTry label="collect(items).min(key)" :fn="(items, key) => collect(items).min(key || null)" :args="[
+  { name: 'items', type: 'json', default: [{ foo: 10 }, { foo: 20 }] },
+  { name: 'key', type: 'string', default: 'foo' },
+]" />
+
+### mode
+
+Get the value that appears most often, or the values at a key.
+
+Laravel: [`mode()`](https://laravel.com/docs/collections#method-mode)
+
+The answer is always an array, because several values can tie. Tied values come in the order they first appear. `null` items are skipped, and a collection with nothing left gives `null`.
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([{ foo: 10 }, { foo: 10 }, { foo: 20 }, { foo: 40 }]).mode("foo");
+// => [10]
+
+collect([1, 1, 2, 4]).mode();
+// => [1]
+
+collect([1, 1, 2, 2]).mode();
+// => [1, 2]
+
+collect([2, 2, 1, 1]).mode();
+// => [2, 1]
+
+collect([]).mode();
+// => null
+```
+
+<FnTry label="collect(items).mode(key)" :fn="(items, key) => collect(items).mode(key || null)" :args="[
+  { name: 'items', type: 'json', default: [1, 1, 2, 2] },
+  { name: 'key', type: 'string', default: '' },
+]" />
+
+### multiply
+
+Repeat all the items the given number of times.
+
+Laravel: [`multiply()`](https://laravel.com/docs/collections#method-multiply)
+
+The result is a list. A fraction in the number is dropped, and `0` gives an empty collection.
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([1, 2]).multiply(3).all();
+// => [1, 2, 1, 2, 1, 2]
+
+collect({ a: 1, b: 2 }).multiply(2).all();
+// => [1, 2, 1, 2]
+
+collect([1, 2]).multiply(2.5).all();
+// => [1, 2, 1, 2]
+
+collect([1, 2]).multiply(0).all();
+// => []
+```
+
+<FnTry label="collect(items).multiply(multiplier)" :fn="(items, multiplier) => collect(items).multiply(multiplier).all()" :args="[
+  { name: 'items', type: 'json', default: [1, 2] },
+  { name: 'multiplier', type: 'number', default: 3 },
+]" />
+
+### nth
+
+Take every n-th item, starting at an offset.
+
+Laravel: [`nth()`](https://laravel.com/docs/collections#method-nth)
+
+The result is a list, whatever keys the items had. A step below `1` throws an `InvalidArgumentException`.
+
+```js
+import { collect } from "@tolki/collection";
+
+const letters = collect(["a", "b", "c", "d", "e", "f"]);
+
+letters.nth(4).all();
+// => ["a", "e"]
+
+letters.nth(4, 1).all();
+// => ["b", "f"]
+
+collect([1, 2]).nth(0);
+// => throws InvalidArgumentException
+```
+
+<FnTry label="collect(items).nth(step, offset)" :fn="(items, step, offset) => collect(items).nth(step, offset).all()" :args="[
+  { name: 'items', type: 'json', default: ['a', 'b', 'c', 'd', 'e', 'f'] },
+  { name: 'step', type: 'number', default: 4 },
+  { name: 'offset', type: 'number', default: 0 },
+]" />
+
+### offsetExists
+
+Determine whether an item exists at a key.
+
+This is the method behind Laravel's `isset($c['a'])`. An item that is `null` counts as absent. See [Reading items](./differences.md#reading-items).
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([1, 2, 3]).offsetExists(1);
+// => true
+
+collect([1, 2, 3]).offsetExists(3);
+// => false
+
+collect({ a: null }).offsetExists("a");
+// => false
+```
+
+<FnTry label="collect(items).offsetExists(key)" :fn="(items, key) => collect(items).offsetExists(key)" :args="[
+  { name: 'items', type: 'json', default: { a: 1, b: 2 } },
+  { name: 'key', type: 'string', default: 'a' },
+]" />
+
+### offsetGet
+
+Get the item at a key.
+
+This is the method behind Laravel's `$c['a']`; a collection has no `c.a` or `c[0]`. A missing key gives `undefined`, where [`get`](#get) takes a default. See [Reading items](./differences.md#reading-items).
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([1, 2, 3]).offsetGet(1);
+// => 2
+
+collect({ a: 1, b: 2 }).offsetGet("a");
+// => 1
+
+collect({ a: 1, b: 2 }).offsetGet("c");
+// => undefined
+```
+
+<FnTry label="collect(items).offsetGet(key)" :fn="(items, key) => collect(items).offsetGet(key)" :args="[
+  { name: 'items', type: 'json', default: { a: 1, b: 2 } },
+  { name: 'key', type: 'string', default: 'a' },
+]" />
+
+### offsetSet
+
+Set the item at a key, or append it when the key is `null`.
+
+This is the method behind Laravel's `$c['a'] = 1` and `$c[] = 1`. See [Reading items](./differences.md#reading-items).
+
+::: warning
+Unlike most other collection methods, `offsetSet` does not return a new modified collection; it modifies the collection it is called on, and returns nothing.
+:::
+
+```js
+import { collect } from "@tolki/collection";
+
+const items = collect([1, 2]);
+
+items.offsetSet(null, 3);
+
+items.all();
+// => [1, 2, 3]
+
+items.offsetSet(1, 4);
+
+items.all();
+// => [1, 4, 3]
+
+items.offsetSet(5, "x");
+
+items.all();
+// => { 0: 1, 1: 4, 2: 3, 5: "x" }
+```
+
+<FnTry label="collect(items).offsetSet(key, value)" :fn="(items, key, value) => { const c = collect(items); c.offsetSet(key, value); return c.all(); }" :args="[
+  { name: 'items', type: 'json', default: [1, 2] },
+  { name: 'key', type: 'json', default: 1 },
+  { name: 'value', type: 'json', default: 4 },
 ]" />
