@@ -100,7 +100,9 @@ collect(["0", "0.0", "", 0, [], {}, NaN, "a", false, null]).filter().all();
 collect([1, null, 0, 2]).reject().all();
 // => [null, 0]
 
-collect([{ a: 1 }, { a: 0 }]).where("a").all();
+collect([{ a: 1 }, { a: 0 }])
+  .where("a")
+  .all();
 // => [{ a: 1 }]
 
 isPhpFalsy("0");
