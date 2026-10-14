@@ -1,7 +1,7 @@
 # Tolki Array & Object Utilities List
 
 <script setup>
-import { accessible, arrayable } from "@tolki/arr";
+import { accessible, arrayable, wrap } from "@tolki/arr";
 import {
   dataAdd,
   dataAfter,
@@ -75,6 +75,27 @@ import {
   dataShift,
   dataShuffle,
   dataSkipUntil,
+  dataSkipWhile,
+  dataSlice,
+  dataSole,
+  dataSome,
+  dataSort,
+  dataSortDesc,
+  dataSortRecursive,
+  dataSortRecursiveDesc,
+  dataSplice,
+  dataString,
+  dataTake,
+  dataTakeUntil,
+  dataTakeWhile,
+  dataToCssClasses,
+  dataToCssStyles,
+  dataUndot,
+  dataUnion,
+  dataUnshift,
+  dataValues,
+  dataWhere,
+  dataWhereNotNull,
 } from "@tolki/data";
 import { flattenDot } from "@tolki/obj";
 
@@ -130,7 +151,7 @@ These utilities work on arrays with `@tolki/arr`, on plain objects with `@tolki/
 
 <div class="collection-method-list" markdown="1">
 
-[accessible](#accessible) [add](#add) [after](#after) [arrayable](#arrayable) [arrayItem](#arrayitem) [before](#before) [boolean](#boolean) [chunk](#chunk) [chunkBy](#chunkby) [chunkWhile](#chunkwhile) [collapse](#collapse) [combine](#combine) [contains](#contains) [containsStrict](#containsstrict) [count](#count) [crossJoin](#crossjoin) [diff](#diff) [diffAssoc](#diffassoc) [diffAssocUsing](#diffassocusing) [diffKeys](#diffkeys) [diffKeysUsing](#diffkeysusing) [diffUsing](#diffusing) [divide](#divide) [dot](#dot) [every](#every) [except](#except) [exceptValues](#exceptvalues) [exists](#exists) [filter](#filter) [first](#first) [flatten](#flatten) [flattenDot](#flattendot) [flip](#flip) [float](#float) [forget](#forget) [from](#from) [get](#get) [has](#has) [hasAll](#hasall) [hasAny](#hasany) [integer](#integer) [intersect](#intersect) [intersectAssoc](#intersectassoc) [intersectAssocUsing](#intersectassocusing) [intersectByKeys](#intersectbykeys) [intersectUsing](#intersectusing) [join](#join) [keyBy](#keyby) [keys](#keys) [last](#last) [map](#map) [mapSpread](#mapspread) [mapWithKeys](#mapwithkeys) [only](#only) [onlyValues](#onlyvalues) [pad](#pad) [partition](#partition) [pluck](#pluck) [pop](#pop) [prepend](#prepend) [prependKeysWith](#prependkeyswith) [pull](#pull) [push](#push) [query](#query) [random](#random) [reject](#reject) [replace](#replace) [replaceRecursive](#replacerecursive) [reverse](#reverse) [search](#search) [select](#select) [set](#set) [shift](#shift) [shuffle](#shuffle) [skipUntil](#skipuntil)
+[accessible](#accessible) [add](#add) [after](#after) [arrayable](#arrayable) [arrayItem](#arrayitem) [before](#before) [boolean](#boolean) [chunk](#chunk) [chunkBy](#chunkby) [chunkWhile](#chunkwhile) [collapse](#collapse) [combine](#combine) [contains](#contains) [containsStrict](#containsstrict) [count](#count) [crossJoin](#crossjoin) [diff](#diff) [diffAssoc](#diffassoc) [diffAssocUsing](#diffassocusing) [diffKeys](#diffkeys) [diffKeysUsing](#diffkeysusing) [diffUsing](#diffusing) [divide](#divide) [dot](#dot) [every](#every) [except](#except) [exceptValues](#exceptvalues) [exists](#exists) [filter](#filter) [first](#first) [flatten](#flatten) [flattenDot](#flattendot) [flip](#flip) [float](#float) [forget](#forget) [from](#from) [get](#get) [has](#has) [hasAll](#hasall) [hasAny](#hasany) [integer](#integer) [intersect](#intersect) [intersectAssoc](#intersectassoc) [intersectAssocUsing](#intersectassocusing) [intersectByKeys](#intersectbykeys) [intersectUsing](#intersectusing) [join](#join) [keyBy](#keyby) [keys](#keys) [last](#last) [map](#map) [mapSpread](#mapspread) [mapWithKeys](#mapwithkeys) [only](#only) [onlyValues](#onlyvalues) [pad](#pad) [partition](#partition) [pluck](#pluck) [pop](#pop) [prepend](#prepend) [prependKeysWith](#prependkeyswith) [pull](#pull) [push](#push) [query](#query) [random](#random) [reject](#reject) [replace](#replace) [replaceRecursive](#replacerecursive) [reverse](#reverse) [search](#search) [select](#select) [set](#set) [shift](#shift) [shuffle](#shuffle) [skipUntil](#skipuntil) [skipWhile](#skipwhile) [slice](#slice) [sole](#sole) [some](#some) [sort](#sort) [sortDesc](#sortdesc) [sortRecursive](#sortrecursive) [sortRecursiveDesc](#sortrecursivedesc) [splice](#splice) [string](#string) [take](#take) [takeUntil](#takeuntil) [takeWhile](#takewhile) [toCssClasses](#tocssclasses) [toCssStyles](#tocssstyles) [undot](#undot) [union](#union) [unshift](#unshift) [values](#values) [where](#where) [whereNotNull](#wherenotnull) [wrap](#wrap)
 
 </div>
 
@@ -3625,4 +3646,1080 @@ dataSkipUntil({ a: 1, b: 2, c: 3 }, (value) => value > 1);
 <FnTry label="dataSkipUntil" :fn="dataSkipUntil" :args="[
   { name: 'data', type: 'json', default: [1, 2, 3, 4] },
   { name: 'value', type: 'number', default: 3 },
+]" />
+
+### skipWhile
+
+Skip items in an array or object while the given condition is met, and return the rest. The condition is a value, matched strictly, or a callback.
+
+Exported as `skipWhile` from `@tolki/arr` and `@tolki/obj`, and as `dataSkipWhile` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { skipWhile } from "@tolki/arr";
+
+skipWhile([1, 1, 2, 1], 1);
+// => [2, 1]
+
+skipWhile([1, 2, 3, 4], (value) => value < 3);
+// => [3, 4]
+
+skipWhile([1, 2, 3, 4], 5);
+// => [1, 2, 3, 4]
+```
+
+```js [@tolki/obj]
+import { skipWhile } from "@tolki/obj";
+
+skipWhile({ a: 1, b: 1, c: 2, d: 1 }, 1);
+// => { c: 2, d: 1 }
+
+skipWhile({ a: 1, b: 2, c: 3 }, (value, key) => key === "a");
+// => { b: 2, c: 3 }
+```
+
+```js [@tolki/data]
+import { dataSkipWhile } from "@tolki/data";
+
+dataSkipWhile([1, 1, 2, 1], 1);
+// => [2, 1]
+
+dataSkipWhile({ a: 1, b: 2, c: 3 }, (value) => value < 2);
+// => { b: 2, c: 3 }
+```
+
+:::
+
+<FnTry label="dataSkipWhile" :fn="dataSkipWhile" :args="[
+  { name: 'data', type: 'json', default: [1, 1, 2, 1] },
+  { name: 'value', type: 'number', default: 1 },
+]" />
+
+### slice
+
+Get a portion of an array or object, starting at an offset. The original is left unchanged; `splice` is the function that removes items.
+
+Exported as `slice` from `@tolki/arr` and `@tolki/obj`, and as `dataSlice` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { slice } from "@tolki/arr";
+
+slice([1, 2, 3, 4, 5], 1, 3);
+// => [2, 3, 4]
+
+slice([1, 2, 3, 4, 5], -2);
+// => [4, 5]
+
+slice([1, 2, 3, 4, 5], 1, -1);
+// => [2, 3, 4]
+```
+
+```js [@tolki/obj]
+import { slice } from "@tolki/obj";
+
+slice({ a: 1, b: 2, c: 3, d: 4 }, 1, 2);
+// => { b: 2, c: 3 }
+
+slice({ a: 1, b: 2, c: 3, d: 4 }, -2);
+// => { c: 3, d: 4 }
+```
+
+```js [@tolki/data]
+import { dataSlice } from "@tolki/data";
+
+dataSlice([1, 2, 3, 4], 1, 2);
+// => [2, 3]
+
+dataSlice({ a: 1, b: 2, c: 3 }, 1);
+// => { b: 2, c: 3 }
+```
+
+:::
+
+<FnTry label="dataSlice" :fn="dataSlice" :args="[
+  { name: 'data', type: 'json', default: [1, 2, 3, 4, 5] },
+  { name: 'offset', type: 'number', default: 1 },
+  { name: 'length', type: 'number', default: 2 },
+]" />
+
+### sole
+
+Get the first item, but only if exactly one item exists. Otherwise it throws `ItemNotFoundException` when none is found, or `MultipleItemsFoundException` when several are. With a callback, it counts only the items the callback accepts.
+
+Exported as `sole` from `@tolki/arr` and `@tolki/obj`, and as `dataSole` from `@tolki/data`.
+
+Laravel: [`Arr::sole()`](https://laravel.com/docs/helpers#method-array-sole)
+
+::: code-group
+
+```js [@tolki/arr]
+import { sole } from "@tolki/arr";
+
+sole([42]);
+// => 42
+
+sole([1, 2, 3], (value) => value > 2);
+// => 3
+
+sole([]);
+// => throws ItemNotFoundException
+
+sole([1, 2]);
+// => throws MultipleItemsFoundException
+```
+
+```js [@tolki/obj]
+import { sole } from "@tolki/obj";
+
+sole({ a: 1 });
+// => 1
+
+sole({ a: 1, b: 2 }, (value) => value > 1);
+// => 2
+
+sole({});
+// => throws ItemNotFoundException
+
+sole({ a: 1, b: 2 });
+// => throws MultipleItemsFoundException
+```
+
+```js [@tolki/data]
+import { dataSole } from "@tolki/data";
+
+dataSole([42]);
+// => 42
+
+dataSole({ a: 1, b: 2 }, (value) => value > 1);
+// => 2
+
+dataSole([1, 2]);
+// => throws MultipleItemsFoundException
+```
+
+:::
+
+<FnTry label="dataSole" :fn="dataSole" :args="[
+  { name: 'data', type: 'json', default: [42] },
+]" />
+
+### some
+
+Determine if some items pass the given truth test.
+
+Exported as `some` from `@tolki/arr` and `@tolki/obj`, and as `dataSome` from `@tolki/data`.
+
+Laravel: [`Arr::some()`](https://laravel.com/docs/helpers#method-array-some)
+
+::: code-group
+
+```js [@tolki/arr]
+import { some } from "@tolki/arr";
+
+some([1, 2, 3], (value) => value % 2 === 0);
+// => true
+
+some([1, 3, 5], (value) => value % 2 === 0);
+// => false
+```
+
+```js [@tolki/obj]
+import { some } from "@tolki/obj";
+
+some({ a: 1, b: 2 }, (value, key) => key === "b");
+// => true
+
+some({ a: 1, b: 2 }, (value) => value > 2);
+// => false
+```
+
+```js [@tolki/data]
+import { dataSome } from "@tolki/data";
+
+dataSome([1, 3, 5], (value) => value % 2 === 0);
+// => false
+
+dataSome({ a: 1, b: 2 }, (value) => value > 1);
+// => true
+```
+
+:::
+
+<FnTry label="dataSome" :fn="dataSome" :args="[
+  { name: 'data', type: 'json', default: [1, 2, 3] },
+  { name: 'callback', type: 'select', default: predicates[0].value, options: predicates },
+]" />
+
+### sort
+
+Sort an array or object by its values, by a callback, by a "dot" path, or by a list of sort descriptors. It returns a new value and leaves the original unchanged.
+
+Exported as `sort` from `@tolki/arr` and `@tolki/obj`, and as `dataSort` from `@tolki/data`.
+
+Laravel: [`Arr::sort()`](https://laravel.com/docs/helpers#method-array-sort)
+
+::: code-group
+
+```js [@tolki/arr]
+import { sort } from "@tolki/arr";
+
+sort([3, 1, 4, 1, 5]);
+// => [1, 1, 3, 4, 5]
+
+const people = [
+  { name: "John", age: 25 },
+  { name: "Jane", age: 30 },
+  { name: "Al", age: 20 },
+];
+
+sort(people, "age");
+// => [
+//   { name: "Al", age: 20 },
+//   { name: "John", age: 25 },
+//   { name: "Jane", age: 30 },
+// ]
+
+sort(people, (person) => person.name);
+// => [
+//   { name: "Al", age: 20 },
+//   { name: "Jane", age: 30 },
+//   { name: "John", age: 25 },
+// ]
+```
+
+```js [@tolki/obj]
+import { sort } from "@tolki/obj";
+
+// Each key stays with its value.
+sort({ a: 3, b: 1, c: 2 });
+// => { b: 1, c: 2, a: 3 }
+
+sort({ x: { n: 2 }, y: { n: 1 } }, "n");
+// => { y: { n: 1 }, x: { n: 2 } }
+```
+
+```js [@tolki/data]
+import { dataSort } from "@tolki/data";
+
+dataSort([3, 1, 2]);
+// => [1, 2, 3]
+
+dataSort({ a: 3, b: 1, c: 2 });
+// => { b: 1, c: 2, a: 3 }
+```
+
+:::
+
+<FnTry label="dataSort" :fn="dataSort" :args="[
+  { name: 'data', type: 'json', default: [3, 1, 4, 1, 5] },
+]" />
+
+### sortDesc
+
+Sort an array or object in descending order. It takes the same callbacks, paths and descriptors as `sort`, and returns a new value.
+
+Exported as `sortDesc` from `@tolki/arr` and `@tolki/obj`, and as `dataSortDesc` from `@tolki/data`.
+
+Laravel: [`Arr::sortDesc()`](https://laravel.com/docs/helpers#method-array-sort-desc)
+
+::: code-group
+
+```js [@tolki/arr]
+import { sortDesc } from "@tolki/arr";
+
+sortDesc([3, 1, 4, 1, 5]);
+// => [5, 4, 3, 1, 1]
+
+sortDesc(["banana", "apple", "cherry"]);
+// => ["cherry", "banana", "apple"]
+```
+
+```js [@tolki/obj]
+import { sortDesc } from "@tolki/obj";
+
+// Each key stays with its value.
+sortDesc({ a: 3, b: 1, c: 2 });
+// => { a: 3, c: 2, b: 1 }
+```
+
+```js [@tolki/data]
+import { dataSortDesc } from "@tolki/data";
+
+dataSortDesc([3, 1, 2]);
+// => [3, 2, 1]
+
+dataSortDesc({ a: 3, b: 1, c: 2 });
+// => { a: 3, c: 2, b: 1 }
+```
+
+:::
+
+<FnTry label="dataSortDesc" :fn="dataSortDesc" :args="[
+  { name: 'data', type: 'json', default: [3, 1, 4, 1, 5] },
+]" />
+
+### sortRecursive
+
+Recursively sort an array or object by its keys and values. Nested lists sort by value and nested objects sort by key.
+
+Exported as `sortRecursive` from `@tolki/arr` and `@tolki/obj`, and as `dataSortRecursive` from `@tolki/data`.
+
+Laravel: [`Arr::sortRecursive()`](https://laravel.com/docs/helpers#method-array-sort-recursive)
+
+::: code-group
+
+```js [@tolki/arr]
+import { sortRecursive } from "@tolki/arr";
+
+sortRecursive([
+  [3, 1, 2],
+  [9, 8],
+]);
+// => [[8, 9], [1, 2, 3]]
+```
+
+```js [@tolki/obj]
+import { sortRecursive } from "@tolki/obj";
+
+sortRecursive({ b: [3, 1, 2], a: { d: 2, c: 1 } });
+// => { a: { c: 1, d: 2 }, b: [1, 2, 3] }
+```
+
+```js [@tolki/data]
+import { dataSortRecursive } from "@tolki/data";
+
+dataSortRecursive({ b: [3, 1, 2], a: { d: 2, c: 1 } });
+// => { a: { c: 1, d: 2 }, b: [1, 2, 3] }
+
+dataSortRecursive([
+  [3, 1, 2],
+  [9, 8],
+]);
+// => [[8, 9], [1, 2, 3]]
+```
+
+:::
+
+<FnTry label="dataSortRecursive" :fn="dataSortRecursive" :args="[
+  { name: 'data', type: 'json', default: { b: [3, 1, 2], a: { d: 2, c: 1 } } },
+]" />
+
+### sortRecursiveDesc
+
+Recursively sort an array or object by its keys and values in descending order.
+
+Exported as `sortRecursiveDesc` from `@tolki/arr` and `@tolki/obj`, and as `dataSortRecursiveDesc` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { sortRecursiveDesc } from "@tolki/arr";
+
+sortRecursiveDesc([
+  [1, 3, 2],
+  [8, 9],
+]);
+// => [[3, 2, 1], [9, 8]]
+```
+
+```js [@tolki/obj]
+import { sortRecursiveDesc } from "@tolki/obj";
+
+sortRecursiveDesc({ a: [1, 2, 3], b: { c: 1, d: 2 } });
+// => { b: { d: 2, c: 1 }, a: [3, 2, 1] }
+```
+
+```js [@tolki/data]
+import { dataSortRecursiveDesc } from "@tolki/data";
+
+dataSortRecursiveDesc({ a: [1, 2, 3], b: { c: 1, d: 2 } });
+// => { b: { d: 2, c: 1 }, a: [3, 2, 1] }
+
+dataSortRecursiveDesc([
+  [1, 3, 2],
+  [8, 9],
+]);
+// => [[3, 2, 1], [9, 8]]
+```
+
+:::
+
+<FnTry label="dataSortRecursiveDesc" :fn="dataSortRecursiveDesc" :args="[
+  { name: 'data', type: 'json', default: { a: [1, 2, 3], b: { c: 1, d: 2 } } },
+]" />
+
+### splice
+
+Remove a portion of an array or object, optionally put replacements in its place, and return what was removed. It changes the data you pass in, unlike most functions on this page. See [Return values instead of references](./differences.md#return-values-instead-of-references).
+
+Exported as `splice` from `@tolki/arr` and `@tolki/obj`, and as `dataSplice` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { splice } from "@tolki/arr";
+
+const queue = [1, 2, 3, 4, 5];
+
+splice(queue, 1, 2);
+// => [2, 3]
+
+queue;
+// => [1, 4, 5]
+
+splice(queue, 1, 0, ["a", "b"]);
+// => []
+
+queue;
+// => [1, "a", "b", 4, 5]
+
+splice(queue, 3);
+// => [4, 5]
+
+queue;
+// => [1, "a", "b"]
+```
+
+```js [@tolki/obj]
+import { splice } from "@tolki/obj";
+
+const stock = { a: 1, b: 2, c: 3, d: 4 };
+
+splice(stock, 1, 2);
+// => { b: 2, c: 3 }
+
+stock;
+// => { a: 1, d: 4 }
+```
+
+```js [@tolki/data]
+import { dataSplice } from "@tolki/data";
+
+const queue = [1, 2, 3, 4, 5];
+
+dataSplice(queue, 1, 2);
+// => [2, 3]
+
+queue;
+// => [1, 4, 5]
+```
+
+:::
+
+<FnTry label="dataSplice" :fn="dataSplice" :args="[
+  { name: 'data', type: 'json', default: [1, 2, 3, 4, 5] },
+  { name: 'offset', type: 'number', default: 1 },
+  { name: 'length', type: 'number', default: 2 },
+]" />
+
+### string
+
+Get a string item using "dot" notation, throwing an `InvalidArgumentException` if the value is not a string.
+
+Exported as `string` from `@tolki/arr` and `@tolki/obj`, and as `dataString` from `@tolki/data`.
+
+Laravel: [`Arr::string()`](https://laravel.com/docs/helpers#method-array-string)
+
+::: code-group
+
+```js [@tolki/arr]
+import { string } from "@tolki/arr";
+
+string([{ name: "John" }], "0.name");
+// => "John"
+
+string([{ name: "John" }], "0.title", "n/a");
+// => "n/a"
+
+string([{ name: 123 }], "0.name");
+// => throws InvalidArgumentException
+```
+
+```js [@tolki/obj]
+import { string } from "@tolki/obj";
+
+string({ name: "John" }, "name");
+// => "John"
+
+string({ name: 123 }, "name");
+// => throws InvalidArgumentException
+```
+
+```js [@tolki/data]
+import { dataString } from "@tolki/data";
+
+dataString({ user: { name: "John" } }, "user.name");
+// => "John"
+
+dataString(["a", 1], 0);
+// => "a"
+
+dataString(["a", 1], 1);
+// => throws InvalidArgumentException
+```
+
+:::
+
+<FnTry label="dataString" :fn="dataString" :args="[
+  { name: 'data', type: 'json', default: { user: { name: 'John' } } },
+  { name: 'key', default: 'user.name' },
+]" />
+
+### take
+
+Take the first or last N items of an array or object. A negative number takes from the end.
+
+Exported as `take` from `@tolki/arr` and `@tolki/obj`, and as `dataTake` from `@tolki/data`.
+
+Laravel: [`Arr::take()`](https://laravel.com/docs/helpers#method-array-take)
+
+::: code-group
+
+```js [@tolki/arr]
+import { take } from "@tolki/arr";
+
+take([1, 2, 3, 4, 5], 2);
+// => [1, 2]
+
+take([1, 2, 3, 4, 5], -2);
+// => [4, 5]
+
+take([1, 2, 3], 5);
+// => [1, 2, 3]
+```
+
+```js [@tolki/obj]
+import { take } from "@tolki/obj";
+
+take({ a: 1, b: 2, c: 3 }, 2);
+// => { a: 1, b: 2 }
+
+take({ a: 1, b: 2, c: 3 }, -2);
+// => { b: 2, c: 3 }
+```
+
+```js [@tolki/data]
+import { dataTake } from "@tolki/data";
+
+dataTake([1, 2, 3, 4], 2);
+// => [1, 2]
+
+dataTake({ a: 1, b: 2, c: 3 }, -1);
+// => { c: 3 }
+```
+
+:::
+
+<FnTry label="dataTake" :fn="dataTake" :args="[
+  { name: 'data', type: 'json', default: [1, 2, 3, 4, 5] },
+  { name: 'limit', type: 'number', default: 2 },
+]" />
+
+### takeUntil
+
+Take items from an array or object until the given condition is met. The condition is a value, matched strictly, or a callback.
+
+Exported as `takeUntil` from `@tolki/arr` and `@tolki/obj`, and as `dataTakeUntil` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { takeUntil } from "@tolki/arr";
+
+takeUntil([1, 2, 3, 4], 3);
+// => [1, 2]
+
+takeUntil([1, 2, 3, 4], (value) => value >= 3);
+// => [1, 2]
+
+takeUntil([1, 2, 3, 4], 99);
+// => [1, 2, 3, 4]
+```
+
+```js [@tolki/obj]
+import { takeUntil } from "@tolki/obj";
+
+takeUntil({ a: 1, b: 2, c: 3 }, 3);
+// => { a: 1, b: 2 }
+
+takeUntil({ a: 1, b: 2, c: 3 }, (value, key) => key === "c");
+// => { a: 1, b: 2 }
+```
+
+```js [@tolki/data]
+import { dataTakeUntil } from "@tolki/data";
+
+dataTakeUntil([1, 2, 3, 4], 3);
+// => [1, 2]
+
+dataTakeUntil({ a: 1, b: 2, c: 3 }, (value) => value > 1);
+// => { a: 1 }
+```
+
+:::
+
+<FnTry label="dataTakeUntil" :fn="dataTakeUntil" :args="[
+  { name: 'data', type: 'json', default: [1, 2, 3, 4] },
+  { name: 'value', type: 'number', default: 3 },
+]" />
+
+### takeWhile
+
+Take items from an array or object while the given condition is met. The condition is a value, matched strictly, or a callback.
+
+Exported as `takeWhile` from `@tolki/arr` and `@tolki/obj`, and as `dataTakeWhile` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { takeWhile } from "@tolki/arr";
+
+takeWhile([1, 1, 2, 2], 1);
+// => [1, 1]
+
+takeWhile([1, 2, 3, 4], (value) => value < 3);
+// => [1, 2]
+
+takeWhile([1, 2, 3, 4], 2);
+// => []
+```
+
+```js [@tolki/obj]
+import { takeWhile } from "@tolki/obj";
+
+takeWhile({ a: 1, b: 1, c: 2 }, 1);
+// => { a: 1, b: 1 }
+
+takeWhile({ a: 1, b: 2, c: 3 }, (value) => value < 3);
+// => { a: 1, b: 2 }
+```
+
+```js [@tolki/data]
+import { dataTakeWhile } from "@tolki/data";
+
+dataTakeWhile([1, 1, 2, 2], 1);
+// => [1, 1]
+
+dataTakeWhile({ a: 1, b: 2, c: 3 }, (value) => value < 3);
+// => { a: 1, b: 2 }
+```
+
+:::
+
+<FnTry label="dataTakeWhile" :fn="dataTakeWhile" :args="[
+  { name: 'data', type: 'json', default: [1, 1, 2, 2] },
+  { name: 'value', type: 'number', default: 1 },
+]" />
+
+### toCssClasses
+
+Conditionally compile CSS classes into a class list. A plain entry is always kept. A `class: condition` entry is kept when its condition is true.
+
+Exported as `toCssClasses` from `@tolki/arr` and `@tolki/obj`, and as `dataToCssClasses` from `@tolki/data`.
+
+Laravel: [`Arr::toCssClasses()`](https://laravel.com/docs/helpers#method-array-to-css-classes)
+
+::: code-group
+
+```js [@tolki/arr]
+import { toCssClasses } from "@tolki/arr";
+
+toCssClasses(["font-bold", "mt-4"]);
+// => "font-bold mt-4"
+
+// An array can carry extra string keys alongside its list items.
+toCssClasses(
+  Object.assign(["font-bold", "mt-4"], { "ml-2": true, "mr-2": false }),
+);
+// => "font-bold mt-4 ml-2"
+```
+
+```js [@tolki/obj]
+import { toCssClasses } from "@tolki/obj";
+
+toCssClasses({ "p-4": true, "font-bold": true, "bg-red": false });
+// => "p-4 font-bold"
+
+toCssClasses({ 0: "font-bold", 1: "mt-4", "ml-2": true, "mr-2": false });
+// => "font-bold mt-4 ml-2"
+```
+
+```js [@tolki/data]
+import { dataToCssClasses } from "@tolki/data";
+
+dataToCssClasses(["a", "b"]);
+// => "a b"
+
+dataToCssClasses({ "p-4": true, hidden: false });
+// => "p-4"
+```
+
+:::
+
+<FnTry label="dataToCssClasses" :fn="dataToCssClasses" :args="[
+  { name: 'data', type: 'json', default: { 'p-4': true, 'font-bold': true, hidden: false } },
+]" />
+
+### toCssStyles
+
+Conditionally compile CSS styles into a style list. Each style ends with a semicolon, and the styles are separated by a space.
+
+Exported as `toCssStyles` from `@tolki/arr` and `@tolki/obj`, and as `dataToCssStyles` from `@tolki/data`.
+
+Laravel: [`Arr::toCssStyles()`](https://laravel.com/docs/helpers#method-array-to-css-styles)
+
+::: code-group
+
+```js [@tolki/arr]
+import { toCssStyles } from "@tolki/arr";
+
+toCssStyles(["font-weight: bold", "margin-top: 4px"]);
+// => "font-weight: bold; margin-top: 4px;"
+
+toCssStyles(["font-weight: bold;", "margin-top: 4px"]);
+// => "font-weight: bold; margin-top: 4px;"
+```
+
+```js [@tolki/obj]
+import { toCssStyles } from "@tolki/obj";
+
+toCssStyles({
+  "font-weight: bold": true,
+  "margin-left: 2px": true,
+  "margin-right: 2px": false,
+});
+// => "font-weight: bold; margin-left: 2px;"
+```
+
+```js [@tolki/data]
+import { dataToCssStyles } from "@tolki/data";
+
+dataToCssStyles(["color: red"]);
+// => "color: red;"
+
+dataToCssStyles({ "color: red": true, "display: none": false });
+// => "color: red;"
+```
+
+:::
+
+<FnTry label="dataToCssStyles" :fn="dataToCssStyles" :args="[
+  { name: 'data', type: 'json', default: { 'color: red': true, 'display: none': false } },
+]" />
+
+### undot
+
+Expand a flat object with "dot" keys into a nested array or object.
+
+Exported as `undot` from `@tolki/arr` and `@tolki/obj`, and as `dataUndot` from `@tolki/data`.
+
+Laravel: [`Arr::undot()`](https://laravel.com/docs/helpers#method-array-undot)
+
+::: code-group
+
+```js [@tolki/arr]
+import { undot } from "@tolki/arr";
+
+// Every key segment must be a whole number, because the result is a list.
+undot({ 0: "a", "1.0": "b", 1.1: "c" });
+// => ["a", ["b", "c"]]
+```
+
+```js [@tolki/obj]
+import { undot } from "@tolki/obj";
+
+undot({ "user.name": "John", "user.age": 30 });
+// => { user: { name: "John", age: 30 } }
+
+undot({ "products.desk.price": 100, "products.desk.name": "Desk" });
+// => { products: { desk: { price: 100, name: "Desk" } } }
+```
+
+```js [@tolki/data]
+import { dataUndot } from "@tolki/data";
+
+dataUndot({ "a.b": 1, "a.c": 2 });
+// => { a: { b: 1, c: 2 } }
+
+dataUndot({ 0: "a", "1.0": "b" });
+// => { 0: "a", 1: ["b"] }
+```
+
+:::
+
+<FnTry label="dataUndot" :fn="dataUndot" :args="[
+  { name: 'data', type: 'json', default: { 'user.name': 'John', 'user.age': 30 } },
+]" />
+
+### union
+
+Union arrays or objects into one. An earlier argument wins: a later one only adds the keys the result does not have yet.
+
+Exported as `union` from `@tolki/arr` and `@tolki/obj`, and as `dataUnion` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { union } from "@tolki/arr";
+
+// The union is by position, not by value: index 0 and 1 keep their first values.
+union([1, 2], [3, 4, 5]);
+// => [1, 2, 5]
+```
+
+```js [@tolki/obj]
+import { union } from "@tolki/obj";
+
+union({ a: 1, b: 2 }, { b: 3, c: 4 });
+// => { a: 1, b: 2, c: 4 }
+
+union({ a: 1 }, { a: 2, b: 2 }, { c: 3 });
+// => { a: 1, b: 2, c: 3 }
+```
+
+```js [@tolki/data]
+import { dataUnion } from "@tolki/data";
+
+dataUnion({ a: 1 }, { a: 2, b: 3 });
+// => { a: 1, b: 3 }
+
+dataUnion([1, 2], [3, 4, 5]);
+// => [1, 2, 5]
+```
+
+:::
+
+<FnTry label="dataUnion" :fn="dataUnion" :args="[
+  { name: 'data', type: 'json', default: { a: 1, b: 2 } },
+  { name: 'other', type: 'json', default: { b: 3, c: 4 } },
+]" />
+
+### unshift
+
+Prepend one or more items to the start of an array or object. It changes the data you pass in, unlike most functions on this page. See [Return values instead of references](./differences.md#return-values-instead-of-references).
+
+Exported as `unshift` from `@tolki/arr` and `@tolki/obj`, and as `dataUnshift` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { unshift } from "@tolki/arr";
+
+const queue = [3, 4];
+
+unshift(queue, 1, 2);
+// => [1, 2, 3, 4]
+
+queue;
+// => [1, 2, 3, 4]
+```
+
+```js [@tolki/obj]
+import { unshift } from "@tolki/obj";
+
+const stock = { b: 2 };
+
+// Each new item goes under the next whole-number key.
+unshift(stock, "x");
+// => { 0: "x", b: 2 }
+
+stock;
+// => { 0: "x", b: 2 }
+```
+
+```js [@tolki/data]
+import { dataUnshift } from "@tolki/data";
+
+const queue = [3];
+
+dataUnshift(queue, 1, 2);
+// => [1, 2, 3]
+
+queue;
+// => [1, 2, 3]
+```
+
+:::
+
+<FnTry label="dataUnshift" :fn="dataUnshift" :args="[
+  { name: 'data', type: 'json', default: [3, 4] },
+  { name: 'item', type: 'json', default: 1 },
+]" />
+
+### values
+
+Get all the values of an array or object as a list.
+
+Exported as `values` from `@tolki/arr` and `@tolki/obj`, and as `dataValues` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { values } from "@tolki/arr";
+
+values(["name", "age", "city"]);
+// => ["name", "age", "city"]
+
+values([]);
+// => []
+```
+
+```js [@tolki/obj]
+import { values } from "@tolki/obj";
+
+values({ a: 1, b: 2 });
+// => [1, 2]
+```
+
+```js [@tolki/data]
+import { dataValues } from "@tolki/data";
+
+dataValues({ a: 1, b: 2 });
+// => [1, 2]
+
+dataValues([1, 2]);
+// => [1, 2]
+```
+
+:::
+
+<FnTry label="dataValues" :fn="dataValues" :args="[
+  { name: 'data', type: 'json', default: { a: 1, b: 2 } },
+]" />
+
+### where
+
+Filter an array or object using the given callback. A list comes back renumbered from 0; see [Behaviour differences](./differences.md#behaviour-differences).
+
+Exported as `where` from `@tolki/arr` and `@tolki/obj`, and as `dataWhere` from `@tolki/data`.
+
+Laravel: [`Arr::where()`](https://laravel.com/docs/helpers#method-array-where)
+
+::: code-group
+
+```js [@tolki/arr]
+import { where } from "@tolki/arr";
+
+where([1, 2, 3, 4], (value) => value > 2);
+// => [3, 4]
+
+where([1, 2, 3, 4], (value, index) => index % 2 === 1);
+// => [2, 4]
+```
+
+```js [@tolki/obj]
+import { where } from "@tolki/obj";
+
+where({ a: 1, b: 2, c: 3 }, (value) => value > 1);
+// => { b: 2, c: 3 }
+
+where({ a: 1, b: 2, c: 3 }, (value, key) => key !== "b");
+// => { a: 1, c: 3 }
+```
+
+```js [@tolki/data]
+import { dataWhere } from "@tolki/data";
+
+dataWhere([1, 2, 3], (value) => value > 1);
+// => [2, 3]
+
+dataWhere({ a: 1, b: 2, c: 3 }, (value) => value > 1);
+// => { b: 2, c: 3 }
+```
+
+:::
+
+<FnTry label="dataWhere" :fn="dataWhere" :args="[
+  { name: 'data', type: 'json', default: { a: 1, b: 2, c: 3 } },
+  { name: 'callback', type: 'select', default: predicates[0].value, options: predicates },
+]" />
+
+### whereNotNull
+
+Filter an array or object, removing the items whose value is `null`. A list comes back renumbered from 0; see [Behaviour differences](./differences.md#behaviour-differences).
+
+Exported as `whereNotNull` from `@tolki/arr` and `@tolki/obj`, and as `dataWhereNotNull` from `@tolki/data`.
+
+Laravel: [`Arr::whereNotNull()`](https://laravel.com/docs/helpers#method-array-where-not-null)
+
+::: code-group
+
+```js [@tolki/arr]
+import { whereNotNull } from "@tolki/arr";
+
+whereNotNull(["a", null, "b", null]);
+// => ["a", "b"]
+
+// Only null is removed; an undefined item stays.
+whereNotNull([1, null, 2, undefined, 3]);
+// => [1, 2, undefined, 3]
+```
+
+```js [@tolki/obj]
+import { whereNotNull } from "@tolki/obj";
+
+whereNotNull({ a: 1, b: null, c: 3 });
+// => { a: 1, c: 3 }
+```
+
+```js [@tolki/data]
+import { dataWhereNotNull } from "@tolki/data";
+
+dataWhereNotNull([1, null, 3]);
+// => [1, 3]
+
+dataWhereNotNull({ a: 1, b: null, c: 3 });
+// => { a: 1, c: 3 }
+```
+
+:::
+
+<FnTry label="dataWhereNotNull" :fn="dataWhereNotNull" :args="[
+  { name: 'data', type: 'json', default: { a: 1, b: null, c: 3 } },
+]" />
+
+### wrap
+
+If the given value is not already an array (an object, with `@tolki/obj`), wrap it in one. `null` gives an empty result.
+
+Exported as `wrap` from `@tolki/arr` and `@tolki/obj`. `@tolki/data` has no `wrap`.
+
+Laravel: [`Arr::wrap()`](https://laravel.com/docs/helpers#method-array-wrap)
+
+::: code-group
+
+```js [@tolki/arr]
+import { wrap } from "@tolki/arr";
+
+wrap("hello");
+// => ["hello"]
+
+wrap(["hello"]);
+// => ["hello"]
+
+wrap(null);
+// => []
+```
+
+```js [@tolki/obj]
+import { wrap } from "@tolki/obj";
+
+// A value that is not an object goes under the key 0.
+wrap("hello");
+// => { 0: "hello" }
+
+wrap({ hello: "world" });
+// => { hello: "world" }
+
+wrap(null);
+// => {}
+```
+
+:::
+
+<FnTry label="wrap" :fn="wrap" :args="[
+  { name: 'value', type: 'json', default: 'hello' },
 ]" />
