@@ -269,6 +269,7 @@ const DOCS_ROOT = path.join(
 const UTILITIES = "arrays-objects/utilities-list.md";
 const METHODS = "collections/methods-list.md";
 const CITATION = /<!--[^>]*docs\/php-parity\/[^>]*-->/;
+const STANDALONE_CITATION = /^\s*<!--[^>]*docs\/php-parity\/[^>]*-->\s*$/;
 
 interface Section {
     heading: string;
@@ -399,9 +400,12 @@ describe("documentation is complete", () => {
 
     it("every reference section has a checked example", () => {
         const unchecked: string[] = [];
+        let seen = 0;
 
         for (const page of [UTILITIES, METHODS]) {
             for (const section of referenceSections(readDoc(page))) {
+                seen++;
+
                 if (
                     !["random", "shuffle"].includes(section.heading) &&
                     !section.fences.some((f) => f.code.includes("// =>"))
@@ -411,17 +415,21 @@ describe("documentation is complete", () => {
             }
         }
 
+        expect(seen).toBeGreaterThan(100);
         expect(unchecked).toEqual([]);
     });
 
     it("every utilities-list section names its exports outside code", () => {
         const unnamed: string[] = [];
+        let imports = 0;
 
         for (const section of referenceSections(readDoc(UTILITIES))) {
             const imported = importedNames(section.text);
 
             for (const [title, names] of imported) {
                 for (const name of names) {
+                    imports++;
+
                     if (!section.outsideCode.includes(`\`${name}\``)) {
                         unnamed.push(
                             `### ${section.heading}: ${title} ${name}`,
@@ -431,11 +439,14 @@ describe("documentation is complete", () => {
             }
         }
 
+        expect(imports).toBeGreaterThan(100);
         expect(unnamed).toEqual([]);
     });
 
     it("every parity claim cites a transcript", () => {
         const uncited: string[] = [];
+        let infoBlocks = 0;
+        const bulletCounts: number[] = [];
 
         for (const page of [UTILITIES, METHODS]) {
             const lines = readDoc(page).split("\n");
@@ -451,7 +462,9 @@ describe("documentation is complete", () => {
                     before--;
                 }
 
-                if (!CITATION.test(lines[before] ?? "")) {
+                infoBlocks++;
+
+                if (!STANDALONE_CITATION.test(lines[before] ?? "")) {
                     uncited.push(`${page}:${index + 1} ::: info`);
                 }
             }
@@ -472,10 +485,14 @@ describe("documentation is complete", () => {
             const markdown = readDoc(page);
 
             for (const heading of headings) {
-                for (const bullet of topLevelBullets(markdown, heading)) {
+                const bullets = topLevelBullets(markdown, heading);
+
+                bulletCounts.push(bullets.length);
+
+                for (const bullet of bullets) {
                     if (
                         !CITATION.test(bullet.first) &&
-                        !CITATION.test(bullet.before)
+                        !STANDALONE_CITATION.test(bullet.before)
                     ) {
                         uncited.push(`${page}:${bullet.line} ${heading}`);
                     }
@@ -483,6 +500,9 @@ describe("documentation is complete", () => {
             }
         }
 
+        expect(infoBlocks).toBeGreaterThan(0);
+        expect(bulletCounts).toHaveLength(4);
+        expect(bulletCounts.every((count) => count > 0)).toBe(true);
         expect(uncited).toEqual([]);
     });
 });
