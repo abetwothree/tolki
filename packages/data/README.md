@@ -48,7 +48,7 @@ The return types follow the same split. `dataGet` is typed as the two packages' 
 
 ### Importing the Package
 
-You can import individual functions for better tree-shaking or the entire package (not recommended). Each tab below imports from its own package and checks one small call:
+You can import individual functions for better tree-shaking or the entire package (not recommended). On the docs site, each tab below imports from its own package and checks one small call:
 
 ```js [@tolki/data]
 import { dataGet } from "@tolki/data";
@@ -68,7 +68,7 @@ However, if you are working on a backend project where bundle size is not a conc
 
 The [utilities list](https://tolki.abe.dev/arrays-objects/utilities-list.html) has one section per function. Each section has one tab per package that exports it, in the order `@tolki/arr`, `@tolki/obj`, `@tolki/data`. A function that only some packages have shows only those tabs.
 
-The tabs follow your choice. Pick `@tolki/obj` once and every section on the page, and the install and import examples above, switch to it. Your pick is remembered the next time you visit.
+On the docs site, the tabs follow your choice. Pick `@tolki/obj` once and every section on the page, and the install and import examples above, switch to it. Your pick is remembered the next time you visit.
 
 ### More documentation
 
@@ -78,7 +78,7 @@ The tabs follow your choice. Pick `@tolki/obj` once and every section on the pag
 
 ## Tolki Array & Object Utilities List
 
-These utilities work on arrays with `@tolki/arr`, on plain objects with `@tolki/obj`, and on either one with `@tolki/data`. Every section has a tab for each package that exports the function, and the page remembers the tab you pick, so the next visit starts on the same one.
+These utilities work on arrays with `@tolki/arr`, on plain objects with `@tolki/obj`, and on either one with `@tolki/data`. On the docs site, every section has a tab for each package that exports the function, and the page remembers the tab you pick, so the next visit starts on the same one.
 
 ### Utilities List
 
@@ -1701,7 +1701,7 @@ dataWhere({ a: 1, b: 2, c: 3 }, (value) => value > 1);
 
 #### whereNotNull
 
-Filter an array or object, removing the items whose value is `null`. A list comes back renumbered from 0; see [Behaviour differences](https://tolki.abe.dev/arrays-objects/differences.html#behaviour-differences).
+Filter an array or object, removing the items whose value is `null`. Only `null` is removed; an `undefined` item stays. A list comes back renumbered from 0; see [Behaviour differences](https://tolki.abe.dev/arrays-objects/differences.html#behaviour-differences).
 
 Exported as `whereNotNull` from `@tolki/arr` and `@tolki/obj`, and as `dataWhereNotNull` from `@tolki/data`.
 
@@ -1715,6 +1715,9 @@ dataWhereNotNull([1, null, 3]);
 
 dataWhereNotNull({ a: 1, b: null, c: 3 });
 // => { a: 1, c: 3 }
+
+dataWhereNotNull([1, undefined, null]);
+// => [1, undefined]
 ```
 
 ## Dot Notation
@@ -1756,7 +1759,7 @@ get({ a: { b: 2 } }, "a.b");
 ### Functions that take a path
 
 - **Read:** `get`, `has`, `hasAll`, `hasAny`, and the typed getters `string`, `integer`, `float`, `boolean` and `arrayItem` (`objectItem`, `dataItem`).
-- **Write:** `set`, `add`, `forget`, `pull` and `push`. Each one creates the missing steps of a path as it goes.
+- **Write:** `set`, `add`, `forget`, `pull` and `push`. `set`, `add` and `push` create the missing steps of a path as they go. `forget` leaves the data as it is when the path is missing, and `pull` returns the default, `null` unless you pass one, with the data unchanged.
 - **Pick out of rows:** `pluck` takes a path for the value and for the key, and `except` takes paths among its keys.
 - **Convert:** `dot` turns a nested structure into a flat object of paths, and `undot` turns it back.
 
@@ -1764,8 +1767,11 @@ get({ a: { b: 2 } }, "a.b");
 import {
   dataDot,
   dataExcept,
+  dataForget,
   dataHas,
   dataInteger,
+  dataPull,
+  dataPush,
   dataSet,
   dataUndot,
 } from "@tolki/data";
@@ -1787,6 +1793,15 @@ dataDot({ a: { b: 1, c: [2] } });
 
 dataUndot({ "a.b": 1, "a.c": 2 });
 // => { a: { b: 1, c: 2 } }
+
+dataPush({}, "a.b", 1);
+// => { a: { b: [1] } }
+
+dataForget({ a: 1 }, "b.c");
+// => { a: 1 }
+
+dataPull({ a: 1 }, "b.c");
+// => { value: null, data: { a: 1 } }
 ```
 
 ### Wildcards
@@ -1923,7 +1938,7 @@ rows.where("a", "===", 1).all();
 
 ### Truthiness
 
-Wherever a callback or a value is tested for being true, PHP's rule applies, not JavaScript's. The tests are `filter()` with no callback, `reject()` with no argument, `where` without an operator, and what a callback to `first`, `where`, `reject`, `every`, `some` or `sole` answers.
+Wherever a callback or a value is tested for being true, PHP's rule applies, not JavaScript's. The tests are `filter()` with no callback, `Collection`'s `reject()` with no argument, `Collection`'s `where` without an operator, and what a callback to `first`, `where`, `reject`, `every`, `some` or `sole` answers.
 
 <!-- docs/php-parity/Php/truthiness.json, "truthiness-the-string-zero", "truthiness-the-string-0.0", "truthiness-an-empty-string", "truthiness-integer-zero", "truthiness-null", "truthiness-an-empty-array", "truthiness-an-array-holding-zero", "truthiness-NAN", "truthiness-an-empty-object" -->
 
@@ -1935,6 +1950,14 @@ import { isFalsy, isPhpFalsy } from "@tolki/utils";
 
 collect(["0", "0.0", "", 0, [], {}, NaN, "a", false, null]).filter().all();
 // => ["0.0", NaN, "a"]
+
+collect([1, null, 0, 2]).reject().all();
+// => [null, 0]
+
+collect([{ a: 1 }, { a: 0 }])
+  .where("a")
+  .all();
+// => [{ a: 1 }]
 
 isPhpFalsy("0");
 // => true
@@ -2147,12 +2170,15 @@ queue;
 - `float` accepts a whole number such as `1`, where Laravel's `Arr::float()` throws, because PHP's `is_float()` rejects an integer. JavaScript has one number type. <!-- docs/php-parity/Arr/float.json, "Arr::float rejects a whole-number int" -->
 - `get`, `has` and the other path readers take `*`, `{first}` and `{last}` as plain key names, where Laravel's `data_get()` expands them. `pluck` does read a `*`. <!-- docs/php-parity/Helpers/data_get.json, "data-get-wildcard-and-first-last-segments" -->
 - On a list, `where`, `reject` and `whereNotNull` return the kept values as a new array numbered from 0, where Laravel keeps each value's original key. An object keeps its keys. <!-- docs/php-parity/Arr/where.json, "where-preserves-int-keys"; docs/php-parity/Arr/reject.json, "reject-preserves-int-keys"; docs/php-parity/Arr/whereNotNull.json, "whereNotNull-list-preserves-keys" -->
+- The functions Laravel takes from `Collection` give the same list result: `filter`, `intersectAssoc`, `intersectByKeys`, `diffKeys`, `reverse`, `skipUntil` and `skipWhile` return a list numbered from 0 where Laravel keeps each value's original key. `chunk`, `chunkBy` and `chunkWhile` renumber the values inside each chunk, where Laravel keeps their keys. `diff`, `diffAssoc`, `intersect`, `slice`, `takeUntil` and `takeWhile` return a fresh list in the same way. `@tolki/obj` keeps the keys of an object. <!-- docs/php-parity/Collection/filter.json, "filter-list-gap-keys"; docs/php-parity/Collection/intersectAssoc.json, "intersectAssoc-list-keeps-gap-keys"; docs/php-parity/Collection/intersectByKeys.json, "intersectByKeys-list-keeps-gap-keys"; docs/php-parity/Collection/diffKeys.json, "C32-F-diffKeys-signature-examples"; docs/php-parity/Collection/reverse.json, "reverse preserves keys and reverses entry order"; docs/php-parity/Collection/skipUntil.json, "C32-D-skipUntil-list-keys"; docs/php-parity/Collection/skipWhile.json, "C32-D-skipWhile-list-keys"; docs/php-parity/Collection/chunk.json, "collection-chunk-last-chunk-keys"; docs/php-parity/Collection/chunkBy.json, "chunkBy with a callback"; docs/php-parity/Collection/chunkWhile.json, "chunkWhile on equal adjacent elements" -->
+- `dataGet` reads a literal key that contains a dot before it splits the path, so `dataGet({ "a.b": 1, a: { b: 2 } }, "a.b")` is `1`, where Laravel's `data_get()` is `2`. When the literal key is the only one, `dataGet` still finds it and `data_get()` returns the default. `get` in `@tolki/obj` does the same. <!-- docs/php-parity/Helpers/data_get.json, "C32-D-data-get-literal-dotted-key" -->
 - A plain object lists integer-like keys first, in ascending order, whatever order you wrote them. Laravel's arrays keep insertion order. A `Map` keeps insertion order, so pass one when the order matters. <!-- docs/php-parity/Arr/divide.json, "divide-mixed" -->
 - With a final glue and a single item, `join` returns that item cast to a string, where Laravel returns the item as it is: `1` stays the number `1`. <!-- docs/php-parity/Arr/join.json, "C32-H-arr-join-pieces" -->
 
 ```js
-import { float, join, where } from "@tolki/arr";
-import { divide, get, reject } from "@tolki/obj";
+import { chunk, filter, float, intersectAssoc, join, where } from "@tolki/arr";
+import { dataGet } from "@tolki/data";
+import { divide, filter as filterObject, get, reject } from "@tolki/obj";
 
 float([{ price: 1 }], "0.price");
 // => 1
@@ -2168,6 +2194,27 @@ where(
 
 reject({ a: 1, b: 2, c: 3 }, (value) => value > 1);
 // => { a: 1 }
+
+filter([1, 2, 3], (value) => value !== 2);
+// => [1, 3]
+
+filterObject({ 0: 1, 1: 2, 2: 3 }, (value) => value !== 2);
+// => { 0: 1, 2: 3 }
+
+intersectAssoc(["a", "b", "c"], ["a", "x", "c"]);
+// => ["a", "c"]
+
+chunk([1, 2, 3, 4, 5], 2);
+// => [[1, 2], [3, 4], [5]]
+
+dataGet({ "a.b": 1, a: { b: 2 } }, "a.b");
+// => 1
+
+dataGet({ "a.b": 1 }, "a.b", "miss");
+// => 1
+
+get({ "a.b": 1, a: { b: 2 } }, "a.b");
+// => 1
 
 divide({ x: 1, 0: 2 });
 // => [[0, "x"], [2, 1]]
