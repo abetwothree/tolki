@@ -38,6 +38,25 @@ c.all().a;
   ```
 
 - `duplicates()` and `chunk()` keep PHP's positional keys, because the keys are the answer, and so do `groupBy(key, true)` and `random(n, true)`, which ask for them. <!-- docs/php-parity/Collection/duplicates.json, "C32-D-duplicates-list-first-key"; docs/php-parity/Collection/chunk.json, "collection-chunk-last-chunk-keys"; docs/php-parity/Collection/groupBy.json, "C32-E-groupBy-preserve-keys-list-backing"; docs/php-parity/Collection/random.json, "C32-C-random-preserved-string-keys" -->
+- `chunkBy()` and `chunkWhile()` do not follow `chunk()`: the chunks of a list are lists, so each one counts from 0 again, where PHP's later chunks keep the keys their items had. A keyed collection keeps its string keys in each chunk. <!-- docs/php-parity/Collection/chunkBy.json, "chunkBy with a callback"; docs/php-parity/Collection/chunkWhile.json, "chunkWhile on equal adjacent elements" -->
+
+  ```js
+  import { collect } from "@tolki/collection";
+
+  collect([1, 2, 3, 4, 5]).chunk(2).toArray();
+  // => [{ 0: 1, 1: 2 }, { 2: 3, 3: 4 }, { 4: 5 }]
+
+  collect([1, 1, 2, 2, 3])
+    .chunkBy((value) => value)
+    .toArray();
+  // => [[1, 1], [2, 2], [3]]
+
+  collect({ a: 1, b: 1, c: 2 })
+    .chunkBy((value) => value)
+    .toArray();
+  // => [{ a: 1, b: 1 }, { c: 2 }]
+  ```
+
 - A keyed collection keeps its object backing even when its keys run `0..n-1`: `collect({ 0: 'a', 1: 'b' })`'s `all()` and `toArray()` are `{ 0: 'a', 1: 'b' }`, where PHP's `all()` is the list `['a', 'b']`. `values()` gives the list, and `jsonSerialize()` answers it and `toJson()` writes `["a","b"]`, as PHP's do. <!-- docs/php-parity/Collection/all.json, "all-integer-keys-in-order-is-a-list"; docs/php-parity/Collection/toJson.json, "C32-A-toJson-integer-keys-in-order-are-a-list" -->
 
   ```js

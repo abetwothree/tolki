@@ -150,12 +150,15 @@ queue;
 - `float` accepts a whole number such as `1`, where Laravel's `Arr::float()` throws, because PHP's `is_float()` rejects an integer. JavaScript has one number type. <!-- docs/php-parity/Arr/float.json, "Arr::float rejects a whole-number int" -->
 - `get`, `has` and the other path readers take `*`, `{first}` and `{last}` as plain key names, where Laravel's `data_get()` expands them. `pluck` does read a `*`. <!-- docs/php-parity/Helpers/data_get.json, "data-get-wildcard-and-first-last-segments" -->
 - On a list, `where`, `reject` and `whereNotNull` return the kept values as a new array numbered from 0, where Laravel keeps each value's original key. An object keeps its keys. <!-- docs/php-parity/Arr/where.json, "where-preserves-int-keys"; docs/php-parity/Arr/reject.json, "reject-preserves-int-keys"; docs/php-parity/Arr/whereNotNull.json, "whereNotNull-list-preserves-keys" -->
+- The functions Laravel takes from `Collection` give the same list result: `filter`, `intersectAssoc`, `intersectByKeys`, `diffKeys`, `reverse`, `skipUntil` and `skipWhile` return a list numbered from 0 where Laravel keeps each value's original key. `chunk`, `chunkBy` and `chunkWhile` renumber the values inside each chunk, where Laravel keeps their keys. `diff`, `diffAssoc`, `intersect`, `slice`, `takeUntil` and `takeWhile` return a fresh list in the same way. `@tolki/obj` keeps the keys of an object. <!-- docs/php-parity/Collection/filter.json, "filter-list-gap-keys"; docs/php-parity/Collection/intersectAssoc.json, "intersectAssoc-list-keeps-gap-keys"; docs/php-parity/Collection/intersectByKeys.json, "intersectByKeys-list-keeps-gap-keys"; docs/php-parity/Collection/diffKeys.json, "C32-F-diffKeys-signature-examples"; docs/php-parity/Collection/reverse.json, "reverse preserves keys and reverses entry order"; docs/php-parity/Collection/skipUntil.json, "C32-D-skipUntil-list-keys"; docs/php-parity/Collection/skipWhile.json, "C32-D-skipWhile-list-keys"; docs/php-parity/Collection/chunk.json, "collection-chunk-last-chunk-keys"; docs/php-parity/Collection/chunkBy.json, "chunkBy with a callback"; docs/php-parity/Collection/chunkWhile.json, "chunkWhile on equal adjacent elements" -->
+- `dataGet` reads a literal key that contains a dot before it splits the path, so `dataGet({ "a.b": 1, a: { b: 2 } }, "a.b")` is `1`, where Laravel's `data_get()` is `2`. When the literal key is the only one, `dataGet` still finds it and `data_get()` returns the default. `get` in `@tolki/obj` does the same. <!-- docs/php-parity/Helpers/data_get.json, "C32-D-data-get-literal-dotted-key" -->
 - A plain object lists integer-like keys first, in ascending order, whatever order you wrote them. Laravel's arrays keep insertion order. A `Map` keeps insertion order, so pass one when the order matters. <!-- docs/php-parity/Arr/divide.json, "divide-mixed" -->
 - With a final glue and a single item, `join` returns that item cast to a string, where Laravel returns the item as it is: `1` stays the number `1`. <!-- docs/php-parity/Arr/join.json, "C32-H-arr-join-pieces" -->
 
 ```js
-import { float, join, where } from "@tolki/arr";
-import { divide, get, reject } from "@tolki/obj";
+import { chunk, filter, float, intersectAssoc, join, where } from "@tolki/arr";
+import { dataGet } from "@tolki/data";
+import { divide, filter as filterObject, get, reject } from "@tolki/obj";
 
 float([{ price: 1 }], "0.price");
 // => 1
@@ -171,6 +174,27 @@ where(
 
 reject({ a: 1, b: 2, c: 3 }, (value) => value > 1);
 // => { a: 1 }
+
+filter([1, 2, 3], (value) => value !== 2);
+// => [1, 3]
+
+filterObject({ 0: 1, 1: 2, 2: 3 }, (value) => value !== 2);
+// => { 0: 1, 2: 3 }
+
+intersectAssoc(["a", "b", "c"], ["a", "x", "c"]);
+// => ["a", "c"]
+
+chunk([1, 2, 3, 4, 5], 2);
+// => [[1, 2], [3, 4], [5]]
+
+dataGet({ "a.b": 1, a: { b: 2 } }, "a.b");
+// => 1
+
+dataGet({ "a.b": 1 }, "a.b", "miss");
+// => 1
+
+get({ "a.b": 1, a: { b: 2 } }, "a.b");
+// => 1
 
 divide({ x: 1, 0: 2 });
 // => [[0, "x"], [2, 1]]

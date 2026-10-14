@@ -353,7 +353,7 @@ Unlike `groupBy`, items with the same value that are not next to each other land
 <!-- docs/php-parity/Collection/chunkBy.json, "chunkBy with a callback" -->
 
 ::: info
-A list's chunks are lists, so each one counts from 0 again. In Laravel a later chunk keeps the keys its items had.
+A list's chunks are lists, so each one counts from 0 again. In Laravel a later chunk keeps the keys its items had (see [Keys and order](./differences.md#keys-and-order)).
 :::
 
 The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#chunkby).
@@ -393,7 +393,7 @@ The callback receives the value, its key and the chunk built so far as a collect
 <!-- docs/php-parity/Collection/chunkWhile.json, "chunkWhile on equal adjacent elements" -->
 
 ::: info
-A list's chunks are lists, so each one counts from 0 again. In Laravel a later chunk keeps the keys its items had.
+A list's chunks are lists, so each one counts from 0 again. In Laravel a later chunk keeps the keys its items had (see [Keys and order](./differences.md#keys-and-order)).
 :::
 
 The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#chunkwhile).
