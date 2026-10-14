@@ -24,7 +24,7 @@ JSON.parse("{");
 
 ## How compilation works
 
-`compileExample` parses the block with the TypeScript compiler API. Each import becomes a read from a table of loaded modules (`import { get as g } from "@tolki/arr"` becomes `const { get: g } = __m["@tolki/arr"]`). Each asserted statement becomes a call to `__expect` or `__throws`. The result is transpiled to ES2022 and run inside an async function, so `await` works. `runExample` loads the modules, runs the body, and fails with `file.md:LINE` for the first assertion that does not hold.
+`compileExample` parses the block with the TypeScript compiler API. Each import becomes a read from a table of loaded modules (`import { get as g } from "@tolki/arr"` becomes `const { get: g } = __m["@tolki/arr"]`). Each asserted statement becomes a call to `__expect` or `__throws`. The result is transpiled to ES2022 and run inside an async function, so `await` works in a statement without an assertion. An asserted expression is wrapped in a non-async arrow, so `await` inside one is a `SyntaxError`. `runExample` loads the modules, runs the body, and fails with `file.md:LINE` for the first assertion that does not hold.
 
 ## How values are compared
 

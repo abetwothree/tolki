@@ -51,7 +51,7 @@ Prose outside a code group must be true for every tab in it. Anything true for o
 
 A line `// => <JS expression>` right after an expression statement is checked against the real packages. A multi-line expected value continues on the next `//` lines, so leave a blank line before a plain comment of your own. `// => throws <ErrorName>` checks the thrown error's `name`. Write every result from what the runner proves, never from Laravel's docs or from PHP. See [docs-example-runner.md](./docs-example-runner.md).
 
-Known traps: `chunk()`, `duplicates()`, `groupBy(key, true)` and `random(n, true)` keep PHP's positional keys. `set`, `forget`, `push`, `pull` and `prepend` in arr, obj and data return a new value and leave their argument unchanged. `dataGet` does not support `*`, `{first}` or `{last}`.
+Known traps: Collection's `chunk()`, `duplicates()`, `groupBy(key, true)` and `random(n, true)` keep PHP's positional keys, while `chunk()` in arr renumbers. `set`, `forget`, `push`, `pull` and `prepend` in arr, obj and data return a new value and leave their argument unchanged. `dataGet` does not support `*`, `{first}` or `{last}`.
 
 ### Parity claims
 

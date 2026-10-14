@@ -14,9 +14,9 @@ Exports and members come from `ts.createSourceFile`, not from importing the pack
 
 ## Other checks
 
-- A broken anchor is a `](#slug)` link outside a fence with no heading of that slug. Duplicate headings get VitePress's `-1`, `-2` suffixes.
+- A broken anchor is a `](#slug)` link outside a fence with no heading of that slug. This check runs on the two list pages only. Duplicate headings get VitePress's `-1`, `-2` suffixes.
 - A broken cross-page anchor is a relative `](./x.md#slug)` or `](../dir/x.md#slug)` link outside a fence whose target page exists but has no heading of that slug. It is checked on every `*.md` under `arrays-objects/` and `collections/`, and reported as an `anchor` line whose slug part is `<target page>#<slug>`. A link to a missing page is left to VitePress, which fails the build for it. `--only` does not filter it.
-- A fence mismatch is a tab titled `@tolki/x` that imports from any other `@tolki/*` module.
+- A fence mismatch is a tab titled `@tolki/x` that imports from any other `@tolki/*` module. This check runs on the two list pages only.
 
 ## CLI
 

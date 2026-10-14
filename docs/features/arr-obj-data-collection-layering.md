@@ -51,7 +51,7 @@ Ten helpers do not use `dispatch`, because the two delegates differ in more than
 | none         | none            | `dataBefore`  | Data only.                                                   |
 | none         | none            | `dataAfter`   | Data only.                                                   |
 
-Every other helper exists in all three packages, as `name`, `name` and `dataName`. The utilities list therefore shows all three tabs for most sections, and fewer for the names above. `docs:coverage` reports an export with no section.
+Every other helper exists in all three packages, as `name`, `name` and `dataName`, except `accessible` and `wrap`, which exist in `@tolki/arr` and `@tolki/obj` only. The utilities list therefore shows all three tabs for most sections, and fewer for the names above. `docs:coverage` reports an export with no section.
 
 ## How `Collection` uses `data`
 

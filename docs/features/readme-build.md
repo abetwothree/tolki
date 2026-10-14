@@ -8,14 +8,16 @@
 2. The script keeps everything in the README before `<!-- AUTO-GENERATED-DOCS:START -->`. With no sentinel, it appends at the end.
 3. For each page, `assembleDocsContent(docFiles, packageName)` runs these steps in order:
    1. `filterPackageVariants` keeps only the package's own tabs.
-   2. `stripVitepressSyntax` removes frontmatter.
-   3. `rewriteRelativeDocLinks` makes doc links absolute.
-   4. `stripVitepressSyntax` removes `:::` lines, `<div>` wrappers, `<script setup>` blocks and Vue component tags.
-   5. `increaseHeadingLevels` pushes headings down one level.
-   6. Three or more blank lines collapse to two.
-4. The result replaces everything between the start sentinel and `<!-- AUTO-GENERATED-DOCS:END -->`.
+   2. `rewriteAnchorsForGitHub` rewrites in-page `](#slug)` links to GitHub's slugs.
+   3. `stripVitepressSyntax` does the rest in one call:
+      1. It removes frontmatter.
+      2. It runs `rewriteRelativeDocLinks` to make doc links absolute, only when the page's `docDir` is non-empty (a page directly under `docs/vitepress/` keeps its relative links).
+      3. It removes `:::` lines, `<div>` wrappers, `<script setup>` blocks and Vue component tags.
+      4. It runs `increaseHeadingLevels` to push headings down one level.
+      5. Three or more blank lines collapse to two.
+4. The cleaned pages are joined with a blank line. The result replaces everything between the start sentinel and `<!-- AUTO-GENERATED-DOCS:END -->`.
 
-The filter runs first because it needs the `:::` lines that step 4 removes.
+The filter runs first because it needs the `:::` lines that `stripVitepressSyntax` removes.
 
 ## Variant filter
 
@@ -63,6 +65,8 @@ The `./` form uses the directory of the page that holds the link. The `../<dir>/
 ## Anchor rewrite
 
 VitePress turns `Symbol.iterator` into `#symbol-iterator`, but GitHub and npm drop the dot and give `#symboliterator`. `rewriteAnchorsForGitHub` computes both slugs for every heading outside fences, `-N` duplicate suffixes included, and rewrites each in-page `](#slug)` link to the GitHub one. It runs after the variant filter and before VitePress syntax is stripped. Links to unknown slugs and links inside fences are left alone.
+
+Known limit: the `-N` duplicate suffix is computed per source file, while a README joins three to five files, so two same-named headings in different pages both get the plain slug on GitHub.
 
 ## Publish path
 
