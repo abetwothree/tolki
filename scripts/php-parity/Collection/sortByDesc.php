@@ -37,4 +37,6 @@ probe('C32-G-sortByDesc-bool-comparator', "sortByDesc() and Arr::sortDesc() with
     'Arr::sortDesc keyed' => @Arr::sortDesc(['c' => 3, 'a' => 1, 'b' => 2], [fn ($a, $b) => $a > $b]),
 ]);
 
+probe('sortByDesc-keeps-every-key', 'pairs(collect([3, 1, 2])->sortByDesc(fn (\$v) => \$v))', fn () => pairs(collect([3, 1, 2])->sortByDesc(fn ($v) => $v)));
+
 emit();

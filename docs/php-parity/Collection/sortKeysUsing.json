@@ -35,6 +35,20 @@
                     "c"
                 ]
             ]
+        },
+        {
+            "label": "sortKeysUsing-keeps-every-key",
+            "php": "pairs(collect([2 => 'b', 5 => 'a'])->sortKeysUsing(fn (\\$x, \\$y) => \\$y <=> \\$x))",
+            "value": [
+                [
+                    5,
+                    "a"
+                ],
+                [
+                    2,
+                    "b"
+                ]
+            ]
         }
     ]
 }

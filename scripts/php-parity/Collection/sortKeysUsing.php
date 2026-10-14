@@ -37,4 +37,6 @@ probe('C32-G-sortKeysUsing-fractional-answers', "(new Collection(['c' => 1, 'a' 
     [0.5, 1.5],
 ));
 
+probe('sortKeysUsing-keeps-every-key', 'pairs(collect([2 => \'b\', 5 => \'a\'])->sortKeysUsing(fn (\$x, \$y) => \$y <=> \$x))', fn () => pairs(collect([2 => 'b', 5 => 'a'])->sortKeysUsing(fn ($x, $y) => $y <=> $x)));
+
 emit();

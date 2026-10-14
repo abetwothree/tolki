@@ -4,7 +4,7 @@
 
 ## Reading items
 
-- `$c['a']` is `c.offsetGet('a')`, `$c->get('a', 0)` is `c.get('a', 0)`, and `$c->all()['a']` is `c.all().a` or `const { a } = c.all()`. There is no `c.a` or `c[0]`, and `$c->a` throws in Laravel too.
+- `$c['a']` is `c.offsetGet('a')`, `$c->get('a', 0)` is `c.get('a', 0)`, and `$c->all()['a']` is `c.all().a` or `const { a } = c.all()`. There is no `c.a` or `c[0]`, and `$c->a` throws in Laravel too. <!-- docs/php-parity/Collection/__get.json, "__get-unknown-property-throws" -->
 
 ```js
 import { collect } from "@tolki/collection";
@@ -55,8 +55,8 @@ c.all().a;
   // => '["a","b"]'
   ```
 
-- A keyed collection lists its integer keys in ascending order, as a plain object does. Where PHP keeps integer keys out of sequence (`[2 => 'c', 0 => 'a']`), the methods that walk or rebuild such a collection can answer differently from Laravel. Keys built from a `Map`, and items appended after a string key, keep PHP's order wherever the class already tracks it. <!-- docs/php-parity/Collection/set-operations.json, "C32-F-receiver-out-of-order"; docs/php-parity/Collection/keyed-results.json, "C32-E-keyed-results-out-of-order-receiver" -->
-- The sort family (`sort()`, `sortDesc()`, `sortBy()`, `sortByDesc()`, `sortKeys()`, `sortKeysDesc()`, `sortKeysUsing()`) and `reverse()` renumber integer keys from 0 in the new order and keep string keys, where PHP keeps every key: `collect([3, 1, 2]).sort()` has the keys `0, 1, 2` and writes `[1,2,3]`, where PHP's has `1, 2, 0` and writes `{"1":1,"2":2,"0":3}`. <!-- docs/php-parity/Collection/sort.json, "sort/sortDesc/reverse preserve integer keys and their order", "C32-G-sort-comparator-assoc"; docs/php-parity/Collection/toJson.json, "C32-A-toJson-integer-keys-out-of-order" -->
+- A keyed collection lists its integer keys in ascending order, as a plain object does. Where PHP keeps integer keys out of sequence (`[2 => 'c', 0 => 'a']`), the methods that walk or rebuild such a collection can answer differently from Laravel. In this port, keys built from a `Map`, and items appended after a string key, keep their insertion order wherever the class already tracks it. <!-- docs/php-parity/Collection/set-operations.json, "C32-F-receiver-out-of-order"; docs/php-parity/Collection/keyed-results.json, "C32-E-keyed-results-out-of-order-receiver" -->
+- The sort family (`sort()`, `sortDesc()`, `sortBy()`, `sortByDesc()`, `sortKeys()`, `sortKeysDesc()`, `sortKeysUsing()`) and `reverse()` renumber integer keys from 0 in the new order and keep string keys, where PHP keeps every key: `collect([3, 1, 2]).sort()` has the keys `0, 1, 2` and writes `[1,2,3]`, where PHP's has `1, 2, 0` and writes `{"1":1,"2":2,"0":3}`. <!-- docs/php-parity/Collection/sort.json, "sort/sortDesc/reverse preserve integer keys and their order", "C32-G-sort-comparator-assoc"; docs/php-parity/Collection/sortBy.json, "sortBy-keeps-every-key"; docs/php-parity/Collection/sortByDesc.json, "sortByDesc-keeps-every-key"; docs/php-parity/Collection/sortKeys.json, "sortKeys-keeps-every-key"; docs/php-parity/Collection/sortKeysDesc.json, "sortKeysDesc-keeps-every-key"; docs/php-parity/Collection/sortKeysUsing.json, "sortKeysUsing-keeps-every-key"; docs/php-parity/Collection/toJson.json, "C32-A-toJson-integer-keys-out-of-order" -->
 
   ```js
   import { collect } from "@tolki/collection";
@@ -85,7 +85,7 @@ c.all().a;
 ## Values
 
 - `all()` hands back the collection's own items, not a copy, so writing to them writes to the collection, where PHP's `all()` returns a copy of its array. `toArray()` and `collect()` return copies. <!-- docs/php-parity/Collection/all.json, "C32-A-all-returns-a-copy" -->
-- Truthiness is PHP's, not JavaScript's: see [Truthiness](../arrays-objects/php-semantics.md#truthiness). So `reject(false)` rejects `null` and `{}` too but keeps `'0.0'`, a callback answering `NaN` counts as true, and an ArrayAccess-style item whose `offsetExists()` answers `'0'` or `[]` reads as absent. <!-- docs/php-parity/Collection/callback-truthiness.json, "C32-C-collection-callback-php-truthiness"; docs/php-parity/Collection/reject.json, "C32-D-reject-none-php-falsy", "C32-D-reject-none-empty-objects" -->
+- Truthiness is PHP's, not JavaScript's: see [Truthiness](../arrays-objects/php-semantics.md#truthiness). So `reject(false)` rejects `null` and `{}` too but keeps `'0.0'`, a callback answering `NaN` counts as true, and an ArrayAccess-style item whose `offsetExists()` answers `'0'` or `[]` reads as absent. <!-- docs/php-parity/Collection/callback-truthiness.json, "C32-C-collection-callback-php-truthiness"; docs/php-parity/Collection/reject.json, "C32-D-reject-none-php-falsy", "C32-D-reject-none-empty-objects"; docs/php-parity/Php/truthiness.json, "truthiness-NAN"; docs/php-parity/Collection/where.json, "where-arrayaccess-item-offsetexists-answers" -->
 - `unique()` and `duplicates()` keep the first of each loosely equal run in one walk (see [Loose and strict comparison](../arrays-objects/php-semantics.md#loose-and-strict-comparison)). Where `==` is not transitive across mixed types, PHP's answer can differ: `collect(['abc', '0', false, '']).unique()` keeps `''`, which PHP drops. <!-- docs/php-parity/Collection/unique.json, "C32-D-unique-non-transitive-loose"; docs/php-parity/Collection/duplicates.json, "C32-D-duplicates-non-transitive-loose" -->
 
   ```js
@@ -117,22 +117,22 @@ c.all().a;
 
 ## JavaScript-only additions
 
-- `length`, `[Symbol.iterator]` (so `for...of` and spreading work), `toJSON()` (so `JSON.stringify(c)` encodes the items) and `[Symbol.toPrimitive]` (the count for `+c`, and the JSON for `` `${c}` ``, as PHP's string cast gives).
+- `length`, `[Symbol.iterator]` (so `for...of` and spreading work), `toJSON()` (so `JSON.stringify(c)` encodes the items) and `[Symbol.toPrimitive]` (the count for `+c`, and the JSON for `` `${c}` ``, as PHP's string cast gives). <!-- docs/php-parity/Collection/__toString.json, "C32-A-string-concat-is-json" -->
 - `toJson(replacer, space)` and `toPrettyJson(replacer, space)` take `JSON.stringify()`'s arguments in place of PHP's flags.
 - `reduceInto()`'s callback may return the new accumulator, since JavaScript cannot pass a primitive by reference.
 - `avg()` and `average()` hand their callback the key as well.
-- `whereBetween()` and `whereNotBetween()` accept a collection of bounds, from which PHP 8.5 reads none, with a deprecation, so its `whereBetween()` keeps no item and its `whereNotBetween()` every one.
-- `keyBy()`, `groupBy()` and `countBy()` read an `@tolki/enum` case as its value, as PHP's `enum_value()` does.
-- `eachSpread()` and `mapSpread()` hand the callback a scalar row whole, where PHP throws.
-- `eachSpread()` and `mapSpread()` spread a string-keyed row (a plain object, a `Map` or a collection) by its values, where PHP throws `Cannot use positional argument after named argument during unpacking`.
+- `whereBetween()` and `whereNotBetween()` accept a collection of bounds, from which PHP reads none, so its `whereBetween()` keeps no item and its `whereNotBetween()` every one. <!-- docs/php-parity/Collection/whereBetween.json, "C32-D-whereBetween-collection-values"; docs/php-parity/Collection/whereNotBetween.json, "C32-D-whereNotBetween-collection-values" -->
+- `keyBy()`, `groupBy()` and `countBy()` read an `@tolki/enum` case as its value, as PHP's `enum_value()` does. <!-- docs/php-parity/Collection/keyBy.json, "C32-E-keyBy-enum-keys"; docs/php-parity/Collection/groupBy.json, "C32-E-groupBy-backed-enum-key"; docs/php-parity/Collection/countBy.json, "C32-E-countBy-key-backed-enum" -->
+- `eachSpread()` and `mapSpread()` hand the callback a scalar row whole, where PHP throws. <!-- docs/php-parity/Collection/eachSpread.json, "C32-E-eachSpread-scalar-row"; docs/php-parity/Collection/mapSpread.json, "C32-E-mapSpread-scalar-row" -->
+- `eachSpread()` and `mapSpread()` spread a string-keyed row (a plain object, a `Map` or a collection) by its values, where PHP throws `Cannot use positional argument after named argument during unpacking`. <!-- docs/php-parity/Collection/eachSpread.json, "C32-E-eachSpread-string-keyed-row", "C32-E-eachSpread-string-keyed-collection-row"; docs/php-parity/Collection/mapSpread.json, "C32-E-mapSpread-string-keyed-row", "C32-E-mapSpread-string-keyed-collection-row" -->
 - `ensure()` also takes JavaScript's `typeof` names (`'number'`, `'object'`, …) beside PHP's `get_debug_type()` names and classes.
 - A `Map` is accepted wherever PHP takes an array. `undefined` reads as `null` through a path, in the loose comparisons of `contains()`, `search()` and `where()`, and in truthiness (`whereNull('a')` matches `{ a: undefined }`), but an `undefined` item compared strictly, or by the string cast of `diff()` and `intersect()`, is not `null`: keyless `whereNull()` and `containsStrict(null)` skip it, and `diff([null])` keeps it.
 
 ## Not portable
 
 - Higher-order proxies (`$c->map->name`, `proxy()`, and the one-argument `when()` and `unless()`), `Macroable` (`macro()`), `lazy()` and `LazyCollection`, `dd()`, `getCachingIterator()`, and PHP's sort flags: every sort takes only a direction.
-- `fromJson()` takes `depth` and `flags` for PHP's signature and ignores them. A `WeakMap` cannot be iterated, so it makes an empty collection. An `@tolki/enum` case is a plain object, so `collect()` reads it as a record of its fields, where PHP wraps an enum case as one item.
-- Paths read only an object's own fields, so a class getter, which PHP would read as an accessor, reads as absent.
+- `fromJson()` takes `depth` and `flags` for PHP's signature and ignores them. A `WeakMap` cannot be iterated, so it makes an empty collection. An `@tolki/enum` case is a plain object, so `collect()` reads it as a record of its fields, where PHP wraps an enum case as one item. <!-- docs/php-parity/Collection/__construct.json, "construct-enum-case-is-one-item" -->
+- Paths read only an object's own fields, so a class getter reads as absent.
 
 ## TypeScript limits
 

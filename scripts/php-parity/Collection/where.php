@@ -29,4 +29,6 @@ probe('C32-D-where-missing-key-null', "(new Collection([['a' => 1], ['b' => 2]])
 probe('C32-D-where-one-arg-empty-object', "(new Collection([['v' => new DateTime('@0')], ['v' => new stdClass]]))->where('v')->count()", fn () => (new Collection([['v' => new DateTime('@0')], ['v' => new stdClass]]))->where('v')->count());
 probe('C32-D-where-wildcard-path', "(new Collection([['a' => [['b' => 1], ['b' => 2]]], ['a' => [['b' => 3]]]]))->where('a.*.b', [1, 2])->keys()", fn () => (new Collection([['a' => [['b' => 1], ['b' => 2]]], ['a' => [['b' => 3]]]]))->where('a.*.b', [1, 2])->keys()->all());
 
+probe('where-arrayaccess-item-offsetexists-answers', "collect([new C32D_AnsweringAccess(['a' => 5], X)])->where('a', 5)->count() for X = '1', true, '0', []", function () { $out = []; foreach (['1', true, '0', []] as $answer) { $out[] = (new Collection([new C32D_AnsweringAccess(['a' => 5], $answer)]))->where('a', 5)->count(); } return $out; });
+
 emit();
