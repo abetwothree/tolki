@@ -34,6 +34,20 @@
                     2
                 ]
             ]
+        },
+        {
+            "label": "uniqueStrict-list-gap-keys",
+            "php": "pairs((new Collection([1, 1, 2]))->uniqueStrict())",
+            "value": [
+                [
+                    0,
+                    1
+                ],
+                [
+                    2,
+                    2
+                ]
+            ]
         }
     ]
 }

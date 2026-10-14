@@ -138,7 +138,7 @@ These are the methods of the `Collection` class. Every example builds a collecti
 
 <div class="collection-method-list" markdown="1">
 
-[add](#add) [after](#after) [all](#all) [average](#average) [avg](#avg) [before](#before) [chunk](#chunk) [chunkBy](#chunkby) [chunkWhile](#chunkwhile) [collapse](#collapse) [collapseWithKeys](#collapsewithkeys) [collect](#collect) [combine](#combine) [concat](#concat) [contains](#contains) [containsManyItems](#containsmanyitems) [containsOneItem](#containsoneitem) [containsStrict](#containsstrict) [count](#count) [countBy](#countby) [crossJoin](#crossjoin) [diff](#diff) [diffAssoc](#diffassoc) [diffAssocUsing](#diffassocusing) [diffKeys](#diffkeys) [diffKeysUsing](#diffkeysusing) [diffUsing](#diffusing) [doesntContain](#doesntcontain) [doesntContainStrict](#doesntcontainstrict) [dot](#dot) [dump](#dump) [duplicates](#duplicates) [duplicatesStrict](#duplicatesstrict) [each](#each) [eachSpread](#eachspread) [empty](#empty) [ensure](#ensure) [escapeWhenCastingToString](#escapewhencastingtostring) [every](#every) [except](#except) [filter](#filter) [first](#first) [firstOrFail](#firstorfail) [firstWhere](#firstwhere) [flatMap](#flatmap) [flatten](#flatten) [flip](#flip) [forget](#forget) [forPage](#forpage) [fromJson](#fromjson) [get](#get) [getIterator](#getiterator) [getOrPut](#getorput) [groupBy](#groupby) [has](#has) [hasAny](#hasany) [hasMany](#hasmany) [hasSole](#hassole) [implode](#implode) [intersect](#intersect) [intersectAssoc](#intersectassoc) [intersectAssocUsing](#intersectassocusing) [intersectByKeys](#intersectbykeys) [intersectUsing](#intersectusing) [isEmpty](#isempty) [isNotEmpty](#isnotempty) [join](#join) [jsonSerialize](#jsonserialize) [keyBy](#keyby) [keys](#keys) [last](#last) [length](#length) [make](#make) [map](#map) [mapInto](#mapinto) [mapSpread](#mapspread) [mapToDictionary](#maptodictionary) [mapToGroups](#maptogroups) [mapWithKeys](#mapwithkeys) [max](#max) [median](#median) [merge](#merge) [mergeRecursive](#mergerecursive) [min](#min) [mode](#mode) [multiply](#multiply) [nth](#nth) [offsetExists](#offsetexists) [offsetGet](#offsetget) [offsetSet](#offsetset) [offsetUnset](#offsetunset) [only](#only) [pad](#pad) [partition](#partition) [percentage](#percentage) [pipe](#pipe) [pipeInto](#pipeinto) [pipeThrough](#pipethrough) [pluck](#pluck) [pop](#pop) [prepend](#prepend) [pull](#pull) [push](#push) [put](#put) [random](#random) [range](#range) [reduce](#reduce) [reduceInto](#reduceinto) [reduceSpread](#reducespread) [reduceWithKeys](#reducewithkeys) [reject](#reject) [replace](#replace) [replaceRecursive](#replacerecursive) [reverse](#reverse) [search](#search) [select](#select) [shift](#shift) [shuffle](#shuffle) [skip](#skip) [skipUntil](#skipuntil) [skipWhile](#skipwhile) [slice](#slice) [sliding](#sliding) [sole](#sole) [some](#some) [sort](#sort) [sortBy](#sortby) [sortByDesc](#sortbydesc) [sortDesc](#sortdesc) [sortKeys](#sortkeys) [sortKeysDesc](#sortkeysdesc) [sortKeysUsing](#sortkeysusing) [splice](#splice) [split](#split) [splitIn](#splitin) [sum](#sum) [Symbol.iterator](#symbol-iterator) [Symbol.toPrimitive](#symbol-toprimitive) [take](#take) [takeUntil](#takeuntil) [takeWhile](#takewhile) [tap](#tap) [times](#times) [toArray](#toarray) [toBase](#tobase) [toJson](#tojson) [toJSON](#tojson-1) [toPrettyJson](#toprettyjson) [toString](#tostring) [transform](#transform)
+[add](#add) [after](#after) [all](#all) [average](#average) [avg](#avg) [before](#before) [chunk](#chunk) [chunkBy](#chunkby) [chunkWhile](#chunkwhile) [collapse](#collapse) [collapseWithKeys](#collapsewithkeys) [collect](#collect) [combine](#combine) [concat](#concat) [contains](#contains) [containsManyItems](#containsmanyitems) [containsOneItem](#containsoneitem) [containsStrict](#containsstrict) [count](#count) [countBy](#countby) [crossJoin](#crossjoin) [diff](#diff) [diffAssoc](#diffassoc) [diffAssocUsing](#diffassocusing) [diffKeys](#diffkeys) [diffKeysUsing](#diffkeysusing) [diffUsing](#diffusing) [doesntContain](#doesntcontain) [doesntContainStrict](#doesntcontainstrict) [dot](#dot) [dump](#dump) [duplicates](#duplicates) [duplicatesStrict](#duplicatesstrict) [each](#each) [eachSpread](#eachspread) [empty](#empty) [ensure](#ensure) [escapeWhenCastingToString](#escapewhencastingtostring) [every](#every) [except](#except) [filter](#filter) [first](#first) [firstOrFail](#firstorfail) [firstWhere](#firstwhere) [flatMap](#flatmap) [flatten](#flatten) [flip](#flip) [forget](#forget) [forPage](#forpage) [fromJson](#fromjson) [get](#get) [getIterator](#getiterator) [getOrPut](#getorput) [groupBy](#groupby) [has](#has) [hasAny](#hasany) [hasMany](#hasmany) [hasSole](#hassole) [implode](#implode) [intersect](#intersect) [intersectAssoc](#intersectassoc) [intersectAssocUsing](#intersectassocusing) [intersectByKeys](#intersectbykeys) [intersectUsing](#intersectusing) [isEmpty](#isempty) [isNotEmpty](#isnotempty) [join](#join) [jsonSerialize](#jsonserialize) [keyBy](#keyby) [keys](#keys) [last](#last) [length](#length) [make](#make) [map](#map) [mapInto](#mapinto) [mapSpread](#mapspread) [mapToDictionary](#maptodictionary) [mapToGroups](#maptogroups) [mapWithKeys](#mapwithkeys) [max](#max) [median](#median) [merge](#merge) [mergeRecursive](#mergerecursive) [min](#min) [mode](#mode) [multiply](#multiply) [nth](#nth) [offsetExists](#offsetexists) [offsetGet](#offsetget) [offsetSet](#offsetset) [offsetUnset](#offsetunset) [only](#only) [pad](#pad) [partition](#partition) [percentage](#percentage) [pipe](#pipe) [pipeInto](#pipeinto) [pipeThrough](#pipethrough) [pluck](#pluck) [pop](#pop) [prepend](#prepend) [pull](#pull) [push](#push) [put](#put) [random](#random) [range](#range) [reduce](#reduce) [reduceInto](#reduceinto) [reduceSpread](#reducespread) [reduceWithKeys](#reducewithkeys) [reject](#reject) [replace](#replace) [replaceRecursive](#replacerecursive) [reverse](#reverse) [search](#search) [select](#select) [shift](#shift) [shuffle](#shuffle) [skip](#skip) [skipUntil](#skipuntil) [skipWhile](#skipwhile) [slice](#slice) [sliding](#sliding) [sole](#sole) [some](#some) [sort](#sort) [sortBy](#sortby) [sortByDesc](#sortbydesc) [sortDesc](#sortdesc) [sortKeys](#sortkeys) [sortKeysDesc](#sortkeysdesc) [sortKeysUsing](#sortkeysusing) [splice](#splice) [split](#split) [splitIn](#splitin) [sum](#sum) [Symbol.iterator](#symbol-iterator) [Symbol.toPrimitive](#symbol-toprimitive) [take](#take) [takeUntil](#takeuntil) [takeWhile](#takewhile) [tap](#tap) [times](#times) [toArray](#toarray) [toBase](#tobase) [toJson](#tojson) [toJSON](#tojson-1) [toPrettyJson](#toprettyjson) [toString](#tostring) [transform](#transform) [undot](#undot) [union](#union) [unique](#unique) [uniqueStrict](#uniquestrict) [unless](#unless) [unlessEmpty](#unlessempty) [unlessNotEmpty](#unlessnotempty) [unshift](#unshift) [unwrap](#unwrap) [value](#value) [values](#values) [when](#when) [whenEmpty](#whenempty) [whenNotEmpty](#whennotempty) [where](#where) [whereBetween](#wherebetween) [whereIn](#wherein) [whereInstanceOf](#whereinstanceof) [whereInStrict](#whereinstrict) [whereNotBetween](#wherenotbetween) [whereNotIn](#wherenotin) [whereNotInStrict](#wherenotinstrict) [whereNotNull](#wherenotnull) [whereNull](#wherenull) [whereStrict](#wherestrict) [wrap](#wrap) [zip](#zip)
 
 </div>
 
@@ -1402,7 +1402,7 @@ Get the first item with the given key and value.
 
 Laravel: [`firstWhere()`](https://laravel.com/docs/collections#method-first-where)
 
-It takes the arguments of `where`: a key and a value, or a key, an operator and a value. With a key alone, it returns the first item where that key is truthy. When nothing matches, it returns `null`.
+It takes the arguments of [where](#where): a key and a value, or a key, an operator and a value. With a key alone, it returns the first item where that key is truthy. When nothing matches, it returns `null`.
 
 ```js
 import { collect } from "@tolki/collection";
@@ -2950,7 +2950,7 @@ Separate the items that pass a truth test from those that do not.
 
 Laravel: [`partition()`](https://laravel.com/docs/collections#method-partition)
 
-The result is a collection of two collections: the items that pass, then the rest. Destructure it, or read `[0]` and `[1]`. Pass a callback, a key to test for truthiness, or a key with an operator and a value, as `where` does. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#partition).
+The result is a collection of two collections: the items that pass, then the rest. Destructure it, or read `[0]` and `[1]`. Pass a callback, a key to test for truthiness, or a key with an operator and a value, as [where](#where) does. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#partition).
 
 <!-- docs/php-parity/Collection/partition.json, "partition-list-keys" -->
 
@@ -4016,7 +4016,7 @@ Pass a length as the second argument to limit the size of the slice. A negative 
 <!-- docs/php-parity/Collection/slice.json, "X15 slice with a negative offset and a length" -->
 
 ::: info
-A list stays a list, so the slice is renumbered from 0. In Laravel the items keep the keys they had, which is why its docs call `values()` after slicing. See [Keys and order](./differences.md#keys-and-order).
+A list stays a list, so the slice is renumbered from 0. In Laravel the items keep the keys they had, which is why its docs call [values](#values) after slicing. See [Keys and order](./differences.md#keys-and-order).
 :::
 
 ```js
@@ -4513,7 +4513,7 @@ Break the collection into the given number of groups, filling each group before 
 
 Laravel: [`splitIn()`](https://laravel.com/docs/collections#method-splitin)
 
-Every group but the last is full, and the last gets what is left. A number below 1 throws an `InvalidArgumentException`. Like [chunk](#chunk), each group keeps its items' keys, so a later group of a list starts at its original position. Laravel's docs leave those keys out. Use `values()` on each group to renumber it.
+Every group but the last is full, and the last gets what is left. A number below 1 throws an `InvalidArgumentException`. Like [chunk](#chunk), each group keeps its items' keys, so a later group of a list starts at its original position. Laravel's docs leave those keys out. Use [values](#values) on each group to renumber it.
 
 <!-- docs/php-parity/Collection/splitIn.json, "C32-G-splitIn-keeps-keys" -->
 
@@ -5012,4 +5012,980 @@ collect({ a: 1, b: 2 })
 <FnTry label="collect(items).transform(callback)" :fn="(items, callback) => { const c = collect(items); c.transform(callback); return c.all(); }" :args="[
   { name: 'items', type: 'json', default: [1, 2, 3, 4, 5] },
   { name: 'callback', type: 'select', default: mappers[0].value, options: mappers },
+]" />
+
+### undot
+
+Expand a collection with "dot" notation keys into a multi-dimensional one.
+
+Laravel: [`undot()`](https://laravel.com/docs/collections#method-undot)
+
+A key with no dot stays as it is, so a list comes back unchanged. For the reverse, see [dot](#dot). The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#undot).
+
+```js
+import { collect } from "@tolki/collection";
+
+collect({
+  "name.first_name": "Marie",
+  "name.last_name": "Valentine",
+  "address.line_1": "2992 Eagle Drive",
+  "address.suburb": "Detroit",
+})
+  .undot()
+  .toArray();
+// => {
+//   name: { first_name: "Marie", last_name: "Valentine" },
+//   address: { line_1: "2992 Eagle Drive", suburb: "Detroit" },
+// }
+
+collect([1, 2]).undot().all();
+// => [1, 2]
+```
+
+<FnTry label="collect(items).undot()" :fn="(items) => collect(items).undot().toArray()" :args="[
+  { name: 'items', type: 'json', default: { 'name.first_name': 'Marie', 'name.last_name': 'Valentine', 'address.suburb': 'Detroit' } },
+]" />
+
+### union
+
+Add the given items to the collection, keeping the collection's own value for any key it already has.
+
+Laravel: [`union()`](https://laravel.com/docs/collections#method-union)
+
+The given items only fill keys the collection lacks. The collection is not changed: you get a new one. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#union).
+
+```js
+import { collect } from "@tolki/collection";
+
+collect({ 1: ["a"], 2: ["b"] })
+  .union({ 3: ["c"], 1: ["d"] })
+  .all();
+// => { 1: ["a"], 2: ["b"], 3: ["c"] }
+
+collect([1, 2]).union([3, 4, 5]).all();
+// => [1, 2, 5]
+```
+
+<FnTry label="collect(items).union(other)" :fn="(items, other) => collect(items).union(other).all()" :args="[
+  { name: 'items', type: 'json', default: { 1: ['a'], 2: ['b'] } },
+  { name: 'other', type: 'json', default: { 3: ['c'], 1: ['d'] } },
+]" />
+
+### unique
+
+Get the items that are not repeated, keeping the first of each.
+
+Laravel: [`unique()`](https://laravel.com/docs/collections#method-unique)
+
+Pass a key or a path to compare items by that value, or a callback that returns the value to compare. Values are compared loosely, so `1` and `"1"` count as the same: see [Loose and strict comparison](../arrays-objects/php-semantics.md#loose-and-strict-comparison), and [Values](./differences.md#values) for the edge cases. To compare strictly, use [uniqueStrict](#uniquestrict).
+
+<!-- docs/php-parity/Collection/unique.json, "C32-D-unique-loose-bool-mix" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([1, 1, 2, 2, 3, 4, 2]).unique().all();
+// => [1, 2, 3, 4]
+
+collect([1, "1", 2]).unique().all();
+// => [1, 2]
+
+const products = collect([
+  { name: "iPhone 6", brand: "Apple", type: "phone" },
+  { name: "iPhone 5", brand: "Apple", type: "phone" },
+  { name: "Apple Watch", brand: "Apple", type: "watch" },
+  { name: "Galaxy S6", brand: "Samsung", type: "phone" },
+  { name: "Galaxy Gear", brand: "Samsung", type: "watch" },
+]);
+
+products.unique("brand").pluck("name").all();
+// => ["iPhone 6", "Galaxy S6"]
+
+products
+  .unique((item) => item.brand + item.type)
+  .pluck("name")
+  .all();
+// => ["iPhone 6", "Apple Watch", "Galaxy S6", "Galaxy Gear"]
+
+collect({ a: 1, b: 1, c: 2 }).unique().all();
+// => { a: 1, c: 2 }
+```
+
+<FnTry label="collect(items).unique(key)" :fn="(items, mode) => collect(items).unique(mode === 'none' ? null : mode === 'brand' ? 'brand' : (item) => item.brand + item.type).pluck('name').all()" :args="[
+  { name: 'items', type: 'json', default: [
+    { name: 'iPhone 6', brand: 'Apple', type: 'phone' },
+    { name: 'iPhone 5', brand: 'Apple', type: 'phone' },
+    { name: 'Apple Watch', brand: 'Apple', type: 'watch' },
+    { name: 'Galaxy S6', brand: 'Samsung', type: 'phone' },
+  ] },
+  { name: 'mode', type: 'select', default: 'brand', options: [
+    { label: 'no key (compare whole items)', value: 'none' },
+    { label: 'the brand key', value: 'brand' },
+    { label: 'a callback: brand plus type', value: 'callback' },
+  ] },
+]" />
+
+### uniqueStrict
+
+Get the items that are not repeated, comparing values strictly.
+
+Laravel: [`uniqueStrict()`](https://laravel.com/docs/collections#method-uniquestrict)
+
+It takes the same arguments as [unique](#unique), but `1` and `"1"` are different values: see [Loose and strict comparison](../arrays-objects/php-semantics.md#loose-and-strict-comparison).
+
+<!-- docs/php-parity/Collection/uniqueStrict.json, "uniqueStrict-list-gap-keys" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([1, "1", 1, 2]).uniqueStrict().all();
+// => [1, "1", 2]
+
+collect([{ id: 1 }, { id: "1" }, { id: 1 }])
+  .uniqueStrict("id")
+  .all();
+// => [{ id: 1 }, { id: "1" }]
+```
+
+<FnTry label="collect(items).uniqueStrict(key)" :fn="(items, key) => collect(items).uniqueStrict(key).all()" :args="[
+  { name: 'items', type: 'json', default: [1, '1', 1, 2] },
+  { name: 'key', type: 'json', default: null },
+]" />
+
+### unless
+
+Run the callback unless the given value is truthy.
+
+Laravel: [`unless()`](https://laravel.com/docs/collections#method-unless)
+
+The callback receives the collection and the value, and `unless` returns what the callback returns. If that is `null` or `undefined`, it returns the collection. A third argument is a callback to run when the value is truthy. The value may also be a function, which is called with the collection and whose result is tested. Truthiness is PHP's: see [Truthiness](../arrays-objects/php-semantics.md#truthiness). Laravel's one-argument form is not available: see [Not portable](./differences.md#not-portable). The inverse is [when](#when).
+
+```js
+import { collect } from "@tolki/collection";
+
+const items = collect([1, 2, 3]);
+
+items.unless(true, (collection) => collection.push(4));
+items.unless(false, (collection) => collection.push(5));
+
+items.all();
+// => [1, 2, 3, 5]
+
+const other = collect([1, 2, 3]);
+
+other.unless(
+  true,
+  (collection) => collection.push(4),
+  (collection) => collection.push(5),
+);
+
+other.all();
+// => [1, 2, 3, 5]
+
+collect([1, 2, 3])
+  .unless(false, (collection) => collection.map((item) => item * 2))
+  .all();
+// => [2, 4, 6]
+```
+
+<FnTry label="collect(items).unless(value, callback, defaultCallback)" :fn="(items, value) => collect(items).unless(value, (c) => c.push(4), (c) => c.push(5)).all()" :args="[
+  { name: 'items', type: 'json', default: [1, 2, 3] },
+  { name: 'value', type: 'json', default: false },
+]" />
+
+### unlessEmpty
+
+Run the callback unless the collection is empty.
+
+Laravel: [`unlessEmpty()`](https://laravel.com/docs/collections#method-unlessempty)
+
+It is an alias of [whenNotEmpty](#whennotempty). The callback receives the collection and `true`. A second callback runs when the collection is empty.
+
+```js
+import { collect } from "@tolki/collection";
+
+const names = collect(["Michael", "Tom"]);
+
+names.unlessEmpty((collection) => collection.push("Adam"));
+
+names.all();
+// => ["Michael", "Tom", "Adam"]
+
+const empty = collect([]);
+
+empty.unlessEmpty(
+  (collection) => collection.push("Adam"),
+  (collection) => collection.push("Taylor"),
+);
+
+empty.all();
+// => ["Taylor"]
+```
+
+<FnTry label="collect(items).unlessEmpty(callback, defaultCallback)" :fn="(items) => collect(items).unlessEmpty((c) => c.push('Adam'), (c) => c.push('Taylor')).all()" :args="[
+  { name: 'items', type: 'json', default: ['Michael', 'Tom'] },
+]" />
+
+### unlessNotEmpty
+
+Run the callback unless the collection is not empty.
+
+Laravel: [`unlessNotEmpty()`](https://laravel.com/docs/collections#method-unlessnotempty)
+
+It is an alias of [whenEmpty](#whenempty). The callback receives the collection and `true`. A second callback runs when the collection is not empty.
+
+```js
+import { collect } from "@tolki/collection";
+
+const names = collect(["Michael", "Tom"]);
+
+names.unlessNotEmpty((collection) => collection.push("Adam"));
+
+names.all();
+// => ["Michael", "Tom"]
+
+const empty = collect([]);
+
+empty.unlessNotEmpty(
+  (collection) => collection.push("Adam"),
+  (collection) => collection.push("Taylor"),
+);
+
+empty.all();
+// => ["Adam"]
+```
+
+<FnTry label="collect(items).unlessNotEmpty(callback, defaultCallback)" :fn="(items) => collect(items).unlessNotEmpty((c) => c.push('Adam'), (c) => c.push('Taylor')).all()" :args="[
+  { name: 'items', type: 'json', default: [] },
+]" />
+
+### unshift
+
+Add one or more items to the beginning of the collection.
+
+Each item becomes one new item, so an array you pass is added whole. On a keyed collection the new items get the integer keys `0`, `1` and so on, ahead of the existing ones. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#unshift). To add one item under a key, use [prepend](#prepend).
+
+::: warning
+Unlike most other collection methods, `unshift` does not return a new modified collection; it modifies and returns the collection it is called on.
+:::
+
+```js
+import { collect } from "@tolki/collection";
+
+const items = collect([3, 4]);
+
+items.unshift(1, 2).all();
+// => [1, 2, 3, 4]
+
+items.all();
+// => [1, 2, 3, 4]
+
+items.unshift(0) === items;
+// => true
+
+collect([4, 5, 6]).unshift(["a", "b", "c"]).all();
+// => [["a", "b", "c"], 4, 5, 6]
+
+collect({ b: 2 }).unshift({ a: 1 }).all();
+// => { 0: { a: 1 }, b: 2 }
+```
+
+<FnTry label="collect(items).unshift(value)" :fn="(items, value) => { const c = collect(items); c.unshift(value); return c.all(); }" :args="[
+  { name: 'items', type: 'json', default: [2, 3] },
+  { name: 'value', type: 'json', default: 1 },
+]" />
+
+### unwrap
+
+The static `unwrap` method gets the items of a collection, and gives any other value back as it is.
+
+Laravel: [`unwrap()`](https://laravel.com/docs/collections#method-unwrap)
+
+It is the reverse of [wrap](#wrap).
+
+```js
+import { Collection, collect } from "@tolki/collection";
+
+Collection.unwrap(collect(["John Doe"]));
+// => ["John Doe"]
+
+Collection.unwrap(collect({ name: "John Doe" }));
+// => { name: "John Doe" }
+
+Collection.unwrap(["John Doe"]);
+// => ["John Doe"]
+
+Collection.unwrap("John Doe");
+// => "John Doe"
+```
+
+<FnTry label="Collection.unwrap(value)" :fn="(value, wrapped) => Collection.unwrap(wrapped ? collect(value) : value)" :args="[
+  { name: 'value', type: 'json', default: ['John Doe'] },
+  { name: 'wrapped', type: 'boolean', default: true },
+]" />
+
+### value
+
+Get one value from the first item that holds the key.
+
+Laravel: [`value()`](https://laravel.com/docs/collections#method-value)
+
+The key may be a path: see [Dot Notation](../arrays-objects/dot-notation.md). Items that lack the key are skipped. When no item holds it, you get the default, which may be a function that returns it, or `null` if you pass none. A `null` key always gives `null`.
+
+```js
+import { collect } from "@tolki/collection";
+
+const products = collect([
+  { product: "Desk", price: 200 },
+  { product: "Speaker", price: 400 },
+]);
+
+products.value("price");
+// => 200
+
+collect([{ name: "Desk" }, { price: 400 }]).value("price");
+// => 400
+
+collect([{ details: { price: 200 } }]).value("details.price");
+// => 200
+
+products.value("weight", 30);
+// => 30
+
+products.value("weight", () => 25);
+// => 25
+
+collect([]).value("price");
+// => null
+```
+
+<FnTry label="collect(items).value(key, defaultValue)" :fn="(items, key, defaultValue) => collect(items).value(key, defaultValue)" :args="[
+  { name: 'items', type: 'json', default: [{ product: 'Desk', price: 200 }, { product: 'Speaker', price: 400 }] },
+  { name: 'key', type: 'string', default: 'price' },
+  { name: 'defaultValue', type: 'json', default: null },
+]" />
+
+### values
+
+Get the items as a list, with the keys reset to consecutive integers.
+
+Laravel: [`values()`](https://laravel.com/docs/collections#method-values)
+
+The items keep their order. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#values).
+
+```js
+import { collect } from "@tolki/collection";
+
+collect({
+  10: { product: "Desk", price: 200 },
+  11: { product: "Speaker", price: 400 },
+})
+  .values()
+  .all();
+// => [
+//   { product: "Desk", price: 200 },
+//   { product: "Speaker", price: 400 },
+// ]
+
+collect({ a: 1, b: 2 }).values().all();
+// => [1, 2]
+```
+
+<FnTry label="collect(items).values()" :fn="(items) => collect(items).values().all()" :args="[
+  { name: 'items', type: 'json', default: { 10: { product: 'Desk', price: 200 }, 11: { product: 'Speaker', price: 400 } } },
+]" />
+
+### when
+
+Run the callback when the given value is truthy.
+
+Laravel: [`when()`](https://laravel.com/docs/collections#method-when)
+
+The callback receives the collection and the value, and `when` returns what the callback returns. If that is `null` or `undefined`, it returns the collection. A third argument is a callback to run when the value is falsy. The value may also be a function, which is called with the collection and whose result is tested. Truthiness is PHP's: see [Truthiness](../arrays-objects/php-semantics.md#truthiness). Laravel's one-argument form is not available: see [Not portable](./differences.md#not-portable). The inverse is [unless](#unless).
+
+```js
+import { collect } from "@tolki/collection";
+
+const items = collect([1, 2, 3]);
+
+items.when(true, (collection) => collection.push(4));
+items.when(false, (collection) => collection.push(5));
+
+items.all();
+// => [1, 2, 3, 4]
+
+const other = collect([1, 2, 3]);
+
+other.when(
+  false,
+  (collection) => collection.push(4),
+  (collection) => collection.push(5),
+);
+
+other.all();
+// => [1, 2, 3, 5]
+
+collect([1, 2, 3])
+  .when(true, (collection) => collection.map((item) => item * 2))
+  .all();
+// => [2, 4, 6]
+
+collect([1, 2, 3])
+  .when(
+    (collection) => collection.count() > 2,
+    (collection, value) => collection.push(value),
+  )
+  .all();
+// => [1, 2, 3, true]
+```
+
+<FnTry label="collect(items).when(value, callback, defaultCallback)" :fn="(items, value) => collect(items).when(value, (c) => c.push(4), (c) => c.push(5)).all()" :args="[
+  { name: 'items', type: 'json', default: [1, 2, 3] },
+  { name: 'value', type: 'json', default: true },
+]" />
+
+### whenEmpty
+
+Run the callback when the collection is empty.
+
+Laravel: [`whenEmpty()`](https://laravel.com/docs/collections#method-whenempty)
+
+The callback receives the collection and `true`. A second callback runs when the collection is not empty. Like [when](#when), it returns what the callback returns, or the collection if that is `null` or `undefined`. The inverse is [whenNotEmpty](#whennotempty).
+
+```js
+import { collect } from "@tolki/collection";
+
+const names = collect(["Michael", "Tom"]);
+
+names.whenEmpty((collection) => collection.push("Adam"));
+
+names.all();
+// => ["Michael", "Tom"]
+
+const empty = collect([]);
+
+empty.whenEmpty((collection) => collection.push("Adam"));
+
+empty.all();
+// => ["Adam"]
+
+const both = collect(["Michael", "Tom"]);
+
+both.whenEmpty(
+  (collection) => collection.push("Adam"),
+  (collection) => collection.push("Taylor"),
+);
+
+both.all();
+// => ["Michael", "Tom", "Taylor"]
+```
+
+<FnTry label="collect(items).whenEmpty(callback, defaultCallback)" :fn="(items) => collect(items).whenEmpty((c) => c.push('Adam'), (c) => c.push('Taylor')).all()" :args="[
+  { name: 'items', type: 'json', default: [] },
+]" />
+
+### whenNotEmpty
+
+Run the callback when the collection is not empty.
+
+Laravel: [`whenNotEmpty()`](https://laravel.com/docs/collections#method-whennotempty)
+
+The callback receives the collection and `true`. A second callback runs when the collection is empty. Like [when](#when), it returns what the callback returns, or the collection if that is `null` or `undefined`. The inverse is [whenEmpty](#whenempty).
+
+```js
+import { collect } from "@tolki/collection";
+
+const names = collect(["Michael", "Tom"]);
+
+names.whenNotEmpty((collection) => collection.push("Adam"));
+
+names.all();
+// => ["Michael", "Tom", "Adam"]
+
+const empty = collect([]);
+
+empty.whenNotEmpty((collection) => collection.push("Adam"));
+
+empty.all();
+// => []
+
+const both = collect([]);
+
+both.whenNotEmpty(
+  (collection) => collection.push("Adam"),
+  (collection) => collection.push("Taylor"),
+);
+
+both.all();
+// => ["Taylor"]
+```
+
+<FnTry label="collect(items).whenNotEmpty(callback, defaultCallback)" :fn="(items) => collect(items).whenNotEmpty((c) => c.push('Adam'), (c) => c.push('Taylor')).all()" :args="[
+  { name: 'items', type: 'json', default: ['Michael', 'Tom'] },
+]" />
+
+### where
+
+Filter the collection by a key and value.
+
+Laravel: [`where()`](https://laravel.com/docs/collections#method-where)
+
+Pass a key and a value, or a key, an operator and a value. The key may be a path: see [Dot Notation](../arrays-objects/dot-notation.md). The operators are `===`, `!==`, `!=`, `==`, `=`, `<>`, `>`, `<`, `>=` and `<=`. With a key alone, it keeps the items where that key is truthy. Values are compared loosely, so `100` matches `"100"`: see [Loose and strict comparison](../arrays-objects/php-semantics.md#loose-and-strict-comparison). For strict comparison, use [whereStrict](#wherestrict); for `null`, use [whereNull](#wherenull) and [whereNotNull](#wherenotnull).
+
+<!-- docs/php-parity/Collection/where.json, "C32-D-where-null-key-items" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
+
+```js
+import { collect } from "@tolki/collection";
+
+const products = collect([
+  { product: "Desk", price: 200 },
+  { product: "Chair", price: 100 },
+  { product: "Bookcase", price: 150 },
+  { product: "Door", price: 100 },
+]);
+
+products.where("price", 100).all();
+// => [
+//   { product: "Chair", price: 100 },
+//   { product: "Door", price: 100 },
+// ]
+
+products.where("price", ">", 100).pluck("product").all();
+// => ["Desk", "Bookcase"]
+
+collect([{ price: "100" }, { price: 100 }, { price: 99 }])
+  .where("price", 100)
+  .all();
+// => [{ price: "100" }, { price: 100 }]
+
+collect([{ v: 1 }, { v: 0 }, { v: "a" }])
+  .where("v")
+  .all();
+// => [{ v: 1 }, { v: "a" }]
+```
+
+<FnTry label="collect(items).where(key, operator, value)" :fn="(items, key, operator, value) => collect(items).where(key, operator, value).all()" :args="[
+  { name: 'items', type: 'json', default: [{ name: 'Jim', platform: 'Mac' }, { name: 'Sally', platform: 'Mac' }, { name: 'Sue', platform: 'Linux' }] },
+  { name: 'key', type: 'string', default: 'platform' },
+  { name: 'operator', type: 'string', default: '!=' },
+  { name: 'value', type: 'string', default: 'Linux' },
+]" />
+
+### whereBetween
+
+Filter the collection to the items whose value at a key lies within a range.
+
+Laravel: [`whereBetween()`](https://laravel.com/docs/collections#method-wherebetween)
+
+Pass the key and a list of the lowest and highest values. Both ends are included. The key may be a path: see [Dot Notation](../arrays-objects/dot-notation.md). The bounds may also be a collection: see [JavaScript-only additions](./differences.md#javascript-only-additions).
+
+<!-- docs/php-parity/Collection/whereBetween.json, "C32-D-whereBetween-null-item" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
+
+```js
+import { collect } from "@tolki/collection";
+
+const products = collect([
+  { product: "Desk", price: 200 },
+  { product: "Chair", price: 80 },
+  { product: "Bookcase", price: 150 },
+  { product: "Pencil", price: 30 },
+  { product: "Door", price: 100 },
+]);
+
+products.whereBetween("price", [100, 200]).pluck("product").all();
+// => ["Desk", "Bookcase", "Door"]
+
+products
+  .whereBetween("price", collect([30, 80]))
+  .pluck("product")
+  .all();
+// => ["Chair", "Pencil"]
+```
+
+<FnTry label="collect(items).whereBetween(key, values)" :fn="(items, key, values) => collect(items).whereBetween(key, values).all()" :args="[
+  { name: 'items', type: 'json', default: [{ product: 'Desk', price: 200 }, { product: 'Chair', price: 80 }, { product: 'Bookcase', price: 150 }, { product: 'Pencil', price: 30 }, { product: 'Door', price: 100 }] },
+  { name: 'key', type: 'string', default: 'price' },
+  { name: 'values', type: 'json', default: [100, 200] },
+]" />
+
+### whereIn
+
+Filter the collection to the items whose value at a key is in the given list.
+
+Laravel: [`whereIn()`](https://laravel.com/docs/collections#method-wherein)
+
+The list may be an array, an object or a collection, and only its values count. Values are compared loosely, so `150` matches `"150"`: see [Loose and strict comparison](../arrays-objects/php-semantics.md#loose-and-strict-comparison). For strict comparison, use [whereInStrict](#whereinstrict). The inverse is [whereNotIn](#wherenotin).
+
+<!-- docs/php-parity/Collection/whereIn.json, "C32-D-whereIn-null-key" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
+
+```js
+import { collect } from "@tolki/collection";
+
+const products = collect([
+  { product: "Desk", price: 200 },
+  { product: "Chair", price: 100 },
+  { product: "Bookcase", price: 150 },
+  { product: "Door", price: 100 },
+]);
+
+products.whereIn("price", [150, 200]).all();
+// => [
+//   { product: "Desk", price: 200 },
+//   { product: "Bookcase", price: 150 },
+// ]
+
+collect([{ price: "150" }, { price: 150 }, { price: 2 }])
+  .whereIn("price", [150])
+  .all();
+// => [{ price: "150" }, { price: 150 }]
+```
+
+<FnTry label="collect(items).whereIn(key, values)" :fn="(items, key, values) => collect(items).whereIn(key, values).all()" :args="[
+  { name: 'items', type: 'json', default: [{ product: 'Desk', price: 200 }, { product: 'Chair', price: 100 }, { product: 'Bookcase', price: 150 }, { product: 'Door', price: 100 }] },
+  { name: 'key', type: 'string', default: 'price' },
+  { name: 'values', type: 'json', default: [150, 200] },
+]" />
+
+### whereInstanceOf
+
+Filter the collection to the items that are instances of a class.
+
+Laravel: [`whereInstanceOf()`](https://laravel.com/docs/collections#method-whereinstanceof)
+
+Pass a class, an array of classes or an object whose values are classes. An item is kept when it is an instance of any of them.
+
+<!-- docs/php-parity/Collection/whereInstanceOf.json, "C32-D-whereInstanceOf-assoc-types" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
+
+```js
+import { collect } from "@tolki/collection";
+
+class User {}
+class Post {}
+
+const names = (items) => items.all().map((item) => item.constructor.name);
+
+names(collect([new User(), new Post(), new User()]).whereInstanceOf(User));
+// => ["User", "User"]
+
+names(collect([new User(), new Post()]).whereInstanceOf([User, Post]));
+// => ["User", "Post"]
+```
+
+### whereInStrict
+
+Filter the collection to the items whose value at a key is in the given list, comparing strictly.
+
+Laravel: [`whereInStrict()`](https://laravel.com/docs/collections#method-whereinstrict)
+
+It takes the same arguments as [whereIn](#wherein), but `150` and `"150"` are different values: see [Loose and strict comparison](../arrays-objects/php-semantics.md#loose-and-strict-comparison).
+
+<!-- docs/php-parity/Collection/whereInStrict.json, "C32-D-whereInStrict-scalars" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([{ price: "150" }, { price: 150 }, { price: 2 }])
+  .whereInStrict("price", [150])
+  .all();
+// => [{ price: 150 }]
+```
+
+<FnTry label="collect(items).whereInStrict(key, values)" :fn="(items, key, values) => collect(items).whereInStrict(key, values).all()" :args="[
+  { name: 'items', type: 'json', default: [{ price: '150' }, { price: 150 }, { price: 2 }] },
+  { name: 'key', type: 'string', default: 'price' },
+  { name: 'values', type: 'json', default: [150] },
+]" />
+
+### whereNotBetween
+
+Filter the collection to the items whose value at a key lies outside a range.
+
+Laravel: [`whereNotBetween()`](https://laravel.com/docs/collections#method-wherenotbetween)
+
+Pass the key and a list of the lowest and highest values. Values equal to either end are not kept. The inverse is [whereBetween](#wherebetween), and the bounds may be a collection there too: see [JavaScript-only additions](./differences.md#javascript-only-additions).
+
+<!-- docs/php-parity/Collection/whereNotBetween.json, "whereNotBetween-list-gap-keys" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
+
+```js
+import { collect } from "@tolki/collection";
+
+const products = collect([
+  { product: "Desk", price: 200 },
+  { product: "Chair", price: 80 },
+  { product: "Bookcase", price: 150 },
+  { product: "Pencil", price: 30 },
+  { product: "Door", price: 100 },
+]);
+
+products.whereNotBetween("price", [100, 200]).pluck("product").all();
+// => ["Chair", "Pencil"]
+```
+
+<FnTry label="collect(items).whereNotBetween(key, values)" :fn="(items, key, values) => collect(items).whereNotBetween(key, values).all()" :args="[
+  { name: 'items', type: 'json', default: [{ product: 'Desk', price: 200 }, { product: 'Chair', price: 80 }, { product: 'Bookcase', price: 150 }, { product: 'Pencil', price: 30 }, { product: 'Door', price: 100 }] },
+  { name: 'key', type: 'string', default: 'price' },
+  { name: 'values', type: 'json', default: [100, 200] },
+]" />
+
+### whereNotIn
+
+Filter the collection to the items whose value at a key is not in the given list.
+
+Laravel: [`whereNotIn()`](https://laravel.com/docs/collections#method-wherenotin)
+
+The list may be an array, an object or a collection, and only its values count. Values are compared loosely, so `150` matches `"150"`: see [Loose and strict comparison](../arrays-objects/php-semantics.md#loose-and-strict-comparison). For strict comparison, use [whereNotInStrict](#wherenotinstrict). The inverse is [whereIn](#wherein).
+
+<!-- docs/php-parity/Collection/whereNotIn.json, "C32-D-whereNotIn-null-loose" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
+
+```js
+import { collect } from "@tolki/collection";
+
+const products = collect([
+  { product: "Desk", price: 200 },
+  { product: "Chair", price: 100 },
+  { product: "Bookcase", price: 150 },
+  { product: "Door", price: 100 },
+]);
+
+products.whereNotIn("price", [150, 200]).all();
+// => [
+//   { product: "Chair", price: 100 },
+//   { product: "Door", price: 100 },
+// ]
+
+collect([{ price: "150" }, { price: 150 }, { price: 2 }])
+  .whereNotIn("price", [150])
+  .all();
+// => [{ price: 2 }]
+```
+
+<FnTry label="collect(items).whereNotIn(key, values)" :fn="(items, key, values) => collect(items).whereNotIn(key, values).all()" :args="[
+  { name: 'items', type: 'json', default: [{ product: 'Desk', price: 200 }, { product: 'Chair', price: 100 }, { product: 'Bookcase', price: 150 }, { product: 'Door', price: 100 }] },
+  { name: 'key', type: 'string', default: 'price' },
+  { name: 'values', type: 'json', default: [150, 200] },
+]" />
+
+### whereNotInStrict
+
+Filter the collection to the items whose value at a key is not in the given list, comparing strictly.
+
+Laravel: [`whereNotInStrict()`](https://laravel.com/docs/collections#method-wherenotinstrict)
+
+It takes the same arguments as [whereNotIn](#wherenotin), but `150` and `"150"` are different values: see [Loose and strict comparison](../arrays-objects/php-semantics.md#loose-and-strict-comparison).
+
+<!-- docs/php-parity/Collection/whereNotInStrict.json, "C32-D-whereNotInStrict-array" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([{ price: "150" }, { price: 150 }, { price: 2 }])
+  .whereNotInStrict("price", [150])
+  .all();
+// => [{ price: "150" }, { price: 2 }]
+```
+
+<FnTry label="collect(items).whereNotInStrict(key, values)" :fn="(items, key, values) => collect(items).whereNotInStrict(key, values).all()" :args="[
+  { name: 'items', type: 'json', default: [{ price: '150' }, { price: 150 }, { price: 2 }] },
+  { name: 'key', type: 'string', default: 'price' },
+  { name: 'values', type: 'json', default: [150] },
+]" />
+
+### whereNotNull
+
+Filter the collection to the items whose value at a key is not `null`.
+
+Laravel: [`whereNotNull()`](https://laravel.com/docs/collections#method-wherenotnull)
+
+Falsy values such as `0` and `""` are kept. Leave the key out to test the items themselves. The key may be a path: see [Dot Notation](../arrays-objects/dot-notation.md). A key whose value is `undefined` counts as `null`: see [JavaScript-only additions](./differences.md#javascript-only-additions). The inverse is [whereNull](#wherenull).
+
+<!-- docs/php-parity/Collection/whereNotNull.json, "C32-D-whereNotNull-dot-path" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
+
+```js
+import { collect } from "@tolki/collection";
+
+const items = collect([
+  { name: "Desk" },
+  { name: null },
+  { name: "Bookcase" },
+  { name: 0 },
+  { name: "" },
+]);
+
+items.whereNotNull("name").all();
+// => [{ name: "Desk" }, { name: "Bookcase" }, { name: 0 }, { name: "" }]
+
+collect([1, null, 2]).whereNotNull().all();
+// => [1, 2]
+```
+
+<FnTry label="collect(items).whereNotNull(key)" :fn="(items, key) => collect(items).whereNotNull(key).all()" :args="[
+  { name: 'items', type: 'json', default: [{ name: 'Desk' }, { name: null }, { name: 'Bookcase' }, { name: 0 }, { name: '' }] },
+  { name: 'key', type: 'string', default: 'name' },
+]" />
+
+### whereNull
+
+Filter the collection to the items whose value at a key is `null`.
+
+Laravel: [`whereNull()`](https://laravel.com/docs/collections#method-wherenull)
+
+Only `null` matches: `0` and `""` do not. Leave the key out to test the items themselves. The key may be a path: see [Dot Notation](../arrays-objects/dot-notation.md). A key whose value is `undefined` counts as `null`: see [JavaScript-only additions](./differences.md#javascript-only-additions). The inverse is [whereNotNull](#wherenotnull).
+
+<!-- docs/php-parity/Collection/whereNull.json, "whereNull-list-gap-keys" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
+
+```js
+import { collect } from "@tolki/collection";
+
+const items = collect([
+  { name: "Desk" },
+  { name: null },
+  { name: "Bookcase" },
+  { name: 0 },
+  { name: "" },
+]);
+
+items.whereNull("name").all();
+// => [{ name: null }]
+
+collect({ a: null, b: 0, c: null }).whereNull().all();
+// => { a: null, c: null }
+```
+
+<FnTry label="collect(items).whereNull(key)" :fn="(items, key) => collect(items).whereNull(key).all()" :args="[
+  { name: 'items', type: 'json', default: [{ name: 'Desk' }, { name: null }, { name: 'Bookcase' }, { name: 0 }, { name: '' }] },
+  { name: 'key', type: 'string', default: 'name' },
+]" />
+
+### whereStrict
+
+Filter the collection by a key and value, comparing strictly.
+
+Laravel: [`whereStrict()`](https://laravel.com/docs/collections#method-wherestrict)
+
+It takes a key and a value, as [where](#where) does, but `100` and `"100"` are different values: see [Loose and strict comparison](../arrays-objects/php-semantics.md#loose-and-strict-comparison).
+
+<!-- docs/php-parity/Collection/whereStrict.json, "whereStrict-list-gap-keys" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
+
+```js
+import { collect } from "@tolki/collection";
+
+collect([{ price: "100" }, { price: 100 }, { price: 99 }])
+  .whereStrict("price", 100)
+  .all();
+// => [{ price: 100 }]
+```
+
+<FnTry label="collect(items).whereStrict(key, value)" :fn="(items, key, value) => collect(items).whereStrict(key, value).all()" :args="[
+  { name: 'items', type: 'json', default: [{ price: '100' }, { price: 100 }, { price: 99 }] },
+  { name: 'key', type: 'string', default: 'price' },
+  { name: 'value', type: 'json', default: 100 },
+]" />
+
+### wrap
+
+The static `wrap` method puts the given value in a collection.
+
+Laravel: [`wrap()`](https://laravel.com/docs/collections#method-wrap)
+
+An array, a plain object or a `Map` gives a collection of its items. A collection gives a new collection of its items. `null` gives an empty collection. Any other value becomes the only item of a list. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#wrap). The reverse is [unwrap](#unwrap).
+
+```js
+import { Collection, collect } from "@tolki/collection";
+
+Collection.wrap("John Doe").all();
+// => ["John Doe"]
+
+Collection.wrap(["John Doe"]).all();
+// => ["John Doe"]
+
+Collection.wrap(collect(["John Doe"])).all();
+// => ["John Doe"]
+
+Collection.wrap({ name: "John Doe" }).all();
+// => { name: "John Doe" }
+
+Collection.wrap(null).all();
+// => []
+```
+
+<FnTry label="Collection.wrap(value)" :fn="(value) => Collection.wrap(value).all()" :args="[
+  { name: 'value', type: 'json', default: 'John Doe' },
+]" />
+
+### zip
+
+Merge the values of the given items with the collection's values, position by position.
+
+Laravel: [`zip()`](https://laravel.com/docs/collections#method-zip)
+
+You get a list with one collection per position, holding that position's value from the collection, then from each of the given items. The given items may be arrays, objects or collections, and only their values count. Pass several to add several values to each position. When one side is shorter, its missing values are `null`. Call `toArray()` to read the inner collections as arrays.
+
+```js
+import { collect } from "@tolki/collection";
+
+collect(["Chair", "Desk"]).zip([100, 200]).toArray();
+// => [["Chair", 100], ["Desk", 200]]
+
+collect([1, 2, 3]).zip(["a"], [true, false]).toArray();
+// => [[1, "a", true], [2, null, false], [3, null, null]]
+
+collect([1, 2]).zip(["a", "b", "c"]).toArray();
+// => [[1, "a"], [2, "b"], [null, "c"]]
+```
+
+<FnTry label="collect(items).zip(other)" :fn="(items, other) => collect(items).zip(other).toArray()" :args="[
+  { name: 'items', type: 'json', default: ['Chair', 'Desk'] },
+  { name: 'other', type: 'json', default: [100, 200] },
 ]" />

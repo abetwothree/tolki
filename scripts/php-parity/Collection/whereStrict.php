@@ -21,5 +21,6 @@ use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
 use Symfony\Component\VarDumper\VarDumper;
 
 probe('C32-D-where-strict-array-by-value', "(new Collection([['v' => [1, 2]], ['v' => ['1', '2']], ['v' => [2, 1]]]))->whereStrict('v', [1, 2])->keys()", fn () => (new Collection([['v' => [1, 2]], ['v' => ['1', '2']], ['v' => [2, 1]]]))->whereStrict('v', [1, 2])->keys()->all());
+probe('whereStrict-list-gap-keys', "pairs((new Collection([['v' => 1], ['v' => 2], ['v' => 1]]))->whereStrict('v', 1))", fn () => pairs((new Collection([['v' => 1], ['v' => 2], ['v' => 1]]))->whereStrict('v', 1)));
 
 emit();

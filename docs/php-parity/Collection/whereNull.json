@@ -17,6 +17,20 @@
                     null
                 ]
             ]
+        },
+        {
+            "label": "whereNull-list-gap-keys",
+            "php": "pairs((new Collection([null, 0, null]))->whereNull())",
+            "value": [
+                [
+                    0,
+                    null
+                ],
+                [
+                    2,
+                    null
+                ]
+            ]
         }
     ]
 }

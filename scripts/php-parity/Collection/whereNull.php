@@ -22,5 +22,6 @@ use Symfony\Component\VarDumper\VarDumper;
 
 // whereNull/whereNotNull: keyed backing and dot path
 probe('C32-D-whereNull-keyed', "(new Collection(['a' => null, 'b' => 0, 'c' => null]))->whereNull()", fn () => pairs((new Collection(['a' => null, 'b' => 0, 'c' => null]))->whereNull()));
+probe('whereNull-list-gap-keys', 'pairs((new Collection([null, 0, null]))->whereNull())', fn () => pairs((new Collection([null, 0, null]))->whereNull()));
 
 emit();

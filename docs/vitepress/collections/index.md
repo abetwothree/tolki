@@ -71,6 +71,7 @@ Most methods return a new collection. The few that change the collection they ar
 - [`shift`](./methods-list.md#shift)
 - [`splice`](./methods-list.md#splice)
 - [`transform`](./methods-list.md#transform)
+- [`unshift`](./methods-list.md#unshift)
 
 ## More documentation
 
