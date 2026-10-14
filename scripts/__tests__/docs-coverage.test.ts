@@ -14,6 +14,7 @@ import {
     listPackageExports,
     mismatchedVariantFences,
 } from "../docs-coverage.ts";
+import { parseFences, parseHeadings } from "../docs-markdown.ts";
 
 const fixture = readFileSync(
     path.join(
@@ -255,5 +256,233 @@ describe("coverageReport", () => {
         expect(found).toEqual(
             listCollectionMembers().map((name) => `collection:${name}`),
         );
+    });
+});
+
+const DOCS_ROOT = path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "..",
+    "docs",
+    "vitepress",
+);
+const UTILITIES = "arrays-objects/utilities-list.md";
+const METHODS = "collections/methods-list.md";
+const CITATION = /<!--[^>]*docs\/php-parity\/[^>]*-->/;
+
+interface Section {
+    heading: string;
+    line: number;
+    text: string;
+    outsideCode: string;
+    fences: ReturnType<typeof parseFences>;
+}
+
+/**
+ * Reads a real docs page.
+ *
+ * @param page - The page path relative to `docs/vitepress`.
+ * @returns The page source.
+ */
+function readDoc(page: string): string {
+    return readFileSync(path.join(DOCS_ROOT, page), "utf8");
+}
+
+/**
+ * Splits a page into its `###` sections, each with its fences and its text outside fences.
+ *
+ * @param markdown - The page source.
+ * @returns The sections in document order.
+ */
+function referenceSections(markdown: string): Section[] {
+    const lines = markdown.split("\n");
+    const headings = parseHeadings(markdown);
+    const sections: Section[] = [];
+
+    for (const [index, heading] of headings.entries()) {
+        if (heading.level !== 3) {
+            continue;
+        }
+
+        const end = headings[index + 1]?.line ?? lines.length + 1;
+        const body = lines.slice(heading.line - 1, end - 1);
+        const fences = parseFences(body.join("\n"));
+        const covered = new Set<number>();
+
+        for (const fence of fences) {
+            const count = fence.code === "" ? 0 : fence.code.split("\n").length;
+
+            for (let n = fence.line; n <= fence.line + count + 1; n++) {
+                covered.add(n);
+            }
+        }
+
+        sections.push({
+            heading: heading.text,
+            line: heading.line,
+            text: body.join("\n"),
+            outsideCode: body.filter((_, i) => !covered.has(i + 1)).join("\n"),
+            fences,
+        });
+    }
+
+    return sections;
+}
+
+/**
+ * Lists the top-level bullets under a `##` heading, with the line each one starts on.
+ *
+ * @param markdown - The page source.
+ * @param heading - The `##` heading text.
+ * @returns Each bullet's 1-based line, its first line, and the line before it.
+ */
+function topLevelBullets(
+    markdown: string,
+    heading: string,
+): { line: number; first: string; before: string }[] {
+    const lines = markdown.split("\n");
+    const headings = parseHeadings(markdown);
+    const start = headings.findIndex(
+        (h) => h.level === 2 && h.text === heading,
+    );
+
+    if (start === -1) {
+        throw new Error(`no "## ${heading}" heading`);
+    }
+
+    const from = (headings[start] as { line: number }).line;
+    const to = headings[start + 1]?.line ?? lines.length + 1;
+    const bullets: { line: number; first: string; before: string }[] = [];
+
+    for (let n = from + 1; n < to; n++) {
+        const text = lines[n - 1] as string;
+
+        if (text.startsWith("- ")) {
+            bullets.push({
+                line: n,
+                first: text,
+                before: lines[n - 2] ?? "",
+            });
+        }
+    }
+
+    return bullets;
+}
+
+describe("documentation is complete", () => {
+    const issues = coverageReport();
+
+    it("every arr, obj and data export has a tab", () => {
+        expect(
+            issues.filter(
+                (i) =>
+                    i.kind === "missing" && i.page.startsWith("arrays-objects"),
+            ),
+        ).toEqual([]);
+    });
+
+    it("every public Collection member has a section", () => {
+        expect(
+            issues.filter(
+                (i) => i.kind === "missing" && i.page.startsWith("collections"),
+            ),
+        ).toEqual([]);
+    });
+
+    it("every in-page anchor resolves", () => {
+        expect(issues.filter((i) => i.kind === "anchor")).toEqual([]);
+    });
+
+    it("every variant tab imports its own package", () => {
+        expect(issues.filter((i) => i.kind === "fence")).toEqual([]);
+    });
+
+    it("every reference section has a checked example", () => {
+        const unchecked: string[] = [];
+
+        for (const page of [UTILITIES, METHODS]) {
+            for (const section of referenceSections(readDoc(page))) {
+                if (
+                    !["random", "shuffle"].includes(section.heading) &&
+                    !section.fences.some((f) => f.code.includes("// =>"))
+                ) {
+                    unchecked.push(`${page} ### ${section.heading}`);
+                }
+            }
+        }
+
+        expect(unchecked).toEqual([]);
+    });
+
+    it("every utilities-list section names its exports outside code", () => {
+        const unnamed: string[] = [];
+
+        for (const section of referenceSections(readDoc(UTILITIES))) {
+            const imported = importedNames(section.text);
+
+            for (const [title, names] of imported) {
+                for (const name of names) {
+                    if (!section.outsideCode.includes(`\`${name}\``)) {
+                        unnamed.push(
+                            `### ${section.heading}: ${title} ${name}`,
+                        );
+                    }
+                }
+            }
+        }
+
+        expect(unnamed).toEqual([]);
+    });
+
+    it("every parity claim cites a transcript", () => {
+        const uncited: string[] = [];
+
+        for (const page of [UTILITIES, METHODS]) {
+            const lines = readDoc(page).split("\n");
+
+            for (const [index, text] of lines.entries()) {
+                if (!text.startsWith("::: info")) {
+                    continue;
+                }
+
+                let before = index - 1;
+
+                while (before >= 0 && lines[before]?.trim() === "") {
+                    before--;
+                }
+
+                if (!CITATION.test(lines[before] ?? "")) {
+                    uncited.push(`${page}:${index + 1} ::: info`);
+                }
+            }
+        }
+
+        const bulletPages: [string, string[]][] = [
+            [
+                "arrays-objects/differences.md",
+                [
+                    "Return values instead of references",
+                    "Behaviour differences",
+                ],
+            ],
+            ["collections/differences.md", ["Keys and order", "Values"]],
+        ];
+
+        for (const [page, headings] of bulletPages) {
+            const markdown = readDoc(page);
+
+            for (const heading of headings) {
+                for (const bullet of topLevelBullets(markdown, heading)) {
+                    if (
+                        !CITATION.test(bullet.first) &&
+                        !CITATION.test(bullet.before)
+                    ) {
+                        uncited.push(`${page}:${bullet.line} ${heading}`);
+                    }
+                }
+            }
+        }
+
+        expect(uncited).toEqual([]);
     });
 });
