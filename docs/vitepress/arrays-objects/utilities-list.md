@@ -26,7 +26,32 @@ import {
   dataDot,
   dataEvery,
   dataItem,
+  dataExcept,
+  dataExceptValues,
+  dataExists,
+  dataFilter,
+  dataFirst,
+  dataFlatten,
+  dataFlip,
+  dataFloat,
+  dataForget,
+  dataFrom,
+  dataGet,
+  dataHas,
+  dataHasAll,
+  dataHasAny,
+  dataInteger,
+  dataIntersect,
+  dataIntersectAssoc,
+  dataIntersectAssocUsing,
+  dataIntersectByKeys,
+  dataIntersectUsing,
+  dataJoin,
+  dataKeyBy,
+  dataKeys,
+  dataLast,
 } from "@tolki/data";
+import { flattenDot } from "@tolki/obj";
 
 // Callback arguments cannot be typed into a field, so the playground offers presets.
 const predicates = [
@@ -66,7 +91,7 @@ These utilities work on arrays with `@tolki/arr`, on plain objects with `@tolki/
 
 <div class="collection-method-list" markdown="1">
 
-[accessible](#accessible) [add](#add) [after](#after) [arrayable](#arrayable) [arrayItem](#arrayitem) [before](#before) [boolean](#boolean) [chunk](#chunk) [chunkBy](#chunkby) [chunkWhile](#chunkwhile) [collapse](#collapse) [combine](#combine) [contains](#contains) [containsStrict](#containsstrict) [count](#count) [crossJoin](#crossjoin) [diff](#diff) [diffAssoc](#diffassoc) [diffAssocUsing](#diffassocusing) [diffKeys](#diffkeys) [diffKeysUsing](#diffkeysusing) [diffUsing](#diffusing) [divide](#divide) [dot](#dot) [every](#every)
+[accessible](#accessible) [add](#add) [after](#after) [arrayable](#arrayable) [arrayItem](#arrayitem) [before](#before) [boolean](#boolean) [chunk](#chunk) [chunkBy](#chunkby) [chunkWhile](#chunkwhile) [collapse](#collapse) [combine](#combine) [contains](#contains) [containsStrict](#containsstrict) [count](#count) [crossJoin](#crossjoin) [diff](#diff) [diffAssoc](#diffassoc) [diffAssocUsing](#diffassocusing) [diffKeys](#diffkeys) [diffKeysUsing](#diffkeysusing) [diffUsing](#diffusing) [divide](#divide) [dot](#dot) [every](#every) [except](#except) [exceptValues](#exceptvalues) [exists](#exists) [filter](#filter) [first](#first) [flatten](#flatten) [flattenDot](#flattendot) [flip](#flip) [float](#float) [forget](#forget) [from](#from) [get](#get) [has](#has) [hasAll](#hasall) [hasAny](#hasany) [integer](#integer) [intersect](#intersect) [intersectAssoc](#intersectassoc) [intersectAssocUsing](#intersectassocusing) [intersectByKeys](#intersectbykeys) [intersectUsing](#intersectusing) [join](#join) [keyBy](#keyby) [keys](#keys) [last](#last)
 
 </div>
 
@@ -1115,5 +1140,1184 @@ dataEvery({ a: 1, b: 2 }, (value) => value > 1);
 
 <FnTry label="dataEvery" :fn="dataEvery" :args="[
   { name: 'data', type: 'json', default: [1, 2, 3] },
+  { name: 'callback', type: 'select', default: predicates[0].value, options: predicates },
+]" />
+
+### except
+
+Get all of the given array or object except for a specified list of keys.
+
+Exported as `except` from `@tolki/arr` and `@tolki/obj`, and as `dataExcept` from `@tolki/data`.
+
+Laravel: [`Arr::except()`](https://laravel.com/docs/helpers#method-array-except)
+
+::: code-group
+
+```js [@tolki/arr]
+import { except } from "@tolki/arr";
+
+except(["a", "b", "c"], 1);
+// => ["a", "c"]
+
+except(["a", "b", "c"], [0, 2]);
+// => ["b"]
+```
+
+```js [@tolki/obj]
+import { except } from "@tolki/obj";
+
+except({ name: "Desk", price: 100, sku: "D-1" }, "price");
+// => { name: "Desk", sku: "D-1" }
+
+except({ name: "Desk", price: 100, sku: "D-1" }, ["price", "sku"]);
+// => { name: "Desk" }
+
+// A "dot" path reaches into a nested object.
+except({ name: "Desk", price: { amount: 100, tax: 7 } }, "price.tax");
+// => { name: "Desk", price: { amount: 100 } }
+```
+
+```js [@tolki/data]
+import { dataExcept } from "@tolki/data";
+
+dataExcept(["a", "b", "c"], 1);
+// => ["a", "c"]
+
+dataExcept({ name: "Desk", price: 100 }, "price");
+// => { name: "Desk" }
+```
+
+:::
+
+<FnTry label="dataExcept" :fn="dataExcept" :args="[
+  { name: 'data', type: 'json', default: { name: 'Desk', price: 100 } },
+  { name: 'keys', type: 'json', default: 'price' },
+]" />
+
+### exceptValues
+
+Get all of the given array or object except for a specified list of values. Values match loosely, unless `strict` is `true`.
+
+Exported as `exceptValues` from `@tolki/arr` and `@tolki/obj`, and as `dataExceptValues` from `@tolki/data`.
+
+Laravel: [`Arr::exceptValues()`](https://laravel.com/docs/helpers#method-array-except-values)
+
+::: code-group
+
+```js [@tolki/arr]
+import { exceptValues } from "@tolki/arr";
+
+exceptValues([1, 2, 3, 2], 2);
+// => [1, 3]
+
+exceptValues([1, "1", 0, false], [1]);
+// => [0, false]
+
+exceptValues([1, "1", 0, false], [1], true);
+// => ["1", 0, false]
+```
+
+```js [@tolki/obj]
+import { exceptValues } from "@tolki/obj";
+
+exceptValues({ a: 1, b: 2, c: 1, d: 3 }, 1);
+// => { b: 2, d: 3 }
+
+exceptValues({ a: true, b: false, c: 1, d: 0 }, [1, 0], true);
+// => { a: true, b: false }
+```
+
+```js [@tolki/data]
+import { dataExceptValues } from "@tolki/data";
+
+dataExceptValues([1, 2, 3, 2], 2);
+// => [1, 3]
+
+dataExceptValues({ a: 1, b: 2, c: 1 }, 1);
+// => { b: 2 }
+```
+
+:::
+
+<FnTry label="dataExceptValues" :fn="dataExceptValues" :args="[
+  { name: 'data', type: 'json', default: { a: 1, b: 2, c: 1, d: 3 } },
+  { name: 'values', type: 'json', default: [1] },
+  { name: 'strict', type: 'boolean', default: false },
+]" />
+
+### exists
+
+Determine if the given key exists in the provided array or object. A key set to `null` still exists.
+
+Exported as `exists` from `@tolki/arr` and `@tolki/obj`, and as `dataExists` from `@tolki/data`.
+
+Laravel: [`Arr::exists()`](https://laravel.com/docs/helpers#method-array-exists)
+
+::: code-group
+
+```js [@tolki/arr]
+import { exists } from "@tolki/arr";
+
+exists(["a", "b"], 1);
+// => true
+
+exists(["a", "b"], 5);
+// => false
+```
+
+```js [@tolki/obj]
+import { exists } from "@tolki/obj";
+
+exists({ name: "Desk", price: null }, "price");
+// => true
+
+exists({ name: "Desk" }, "sku");
+// => false
+```
+
+```js [@tolki/data]
+import { dataExists } from "@tolki/data";
+
+dataExists(["a", "b"], 1);
+// => true
+
+dataExists({ name: "Desk" }, "sku");
+// => false
+```
+
+:::
+
+<FnTry label="dataExists" :fn="dataExists" :args="[
+  { name: 'data', type: 'json', default: { name: 'Desk', price: null } },
+  { name: 'key', default: 'price' },
+]" />
+
+### filter
+
+Filter the array or object using a callback. Without a callback, it removes the items that PHP treats as empty. See [Truthiness](./php-semantics.md#truthiness).
+
+Exported as `filter` from `@tolki/arr` and `@tolki/obj`, and as `dataFilter` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { filter } from "@tolki/arr";
+
+filter([1, 2, 3, 4], (value) => value > 2);
+// => [3, 4]
+
+filter([0, 1, "", null, "a"]);
+// => [1, "a"]
+```
+
+```js [@tolki/obj]
+import { filter } from "@tolki/obj";
+
+filter({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2);
+// => { c: 3, d: 4 }
+
+filter({ a: "0", b: "", c: 0, d: "x" });
+// => { d: "x" }
+```
+
+```js [@tolki/data]
+import { dataFilter } from "@tolki/data";
+
+dataFilter([1, 2, 3, 4], (value) => value > 2);
+// => [3, 4]
+
+dataFilter({ a: 1, b: 2, c: 3 }, (value) => value > 1);
+// => { b: 2, c: 3 }
+```
+
+:::
+
+<FnTry label="dataFilter" :fn="dataFilter" :args="[
+  { name: 'data', type: 'json', default: { a: 1, b: 2, c: 3, d: 4 } },
+  { name: 'callback', type: 'select', default: predicates[0].value, options: predicates },
+]" />
+
+### first
+
+Get the first item, or the first item that passes a truth test. When nothing is found, it returns the default value, or `null`.
+
+Exported as `first` from `@tolki/arr` and `@tolki/obj`, and as `dataFirst` from `@tolki/data`.
+
+Laravel: [`Arr::first()`](https://laravel.com/docs/helpers#method-array-first)
+
+::: code-group
+
+```js [@tolki/arr]
+import { first } from "@tolki/arr";
+
+first([100, 200, 300]);
+// => 100
+
+first([100, 200, 300], (value) => value >= 150);
+// => 200
+
+first([100, 200, 300], (value) => value > 500, "none");
+// => "none"
+```
+
+```js [@tolki/obj]
+import { first } from "@tolki/obj";
+
+first({ a: 1, b: 2, c: 3 });
+// => 1
+
+first({ a: 1, b: 2, c: 3 }, (value) => value > 1);
+// => 2
+
+first({}, null, "none");
+// => "none"
+```
+
+```js [@tolki/data]
+import { dataFirst } from "@tolki/data";
+
+dataFirst([1, 2, 3, 4], (value) => value > 2);
+// => 3
+
+dataFirst({ a: 1, b: 2, c: 3 }, (value) => value > 1);
+// => 2
+
+dataFirst([], null, "none");
+// => "none"
+```
+
+:::
+
+<FnTry label="dataFirst" :fn="dataFirst" :args="[
+  { name: 'data', type: 'json', default: { a: 1, b: 2, c: 3 } },
+  { name: 'callback', type: 'select', default: predicates[0].value, options: predicates },
+]" />
+
+### flatten
+
+Flatten a multi-dimensional array or object into a single-level array of its values. The depth argument limits how many levels to flatten.
+
+Exported as `flatten` from `@tolki/arr` and `@tolki/obj`, and as `dataFlatten` from `@tolki/data`.
+
+Laravel: [`Arr::flatten()`](https://laravel.com/docs/helpers#method-array-flatten)
+
+::: code-group
+
+```js [@tolki/arr]
+import { flatten } from "@tolki/arr";
+
+flatten(["Joe", ["PHP", "Ruby"]]);
+// => ["Joe", "PHP", "Ruby"]
+
+flatten([1, [2, [3, [4]]]], 1);
+// => [1, 2, [3, [4]]]
+```
+
+```js [@tolki/obj]
+import { flatten } from "@tolki/obj";
+
+flatten({ a: 1, b: { c: 2, d: { e: 3 } } });
+// => [1, 2, 3]
+
+flatten({ a: 1, b: { c: 2, d: { e: 3 } } }, 1);
+// => [1, 2, { e: 3 }]
+```
+
+```js [@tolki/data]
+import { dataFlatten } from "@tolki/data";
+
+dataFlatten([1, [2, [3]]]);
+// => [1, 2, 3]
+
+dataFlatten({ a: 1, b: { c: 2 } });
+// => [1, 2]
+```
+
+:::
+
+<FnTry label="dataFlatten" :fn="dataFlatten" :args="[
+  { name: 'data', type: 'json', default: { a: 1, b: { c: 2, d: { e: 3 } } } },
+]" />
+
+### flattenDot
+
+Flatten a multi-dimensional object into one level of "dot" notation keys, stopping at the given depth. See [Dot Notation](./dot-notation.md).
+
+Exported as `flattenDot` from `@tolki/obj`.
+
+::: code-group
+
+```js [@tolki/obj]
+import { flattenDot } from "@tolki/obj";
+
+flattenDot({ users: { john: { name: "John", tags: ["a"] } } });
+// => { "users.john.name": "John", "users.john.tags.0": "a" }
+
+flattenDot({ users: { john: { name: "John" } } }, 1);
+// => { "users.john": { name: "John" } }
+```
+
+:::
+
+<!-- docs/php-parity/Arr/dot.json, "dot-empty-leaf", "dot-nested-empty-leaf" -->
+
+::: info
+`flattenDot` drops an empty nested object or array, where Laravel's `Arr::dot()` keeps it as a value. Use [`dot`](#dot) to keep it. See [Behaviour differences](./differences.md#behaviour-differences).
+:::
+
+<FnTry label="flattenDot" :fn="flattenDot" :args="[
+  { name: 'data', type: 'json', default: { users: { john: { name: 'John' } } } },
+  { name: 'depth', type: 'number', default: 1 },
+]" />
+
+### flip
+
+Flip the keys and the values: each value becomes a key, and each key becomes its value.
+
+Exported as `flip` from `@tolki/arr` and `@tolki/obj`, and as `dataFlip` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { flip } from "@tolki/arr";
+
+flip(["a", "b", "c"]);
+// => { a: 0, b: 1, c: 2 }
+```
+
+```js [@tolki/obj]
+import { flip } from "@tolki/obj";
+
+flip({ name: "taylor", role: "admin" });
+// => { taylor: "name", admin: "role" }
+```
+
+```js [@tolki/data]
+import { dataFlip } from "@tolki/data";
+
+dataFlip(["a", "b", "c"]);
+// => { a: 0, b: 1, c: 2 }
+
+dataFlip({ name: "taylor" });
+// => { taylor: "name" }
+```
+
+:::
+
+<FnTry label="dataFlip" :fn="dataFlip" :args="[
+  { name: 'data', type: 'json', default: { name: 'taylor', role: 'admin' } },
+]" />
+
+### float
+
+Get a float item using "dot" notation, throwing an `InvalidArgumentException` if the value is not a number.
+
+Exported as `float` from `@tolki/arr` and `@tolki/obj`, and as `dataFloat` from `@tolki/data`.
+
+Laravel: [`Arr::float()`](https://laravel.com/docs/helpers#method-array-float)
+
+::: code-group
+
+```js [@tolki/arr]
+import { float } from "@tolki/arr";
+
+float([{ price: 19.99 }], "0.price");
+// => 19.99
+
+float([{ price: 19.99 }], "0.discount", 1.5);
+// => 1.5
+
+float([{ name: "Widget" }], "0.name");
+// => throws InvalidArgumentException
+```
+
+```js [@tolki/obj]
+import { float } from "@tolki/obj";
+
+float({ product: { price: 19.99 } }, "product.price");
+// => 19.99
+
+float({ product: { name: "Widget" } }, "product.name");
+// => throws InvalidArgumentException
+```
+
+```js [@tolki/data]
+import { dataFloat } from "@tolki/data";
+
+dataFloat({ product: { price: 19.99 } }, "product.price");
+// => 19.99
+
+dataFloat([{ price: 19.99 }], "0.price");
+// => 19.99
+```
+
+:::
+
+<!-- docs/php-parity/Arr/float.json, "Arr::float rejects a whole-number int" -->
+
+::: info
+`float` accepts a whole number such as `1`, where Laravel's `Arr::float()` throws, because PHP's `is_float()` rejects an integer. JavaScript has one number type. See [Behaviour differences](./differences.md#behaviour-differences).
+:::
+
+<FnTry label="dataFloat" :fn="dataFloat" :args="[
+  { name: 'data', type: 'json', default: { product: { price: 19.99 } } },
+  { name: 'key', default: 'product.price' },
+]" />
+
+### forget
+
+Remove one or many items from an array or object using "dot" notation. It returns a new value and leaves the original unchanged. See [Return values instead of references](./differences.md#return-values-instead-of-references).
+
+Exported as `forget` from `@tolki/arr` and `@tolki/obj`, and as `dataForget` from `@tolki/data`.
+
+Laravel: [`Arr::forget()`](https://laravel.com/docs/helpers#method-array-forget)
+
+::: code-group
+
+```js [@tolki/arr]
+import { forget } from "@tolki/arr";
+
+forget([["a", "b"], ["c"]], "0.1");
+// => [["a"], ["c"]]
+
+forget(["a", "b", "c"], [0, 2]);
+// => ["b"]
+```
+
+```js [@tolki/obj]
+import { forget } from "@tolki/obj";
+
+forget({ user: { name: "John", age: 30 } }, "user.age");
+// => { user: { name: "John" } }
+
+forget({ name: "John", age: 30, city: "NYC" }, ["age", "city"]);
+// => { name: "John" }
+```
+
+```js [@tolki/data]
+import { dataForget } from "@tolki/data";
+
+dataForget({ user: { name: "John", age: 30 } }, "user.age");
+// => { user: { name: "John" } }
+
+dataForget(["a", "b", "c"], 1);
+// => ["a", "c"]
+```
+
+:::
+
+<FnTry label="dataForget" :fn="dataForget" :args="[
+  { name: 'data', type: 'json', default: { user: { name: 'John', age: 30 } } },
+  { name: 'keys', default: 'user.age' },
+]" />
+
+### from
+
+Get the underlying array or object of items from the given argument: a list stays a list, and a `Map` becomes an object. A scalar throws an `InvalidArgumentException`.
+
+Exported as `from` from `@tolki/arr` and `@tolki/obj`, and as `dataFrom` from `@tolki/data`.
+
+Laravel: [`Arr::from()`](https://laravel.com/docs/helpers#method-array-from)
+
+::: code-group
+
+```js [@tolki/arr]
+import { from } from "@tolki/arr";
+
+from([1, 2]);
+// => [1, 2]
+
+from(new Map([["foo", "bar"]]));
+// => { foo: "bar" }
+
+from(1);
+// => throws InvalidArgumentException
+```
+
+```js [@tolki/obj]
+import { from } from "@tolki/obj";
+
+from({ foo: "bar" });
+// => { foo: "bar" }
+
+from(new Map([["foo", "bar"]]));
+// => { foo: "bar" }
+
+from(1);
+// => throws InvalidArgumentException
+```
+
+```js [@tolki/data]
+import { dataFrom } from "@tolki/data";
+
+dataFrom([1, 2]);
+// => [1, 2]
+
+dataFrom(new Map([["foo", "bar"]]));
+// => { foo: "bar" }
+```
+
+:::
+
+<FnTry label="dataFrom" :fn="dataFrom" :args="[
+  { name: 'items', type: 'json', default: { foo: 'bar' } },
+]" />
+
+### get
+
+Get an item from an array or object using "dot" notation. A missing path returns the default value, or `null`. See [Dot Notation](./dot-notation.md).
+
+Exported as `get` from `@tolki/arr` and `@tolki/obj`, and as `dataGet` from `@tolki/data`.
+
+Laravel: [`Arr::get()`](https://laravel.com/docs/helpers#method-array-get) · [`data_get()`](https://laravel.com/docs/helpers#method-data-get)
+
+::: code-group
+
+```js [@tolki/arr]
+import { get } from "@tolki/arr";
+
+get([{ price: 100 }], "0.price");
+// => 100
+
+get([{ price: 100 }], "0.discount", 0);
+// => 0
+```
+
+```js [@tolki/obj]
+import { get } from "@tolki/obj";
+
+get({ desk: { price: 100 } }, "desk.price");
+// => 100
+
+get({ desk: { price: 100 } }, "desk.discount", 0);
+// => 0
+```
+
+```js [@tolki/data]
+import { dataGet } from "@tolki/data";
+
+dataGet([{ price: 100 }], "0.price");
+// => 100
+
+dataGet({ desk: { price: 100 } }, "desk.price");
+// => 100
+
+dataGet({ desk: { price: 100 } }, "desk.discount");
+// => null
+```
+
+:::
+
+<FnTry label="dataGet" :fn="dataGet" :args="[
+  { name: 'data', type: 'json', default: { desk: { price: 100 } } },
+  { name: 'key', default: 'desk.price' },
+]" />
+
+### has
+
+Determine if an item or items exist in an array or object using "dot" notation. A key set to `null` still exists. When given several keys, all of them must exist. See [Dot Notation](./dot-notation.md).
+
+Exported as `has` from `@tolki/arr` and `@tolki/obj`, and as `dataHas` from `@tolki/data`.
+
+Laravel: [`Arr::has()`](https://laravel.com/docs/helpers#method-array-has)
+
+::: code-group
+
+```js [@tolki/arr]
+import { has } from "@tolki/arr";
+
+has([["a"], ["b"]], "0.0");
+// => true
+
+has([["a"], ["b"]], ["0.0", "1.1"]);
+// => false
+```
+
+```js [@tolki/obj]
+import { has } from "@tolki/obj";
+
+has({ name: "John", address: { city: "NYC" } }, "address.city");
+// => true
+
+has({ name: "John", address: { city: "NYC" } }, ["name", "address.country"]);
+// => false
+
+has({ price: null }, "price");
+// => true
+```
+
+```js [@tolki/data]
+import { dataHas } from "@tolki/data";
+
+dataHas([["a"], ["b"]], "0.0");
+// => true
+
+dataHas({ name: "John", address: { city: "NYC" } }, ["name", "address.city"]);
+// => true
+```
+
+:::
+
+<FnTry label="dataHas" :fn="dataHas" :args="[
+  { name: 'data', type: 'json', default: { name: 'John', address: { city: 'NYC' } } },
+  { name: 'keys', type: 'json', default: ['name', 'address.city'] },
+]" />
+
+### hasAll
+
+Determine if all keys exist in an array or object using "dot" notation. See [Dot Notation](./dot-notation.md).
+
+Exported as `hasAll` from `@tolki/arr` and `@tolki/obj`, and as `dataHasAll` from `@tolki/data`.
+
+Laravel: [`Arr::hasAll()`](https://laravel.com/docs/helpers#method-array-hasall)
+
+::: code-group
+
+```js [@tolki/arr]
+import { hasAll } from "@tolki/arr";
+
+hasAll([["a"], ["b"]], ["0.0", "1.0"]);
+// => true
+
+hasAll([["a"], ["b"]], ["0.0", "1.1"]);
+// => false
+```
+
+```js [@tolki/obj]
+import { hasAll } from "@tolki/obj";
+
+hasAll({ name: "John", address: { city: "NYC" } }, ["name", "address.city"]);
+// => true
+
+hasAll({ name: "John", address: { city: "NYC" } }, ["name", "address.country"]);
+// => false
+```
+
+```js [@tolki/data]
+import { dataHasAll } from "@tolki/data";
+
+dataHasAll([["a"], ["b"]], ["0.0", "1.0"]);
+// => true
+
+dataHasAll({ name: "John" }, ["name", "email"]);
+// => false
+```
+
+:::
+
+<FnTry label="dataHasAll" :fn="dataHasAll" :args="[
+  { name: 'data', type: 'json', default: { name: 'John', address: { city: 'NYC' } } },
+  { name: 'keys', type: 'json', default: ['name', 'address.city'] },
+]" />
+
+### hasAny
+
+Determine if any of the keys exist in an array or object using "dot" notation. See [Dot Notation](./dot-notation.md).
+
+Exported as `hasAny` from `@tolki/arr` and `@tolki/obj`, and as `dataHasAny` from `@tolki/data`.
+
+Laravel: [`Arr::hasAny()`](https://laravel.com/docs/helpers#method-array-hasany)
+
+::: code-group
+
+```js [@tolki/arr]
+import { hasAny } from "@tolki/arr";
+
+hasAny([["a"], ["b"]], ["0.5", "1.0"]);
+// => true
+
+hasAny([["a"], ["b"]], ["0.5", "3"]);
+// => false
+```
+
+```js [@tolki/obj]
+import { hasAny } from "@tolki/obj";
+
+hasAny({ name: "John", address: { city: "NYC" } }, ["email", "name"]);
+// => true
+
+hasAny({ name: "John", address: { city: "NYC" } }, ["email", "phone"]);
+// => false
+```
+
+```js [@tolki/data]
+import { dataHasAny } from "@tolki/data";
+
+dataHasAny([["a"], ["b"]], ["0.5", "1.0"]);
+// => true
+
+dataHasAny({ name: "John" }, ["email", "phone"]);
+// => false
+```
+
+:::
+
+<FnTry label="dataHasAny" :fn="dataHasAny" :args="[
+  { name: 'data', type: 'json', default: { name: 'John', address: { city: 'NYC' } } },
+  { name: 'keys', type: 'json', default: ['email', 'name'] },
+]" />
+
+### integer
+
+Get an integer item using "dot" notation, throwing an `InvalidArgumentException` if the value is not an integer.
+
+Exported as `integer` from `@tolki/arr` and `@tolki/obj`, and as `dataInteger` from `@tolki/data`.
+
+Laravel: [`Arr::integer()`](https://laravel.com/docs/helpers#method-array-integer)
+
+::: code-group
+
+```js [@tolki/arr]
+import { integer } from "@tolki/arr";
+
+integer([{ age: 30 }], "0.age");
+// => 30
+
+integer([{ age: 30 }], "0.score", 7);
+// => 7
+
+integer([{ age: 30.5 }], "0.age");
+// => throws InvalidArgumentException
+```
+
+```js [@tolki/obj]
+import { integer } from "@tolki/obj";
+
+integer({ user: { age: 30 } }, "user.age");
+// => 30
+
+integer({ user: { name: "John" } }, "user.name");
+// => throws InvalidArgumentException
+```
+
+```js [@tolki/data]
+import { dataInteger } from "@tolki/data";
+
+dataInteger({ user: { age: 30 } }, "user.age");
+// => 30
+
+dataInteger([{ age: 30 }], "0.age");
+// => 30
+```
+
+:::
+
+<FnTry label="dataInteger" :fn="dataInteger" :args="[
+  { name: 'data', type: 'json', default: { user: { age: 30 } } },
+  { name: 'key', default: 'user.age' },
+]" />
+
+### intersect
+
+Get the items whose values are also present in the other set. Values match the way PHP's `(string) $a === (string) $b` compares them, so `2` matches `"2"`. The keys of the kept items stay with them in an object.
+
+Exported as `intersect` from `@tolki/arr` and `@tolki/obj`, and as `dataIntersect` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { intersect } from "@tolki/arr";
+
+intersect(["a", "b", "c"], ["b", "c", "d"]);
+// => ["b", "c"]
+
+intersect([1, 2, 3], ["2", "3"]);
+// => [2, 3]
+```
+
+```js [@tolki/obj]
+import { intersect } from "@tolki/obj";
+
+intersect({ a: "green", b: "brown", c: "blue" }, ["blue", "red", "green"]);
+// => { a: "green", c: "blue" }
+```
+
+```js [@tolki/data]
+import { dataIntersect } from "@tolki/data";
+
+dataIntersect(["a", "b", "c"], ["b", "c", "d"]);
+// => ["b", "c"]
+
+dataIntersect({ a: "green", b: "brown" }, { x: "green" });
+// => { a: "green" }
+```
+
+:::
+
+<FnTry label="dataIntersect" :fn="dataIntersect" :args="[
+  { name: 'data', type: 'json', default: { a: 'green', b: 'brown', c: 'blue' } },
+  { name: 'other', type: 'json', default: ['blue', 'red', 'green'] },
+]" />
+
+### intersectAssoc
+
+Get the items whose key and value are both present in the other set.
+
+Exported as `intersectAssoc` from `@tolki/arr` and `@tolki/obj`, and as `dataIntersectAssoc` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { intersectAssoc } from "@tolki/arr";
+
+intersectAssoc(["a", "b", "c"], ["a", "x", "c"]);
+// => ["a", "c"]
+```
+
+```js [@tolki/obj]
+import { intersectAssoc } from "@tolki/obj";
+
+intersectAssoc(
+  { a: "green", b: "brown", c: "blue", d: "red" },
+  { a: "green", b: "yellow", c: "blue", d: "red" },
+);
+// => { a: "green", c: "blue", d: "red" }
+```
+
+```js [@tolki/data]
+import { dataIntersectAssoc } from "@tolki/data";
+
+dataIntersectAssoc({ a: "green", b: "brown" }, { a: "green", b: "red" });
+// => { a: "green" }
+```
+
+:::
+
+<FnTry label="dataIntersectAssoc" :fn="dataIntersectAssoc" :args="[
+  { name: 'data', type: 'json', default: { a: 'green', b: 'brown' } },
+  { name: 'other', type: 'json', default: { a: 'green', b: 'red' } },
+]" />
+
+### intersectAssocUsing
+
+Get the items whose key and value are both present in the other set, using a callback to say whether two keys match.
+
+Exported as `intersectAssocUsing` from `@tolki/arr` and `@tolki/obj`, and as `dataIntersectAssocUsing` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { intersectAssocUsing } from "@tolki/arr";
+
+const same = (a, b) => String(a) === String(b);
+
+intersectAssocUsing(["a", "b", "c"], ["a", "x", "c"], same);
+// => ["a", "c"]
+```
+
+```js [@tolki/obj]
+import { intersectAssocUsing } from "@tolki/obj";
+
+const same = (a, b) => a.toLowerCase() === b.toLowerCase();
+
+intersectAssocUsing(
+  { a: "green", b: "brown", c: "blue" },
+  { A: "green", B: "yellow", c: "blue" },
+  same,
+);
+// => { a: "green", c: "blue" }
+```
+
+```js [@tolki/data]
+import { dataIntersectAssocUsing } from "@tolki/data";
+
+const same = (a, b) => a.toLowerCase() === b.toLowerCase();
+
+dataIntersectAssocUsing({ a: "green", b: "brown" }, { A: "green" }, same);
+// => { a: "green" }
+```
+
+:::
+
+<FnTry label="dataIntersectAssocUsing" :fn="dataIntersectAssocUsing" :args="[
+  { name: 'data', type: 'json', default: { a: 'green', b: 'brown' } },
+  { name: 'other', type: 'json', default: { A: 'green', B: 'yellow' } },
+  { name: 'callback', type: 'select', default: keyComparators[0].value, options: keyComparators },
+]" />
+
+### intersectByKeys
+
+Get the items whose key is present in the other set. Values are ignored.
+
+Exported as `intersectByKeys` from `@tolki/arr` and `@tolki/obj`, and as `dataIntersectByKeys` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { intersectByKeys } from "@tolki/arr";
+
+intersectByKeys(["a", "b", "c"], ["x", "y"]);
+// => ["a", "b"]
+```
+
+```js [@tolki/obj]
+import { intersectByKeys } from "@tolki/obj";
+
+intersectByKeys(
+  { serial: "UX301", type: "screen", year: 2009 },
+  { reference: "UX404", type: "tab", year: 2011 },
+);
+// => { type: "screen", year: 2009 }
+```
+
+```js [@tolki/data]
+import { dataIntersectByKeys } from "@tolki/data";
+
+dataIntersectByKeys({ a: 1, b: 2, c: 3 }, { a: 0, c: 0 });
+// => { a: 1, c: 3 }
+```
+
+:::
+
+<FnTry label="dataIntersectByKeys" :fn="dataIntersectByKeys" :args="[
+  { name: 'data', type: 'json', default: { a: 1, b: 2, c: 3 } },
+  { name: 'other', type: 'json', default: { a: 0, c: 0 } },
+]" />
+
+### intersectUsing
+
+Get the items whose values are present in the other set, using a callback to say whether two values are equal.
+
+Exported as `intersectUsing` from `@tolki/arr` and `@tolki/obj`, and as `dataIntersectUsing` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { intersectUsing } from "@tolki/arr";
+
+const same = (a, b) => a.toLowerCase() === b.toLowerCase();
+
+intersectUsing(["Green", "Brown", "Blue"], ["GREEN", "Yellow"], same);
+// => ["Green"]
+```
+
+```js [@tolki/obj]
+import { intersectUsing } from "@tolki/obj";
+
+const same = (a, b) => a.toLowerCase() === b.toLowerCase();
+
+intersectUsing({ a: "green", b: "brown" }, { A: "GREEN" }, same);
+// => { a: "green" }
+```
+
+```js [@tolki/data]
+import { dataIntersectUsing } from "@tolki/data";
+
+const same = (a, b) => a.toLowerCase() === b.toLowerCase();
+
+dataIntersectUsing(["Green", "Brown"], ["GREEN"], same);
+// => ["Green"]
+```
+
+:::
+
+<FnTry label="dataIntersectUsing" :fn="dataIntersectUsing" :args="[
+  { name: 'data', type: 'json', default: ['Green', 'Brown', 'Blue'] },
+  { name: 'other', type: 'json', default: ['GREEN', 'Yellow'] },
+  { name: 'callback', type: 'select', default: keyComparators[0].value, options: keyComparators },
+]" />
+
+### join
+
+Join all items using a string. The final item can use a separate glue string.
+
+Exported as `join` from `@tolki/arr` and `@tolki/obj`, and as `dataJoin` from `@tolki/data`.
+
+Laravel: [`Arr::join()`](https://laravel.com/docs/helpers#method-array-join)
+
+::: code-group
+
+```js [@tolki/arr]
+import { join } from "@tolki/arr";
+
+join(["Tailwind", "Alpine", "Laravel", "Livewire"], ", ");
+// => "Tailwind, Alpine, Laravel, Livewire"
+
+join(["Tailwind", "Alpine", "Laravel", "Livewire"], ", ", " and ");
+// => "Tailwind, Alpine, Laravel and Livewire"
+
+join(["Tailwind", "Alpine"], ", ", " and ");
+// => "Tailwind and Alpine"
+```
+
+```js [@tolki/obj]
+import { join } from "@tolki/obj";
+
+join({ a: "Tailwind", b: "Alpine", c: "Laravel" }, ", ");
+// => "Tailwind, Alpine, Laravel"
+
+join({ a: "Tailwind", b: "Alpine", c: "Laravel" }, ", ", " and ");
+// => "Tailwind, Alpine and Laravel"
+```
+
+```js [@tolki/data]
+import { dataJoin } from "@tolki/data";
+
+dataJoin(["a", "b", "c"], ", ", " and ");
+// => "a, b and c"
+
+dataJoin({ a: "x", b: "y" }, ", ", " and ");
+// => "x and y"
+```
+
+:::
+
+<FnTry label="dataJoin" :fn="dataJoin" :args="[
+  { name: 'data', type: 'json', default: ['a', 'b', 'c'] },
+  { name: 'glue', default: ', ' },
+  { name: 'finalGlue', default: ' and ' },
+]" />
+
+### keyBy
+
+Key an array or object of rows by a field, or by the result of a callback.
+
+Exported as `keyBy` from `@tolki/arr` and `@tolki/obj`, and as `dataKeyBy` from `@tolki/data`.
+
+Laravel: [`Arr::keyBy()`](https://laravel.com/docs/helpers#method-array-keyby)
+
+::: code-group
+
+```js [@tolki/arr]
+import { keyBy } from "@tolki/arr";
+
+const products = [
+  { product_id: "prod-100", name: "Desk" },
+  { product_id: "prod-200", name: "Chair" },
+];
+
+keyBy(products, "product_id");
+// => {
+//   "prod-100": { product_id: "prod-100", name: "Desk" },
+//   "prod-200": { product_id: "prod-200", name: "Chair" },
+// }
+
+keyBy(products, (item) => item.product_id.toUpperCase());
+// => {
+//   "PROD-100": { product_id: "prod-100", name: "Desk" },
+//   "PROD-200": { product_id: "prod-200", name: "Chair" },
+// }
+```
+
+```js [@tolki/obj]
+import { keyBy } from "@tolki/obj";
+
+keyBy({ a: { id: 1, name: "Desk" }, b: { id: 2, name: "Chair" } }, "name");
+// => { Desk: { id: 1, name: "Desk" }, Chair: { id: 2, name: "Chair" } }
+```
+
+```js [@tolki/data]
+import { dataKeyBy } from "@tolki/data";
+
+dataKeyBy(
+  [
+    { id: 1, name: "Desk" },
+    { id: 2, name: "Chair" },
+  ],
+  "id",
+);
+// => { 1: { id: 1, name: "Desk" }, 2: { id: 2, name: "Chair" } }
+```
+
+:::
+
+<FnTry label="dataKeyBy" :fn="dataKeyBy" :args="[
+  { name: 'data', type: 'json', default: [{ id: 1, name: 'Desk' }, { id: 2, name: 'Chair' }] },
+  { name: 'keyBy', default: 'name' },
+]" />
+
+### keys
+
+Get all of the keys of an array or object.
+
+Exported as `keys` from `@tolki/arr` and `@tolki/obj`, and as `dataKeys` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { keys } from "@tolki/arr";
+
+keys(["a", "b"]);
+// => [0, 1]
+```
+
+```js [@tolki/obj]
+import { keys } from "@tolki/obj";
+
+keys({ name: "Desk", price: 100 });
+// => ["name", "price"]
+
+keys(
+  new Map([
+    [2, "c"],
+    [0, "a"],
+  ]),
+);
+// => [2, 0]
+```
+
+```js [@tolki/data]
+import { dataKeys } from "@tolki/data";
+
+dataKeys(["a", "b"]);
+// => [0, 1]
+
+dataKeys({ name: "Desk", price: 100 });
+// => ["name", "price"]
+```
+
+:::
+
+<FnTry label="dataKeys" :fn="dataKeys" :args="[
+  { name: 'data', type: 'json', default: { name: 'Desk', price: 100 } },
+]" />
+
+### last
+
+Get the last item, or the last item that passes a truth test. When nothing is found, it returns the default value, or `null`.
+
+Exported as `last` from `@tolki/arr` and `@tolki/obj`, and as `dataLast` from `@tolki/data`.
+
+Laravel: [`Arr::last()`](https://laravel.com/docs/helpers#method-array-last)
+
+::: code-group
+
+```js [@tolki/arr]
+import { last } from "@tolki/arr";
+
+last([100, 200, 300]);
+// => 300
+
+last([100, 200, 300, 110], (value) => value > 150);
+// => 300
+
+last([], null, "none");
+// => "none"
+```
+
+```js [@tolki/obj]
+import { last } from "@tolki/obj";
+
+last({ a: 1, b: 2, c: 3 });
+// => 3
+
+last({ a: 1, b: 2, c: 3 }, (value) => value < 3);
+// => 2
+```
+
+```js [@tolki/data]
+import { dataLast } from "@tolki/data";
+
+dataLast([1, 2, 3], (value) => value < 3);
+// => 2
+
+dataLast({ a: 1, b: 2, c: 3 });
+// => 3
+```
+
+:::
+
+<FnTry label="dataLast" :fn="dataLast" :args="[
+  { name: 'data', type: 'json', default: { a: 1, b: 2, c: 3 } },
   { name: 'callback', type: 'select', default: predicates[0].value, options: predicates },
 ]" />
