@@ -145,7 +145,7 @@ const keyedCallbacks = [
 ];
 </script>
 
-These utilities work on arrays with `@tolki/arr`, on plain objects with `@tolki/obj`, and on either one with `@tolki/data`. Every section has a tab for each package that exports the function, and the page remembers the tab you pick, so the next visit starts on the same one.
+These utilities work on arrays with `@tolki/arr`, on plain objects with `@tolki/obj`, and on either one with `@tolki/data`. On the docs site, every section has a tab for each package that exports the function, and the page remembers the tab you pick, so the next visit starts on the same one.
 
 ## Utilities List
 
@@ -752,7 +752,7 @@ dataContainsStrict([{ user: { id: 2 } }], "user.id", 2);
 
 <FnTry label="dataContainsStrict" :fn="dataContainsStrict" :args="[
   { name: 'data', type: 'json', default: [1, 3, 5, '02'] },
-  { name: 'key', type: 'json', default: 2 },
+  { name: 'value', type: 'json', default: 2 },
 ]" />
 
 ### count
@@ -4639,7 +4639,7 @@ dataWhere({ a: 1, b: 2, c: 3 }, (value) => value > 1);
 
 ### whereNotNull
 
-Filter an array or object, removing the items whose value is `null`. A list comes back renumbered from 0; see [Behaviour differences](./differences.md#behaviour-differences).
+Filter an array or object, removing the items whose value is `null`. Only `null` is removed; an `undefined` item stays. A list comes back renumbered from 0; see [Behaviour differences](./differences.md#behaviour-differences).
 
 Exported as `whereNotNull` from `@tolki/arr` and `@tolki/obj`, and as `dataWhereNotNull` from `@tolki/data`.
 
@@ -4653,7 +4653,6 @@ import { whereNotNull } from "@tolki/arr";
 whereNotNull(["a", null, "b", null]);
 // => ["a", "b"]
 
-// Only null is removed; an undefined item stays.
 whereNotNull([1, null, 2, undefined, 3]);
 // => [1, 2, undefined, 3]
 ```
@@ -4663,6 +4662,9 @@ import { whereNotNull } from "@tolki/obj";
 
 whereNotNull({ a: 1, b: null, c: 3 });
 // => { a: 1, c: 3 }
+
+"d" in whereNotNull({ a: 1, d: undefined });
+// => true
 ```
 
 ```js [@tolki/data]
@@ -4673,6 +4675,9 @@ dataWhereNotNull([1, null, 3]);
 
 dataWhereNotNull({ a: 1, b: null, c: 3 });
 // => { a: 1, c: 3 }
+
+dataWhereNotNull([1, undefined, null]);
+// => [1, undefined]
 ```
 
 :::

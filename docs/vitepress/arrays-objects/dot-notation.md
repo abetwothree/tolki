@@ -61,14 +61,25 @@ get({ a: { b: 2 } }, "a.b");
 ## Functions that take a path
 
 - **Read:** `get`, `has`, `hasAll`, `hasAny`, and the typed getters `string`, `integer`, `float`, `boolean` and `arrayItem` (`objectItem`, `dataItem`).
-- **Write:** `set`, `add`, `forget`, `pull` and `push`. Each one creates the missing steps of a path as it goes.
+- **Write:** `set`, `add`, `forget`, `pull` and `push`. `set`, `add` and `push` create the missing steps of a path as they go. `forget` leaves the data as it is when the path is missing, and `pull` returns the default, `null` unless you pass one, with the data unchanged.
 - **Pick out of rows:** `pluck` takes a path for the value and for the key, and `except` takes paths among its keys.
 - **Convert:** `dot` turns a nested structure into a flat object of paths, and `undot` turns it back.
 
 ::: code-group
 
 ```js [@tolki/arr]
-import { dot, except, has, set, string, undot } from "@tolki/arr";
+import {
+  add,
+  dot,
+  except,
+  forget,
+  has,
+  pull,
+  push,
+  set,
+  string,
+  undot,
+} from "@tolki/arr";
 
 has([["a", "b"]], "0.1");
 // => true
@@ -87,10 +98,33 @@ dot([{ a: 1 }, { a: 2 }]);
 
 undot({ "0.0": "x", 0.1: "y" });
 // => [["x", "y"]]
+
+add([], "0.0", "x");
+// => [["x"]]
+
+push([], "0", "x");
+// => [["x"]]
+
+forget([["x"]], "5.0");
+// => [["x"]]
+
+pull([["x"]], "5.0");
+// => { value: null, data: [["x"]] }
 ```
 
 ```js [@tolki/obj]
-import { dot, except, has, integer, set, undot } from "@tolki/obj";
+import {
+  add,
+  dot,
+  except,
+  forget,
+  has,
+  integer,
+  pull,
+  push,
+  set,
+  undot,
+} from "@tolki/obj";
 
 has({ a: { b: 1 } }, "a.z");
 // => false
@@ -109,14 +143,29 @@ dot({ a: { b: 1, c: [2] } });
 
 undot({ "a.b": 1, "a.c": 2 });
 // => { a: { b: 1, c: 2 } }
+
+add({}, "a.b", 1);
+// => { a: { b: 1 } }
+
+push({}, "a.b", 1);
+// => { a: { b: [1] } }
+
+forget({ a: 1 }, "b.c");
+// => { a: 1 }
+
+pull({ a: 1 }, "b.c");
+// => { value: null, data: { a: 1 } }
 ```
 
 ```js [@tolki/data]
 import {
   dataDot,
   dataExcept,
+  dataForget,
   dataHas,
   dataInteger,
+  dataPull,
+  dataPush,
   dataSet,
   dataUndot,
 } from "@tolki/data";
@@ -138,6 +187,15 @@ dataDot({ a: { b: 1, c: [2] } });
 
 dataUndot({ "a.b": 1, "a.c": 2 });
 // => { a: { b: 1, c: 2 } }
+
+dataPush({}, "a.b", 1);
+// => { a: { b: [1] } }
+
+dataForget({ a: 1 }, "b.c");
+// => { a: 1 }
+
+dataPull({ a: 1 }, "b.c");
+// => { value: null, data: { a: 1 } }
 ```
 
 :::

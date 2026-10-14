@@ -62,7 +62,7 @@ The return types follow the same split. `dataGet` is typed as the two packages' 
 
 ## Importing the Package
 
-You can import individual functions for better tree-shaking or the entire package (not recommended). Each tab below imports from its own package and checks one small call:
+You can import individual functions for better tree-shaking or the entire package (not recommended). On the docs site, each tab below imports from its own package and checks one small call:
 
 ::: code-group
 
@@ -100,7 +100,7 @@ However, if you are working on a backend project where bundle size is not a conc
 
 The [utilities list](./utilities-list.md) has one section per function. Each section has one tab per package that exports it, in the order `@tolki/arr`, `@tolki/obj`, `@tolki/data`. A function that only some packages have shows only those tabs.
 
-The tabs follow your choice. Pick `@tolki/obj` once and every section on the page, and the install and import examples above, switch to it. Your pick is remembered the next time you visit.
+On the docs site, the tabs follow your choice. Pick `@tolki/obj` once and every section on the page, and the install and import examples above, switch to it. Your pick is remembered the next time you visit.
 
 ## More documentation
 

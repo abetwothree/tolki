@@ -84,7 +84,7 @@ rows.where("a", "===", 1).all();
 
 ## Truthiness
 
-Wherever a callback or a value is tested for being true, PHP's rule applies, not JavaScript's. The tests are `filter()` with no callback, `reject()` with no argument, `where` without an operator, and what a callback to `first`, `where`, `reject`, `every`, `some` or `sole` answers.
+Wherever a callback or a value is tested for being true, PHP's rule applies, not JavaScript's. The tests are `filter()` with no callback, `Collection`'s `reject()` with no argument, `Collection`'s `where` without an operator, and what a callback to `first`, `where`, `reject`, `every`, `some` or `sole` answers.
 
 <!-- docs/php-parity/Php/truthiness.json, "truthiness-the-string-zero", "truthiness-the-string-0.0", "truthiness-an-empty-string", "truthiness-integer-zero", "truthiness-null", "truthiness-an-empty-array", "truthiness-an-array-holding-zero", "truthiness-NAN", "truthiness-an-empty-object" -->
 
@@ -96,6 +96,12 @@ import { isFalsy, isPhpFalsy } from "@tolki/utils";
 
 collect(["0", "0.0", "", 0, [], {}, NaN, "a", false, null]).filter().all();
 // => ["0.0", NaN, "a"]
+
+collect([1, null, 0, 2]).reject().all();
+// => [null, 0]
+
+collect([{ a: 1 }, { a: 0 }]).where("a").all();
+// => [{ a: 1 }]
 
 isPhpFalsy("0");
 // => true
