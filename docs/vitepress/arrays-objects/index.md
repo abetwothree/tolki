@@ -98,7 +98,7 @@ However, if you are working on a backend project where bundle size is not a conc
 
 ## How to read the utilities list
 
-The utilities list has one section per function. Each section has one tab per package that exports it, in the order `@tolki/arr`, `@tolki/obj`, `@tolki/data`. A function that only some packages have shows only those tabs.
+The [utilities list](./utilities-list.md) has one section per function. Each section has one tab per package that exports it, in the order `@tolki/arr`, `@tolki/obj`, `@tolki/data`. A function that only some packages have shows only those tabs.
 
 The tabs follow your choice. Pick `@tolki/obj` once and every section on the page, and the install and import examples above, switch to it. Your pick is remembered the next time you visit.
 

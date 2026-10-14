@@ -238,6 +238,10 @@ export default defineConfig({
                         link: "/arrays-objects/",
                     },
                     {
+                        text: "Utilities List",
+                        link: "/arrays-objects/utilities-list",
+                    },
+                    {
                         text: "Dot Notation",
                         link: "/arrays-objects/dot-notation",
                     },
