@@ -237,6 +237,18 @@ export default defineConfig({
                         text: "Installation & Usage",
                         link: "/arrays-objects/",
                     },
+                    {
+                        text: "Dot Notation",
+                        link: "/arrays-objects/dot-notation",
+                    },
+                    {
+                        text: "PHP Semantics",
+                        link: "/arrays-objects/php-semantics",
+                    },
+                    {
+                        text: "Differences from Laravel",
+                        link: "/arrays-objects/differences",
+                    },
                 ],
             },
             {

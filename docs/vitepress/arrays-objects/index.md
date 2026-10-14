@@ -49,7 +49,7 @@ The packages share almost all of their helpers, so the choice comes down to what
 | [`@tolki/obj`](https://www.npmjs.com/package/@tolki/obj)   | Plain objects                                    | `get`, `first`, `pluck`             | Your data is always a keyed record.                                  |
 | [`@tolki/data`](https://www.npmjs.com/package/@tolki/data) | Arrays, plain objects and Maps, decided per call | `dataGet`, `dataFirst`, `dataPluck` | The shape is only known at runtime, as with parsed JSON or API data. |
 
-`@tolki/arr` and `@tolki/obj` use the same names for the helpers they share, so switching between them usually means changing the import. A few exist in only one or two packages: `flattenDot` is only in `@tolki/obj`, and `count`, `search`, `before` and `after` are only in `@tolki/data`. `@tolki/data` prefixes its names with `data`, so they can sit next to either package without a clash.
+`@tolki/arr` and `@tolki/obj` use the same names for the helpers they share, so switching between them usually means changing the import. A few exist in only one or two packages: `flattenDot` is only in `@tolki/obj`, and `count`, `search`, `before` and `after` are only in `@tolki/data`. `@tolki/data` prefixes its names with `data`, so they can sit next to either package without a clash. [Differences from Laravel](./differences.md) lists what the three packages leave out, rename or add.
 
 ## How `@tolki/data` decides
 
@@ -101,3 +101,9 @@ However, if you are working on a backend project where bundle size is not a conc
 The utilities list has one section per function. Each section has one tab per package that exports it, in the order `@tolki/arr`, `@tolki/obj`, `@tolki/data`. A function that only some packages have shows only those tabs.
 
 The tabs follow your choice. Pick `@tolki/obj` once and every section on the page, and the install and import examples above, switch to it. Your pick is remembered the next time you visit.
+
+## More documentation
+
+- [Dot Notation](./dot-notation.md) explains the `"user.address.city"` paths that `get`, `set`, `pluck` and others read, and where a `*` works.
+- [PHP Semantics](./php-semantics.md) explains the PHP rules the packages keep: loose comparison, truthiness, key casting and the exceptions they throw.
+- [Differences from Laravel](./differences.md) lists where the packages return a value instead of changing a reference, behave differently, leave a function out, rename it or add one.
