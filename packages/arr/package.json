@@ -57,6 +57,12 @@
         }
     },
     "tolki": {
-        "docs": []
+        "docs": [
+            "arrays-objects/index.md",
+            "arrays-objects/utilities-list.md",
+            "arrays-objects/dot-notation.md",
+            "arrays-objects/php-semantics.md",
+            "arrays-objects/differences.md"
+        ]
     }
 }

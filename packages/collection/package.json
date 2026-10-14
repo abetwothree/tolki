@@ -59,6 +59,10 @@
         }
     },
     "tolki": {
-        "docs": []
+        "docs": [
+            "collections/index.md",
+            "collections/methods-list.md",
+            "collections/differences.md"
+        ]
     }
 }
