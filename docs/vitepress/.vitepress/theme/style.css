@@ -311,6 +311,13 @@
   gap: 6px;
 }
 
+/* VitePress hides the tab radios and draws no focus mark, so keyboard users lose their place. */
+.vp-doc .vp-code-group .tabs input:focus-visible + label {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+
 .vp-doc .vp-code-group .tabs label:has(input:checked) {
   color: var(--vp-c-brand-1);
   border-bottom-color: var(--vp-c-brand-1);
