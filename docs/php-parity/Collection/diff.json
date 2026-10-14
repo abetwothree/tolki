@@ -176,6 +176,24 @@
                     "all"
                 ]
             }
+        },
+        {
+            "label": "diff-object-items-cast-through-tostring",
+            "php": "collect([new C32HToString('a'), new C32HToString('b')])->diff([new C32HToString('a')])->map(fn ($o) => $o->v)->values()",
+            "value": [
+                "b"
+            ]
+        },
+        {
+            "label": "diff-object-items-without-tostring-throw",
+            "php": "collect([new stdClass])->diff([new stdClass])",
+            "threw": "Error",
+            "message": "Object of class stdClass could not be converted to string"
+        },
+        {
+            "label": "diff-over-array-items-collapses-to-Array",
+            "php": "collect([['id' => 1], ['id' => 2]])->diff([['id' => 1]])",
+            "value": []
         }
     ]
 }

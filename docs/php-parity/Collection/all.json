@@ -11,6 +11,11 @@
                 1,
                 2
             ]
+        },
+        {
+            "label": "all-integer-keys-in-order-is-a-list",
+            "php": "array_is_list(collect([0 => 'a', 1 => 'b'])->all())",
+            "value": true
         }
     ]
 }

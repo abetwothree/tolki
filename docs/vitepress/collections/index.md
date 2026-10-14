@@ -60,5 +60,5 @@ Most methods return a new collection. The few that change the collection they ar
 ## More documentation
 
 - The Methods List page documents every method with a live example. It is added to this section soon.
-- The Differences from Laravel page lists where the class departs from Laravel's, and why.
+- The [Differences from Laravel](./differences.md) page lists where the class departs from Laravel's, and why.
 - Methods that take a path such as `pluck` read it as "dot" notation. The [Dot Notation](../arrays-objects/dot-notation.md) page of [Arrays & Objects](../arrays-objects/index.md) explains the rules.

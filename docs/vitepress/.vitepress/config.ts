@@ -262,6 +262,10 @@ export default defineConfig({
                         text: "Installation & Usage",
                         link: "/collections/",
                     },
+                    {
+                        text: "Differences from Laravel",
+                        link: "/collections/differences",
+                    },
                 ],
             },
             {

@@ -67,4 +67,6 @@ probe(
     fn () => collect(['b' => 2, 'c' => 3])->intersect((object) ['toArray' => fn () => [9], 'b' => 2])->all(),
 );
 
+probe('intersect-over-array-items-collapses-to-Array', "collect([['id' => 1], ['id' => 2]])->intersect([['id' => 1]])", fn () => collect([['id' => 1], ['id' => 2]])->intersect([['id' => 1]])->all());
+
 emit();

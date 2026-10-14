@@ -30,4 +30,6 @@ probe('reverse-mixed', "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->reverse(
 probe('reverse-string-keys-then-descending-int-keys', "(new Collection(['y' => 'Y', 'x' => 'X', 1 => 'o', 0 => 'z']))->reverse()", fn () => arrayablePairs((new Collection(['y' => 'Y', 'x' => 'X', 1 => 'o', 0 => 'z']))->reverse()->all()));
 probe('reverse-collision', "(new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->reverse()", fn () => arrayablePairs((new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->reverse()->all()));
 
+probe('reverse-mixed-int-key-first', "(new Collection([0 => 1, 'x' => 2]))->reverse()", fn () => arrayablePairs((new Collection([0 => 1, 'x' => 2]))->reverse()->all()));
+
 emit();

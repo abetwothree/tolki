@@ -112,6 +112,20 @@
                     "c"
                 ]
             ]
+        },
+        {
+            "label": "reverse-mixed-int-key-first",
+            "php": "(new Collection([0 => 1, 'x' => 2]))->reverse()",
+            "value": [
+                [
+                    "x",
+                    2
+                ],
+                [
+                    0,
+                    1
+                ]
+            ]
         }
     ]
 }

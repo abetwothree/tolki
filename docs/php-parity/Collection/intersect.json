@@ -99,6 +99,18 @@
             "php": "collect(['b' => 2, 'c' => 3])->intersect((object) ['toArray' => fn () => [9], 'b' => 2])",
             "threw": "Error",
             "message": "Object of class Closure could not be converted to string"
+        },
+        {
+            "label": "intersect-over-array-items-collapses-to-Array",
+            "php": "collect([['id' => 1], ['id' => 2]])->intersect([['id' => 1]])",
+            "value": [
+                {
+                    "id": 1
+                },
+                {
+                    "id": 2
+                }
+            ]
         }
     ]
 }

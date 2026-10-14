@@ -22,4 +22,6 @@ use Symfony\Component\VarDumper\VarDumper;
 
 probe('C32-A-all-returns-a-copy', '$a = collect([1, 2]); $x = $a->all(); $x[] = 3; $a->all()', function () { $a = collect([1, 2]); $x = $a->all(); $x[] = 3; return $a->all(); });
 
+probe('all-integer-keys-in-order-is-a-list', "array_is_list(collect([0 => 'a', 1 => 'b'])->all())", fn () => array_is_list(collect([0 => 'a', 1 => 'b'])->all()));
+
 emit();

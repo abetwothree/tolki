@@ -47,4 +47,6 @@ probe('filter-collision', "(new Collection([1 => 'a', 0 => 'z', '1' => 'b']))->f
 probe('C32-D-filter-keeps-empty-objects', "(new Collection([new DateTime('@0'), new stdClass, new ArrayObject, new SplObjectStorage, 'x']))->filter()->count()", fn () => (new Collection([new DateTime('@0'), new stdClass, new ArrayObject, new SplObjectStorage, 'x']))->filter()->count());
 probe('C32-D-filter-callback-string-zero', "(new Collection([1, 2]))->filter(fn (\$v) => \$v > 1 ? '0' : 'x')", fn () => pairs((new Collection([1, 2]))->filter(fn ($v) => $v > 1 ? '0' : 'x')));
 
+probe('filter-list-gap-keys', "(new Collection([1, 2, 3]))->filter(fn (\$v) => \$v !== 2)", fn () => pairs((new Collection([1, 2, 3]))->filter(fn ($v) => $v !== 2)));
+
 emit();

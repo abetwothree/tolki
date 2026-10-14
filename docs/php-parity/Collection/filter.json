@@ -125,6 +125,20 @@
             "value": [
                 1
             ]
+        },
+        {
+            "label": "filter-list-gap-keys",
+            "php": "(new Collection([1, 2, 3]))->filter(fn ($v) => $v !== 2)",
+            "value": [
+                [
+                    0,
+                    1
+                ],
+                [
+                    2,
+                    3
+                ]
+            ]
         }
     ]
 }

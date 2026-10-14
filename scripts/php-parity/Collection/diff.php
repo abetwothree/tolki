@@ -94,4 +94,9 @@ probe('C32-F-plain-object-all-member-is-data-by-value', "collect(['a', 'b'])->di
     ];
 });
 
+probe('diff-object-items-cast-through-tostring', "collect([new C32HToString('a'), new C32HToString('b')])->diff([new C32HToString('a')])->map(fn (\$o) => \$o->v)->values()", fn () => collect([new C32HToString('a'), new C32HToString('b')])->diff([new C32HToString('a')])->map(fn ($o) => $o->v)->values()->all());
+probe('diff-object-items-without-tostring-throw', "collect([new stdClass])->diff([new stdClass])", fn () => collect([new stdClass])->diff([new stdClass])->count());
+
+probe('diff-over-array-items-collapses-to-Array', "collect([['id' => 1], ['id' => 2]])->diff([['id' => 1]])", fn () => collect([['id' => 1], ['id' => 2]])->diff([['id' => 1]])->all());
+
 emit();

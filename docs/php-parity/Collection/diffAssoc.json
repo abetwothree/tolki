@@ -124,6 +124,15 @@
                     "all"
                 ]
             }
+        },
+        {
+            "label": "diffAssoc-over-array-items-collapses-to-Array",
+            "php": "collect([['id' => 1], ['id' => 2]])->diffAssoc([['id' => 1]])",
+            "value": {
+                "1": {
+                    "id": 2
+                }
+            }
         }
     ]
 }

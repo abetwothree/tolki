@@ -42,4 +42,6 @@ probe('intersectAssoc-list-keyed-operand', "(new Collection([1, 2]))->intersectA
 ]);
 probe('intersectAssoc-scalar-backing', "(new Collection(5))->intersectAssoc([5])", fn () => (new Collection(5))->intersectAssoc([5])->all());
 
+probe('intersectAssoc-over-array-items-collapses-to-Array', "collect([['id' => 1], ['id' => 2]])->intersectAssoc([['id' => 1]])", fn () => collect([['id' => 1], ['id' => 2]])->intersectAssoc([['id' => 1]])->all());
+
 emit();
