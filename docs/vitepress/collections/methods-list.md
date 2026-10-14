@@ -1910,7 +1910,13 @@ Keep the key and value pairs that are present in the collection and in the given
 
 Laravel: [`intersectAssoc()`](https://laravel.com/docs/collections#method-intersectAssoc)
 
-A pair stays only when both its key and its value match. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#intersectassoc).
+A pair stays only when both its key and its value match. Values are compared as strings, so `1` matches `"1"`. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#intersectassoc).
+
+<!-- docs/php-parity/Collection/intersectAssoc.json, "intersectAssoc-list-keeps-gap-keys" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
 
 ```js
 import { collect } from "@tolki/collection";
@@ -1922,6 +1928,9 @@ collect({ color: "red", size: "M", material: "cotton" })
 
 collect([1, 2, 3]).intersectAssoc([1, 2, 9]).all();
 // => [1, 2]
+
+collect({ a: 1 }).intersectAssoc({ a: "1" }).all();
+// => { a: 1 }
 ```
 
 <FnTry label="collect(items).intersectAssoc(other)" :fn="(items, other) => collect(items).intersectAssoc(other).all()" :args="[
@@ -1935,7 +1944,13 @@ Keep the key and value pairs that are present in the collection and in the given
 
 Laravel: [`intersectAssocUsing()`](https://laravel.com/docs/collections#method-intersectassocusing)
 
-The callback receives two keys and answers `0`, or `true`, when they match. Values are still compared strictly. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#intersectassocusing).
+The callback receives two keys and answers `0`, or `true`, when they match. Values are compared as strings, so `1` matches `"1"`. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#intersectassocusing).
+
+<!-- docs/php-parity/Collection/intersectAssocUsing.json, "intersectAssocUsing-list-keeps-gap-keys" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
 
 ```js
 import { collect } from "@tolki/collection";
@@ -1950,6 +1965,9 @@ collect({ color: "red", Size: "M", material: "cotton" })
   )
   .all();
 // => { Size: "M" }
+
+collect({ a: 1 }).intersectAssocUsing({ a: "1" }, ignoreCase).all();
+// => { a: 1 }
 ```
 
 <FnTry label="collect(items).intersectAssocUsing(other, callback)" :fn="(items, other, callback) => collect(items).intersectAssocUsing(other, callback).all()" :args="[
@@ -1965,6 +1983,12 @@ Keep the items whose keys are present in the given array or collection.
 Laravel: [`intersectByKeys()`](https://laravel.com/docs/collections#method-intersectbykeys)
 
 Values are ignored. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#intersectbykeys).
+
+<!-- docs/php-parity/Collection/intersectByKeys.json, "intersectByKeys-list-keeps-gap-keys" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
 
 ```js
 import { collect } from "@tolki/collection";

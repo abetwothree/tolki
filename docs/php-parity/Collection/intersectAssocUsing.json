@@ -40,6 +40,14 @@
             "value": [
                 5
             ]
+        },
+        {
+            "label": "intersectAssocUsing-list-keeps-gap-keys",
+            "php": "(new Collection(['a', 'b', 'c']))->intersectAssocUsing([0 => 'a', 2 => 'c'], fn ($a, $b) => $a <=> $b)",
+            "value": {
+                "0": "a",
+                "2": "c"
+            }
         }
     ]
 }

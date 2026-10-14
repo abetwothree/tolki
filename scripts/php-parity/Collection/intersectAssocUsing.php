@@ -27,4 +27,6 @@ probe('intersectAssocUsing-list-keyed-operand', "(new Collection([1, 2]))->inter
 // intersectAssoc, a different call, so it cannot be cited for this one.
 probe('intersectAssocUsing-scalar-backing', "(new Collection(5))->intersectAssocUsing([5], fn (\$a, \$b) => strcasecmp((string) \$a, (string) \$b))", fn () => (new Collection(5))->intersectAssocUsing([5], fn ($a, $b) => strcasecmp((string) $a, (string) $b))->all());
 
+probe('intersectAssocUsing-list-keeps-gap-keys', "(new Collection(['a', 'b', 'c']))->intersectAssocUsing([0 => 'a', 2 => 'c'], fn (\$a, \$b) => \$a <=> \$b)", fn () => (new Collection(['a', 'b', 'c']))->intersectAssocUsing([0 => 'a', 2 => 'c'], fn ($a, $b) => $a <=> $b)->all());
+
 emit();
