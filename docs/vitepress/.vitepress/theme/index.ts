@@ -10,6 +10,7 @@ import { h, nextTick } from "vue";
 
 import { installCodeGroupSync, restoreSelections } from "./code-group-sync";
 import FnTry from "./components/FnTry.vue";
+import { labelMarkdownButtons } from "./markdown-buttons";
 
 export default {
     extends: DefaultTheme,
@@ -33,6 +34,7 @@ export default {
         onContentUpdated(() => {
             void nextTick(() => {
                 restoreSelections(document, window);
+                labelMarkdownButtons(document);
             });
         });
     },
