@@ -1609,7 +1609,7 @@ Remove one or many items from an array or object using "dot" notation. It return
 
 Exported as `forget` from `@tolki/arr` and `@tolki/obj`, and as `dataForget` from `@tolki/data`.
 
-Laravel: [`Arr::forget()`](https://laravel.com/docs/helpers#method-array-forget)
+Laravel: [`Arr::forget()`](https://laravel.com/docs/helpers#method-array-forget) · [`data_forget()`](https://laravel.com/docs/helpers#method-data-forget)
 
 ::: code-group
 
@@ -2414,6 +2414,8 @@ Run a map over each row, spreading the row's items into the callback's arguments
 
 Exported as `mapSpread` from `@tolki/arr` and `@tolki/obj`, and as `dataMapSpread` from `@tolki/data`.
 
+Laravel: [`Arr::mapSpread()`](https://laravel.com/docs/helpers#method-array-map-spread)
+
 ::: code-group
 
 ```js [@tolki/arr]
@@ -2476,6 +2478,8 @@ dataMapSpread(
 Run an associative map over each of the items. The callback returns an object whose pairs become the entries of the result.
 
 Exported as `mapWithKeys` from `@tolki/arr` and `@tolki/obj`, and as `dataMapWithKeys` from `@tolki/data`.
+
+Laravel: [`Arr::mapWithKeys()`](https://laravel.com/docs/helpers#method-array-map-with-keys)
 
 ::: code-group
 
@@ -2567,6 +2571,8 @@ dataOnly(["a", "b", "c"], [0, 2]);
 Get a subset of the items from the given array or object by value. The comparison is loose, so `"1"` matches `1`; pass `true` as the third argument to compare strictly. See [PHP Semantics](./php-semantics.md#loose-and-strict-comparison).
 
 Exported as `onlyValues` from `@tolki/arr` and `@tolki/obj`, and as `dataOnlyValues` from `@tolki/data`.
+
+Laravel: [`Arr::onlyValues()`](https://laravel.com/docs/helpers#method-array-only-values)
 
 <!-- docs/php-parity/Arr/onlyValues.json, "onlyValues-list-keeps-gap" -->
 
@@ -3412,7 +3418,7 @@ Set an array or object item to a given value using "dot" notation. It returns a 
 
 Exported as `set` from `@tolki/arr` and `@tolki/obj`, and as `dataSet` from `@tolki/data`.
 
-Laravel: [`Arr::set()`](https://laravel.com/docs/helpers#method-array-set)
+Laravel: [`Arr::set()`](https://laravel.com/docs/helpers#method-array-set) · [`data_set()`](https://laravel.com/docs/helpers#method-data-set)
 
 ::: code-group
 
