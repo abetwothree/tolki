@@ -89,6 +89,14 @@
                     "k"
                 ]
             }
+        },
+        {
+            "label": "intersectByKeys-list-keeps-gap-keys",
+            "php": "(new Collection([1, 2, 3]))->intersectByKeys([0 => 'x', 2 => 'y'])",
+            "value": {
+                "0": 1,
+                "2": 3
+            }
         }
     ]
 }

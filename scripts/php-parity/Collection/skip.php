@@ -36,4 +36,6 @@ $pairs = function ($items) use (&$pairs) {
 probe('C32-G-skip-negative', '(new Collection([1, 2, 3]))->skip(-1)',
     fn () => $pairs((new Collection([1, 2, 3]))->skip(-1)));
 
+probe('skip-list-keys', '(new Collection([1, 2, 3, 4]))->skip(2)', fn () => pairs((new Collection([1, 2, 3, 4]))->skip(2)));
+
 emit();

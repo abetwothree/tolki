@@ -1,0 +1,88 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "truthiness-the-string-zero",
+            "php": "(bool) the string zero",
+            "value": false
+        },
+        {
+            "label": "truthiness-the-string-0.0",
+            "php": "(bool) the string 0.0",
+            "value": true
+        },
+        {
+            "label": "truthiness-the-string-00",
+            "php": "(bool) the string 00",
+            "value": true
+        },
+        {
+            "label": "truthiness-an-empty-string",
+            "php": "(bool) an empty string",
+            "value": false
+        },
+        {
+            "label": "truthiness-the-string-false",
+            "php": "(bool) the string false",
+            "value": true
+        },
+        {
+            "label": "truthiness-a-space",
+            "php": "(bool) a space",
+            "value": true
+        },
+        {
+            "label": "truthiness-integer-zero",
+            "php": "(bool) integer zero",
+            "value": false
+        },
+        {
+            "label": "truthiness-float-zero",
+            "php": "(bool) float zero",
+            "value": false
+        },
+        {
+            "label": "truthiness-negative-float-zero",
+            "php": "(bool) negative float zero",
+            "value": false
+        },
+        {
+            "label": "truthiness-NAN",
+            "php": "(bool) NAN",
+            "value": true
+        },
+        {
+            "label": "truthiness-INF",
+            "php": "(bool) INF",
+            "value": true
+        },
+        {
+            "label": "truthiness-an-empty-array",
+            "php": "(bool) an empty array",
+            "value": false
+        },
+        {
+            "label": "truthiness-an-array-holding-zero",
+            "php": "(bool) an array holding zero",
+            "value": true
+        },
+        {
+            "label": "truthiness-null",
+            "php": "(bool) null",
+            "value": false
+        },
+        {
+            "label": "truthiness-an-empty-object",
+            "php": "(bool) an empty object",
+            "value": true
+        },
+        {
+            "label": "truthiness-an-empty-ArrayObject",
+            "php": "(bool) an empty ArrayObject",
+            "value": true
+        }
+    ]
+}

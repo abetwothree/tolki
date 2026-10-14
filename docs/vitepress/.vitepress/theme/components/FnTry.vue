@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, reactive } from "vue";
 
+import { formatError, formatResult } from "../fn-try-format";
+
 type FnArgValue =
   | string
   | number
@@ -26,6 +28,8 @@ interface FnArg {
 const props = defineProps<{
   fn: (...args: never[]) => unknown;
   args: FnArg[];
+  /** Names the function a demo runs; shown after the eyebrow. */
+  label?: string;
 }>();
 
 const values = reactive<Record<string, FnArgValue>>(
@@ -62,23 +66,17 @@ const result = computed(() => {
   } catch (error) {
     return {
       ok: false,
-      value: error instanceof Error ? error.message : String(error),
+      value: formatError(error),
     };
   }
 });
-
-function formatResult(value: unknown): string {
-  if (typeof value === "string") {
-    return `"${value}"`;
-  }
-
-  return JSON.stringify(value);
-}
 </script>
 
 <template>
   <div class="fn-try">
-    <p class="fn-try-eyebrow">▶ Try it</p>
+    <p class="fn-try-eyebrow">
+      ▶ Try it<template v-if="label"> · {{ label }}</template>
+    </p>
 
     <div class="fn-try-inputs">
       <label
@@ -94,12 +92,14 @@ function formatResult(value: unknown): string {
         <input
           v-if="arg.type === 'boolean'"
           v-model="values[arg.name]"
+          :name="arg.name"
           type="checkbox"
           class="fn-try-checkbox"
         />
         <select
           v-else-if="arg.type === 'select'"
           v-model="values[arg.name]"
+          :name="arg.name"
           class="fn-try-input fn-try-select"
         >
           <option
@@ -113,6 +113,7 @@ function formatResult(value: unknown): string {
         <textarea
           v-else-if="arg.type === 'json'"
           v-model="values[arg.name]"
+          :name="arg.name"
           class="fn-try-input fn-try-json"
           rows="2"
           spellcheck="false"
@@ -120,6 +121,7 @@ function formatResult(value: unknown): string {
         <input
           v-else
           v-model="values[arg.name]"
+          :name="arg.name"
           type="text"
           :inputmode="arg.type === 'number' ? 'decimal' : 'text'"
           class="fn-try-input"
@@ -128,11 +130,19 @@ function formatResult(value: unknown): string {
       </label>
     </div>
 
-    <div class="fn-try-output" :class="{ 'fn-try-error': !result.ok }">
+    <div
+      class="fn-try-output"
+      :class="{ 'fn-try-error': !result.ok }"
+      role="status"
+      aria-live="polite"
+    >
       <span class="fn-try-output-label">{{
         result.ok ? "Result" : "Error"
       }}</span>
-      <code>{{ result.ok ? formatResult(result.value) : result.value }}</code>
+      <!-- random and shuffle demos print a different value on the server and in the browser -->
+      <code data-allow-mismatch="text">{{
+        result.ok ? formatResult(result.value) : result.value
+      }}</code>
     </div>
   </div>
 </template>

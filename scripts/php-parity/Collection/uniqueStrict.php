@@ -25,5 +25,6 @@ probe('uniqueStrict-duplicatesStrict-key-order', "(new Collection([['x' => 1, 'y
     'duplicatesStrict' => (new Collection([['x' => 1, 'y' => 2], ['y' => 2, 'x' => 1]]))->duplicatesStrict()->all(),
 ]);
 probe('C32-D-unique-arrays-strict', "(new Collection([[1, 2], ['1', 2], [1, 2]]))->uniqueStrict()", fn () => pairs((new Collection([[1, 2], ['1', 2], [1, 2]]))->uniqueStrict()));
+probe('uniqueStrict-list-gap-keys', 'pairs((new Collection([1, 1, 2]))->uniqueStrict())', fn () => pairs((new Collection([1, 1, 2]))->uniqueStrict()));
 
 emit();

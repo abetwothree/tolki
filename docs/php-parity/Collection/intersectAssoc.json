@@ -56,6 +56,23 @@
             "value": [
                 5
             ]
+        },
+        {
+            "label": "intersectAssoc-over-array-items-collapses-to-Array",
+            "php": "collect([['id' => 1], ['id' => 2]])->intersectAssoc([['id' => 1]])",
+            "value": [
+                {
+                    "id": 1
+                }
+            ]
+        },
+        {
+            "label": "intersectAssoc-list-keeps-gap-keys",
+            "php": "(new Collection(['a', 'b', 'c']))->intersectAssoc([0 => 'a', 2 => 'c'])",
+            "value": {
+                "0": "a",
+                "2": "c"
+            }
         }
     ]
 }

@@ -92,6 +92,46 @@ function commentBlocks(): { file: string; text: string }[] {
     return blocks;
 }
 
+const CITED_PATH = /docs\/php-parity\/([\w-]+\/[\w-]+\.json)/g;
+
+const DOCS_FIXTURES = "scripts/__tests__/fixtures/php-parity-citations";
+const DOCS_CITATION_ROOTS = [
+    "docs/vitepress/arrays-objects",
+    "docs/vitepress/collections",
+];
+
+/**
+ * Each HTML comment in the Markdown under the given roots that names a transcript.
+ *
+ * @param roots - Directories relative to the repo root; a missing one holds nothing.
+ * @returns One entry per comment, with its whitespace collapsed and its path relative to its root.
+ */
+function docsCitationComments(
+    roots: string[],
+): { file: string; text: string }[] {
+    return roots.flatMap((root) => {
+        const dir = join(ROOT, root);
+
+        if (!existsSync(dir)) {
+            return [];
+        }
+
+        return filesUnder(dir)
+            .filter((file) => file.endsWith(".md"))
+            .flatMap((file) =>
+                [
+                    ...readFileSync(join(dir, file), "utf8").matchAll(
+                        /<!--([\s\S]*?)-->/g,
+                    ),
+                ]
+                    .map(([comment]) => comment.replace(/\s+/g, " "))
+                    .filter((text) => text.includes("docs/php-parity/"))
+                    .filter((text) => [...text.matchAll(CITED_PATH)].length > 0)
+                    .map((text) => ({ file, text })),
+            );
+    });
+}
+
 describe("php-parity layout", () => {
     it("keeps each probe script in a class or topic folder", () => {
         const scripts = filesUnder(PROBE_DIR).filter(
@@ -131,7 +171,68 @@ describe("php-parity layout", () => {
     });
 });
 
-const CITED_PATH = /docs\/php-parity\/([\w-]+\/[\w-]+\.json)/g;
+/**
+ * Every citation in the packages' comments and in the docs' HTML comments.
+ *
+ * @returns One entry per comment block.
+ */
+function allCitations(): { file: string; text: string }[] {
+    return [...commentBlocks(), ...docsCitationComments(DOCS_CITATION_ROOTS)];
+}
+
+/**
+ * The transcripts a docs citation names that do not exist.
+ *
+ * @param roots - Directories relative to the repo root.
+ * @returns `file: path` for each missing transcript.
+ */
+function missingDocsTranscripts(roots: string[]): string[] {
+    return docsCitationComments(roots).flatMap(({ file, text }) =>
+        [...text.matchAll(CITED_PATH)]
+            .map(([, path]) => path)
+            .filter((path) => !existsSync(join(TRANSCRIPT_DIR, path)))
+            .map((path) => `${file}: ${path}`),
+    );
+}
+
+/**
+ * The docs citations that name a transcript but quote no label from it.
+ *
+ * @param citations - The comments to check.
+ * @returns The file of each such citation.
+ */
+function unlabelledDocsCitations(
+    citations: { file: string; text: string }[],
+): string[] {
+    return citations
+        .filter(({ text }) => !/"[^"]+"/.test(text))
+        .map(({ file }) => file);
+}
+
+/**
+ * The quoted strings in a docs citation that none of its cited transcripts record.
+ *
+ * @param roots - Directories relative to the repo root.
+ * @returns `file: quoted` for each unrecorded string.
+ */
+function unrecordedDocsLabels(roots: string[]): string[] {
+    return docsCitationComments(roots).flatMap(({ file, text }) => {
+        const cited = [...text.matchAll(CITED_PATH)]
+            .map(([, path]) => path)
+            .filter((path) => existsSync(join(TRANSCRIPT_DIR, path)));
+
+        if (cited.length === 0) {
+            return [];
+        }
+
+        const recorded = new Set(cited.flatMap(labelsOf));
+
+        return [...text.matchAll(/"([^"]+)"/g)]
+            .map(([, quoted]) => quoted)
+            .filter((quoted) => !recorded.has(quoted))
+            .map((quoted) => `${file}: ${quoted}`);
+    });
+}
 
 describe("php-parity citations", () => {
     it("cites no retired task-NN transcript", () => {
@@ -143,7 +244,7 @@ describe("php-parity citations", () => {
     });
 
     it("cites only transcripts that exist", () => {
-        const missing = commentBlocks().flatMap(({ file, text }) =>
+        const missing = allCitations().flatMap(({ file, text }) =>
             [...text.matchAll(CITED_PATH)]
                 .map(([, path]) => path)
                 .filter((path) => !existsSync(join(TRANSCRIPT_DIR, path)))
@@ -159,7 +260,7 @@ describe("php-parity citations", () => {
                 .filter((path) => path.endsWith(".json"))
                 .flatMap(labelsOf),
         );
-        const wrong = commentBlocks().flatMap(({ file, text }) => {
+        const wrong = allCitations().flatMap(({ file, text }) => {
             const cited = [...text.matchAll(CITED_PATH)]
                 .map(([, path]) => path)
                 .filter((path) => existsSync(join(TRANSCRIPT_DIR, path)));
@@ -179,5 +280,56 @@ describe("php-parity citations", () => {
         });
 
         expect(wrong).toEqual([]);
+    });
+    it("reads citations from markdown HTML comments", () => {
+        const found = docsCitationComments([DOCS_FIXTURES]);
+
+        expect(found).toEqual([
+            {
+                file: "bad.md",
+                text: '<!-- docs/php-parity/Collection/chunkk.json, "collection-chunk-zero" -->',
+            },
+            {
+                file: "bad.md",
+                text: '<!-- docs/php-parity/Collection/chunk.json, "collection-chunk-made-up" -->',
+            },
+            {
+                file: "good.md",
+                text: '<!-- docs/php-parity/Collection/chunk.json, "collection-chunk-last-chunk-keys" -->',
+            },
+        ]);
+    });
+
+    it("finds nothing under a directory that does not exist", () => {
+        expect(docsCitationComments(["docs/vitepress/missing"])).toEqual([]);
+    });
+
+    it("docs citations quote only labels the cited transcripts record", () => {
+        expect(unrecordedDocsLabels([DOCS_FIXTURES])).toEqual([
+            "bad.md: collection-chunk-made-up",
+        ]);
+        expect(unrecordedDocsLabels(DOCS_CITATION_ROOTS)).toEqual([]);
+    });
+
+    it("docs citations quote at least one label", () => {
+        const naming = {
+            file: "x.md",
+            text: "<!-- docs/php-parity/Collection/chunk.json -->",
+        };
+
+        expect(unlabelledDocsCitations([naming])).toEqual(["x.md"]);
+        expect(
+            unlabelledDocsCitations(docsCitationComments([DOCS_FIXTURES])),
+        ).toEqual([]);
+        expect(
+            unlabelledDocsCitations(docsCitationComments(DOCS_CITATION_ROOTS)),
+        ).toEqual([]);
+    });
+
+    it("docs citations name only transcripts that exist", () => {
+        expect(missingDocsTranscripts([DOCS_FIXTURES])).toEqual([
+            "bad.md: Collection/chunkk.json",
+        ]);
+        expect(missingDocsTranscripts(DOCS_CITATION_ROOTS)).toEqual([]);
     });
 });

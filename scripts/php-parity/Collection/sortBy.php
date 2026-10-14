@@ -233,4 +233,6 @@ probe('C32-G-sortBy-descriptor-direction-forms', "sortBy([[\$key, \$direction]])
     ];
 });
 
+probe('sortBy-keeps-every-key', 'pairs(collect([3, 1, 2])->sortBy(fn (\$v) => \$v))', fn () => pairs(collect([3, 1, 2])->sortBy(fn ($v) => $v)));
+
 emit();

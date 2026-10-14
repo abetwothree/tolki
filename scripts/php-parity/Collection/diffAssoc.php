@@ -60,4 +60,6 @@ probe('C32-F-plain-object-all-member-is-data-by-key', "collect(['a' => 1, 'b' =>
     'mergeKeys' => collect(['a' => 1])->merge((object) ['all' => fn () => ['b' => 2]])->keys()->all(),
 ]);
 
+probe('diffAssoc-over-array-items-collapses-to-Array', "collect([['id' => 1], ['id' => 2]])->diffAssoc([['id' => 1]])", fn () => collect([['id' => 1], ['id' => 2]])->diffAssoc([['id' => 1]])->all());
+
 emit();

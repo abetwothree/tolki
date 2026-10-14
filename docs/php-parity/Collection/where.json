@@ -64,6 +64,16 @@
             "value": [
                 0
             ]
+        },
+        {
+            "label": "where-arrayaccess-item-offsetexists-answers",
+            "php": "collect([new C32D_AnsweringAccess(['a' => 5], X)])->where('a', 5)->count() for X = '1', true, '0', []",
+            "value": [
+                1,
+                1,
+                0,
+                0
+            ]
         }
     ]
 }

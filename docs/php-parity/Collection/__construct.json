@@ -259,6 +259,14 @@
                     3
                 ]
             ]
+        },
+        {
+            "label": "construct-enum-case-is-one-item",
+            "php": "new Collection(C32E_Staff::Joe): count and the item is the case",
+            "value": [
+                1,
+                true
+            ]
         }
     ]
 }

@@ -47,4 +47,6 @@ probe('C32-G-sliding-counts', "(new Collection([1, 2, 3, 4, 5]))->sliding(\$size
 ]);
 probe('C32-G-sliding-out-of-order-keys', "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->sliding()", fn () => $pairs((new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->sliding()));
 
+probe('sliding-list-keeps-window-keys', '(new Collection([1, 2, 3, 4, 5]))->sliding(2)', fn () => $pairs((new Collection([1, 2, 3, 4, 5]))->sliding(2)));
+
 emit();

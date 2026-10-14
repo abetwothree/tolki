@@ -149,4 +149,6 @@ probe('C32-G-sort-desc-mixed-keys', "(new Collection([0 => 1, 'x' => 2])) sorted
     'sortDesc' => $pairs((new Collection([0 => 1, 'x' => 2]))->sortDesc()),
 ]);
 
+probe('sort-mixed-int-key-first', "(new Collection([0 => 3, 'x' => 1]))->sort()", fn () => (function () { $out = []; foreach ((new Collection([0 => 3, 'x' => 1]))->sort()->all() as $k => $v) { $out[] = [$k, $v]; } return $out; })());
+
 emit();

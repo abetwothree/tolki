@@ -44,4 +44,6 @@ probe('C32-B-forget-illegal-key', "forget([\$key]) over both backings for \$key 
     'after-a-legal-key' => $overBackings(fn (Collection $c) => $c->forget([$c->keys()->first(), ['b']])->all()),
 ]);
 
+probe('forget-list-gap-keys', '$c = new Collection([1, 2, 3, 4, 5]); $c->forget([0, 2]); $c', function () { $c = new Collection([1, 2, 3, 4, 5]); $c->forget([0, 2]); return pairs($c); });
+
 emit();

@@ -24,6 +24,30 @@
                 3,
                 4
             ]
+        },
+        {
+            "label": "whereNotBetween-list-gap-keys",
+            "php": "pairs((new Collection([['v' => 1], ['v' => 5], ['v' => 9]]))->whereNotBetween('v', [2, 6]))",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            "v",
+                            1
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            "v",
+                            9
+                        ]
+                    ]
+                ]
+            ]
         }
     ]
 }

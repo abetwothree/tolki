@@ -294,6 +294,24 @@
                     }
                 ]
             }
+        },
+        {
+            "label": "pull-list-gap-keys",
+            "php": "$c = new Collection([10, 20, 30, 40]); $c->pull(1); $c",
+            "value": [
+                [
+                    0,
+                    10
+                ],
+                [
+                    2,
+                    30
+                ],
+                [
+                    3,
+                    40
+                ]
+            ]
         }
     ]
 }

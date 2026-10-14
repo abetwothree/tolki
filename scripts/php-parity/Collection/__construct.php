@@ -64,4 +64,6 @@ probe('C32-A-construct-from-record-put-copies', "\$arr = ['a' => 1]; \$c = new C
 probe('C32-A-construct-from-record-unshift-copies', "\$arr = ['b' => 2]; \$c = new Collection(\$arr); \$c->unshift(1); caller/all/keys/values", function () { $arr = ['b' => 2]; $c = new Collection($arr); $c->unshift(1); return ['caller' => $arr, 'all' => $c->all(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all()]; });
 probe('C32-A-construct-from-array-unshift-copies', '$arr = [2, 3]; $c = new Collection($arr); $c->unshift(1); [$arr, $c->all()]', function () { $arr = [2, 3]; $c = new Collection($arr); $c->unshift(1); return [$arr, $c->all()]; });
 
+probe('construct-enum-case-is-one-item', 'new Collection(C32E_Staff::Joe): count and the item is the case', fn () => (function () { $c = new Collection(C32E_Staff::Joe); return [$c->count(), $c->first() === C32E_Staff::Joe]; })());
+
 emit();

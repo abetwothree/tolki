@@ -765,6 +765,24 @@
                     10
                 ]
             }
+        },
+        {
+            "label": "sortBy-keeps-every-key",
+            "php": "pairs(collect([3, 1, 2])->sortBy(fn (\\$v) => \\$v))",
+            "value": [
+                [
+                    1,
+                    1
+                ],
+                [
+                    2,
+                    2
+                ],
+                [
+                    0,
+                    3
+                ]
+            ]
         }
     ]
 }

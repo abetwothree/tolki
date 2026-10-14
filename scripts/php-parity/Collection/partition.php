@@ -46,4 +46,6 @@ probe('C32-D-partition-offset-get', "(new Collection(['a' => 1, 'b' => 2]))->par
     return [pairs($halves[0]), pairs($halves[1])];
 });
 
+probe('partition-list-keys', '(new Collection([1, 2, 3, 4]))->partition(fn ($v) => $v > 2): each half', fn () => (new Collection([1, 2, 3, 4]))->partition(fn ($v) => $v > 2)->map(fn ($half) => pairs($half))->all());
+
 emit();

@@ -43,4 +43,6 @@ probe('C32-F-plain-object-all-member-is-data', "collect(['all' => 1, 'b' => 2])-
     'combineKeys' => collect(['k'])->combine((object) ['all' => fn () => ['v']])->keys()->all(),
 ]);
 
+probe('intersectByKeys-list-keeps-gap-keys', "(new Collection([1, 2, 3]))->intersectByKeys([0 => 'x', 2 => 'y'])", fn () => (new Collection([1, 2, 3]))->intersectByKeys([0 => 'x', 2 => 'y'])->all());
+
 emit();

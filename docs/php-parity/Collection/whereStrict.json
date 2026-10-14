@@ -10,6 +10,30 @@
             "value": [
                 0
             ]
+        },
+        {
+            "label": "whereStrict-list-gap-keys",
+            "php": "pairs((new Collection([['v' => 1], ['v' => 2], ['v' => 1]]))->whereStrict('v', 1))",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            "v",
+                            1
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            "v",
+                            1
+                        ]
+                    ]
+                ]
+            ]
         }
     ]
 }

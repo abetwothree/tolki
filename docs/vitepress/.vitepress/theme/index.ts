@@ -3,11 +3,14 @@ import "./style.css";
 import "virtual:group-icons.css";
 
 import type { Theme } from "vitepress";
+import { inBrowser, onContentUpdated } from "vitepress";
 import DefaultTheme from "vitepress/theme";
 import CopyOrDownloadAsMarkdownButtons from "vitepress-plugin-llms/vitepress-components/CopyOrDownloadAsMarkdownButtons.vue";
-import { h } from "vue";
+import { h, nextTick } from "vue";
 
+import { installCodeGroupSync, restoreSelections } from "./code-group-sync";
 import FnTry from "./components/FnTry.vue";
+import { labelMarkdownButtons } from "./markdown-buttons";
 
 export default {
     extends: DefaultTheme,
@@ -22,5 +25,17 @@ export default {
             CopyOrDownloadAsMarkdownButtons,
         );
         app.component("FnTry", FnTry);
+        if (inBrowser) {
+            installCodeGroupSync(window);
+        }
+    },
+    // Runs after VitePress's dev-mode reset of every group to its first tab.
+    setup() {
+        onContentUpdated(() => {
+            void nextTick(() => {
+                labelMarkdownButtons(document);
+                restoreSelections(document, window);
+            });
+        });
     },
 } satisfies Theme;

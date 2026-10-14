@@ -61,6 +61,18 @@
             "label": "C32-D-data-get-array-path-dotted-segment",
             "php": "data_get(['a.b' => 1, 'a' => ['b' => 2]], ['a.b'])",
             "value": 1
+        },
+        {
+            "label": "data-get-wildcard-and-first-last-segments",
+            "php": "data_get(['a' => ['n' => 1], 'b' => ['n' => 2]], '*.n') and data_get(['s' => [['x' => 1], ['x' => 2]]], 's.{first}.x') and 's.{last}.x'",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                1,
+                2
+            ]
         }
     ]
 }

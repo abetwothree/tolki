@@ -29,4 +29,6 @@ probe('order-offsetUnset', '$c = collect(base); $c->offsetUnset(0)', function ()
 probe('C32-B-offsetUnset-negative-on-list', "\$c = collect(['a', 'b', 'c']); \$c->offsetUnset(-1); \$c->all()", function () { $c = collect(['a', 'b', 'c']); $c->offsetUnset(-1); return $c->all(); });
 probe('C32-B-offsetUnset-string-on-list', "\$c = collect(['a', 'b', 'c']); \$c->offsetUnset('x'); \$c->all()", function () { $c = collect(['a', 'b', 'c']); $c->offsetUnset('x'); return $c->all(); });
 
+probe('offsetUnset-list-gap-keys', "\$c = new Collection([1, 2, 3]); \$c->offsetUnset(1); \$c", function () { $c = new Collection([1, 2, 3]); $c->offsetUnset(1); return pairs($c); });
+
 emit();

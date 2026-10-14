@@ -40,4 +40,10 @@ probe('C32-D-data-get-offset-exists-php-truthiness', "[data_get(\$t, 'a'), data_
 
 probe('C32-D-data-get-array-path-dotted-segment', "data_get(['a.b' => 1, 'a' => ['b' => 2]], ['a.b'])", fn () => data_get(['a.b' => 1, 'a' => ['b' => 2]], ['a.b']));
 
+probe('data-get-wildcard-and-first-last-segments', "data_get(['a' => ['n' => 1], 'b' => ['n' => 2]], '*.n') and data_get(['s' => [['x' => 1], ['x' => 2]]], 's.{first}.x') and 's.{last}.x'", fn () => [
+    data_get(['a' => ['n' => 1], 'b' => ['n' => 2]], '*.n'),
+    data_get(['s' => [['x' => 1], ['x' => 2]]], 's.{first}.x'),
+    data_get(['s' => [['x' => 1], ['x' => 2]]], 's.{last}.x'),
+]);
+
 emit();

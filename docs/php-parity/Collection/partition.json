@@ -145,6 +145,26 @@
                     ]
                 ]
             ]
+        },
+        {
+            "label": "partition-list-keys",
+            "php": "(new Collection([1, 2, 3, 4]))->partition(fn ($v) => $v > 2): each half",
+            "value": [
+                [
+                    [
+                        2,
+                        3
+                    ],
+                    [
+                        3,
+                        4
+                    ]
+                ],
+                [
+                    1,
+                    2
+                ]
+            ]
         }
     ]
 }

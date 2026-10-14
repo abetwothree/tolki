@@ -13,4 +13,6 @@ use Illuminate\Support\Collection;
 
 probe('order-sortKeys', 'collect(base)->sortKeys()', fn () => d8Views(collect(d8Base())->sortKeys()));
 
+probe('sortKeys-keeps-every-key', 'pairs(collect([5 => \'a\', 2 => \'b\'])->sortKeys())', fn () => pairs(collect([5 => 'a', 2 => 'b'])->sortKeys()));
+
 emit();

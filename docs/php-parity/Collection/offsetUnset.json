@@ -39,6 +39,20 @@
                 "b",
                 "c"
             ]
+        },
+        {
+            "label": "offsetUnset-list-gap-keys",
+            "php": "$c = new Collection([1, 2, 3]); $c->offsetUnset(1); $c",
+            "value": [
+                [
+                    0,
+                    1
+                ],
+                [
+                    2,
+                    3
+                ]
+            ]
         }
     ]
 }

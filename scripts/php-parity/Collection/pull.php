@@ -75,4 +75,6 @@ $overBackings = fn (callable $call) => array_map(fn (Collection $c) => ['outcome
 $illegalKeys = ['array' => ['a'], 'object' => new stdClass, 'closure' => fn () => 1];
 probe('C32-B-pull-illegal-key', "pull(\$key) over both backings, for \$key = ['a'], new stdClass and fn () => 1", fn () => array_map(fn ($key) => $overBackings(fn (Collection $c) => $c->pull($key)), $illegalKeys));
 
+probe('pull-list-gap-keys', '$c = new Collection([10, 20, 30, 40]); $c->pull(1); $c', function () { $c = new Collection([10, 20, 30, 40]); $c->pull(1); return pairs($c); });
+
 emit();

@@ -31,4 +31,6 @@ probe('C32-D-reject-numeric-string-loose', "(new Collection([1, '01', '1.0', tru
 probe('C32-D-reject-array-value', "(new Collection([[1, 2], [2, 1], ['1', '2'], 'x']))->reject([1, 2])->values()", fn () => pairs((new Collection([[1, 2], [2, 1], ['1', '2'], 'x']))->reject([1, 2])->values()));
 probe('C32-D-reject-none-empty-objects', "(new Collection([new DateTime('@0'), new stdClass]))->reject()->count()", fn () => (new Collection([new DateTime('@0'), new stdClass]))->reject()->count());
 
+probe('reject-list-gap-keys', '(new Collection([1, 2, 3]))->reject(fn ($v) => $v === 2)', fn () => pairs((new Collection([1, 2, 3]))->reject(fn ($v) => $v === 2)));
+
 emit();

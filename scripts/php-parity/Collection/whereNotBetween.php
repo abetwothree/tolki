@@ -27,5 +27,6 @@ probe('whereNotBetween over numeric strings and falsy values', 'collect($between
 // whereIn / whereNotIn: in_array's loose == is PHP's, not JS's
 $vs = fn (array $values) => new Collection(array_map(fn ($v) => ['v' => $v], $values));
 probe('C32-D-whereNotBetween-collection-values', "whereNotBetween('v', new Collection([1, 3])) over v = 0..4", fn () => $vs([0, 1, 2, 3, 4])->whereNotBetween('v', new Collection([1, 3]))->keys()->all());
+probe('whereNotBetween-list-gap-keys', "pairs((new Collection([['v' => 1], ['v' => 5], ['v' => 9]]))->whereNotBetween('v', [2, 6]))", fn () => pairs((new Collection([['v' => 1], ['v' => 5], ['v' => 9]]))->whereNotBetween('v', [2, 6])));
 
 emit();
