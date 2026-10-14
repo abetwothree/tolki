@@ -58,6 +58,9 @@ In TypeScript the class is `Collection<TValue, TKey, TShape>`. `TValue` is the i
 Most methods return a new collection. The few that change the collection they are called on, and return it, are listed here.
 
 - [`add`](./methods-list.md#add)
+- [`escapeWhenCastingToString`](./methods-list.md#escapewhencastingtostring)
+- [`forget`](./methods-list.md#forget)
+- [`getOrPut`](./methods-list.md#getorput)
 
 ## More documentation
 
