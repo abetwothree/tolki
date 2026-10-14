@@ -1507,6 +1507,12 @@ Laravel: [`forget()`](https://laravel.com/docs/collections#method-forget)
 
 Pass one key, an array of keys or a collection of keys. Each key is removed as it is, so a dotted key such as `"a.b"` does not reach a nested value; the [utilities list](../arrays-objects/utilities-list.md#forget) has the version that reads a path.
 
+<!-- docs/php-parity/Collection/forget.json, "forget-list-gap-keys" -->
+
+::: info
+A list stays a list, so the items after the removed ones move down. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
+
 ::: warning
 Unlike most other collection methods, `forget` does not return a new modified collection; it modifies and returns the collection it is called on.
 :::
@@ -3142,7 +3148,7 @@ Remove and return the last item, or the last several items.
 
 Laravel: [`pop()`](https://laravel.com/docs/collections#method-pop)
 
-Without a count, `pop` returns the last item, or `null` for an empty collection. With a count, it returns a new collection of that many items from the end, last first. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#pop).
+Without a count, `pop` returns the last item, or `null` for an empty collection. A count of 1 does the same. A count of 2 or more returns a new collection of that many items from the end, last first, and a count of `0` or below returns an empty collection and removes nothing. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#pop).
 
 ::: warning
 Unlike most other collection methods, `pop` does not return a new modified collection; it modifies the collection it is called on, and returns the item or items it removed.
@@ -3165,6 +3171,18 @@ items.pop(3).all();
 items.all();
 // => [1]
 
+items.pop(1);
+// => 1
+
+items.pop(0).all();
+// => []
+
+items.pop(-1).all();
+// => []
+
+items.all();
+// => []
+
 collect([]).pop();
 // => null
 ```
@@ -3181,6 +3199,10 @@ Add an item to the beginning of the collection.
 Laravel: [`prepend()`](https://laravel.com/docs/collections#method-prepend)
 
 Pass a second argument to give the item a key. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#prepend), where it returns a new value and leaves the original unchanged.
+
+<!-- docs/php-parity/Collection/prepend.json, "order-prepend-with-null-key" -->
+
+A `null` or `undefined` key files the item under the empty string `""`, as it does in Laravel.
 
 ::: warning
 Unlike most other collection methods, `prepend` does not return a new modified collection; it modifies and returns the collection it is called on.
@@ -3199,6 +3221,9 @@ numbers.all();
 
 collect({ one: 1, two: 2 }).prepend(0, "zero").all();
 // => { zero: 0, one: 1, two: 2 }
+
+collect([1]).prepend(0, null).keys().all();
+// => ["", 0]
 ```
 
 <FnTry label="collect(items).prepend(value, key)" :fn="(items, value, key) => (key ? collect(items).prepend(value, key) : collect(items).prepend(value)).all()" :args="[
@@ -3769,7 +3794,7 @@ Remove and return the first item, or the first several items.
 
 Laravel: [`shift()`](https://laravel.com/docs/collections#method-shift)
 
-Without a count, `shift` returns the first item, or `null` for an empty collection. With a count, it returns a new collection of that many items from the start. A negative count throws an `InvalidArgumentException`. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#shift).
+Without a count, `shift` returns the first item, or `null` for an empty collection. A count of 1 does the same. A count of 2 or more returns a new collection of that many items from the start, and a count of `0` returns an empty collection and removes nothing. A negative count throws an `InvalidArgumentException`. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#shift).
 
 ::: warning
 Unlike most other collection methods, `shift` does not return a new modified collection; it modifies the collection it is called on, and returns the item or items it removed.
@@ -3791,6 +3816,12 @@ items.shift(3).all();
 
 items.all();
 // => [5]
+
+items.shift(1);
+// => 5
+
+items.shift(0).all();
+// => []
 
 collect([]).shift();
 // => null

@@ -155,6 +155,24 @@
                     }
                 ]
             }
+        },
+        {
+            "label": "forget-list-gap-keys",
+            "php": "$c = new Collection([1, 2, 3, 4, 5]); $c->forget([0, 2]); $c",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    3,
+                    4
+                ],
+                [
+                    4,
+                    5
+                ]
+            ]
         }
     ]
 }
