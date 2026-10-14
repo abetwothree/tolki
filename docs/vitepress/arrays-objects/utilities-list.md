@@ -50,6 +50,31 @@ import {
   dataKeyBy,
   dataKeys,
   dataLast,
+  dataMap,
+  dataMapSpread,
+  dataMapWithKeys,
+  dataOnly,
+  dataOnlyValues,
+  dataPad,
+  dataPartition,
+  dataPluck,
+  dataPop,
+  dataPrepend,
+  dataPrependKeysWith,
+  dataPull,
+  dataPush,
+  dataQuery,
+  dataRandom,
+  dataReject,
+  dataReplace,
+  dataReplaceRecursive,
+  dataReverse,
+  dataSearch,
+  dataSelect,
+  dataSet,
+  dataShift,
+  dataShuffle,
+  dataSkipUntil,
 } from "@tolki/data";
 import { flattenDot } from "@tolki/obj";
 
@@ -83,6 +108,20 @@ const keyComparators = [
   },
   { label: "exactly equal", value: (a, b) => a === b },
 ];
+const mapCallbacks = [
+  { label: "double the value", value: (v) => v * 2 },
+  { label: "describe the key and value", value: (v, k) => `${k}:${v}` },
+];
+
+const spreadCallbacks = [
+  { label: "add the two items", value: (a, b) => a + b },
+  { label: "join the two items", value: (a, b) => `${a}-${b}` },
+];
+
+const keyedCallbacks = [
+  { label: "the value becomes the key", value: (v, k) => ({ [v]: k }) },
+  { label: "prefix the key", value: (v, k) => ({ [`item_${k}`]: v }) },
+];
 </script>
 
 These utilities work on arrays with `@tolki/arr`, on plain objects with `@tolki/obj`, and on either one with `@tolki/data`. Every section has a tab for each package that exports the function, and the page remembers the tab you pick, so the next visit starts on the same one.
@@ -91,7 +130,7 @@ These utilities work on arrays with `@tolki/arr`, on plain objects with `@tolki/
 
 <div class="collection-method-list" markdown="1">
 
-[accessible](#accessible) [add](#add) [after](#after) [arrayable](#arrayable) [arrayItem](#arrayitem) [before](#before) [boolean](#boolean) [chunk](#chunk) [chunkBy](#chunkby) [chunkWhile](#chunkwhile) [collapse](#collapse) [combine](#combine) [contains](#contains) [containsStrict](#containsstrict) [count](#count) [crossJoin](#crossjoin) [diff](#diff) [diffAssoc](#diffassoc) [diffAssocUsing](#diffassocusing) [diffKeys](#diffkeys) [diffKeysUsing](#diffkeysusing) [diffUsing](#diffusing) [divide](#divide) [dot](#dot) [every](#every) [except](#except) [exceptValues](#exceptvalues) [exists](#exists) [filter](#filter) [first](#first) [flatten](#flatten) [flattenDot](#flattendot) [flip](#flip) [float](#float) [forget](#forget) [from](#from) [get](#get) [has](#has) [hasAll](#hasall) [hasAny](#hasany) [integer](#integer) [intersect](#intersect) [intersectAssoc](#intersectassoc) [intersectAssocUsing](#intersectassocusing) [intersectByKeys](#intersectbykeys) [intersectUsing](#intersectusing) [join](#join) [keyBy](#keyby) [keys](#keys) [last](#last)
+[accessible](#accessible) [add](#add) [after](#after) [arrayable](#arrayable) [arrayItem](#arrayitem) [before](#before) [boolean](#boolean) [chunk](#chunk) [chunkBy](#chunkby) [chunkWhile](#chunkwhile) [collapse](#collapse) [combine](#combine) [contains](#contains) [containsStrict](#containsstrict) [count](#count) [crossJoin](#crossjoin) [diff](#diff) [diffAssoc](#diffassoc) [diffAssocUsing](#diffassocusing) [diffKeys](#diffkeys) [diffKeysUsing](#diffkeysusing) [diffUsing](#diffusing) [divide](#divide) [dot](#dot) [every](#every) [except](#except) [exceptValues](#exceptvalues) [exists](#exists) [filter](#filter) [first](#first) [flatten](#flatten) [flattenDot](#flattendot) [flip](#flip) [float](#float) [forget](#forget) [from](#from) [get](#get) [has](#has) [hasAll](#hasall) [hasAny](#hasany) [integer](#integer) [intersect](#intersect) [intersectAssoc](#intersectassoc) [intersectAssocUsing](#intersectassocusing) [intersectByKeys](#intersectbykeys) [intersectUsing](#intersectusing) [join](#join) [keyBy](#keyby) [keys](#keys) [last](#last) [map](#map) [mapSpread](#mapspread) [mapWithKeys](#mapwithkeys) [only](#only) [onlyValues](#onlyvalues) [pad](#pad) [partition](#partition) [pluck](#pluck) [pop](#pop) [prepend](#prepend) [prependKeysWith](#prependkeyswith) [pull](#pull) [push](#push) [query](#query) [random](#random) [reject](#reject) [replace](#replace) [replaceRecursive](#replacerecursive) [reverse](#reverse) [search](#search) [select](#select) [set](#set) [shift](#shift) [shuffle](#shuffle) [skipUntil](#skipuntil)
 
 </div>
 
@@ -2320,4 +2359,1264 @@ dataLast({ a: 1, b: 2, c: 3 });
 <FnTry label="dataLast" :fn="dataLast" :args="[
   { name: 'data', type: 'json', default: { a: 1, b: 2, c: 3 } },
   { name: 'callback', type: 'select', default: predicates[0].value, options: predicates },
+]" />
+
+### map
+
+Run a map over each of the items in an array or object. The callback gets the value, then the index or key.
+
+Exported as `map` from `@tolki/arr` and `@tolki/obj`, and as `dataMap` from `@tolki/data`.
+
+Laravel: [`Arr::map()`](https://laravel.com/docs/helpers#method-array-map)
+
+::: code-group
+
+```js [@tolki/arr]
+import { map } from "@tolki/arr";
+
+map([1, 2, 3], (value) => value * 2);
+// => [2, 4, 6]
+
+map(["a", "b"], (value, index) => `${index}:${value}`);
+// => ["0:a", "1:b"]
+```
+
+```js [@tolki/obj]
+import { map } from "@tolki/obj";
+
+map({ a: 1, b: 2, c: 3 }, (value) => value * 2);
+// => { a: 2, b: 4, c: 6 }
+
+map({ a: 1, b: 2 }, (value, key) => `${key}=${value}`);
+// => { a: "a=1", b: "b=2" }
+```
+
+```js [@tolki/data]
+import { dataMap } from "@tolki/data";
+
+dataMap([1, 2, 3], (value) => value * 2);
+// => [2, 4, 6]
+
+dataMap({ a: 1, b: 2 }, (value) => value * 2);
+// => { a: 2, b: 4 }
+```
+
+:::
+
+<FnTry label="dataMap" :fn="dataMap" :args="[
+  { name: 'data', type: 'json', default: [1, 2, 3] },
+  { name: 'callback', type: 'select', default: mapCallbacks[0].value, options: mapCallbacks },
+]" />
+
+### mapSpread
+
+Run a map over each row, spreading the row's items into the callback's arguments, followed by the index or key.
+
+Exported as `mapSpread` from `@tolki/arr` and `@tolki/obj`, and as `dataMapSpread` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { mapSpread } from "@tolki/arr";
+
+mapSpread(
+  [
+    ["John", 25],
+    ["Jane", 30],
+  ],
+  (name, age) => `${name} is ${age}`,
+);
+// => ["John is 25", "Jane is 30"]
+
+mapSpread(
+  [
+    [1, 2],
+    [3, 4],
+  ],
+  (a, b, index) => a + b + index,
+);
+// => [3, 8]
+```
+
+```js [@tolki/obj]
+import { mapSpread } from "@tolki/obj";
+
+mapSpread(
+  {
+    x: [1, "a"],
+    y: [2, "b"],
+  },
+  (number, letter, key) => `${number}-${letter}-${key}`,
+);
+// => { x: "1-a-x", y: "2-b-y" }
+```
+
+```js [@tolki/data]
+import { dataMapSpread } from "@tolki/data";
+
+dataMapSpread(
+  [
+    [1, 2],
+    [3, 4],
+  ],
+  (a, b) => a + b,
+);
+// => [3, 7]
+```
+
+:::
+
+<FnTry label="dataMapSpread" :fn="dataMapSpread" :args="[
+  { name: 'data', type: 'json', default: [[1, 2], [3, 4]] },
+  { name: 'callback', type: 'select', default: spreadCallbacks[0].value, options: spreadCallbacks },
+]" />
+
+### mapWithKeys
+
+Run an associative map over each of the items. The callback returns an object whose pairs become the entries of the result.
+
+Exported as `mapWithKeys` from `@tolki/arr` and `@tolki/obj`, and as `dataMapWithKeys` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { mapWithKeys } from "@tolki/arr";
+
+const users = [
+  { name: "John", email: "john@example.com" },
+  { name: "Jane", email: "jane@example.com" },
+];
+
+mapWithKeys(users, (user) => ({ [user.email]: user.name }));
+// => { "john@example.com": "John", "jane@example.com": "Jane" }
+
+mapWithKeys(["a", "b"], (value, index) => ({ [value]: index }));
+// => { a: 0, b: 1 }
+```
+
+```js [@tolki/obj]
+import { mapWithKeys } from "@tolki/obj";
+
+mapWithKeys({ a: "x", b: "y" }, (value, key) => ({ [value]: key }));
+// => { x: "a", y: "b" }
+```
+
+```js [@tolki/data]
+import { dataMapWithKeys } from "@tolki/data";
+
+dataMapWithKeys(["a", "b"], (value, index) => ({ [value]: index }));
+// => { a: 0, b: 1 }
+```
+
+:::
+
+<FnTry label="dataMapWithKeys" :fn="dataMapWithKeys" :args="[
+  { name: 'data', type: 'json', default: ['a', 'b'] },
+  { name: 'callback', type: 'select', default: keyedCallbacks[0].value, options: keyedCallbacks },
+]" />
+
+### only
+
+Get a subset of the items from the given array or object. The result keeps the order of the data, not the order of the keys.
+
+Exported as `only` from `@tolki/arr` and `@tolki/obj`, and as `dataOnly` from `@tolki/data`.
+
+Laravel: [`Arr::only()`](https://laravel.com/docs/helpers#method-array-only)
+
+::: code-group
+
+```js [@tolki/arr]
+import { only } from "@tolki/arr";
+
+only(["a", "b", "c", "d"], [0, 2]);
+// => ["a", "c"]
+
+only(["a", "b", "c", "d"], [3, 1]);
+// => ["b", "d"]
+```
+
+```js [@tolki/obj]
+import { only } from "@tolki/obj";
+
+only({ name: "Desk", price: 100, discount: false }, ["name", "price"]);
+// => { name: "Desk", price: 100 }
+
+only({ b: 1, a: 2 }, ["a", "b"]);
+// => { b: 1, a: 2 }
+```
+
+```js [@tolki/data]
+import { dataOnly } from "@tolki/data";
+
+dataOnly({ a: 1, b: 2, c: 3 }, ["a", "c"]);
+// => { a: 1, c: 3 }
+
+dataOnly(["a", "b", "c"], [0, 2]);
+// => ["a", "c"]
+```
+
+:::
+
+<FnTry label="dataOnly" :fn="dataOnly" :args="[
+  { name: 'data', type: 'json', default: { name: 'Desk', price: 100, discount: false } },
+  { name: 'keys', type: 'json', default: ['name', 'price'] },
+]" />
+
+### onlyValues
+
+Get a subset of the items from the given array or object by value. The comparison is loose, so `"1"` matches `1`; pass `true` as the third argument to compare strictly. See [PHP Semantics](./php-semantics.md#loose-and-strict-comparison).
+
+Exported as `onlyValues` from `@tolki/arr` and `@tolki/obj`, and as `dataOnlyValues` from `@tolki/data`.
+
+<!-- docs/php-parity/Arr/onlyValues.json, "onlyValues-list-keeps-gap" -->
+
+::: code-group
+
+```js [@tolki/arr]
+import { onlyValues } from "@tolki/arr";
+
+// Laravel's list result keeps the original positions (0 and 2); a JavaScript array cannot, so it renumbers.
+onlyValues(["foo", "bar", "baz", "qux"], ["foo", "baz"]);
+// => ["foo", "baz"]
+
+onlyValues([1, "1", 2], [1]);
+// => [1, "1"]
+
+onlyValues([1, "1", 2], [1], true);
+// => [1]
+```
+
+```js [@tolki/obj]
+import { onlyValues } from "@tolki/obj";
+
+onlyValues({ name: "taylor", age: 26, city: "austin" }, [26]);
+// => { age: 26 }
+
+onlyValues({ a: 1, b: 2, c: 1, d: 3 }, 1);
+// => { a: 1, c: 1 }
+
+onlyValues({ a: 1, b: "1", c: 2 }, [1], true);
+// => { a: 1 }
+```
+
+```js [@tolki/data]
+import { dataOnlyValues } from "@tolki/data";
+
+dataOnlyValues({ name: "taylor", age: 26 }, [26]);
+// => { age: 26 }
+
+dataOnlyValues(["foo", "bar", "baz"], ["foo", "baz"]);
+// => ["foo", "baz"]
+```
+
+:::
+
+<FnTry label="dataOnlyValues" :fn="dataOnlyValues" :args="[
+  { name: 'data', type: 'json', default: { a: 1, b: '1', c: 2 } },
+  { name: 'values', type: 'json', default: [1] },
+  { name: 'strict', type: 'boolean', default: false },
+]" />
+
+### pad
+
+Pad an array or object to the specified length with a value. A positive size pads at the end, and a negative size pads at the start.
+
+Exported as `pad` from `@tolki/arr` and `@tolki/obj`, and as `dataPad` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { pad } from "@tolki/arr";
+
+pad([1, 2, 3], 5, 0);
+// => [1, 2, 3, 0, 0]
+
+pad([1, 2, 3], -5, 0);
+// => [0, 0, 1, 2, 3]
+```
+
+```js [@tolki/obj]
+import { pad } from "@tolki/obj";
+
+// The pad slots take the next integer keys, and JavaScript lists integer keys first.
+pad({ a: 1, b: 2 }, 4, 0);
+// => { 0: 0, 1: 0, a: 1, b: 2 }
+```
+
+```js [@tolki/data]
+import { dataPad } from "@tolki/data";
+
+dataPad([1, 2], 4, 0);
+// => [1, 2, 0, 0]
+
+dataPad({ a: 1, b: 2 }, 4, 0);
+// => { 0: 0, 1: 0, a: 1, b: 2 }
+```
+
+:::
+
+<FnTry label="dataPad" :fn="dataPad" :args="[
+  { name: 'data', type: 'json', default: [1, 2, 3] },
+  { name: 'size', type: 'number', default: 5 },
+  { name: 'value', type: 'json', default: 0 },
+]" />
+
+### partition
+
+Partition an array or object into two using the given callback. The result is a pair: the items that pass, then the items that fail.
+
+Exported as `partition` from `@tolki/arr` and `@tolki/obj`, and as `dataPartition` from `@tolki/data`.
+
+Laravel: [`Arr::partition()`](https://laravel.com/docs/helpers#method-array-partition)
+
+::: code-group
+
+```js [@tolki/arr]
+import { partition } from "@tolki/arr";
+
+partition([1, 2, 3, 4], (value) => value > 2);
+// => [[3, 4], [1, 2]]
+
+partition(["a", "b", null, "c"], (value) => value !== null);
+// => [["a", "b", "c"], [null]]
+```
+
+```js [@tolki/obj]
+import { partition } from "@tolki/obj";
+
+partition({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2);
+// => [{ c: 3, d: 4 }, { a: 1, b: 2 }]
+```
+
+```js [@tolki/data]
+import { dataPartition } from "@tolki/data";
+
+dataPartition([1, 2, 3, 4], (value) => value > 2);
+// => [[3, 4], [1, 2]]
+
+dataPartition({ a: 1, b: 2, c: 3 }, (value) => value > 1);
+// => [{ b: 2, c: 3 }, { a: 1 }]
+```
+
+:::
+
+<FnTry label="dataPartition" :fn="dataPartition" :args="[
+  { name: 'data', type: 'json', default: [1, 2, 3, 4] },
+  { name: 'callback', type: 'select', default: predicates[0].value, options: predicates },
+]" />
+
+### pluck
+
+Pluck an array of values from an array or object of rows. The path can be a dot path, and a `*` segment collects every item at that step; see [Wildcards](./dot-notation.md#wildcards).
+
+Exported as `pluck` from `@tolki/arr` and `@tolki/obj`, and as `dataPluck` from `@tolki/data`.
+
+Laravel: [`Arr::pluck()`](https://laravel.com/docs/helpers#method-array-pluck)
+
+::: code-group
+
+```js [@tolki/arr]
+import { pluck } from "@tolki/arr";
+
+const posts = [
+  { title: "A", author: { name: "Ann" }, tags: [{ id: 1 }, { id: 2 }] },
+  { title: "B", author: { name: "Bob" }, tags: [{ id: 3 }] },
+];
+
+pluck(posts, "author.name");
+// => ["Ann", "Bob"]
+
+pluck(posts, "author.name", "title");
+// => { A: "Ann", B: "Bob" }
+
+pluck(posts, "tags.*.id");
+// => [[1, 2], [3]]
+```
+
+```js [@tolki/obj]
+import { pluck } from "@tolki/obj";
+
+const posts = {
+  first: { title: "A", author: { name: "Ann" }, tags: [{ id: 1 }, { id: 2 }] },
+  second: { title: "B", author: { name: "Bob" }, tags: [{ id: 3 }] },
+};
+
+pluck(posts, "author.name");
+// => ["Ann", "Bob"]
+
+pluck(posts, "tags.*.id", "title");
+// => { A: [1, 2], B: [3] }
+```
+
+```js [@tolki/data]
+import { dataPluck } from "@tolki/data";
+
+dataPluck([{ name: "John" }, { name: "Jane" }], "name");
+// => ["John", "Jane"]
+
+dataPluck({ a: { name: "John" }, b: { name: "Jane" } }, "name");
+// => ["John", "Jane"]
+```
+
+:::
+
+<FnTry label="dataPluck" :fn="dataPluck" :args="[
+  { name: 'data', type: 'json', default: [{ title: 'A', author: { name: 'Ann' } }, { title: 'B', author: { name: 'Bob' } }] },
+  { name: 'value', default: 'author.name' },
+  { name: 'key', default: 'title' },
+]" />
+
+### pop
+
+Get and remove the last N items from an array or object. It changes the data you pass in, unlike most functions on this page. See [Return values instead of references](./differences.md#return-values-instead-of-references).
+
+Exported as `pop` from `@tolki/arr` and `@tolki/obj`, and as `dataPop` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { pop } from "@tolki/arr";
+
+const stack = [1, 2, 3];
+
+pop(stack);
+// => 3
+
+stack;
+// => [1, 2]
+
+pop(stack, 2);
+// => [2, 1]
+
+stack;
+// => []
+```
+
+```js [@tolki/obj]
+import { pop } from "@tolki/obj";
+
+const stock = { a: 1, b: 2 };
+
+pop(stock);
+// => 2
+
+stock;
+// => { a: 1 }
+```
+
+```js [@tolki/data]
+import { dataPop } from "@tolki/data";
+
+const stack = [1, 2, 3];
+
+dataPop(stack);
+// => 3
+
+stack;
+// => [1, 2]
+```
+
+:::
+
+<FnTry label="dataPop" :fn="dataPop" :args="[
+  { name: 'data', type: 'json', default: [1, 2, 3] },
+  { name: 'count', type: 'number', default: 2 },
+]" />
+
+### prepend
+
+Push an item onto the beginning of an array or object. It returns a new value and leaves the original unchanged.
+
+Exported as `prepend` from `@tolki/arr` and `@tolki/obj`, and as `dataPrepend` from `@tolki/data`.
+
+Laravel: [`Arr::prepend()`](https://laravel.com/docs/helpers#method-array-prepend)
+
+::: code-group
+
+```js [@tolki/arr]
+import { prepend } from "@tolki/arr";
+
+const letters = ["b", "c"];
+
+prepend(letters, "a");
+// => ["a", "b", "c"]
+
+letters;
+// => ["b", "c"]
+```
+
+```js [@tolki/obj]
+import { prepend } from "@tolki/obj";
+
+const sizes = { b: 2, c: 3 };
+
+prepend(sizes, 1, "a");
+// => { a: 1, b: 2, c: 3 }
+
+sizes;
+// => { b: 2, c: 3 }
+```
+
+```js [@tolki/data]
+import { dataPrepend } from "@tolki/data";
+
+dataPrepend([2, 3], 1);
+// => [1, 2, 3]
+
+dataPrepend({ b: 2, c: 3 }, 1, "a");
+// => { a: 1, b: 2, c: 3 }
+```
+
+:::
+
+<FnTry label="dataPrepend" :fn="dataPrepend" :args="[
+  { name: 'data', type: 'json', default: { b: 2, c: 3 } },
+  { name: 'value', type: 'json', default: 1 },
+  { name: 'key', default: 'a' },
+]" />
+
+### prependKeysWith
+
+Prepend the key names of an array or object with the given string.
+
+Exported as `prependKeysWith` from `@tolki/arr` and `@tolki/obj`, and as `dataPrependKeysWith` from `@tolki/data`.
+
+Laravel: [`Arr::prependKeysWith()`](https://laravel.com/docs/helpers#method-array-prependkeyswith)
+
+::: code-group
+
+```js [@tolki/arr]
+import { prependKeysWith } from "@tolki/arr";
+
+// A list has no key names, so its indexes become the keys.
+prependKeysWith(["a", "b"], "item_");
+// => { item_0: "a", item_1: "b" }
+```
+
+```js [@tolki/obj]
+import { prependKeysWith } from "@tolki/obj";
+
+prependKeysWith({ a: 1, b: 2, c: 3 }, "item_");
+// => { item_a: 1, item_b: 2, item_c: 3 }
+```
+
+```js [@tolki/data]
+import { dataPrependKeysWith } from "@tolki/data";
+
+dataPrependKeysWith({ a: 1, b: 2 }, "item_");
+// => { item_a: 1, item_b: 2 }
+```
+
+:::
+
+<FnTry label="dataPrependKeysWith" :fn="dataPrependKeysWith" :args="[
+  { name: 'data', type: 'json', default: { a: 1, b: 2 } },
+  { name: 'prependWith', default: 'item_' },
+]" />
+
+### pull
+
+Get a value from an array or object, and remove it. It returns `{ value, data }`, where `data` is what is left, and it leaves the original unchanged. See [Return values instead of references](./differences.md#return-values-instead-of-references).
+
+Exported as `pull` from `@tolki/arr` and `@tolki/obj`, and as `dataPull` from `@tolki/data`.
+
+Laravel: [`Arr::pull()`](https://laravel.com/docs/helpers#method-array-pull)
+
+::: code-group
+
+```js [@tolki/arr]
+import { pull } from "@tolki/arr";
+
+const letters = ["a", ["b", "c"]];
+
+pull(letters, "1.0");
+// => { value: "b", data: ["a", ["c"]] }
+
+letters;
+// => ["a", ["b", "c"]]
+
+pull(["a"], 5, "none");
+// => { value: "none", data: ["a"] }
+```
+
+```js [@tolki/obj]
+import { pull } from "@tolki/obj";
+
+const user = { user: { name: "John", age: 30 } };
+
+pull(user, "user.name");
+// => { value: "John", data: { user: { age: 30 } } }
+
+user;
+// => { user: { name: "John", age: 30 } }
+
+pull({ a: 1 }, "x", "none");
+// => { value: "none", data: { a: 1 } }
+```
+
+```js [@tolki/data]
+import { dataPull } from "@tolki/data";
+
+dataPull({ a: 1, b: 2 }, "b");
+// => { value: 2, data: { a: 1 } }
+
+dataPull(["a", "b", "c"], 1);
+// => { value: "b", data: ["a", "c"] }
+```
+
+:::
+
+<FnTry label="dataPull" :fn="dataPull" :args="[
+  { name: 'data', type: 'json', default: { user: { name: 'John', age: 30 } } },
+  { name: 'key', default: 'user.name' },
+  { name: 'defaultValue', default: 'none' },
+]" />
+
+### push
+
+Push one or more items into the array at the given key, using "dot" notation. It returns a new value and leaves the original unchanged. See [Return values instead of references](./differences.md#return-values-instead-of-references).
+
+Exported as `push` from `@tolki/arr` and `@tolki/obj`, and as `dataPush` from `@tolki/data`.
+
+Laravel: [`Arr::push()`](https://laravel.com/docs/helpers#method-array-push)
+
+::: code-group
+
+```js [@tolki/arr]
+import { push } from "@tolki/arr";
+
+const rows = [["a"], ["b"]];
+
+push(rows, "1", "c");
+// => [["a"], ["b", "c"]]
+
+rows;
+// => [["a"], ["b"]]
+
+push([1, 2], null, 3, 4);
+// => [1, 2, 3, 4]
+```
+
+```js [@tolki/obj]
+import { push } from "@tolki/obj";
+
+const cart = { items: ["a", "b"] };
+
+push(cart, "items", "c", "d");
+// => { items: ["a", "b", "c", "d"] }
+
+cart;
+// => { items: ["a", "b"] }
+
+push({}, "items", "a");
+// => { items: ["a"] }
+
+push({ a: 1 }, "a", 2);
+// => throws InvalidArgumentException
+```
+
+```js [@tolki/data]
+import { dataPush } from "@tolki/data";
+
+dataPush({ a: [1, 2] }, "a", 3, 4);
+// => { a: [1, 2, 3, 4] }
+
+dataPush([1, 2], null, 3, 4);
+// => [1, 2, 3, 4]
+```
+
+:::
+
+<FnTry label="dataPush" :fn="dataPush" :args="[
+  { name: 'data', type: 'json', default: { user: { tags: ['js'] } } },
+  { name: 'key', default: 'user.tags' },
+  { name: 'values', default: 'ts' },
+]" />
+
+### query
+
+Convert an array or object into a URL-encoded query string.
+
+Exported as `query` from `@tolki/arr` and `@tolki/obj`, and as `dataQuery` from `@tolki/data`.
+
+Laravel: [`Arr::query()`](https://laravel.com/docs/helpers#method-array-query)
+
+::: code-group
+
+```js [@tolki/arr]
+import { query } from "@tolki/arr";
+
+query(["a", "b"]);
+// => "0=a&1=b"
+
+query([["x", "y"]]);
+// => "0%5B0%5D=x&0%5B1%5D=y"
+```
+
+```js [@tolki/obj]
+import { query } from "@tolki/obj";
+
+query({ name: "John", age: 30 });
+// => "name=John&age=30"
+
+query({ user: { name: "John" }, tags: ["php", "js"] });
+// => "user%5Bname%5D=John&tags%5B0%5D=php&tags%5B1%5D=js"
+
+query({ q: "a b&c", on: true, off: false, none: null });
+// => "q=a%20b%26c&on=1&off=0"
+```
+
+```js [@tolki/data]
+import { dataQuery } from "@tolki/data";
+
+dataQuery({ name: "John", age: 30 });
+// => "name=John&age=30"
+
+dataQuery(["a", "b"]);
+// => "0=a&1=b"
+```
+
+:::
+
+<FnTry label="dataQuery" :fn="dataQuery" :args="[
+  { name: 'data', type: 'json', default: { name: 'John', tags: ['php', 'js'], active: true } },
+]" />
+
+### random
+
+Get one or a specified number of random values from an array or object. The picked items come back in the order they have in the data.
+
+Exported as `random` from `@tolki/arr` and `@tolki/obj`, and as `dataRandom` from `@tolki/data`.
+
+Laravel: [`Arr::random()`](https://laravel.com/docs/helpers#method-array-random)
+
+::: code-group
+
+```js [@tolki/arr]
+import { random } from "@tolki/arr";
+
+random([1, 2, 3, 4], 2);
+// e.g. [2, 4]
+
+random([1, 2, 3, 4], 2).length;
+// => 2
+
+[1, 2, 3].includes(random([1, 2, 3]));
+// => true
+
+random([1, 2], 5);
+// => throws InvalidArgumentException
+```
+
+```js [@tolki/obj]
+import { random } from "@tolki/obj";
+
+random({ a: 1, b: 2, c: 3 }, 2);
+// e.g. { 0: 1, 1: 3 }
+
+Object.keys(random({ a: 1, b: 2, c: 3 }, 2));
+// => ["0", "1"]
+
+// Pass true as the third argument to keep the original keys.
+Object.keys(random({ a: 1, b: 2, c: 3 }, 2, true)).length;
+// => 2
+```
+
+```js [@tolki/data]
+import { dataRandom } from "@tolki/data";
+
+dataRandom([1, 2, 3, 4], 2);
+// e.g. [2, 4]
+
+dataRandom({ a: 1, b: 2, c: 3 }, 1);
+// e.g. { 0: 2 }
+
+dataRandom([1, 2, 3, 4], 3).length;
+// => 3
+```
+
+:::
+
+<FnTry label="dataRandom" :fn="dataRandom" :args="[
+  { name: 'data', type: 'json', default: [1, 2, 3, 4] },
+  { name: 'number', type: 'number', default: 2 },
+]" />
+
+### reject
+
+Filter an array or object using the negation of the given callback: the items that fail the test stay.
+
+Exported as `reject` from `@tolki/arr` and `@tolki/obj`, and as `dataReject` from `@tolki/data`.
+
+Laravel: [`Arr::reject()`](https://laravel.com/docs/helpers#method-array-reject)
+
+::: code-group
+
+```js [@tolki/arr]
+import { reject } from "@tolki/arr";
+
+reject([1, 2, 3, 4], (value) => value > 2);
+// => [1, 2]
+
+reject(["a", "b", null, "c"], (value) => value === null);
+// => ["a", "b", "c"]
+```
+
+```js [@tolki/obj]
+import { reject } from "@tolki/obj";
+
+reject({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2);
+// => { a: 1, b: 2 }
+```
+
+```js [@tolki/data]
+import { dataReject } from "@tolki/data";
+
+dataReject([1, 2, 3], (value) => value > 1);
+// => [1]
+
+dataReject({ a: 1, b: 2, c: 3 }, (value) => value > 1);
+// => { a: 1 }
+```
+
+:::
+
+<FnTry label="dataReject" :fn="dataReject" :args="[
+  { name: 'data', type: 'json', default: [1, 2, 3, 4] },
+  { name: 'callback', type: 'select', default: predicates[1].value, options: predicates },
+]" />
+
+### replace
+
+Replace the items of an array or object with the given replacer items. It returns a new value. Only the top level is replaced; see `replaceRecursive` for nested values.
+
+Exported as `replace` from `@tolki/arr` and `@tolki/obj`, and as `dataReplace` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { replace } from "@tolki/arr";
+
+replace(["a", "b", "c"], ["d", "e"]);
+// => ["d", "e", "c"]
+
+replace(["a", "b", "c"], { 1: "d", 2: "e", 3: "f" });
+// => ["a", "d", "e", "f"]
+```
+
+```js [@tolki/obj]
+import { replace } from "@tolki/obj";
+
+replace({ a: 1, b: 2 }, { b: 3, c: 4 });
+// => { a: 1, b: 3, c: 4 }
+
+replace({ a: { x: 1, y: 2 } }, { a: { x: 9 } });
+// => { a: { x: 9 } }
+```
+
+```js [@tolki/data]
+import { dataReplace } from "@tolki/data";
+
+dataReplace({ a: 1, b: 2 }, { b: 3, c: 4 });
+// => { a: 1, b: 3, c: 4 }
+
+dataReplace([1, 2, 3], [9]);
+// => [9, 2, 3]
+```
+
+:::
+
+<FnTry label="dataReplace" :fn="dataReplace" :args="[
+  { name: 'data', type: 'json', default: { a: 1, b: 2 } },
+  { name: 'replacerData', type: 'json', default: { b: 3, c: 4 } },
+]" />
+
+### replaceRecursive
+
+Recursively replace the items of an array or object with the given items. Two nested arrays or objects merge, and any other value is replaced. It returns a new value.
+
+Exported as `replaceRecursive` from `@tolki/arr` and `@tolki/obj`, and as `dataReplaceRecursive` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { replaceRecursive } from "@tolki/arr";
+
+replaceRecursive([{ a: 1, b: { c: 2, d: 3 } }], [{ b: { c: 9 } }]);
+// => [{ a: 1, b: { c: 9, d: 3 } }]
+
+replaceRecursive([["a", "b"], ["c"]], [["x"]]);
+// => [["x", "b"], ["c"]]
+```
+
+```js [@tolki/obj]
+import { replaceRecursive } from "@tolki/obj";
+
+replaceRecursive(
+  { user: { name: "John", age: 30 }, tags: ["a", "b"] },
+  { user: { age: 31 }, tags: ["z"] },
+);
+// => { user: { name: "John", age: 31 }, tags: ["z", "b"] }
+```
+
+```js [@tolki/data]
+import { dataReplaceRecursive } from "@tolki/data";
+
+dataReplaceRecursive(
+  { user: { name: "John", age: 30 } },
+  { user: { age: 31 } },
+);
+// => { user: { name: "John", age: 31 } }
+```
+
+:::
+
+<FnTry label="dataReplaceRecursive" :fn="dataReplaceRecursive" :args="[
+  { name: 'data', type: 'json', default: { user: { name: 'John', age: 30 } } },
+  { name: 'replacerData', type: 'json', default: { user: { age: 31 } } },
+]" />
+
+### reverse
+
+Reverse the order of an array or object and return the result.
+
+Exported as `reverse` from `@tolki/arr` and `@tolki/obj`, and as `dataReverse` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { reverse } from "@tolki/arr";
+
+reverse([1, 2, 3]);
+// => [3, 2, 1]
+
+reverse(["a", "b", "c"]);
+// => ["c", "b", "a"]
+```
+
+```js [@tolki/obj]
+import { reverse } from "@tolki/obj";
+
+reverse({ a: 1, b: 2, c: 3 });
+// => { c: 3, b: 2, a: 1 }
+```
+
+```js [@tolki/data]
+import { dataReverse } from "@tolki/data";
+
+dataReverse([1, 2, 3]);
+// => [3, 2, 1]
+
+dataReverse({ a: 1, b: 2, c: 3 });
+// => { c: 3, b: 2, a: 1 }
+```
+
+:::
+
+<FnTry label="dataReverse" :fn="dataReverse" :args="[
+  { name: 'data', type: 'json', default: { a: 1, b: 2, c: 3 } },
+]" />
+
+### search
+
+Search for a value in an array or object and return its key. It returns `false` when nothing matches. The comparison is loose by default, so `"2"` matches `2`; pass `true` as the third argument to compare strictly. See [PHP Semantics](./php-semantics.md#loose-and-strict-comparison).
+
+Exported as `dataSearch` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/data]
+import { dataSearch } from "@tolki/data";
+
+dataSearch([1, 2, 3], 2);
+// => 1
+
+dataSearch({ a: 1, b: 2 }, 2);
+// => "b"
+
+dataSearch([1, 2, 3], "2");
+// => 1
+
+dataSearch([1, 2, 3], "2", true);
+// => false
+
+dataSearch({ a: 1, b: 5 }, (value) => value > 2);
+// => "b"
+```
+
+:::
+
+<FnTry label="dataSearch" :fn="dataSearch" :args="[
+  { name: 'data', type: 'json', default: { a: 1, b: 2 } },
+  { name: 'value', type: 'number', default: 2 },
+]" />
+
+### select
+
+Select an array or object of values from each item in an array or object. Each key is an exact name, not a dot path.
+
+Exported as `select` from `@tolki/arr` and `@tolki/obj`, and as `dataSelect` from `@tolki/data`.
+
+Laravel: [`Arr::select()`](https://laravel.com/docs/helpers#method-array-select)
+
+::: code-group
+
+```js [@tolki/arr]
+import { select } from "@tolki/arr";
+
+const products = [
+  { name: "Desk", price: 100, sku: "D1" },
+  { name: "Chair", price: 50, sku: "C1" },
+];
+
+select(products, ["name", "price"]);
+// => [{ name: "Desk", price: 100 }, { name: "Chair", price: 50 }]
+
+select(products, "name");
+// => [{ name: "Desk" }, { name: "Chair" }]
+
+select([{ a: { b: 1 }, c: 2 }], "a.b");
+// => [{}]
+```
+
+```js [@tolki/obj]
+import { select } from "@tolki/obj";
+
+select(
+  {
+    desk: { name: "Desk", price: 100 },
+    chair: { name: "Chair", price: 50 },
+  },
+  ["name"],
+);
+// => { desk: { name: "Desk" }, chair: { name: "Chair" } }
+```
+
+```js [@tolki/data]
+import { dataSelect } from "@tolki/data";
+
+dataSelect([{ a: 1, b: 2, c: 3 }], ["a", "c"]);
+// => [{ a: 1, c: 3 }]
+```
+
+:::
+
+<FnTry label="dataSelect" :fn="dataSelect" :args="[
+  { name: 'data', type: 'json', default: [{ name: 'Desk', price: 100, sku: 'D1' }, { name: 'Chair', price: 50, sku: 'C1' }] },
+  { name: 'keys', type: 'json', default: ['name', 'price'] },
+]" />
+
+### set
+
+Set an array or object item to a given value using "dot" notation. It returns a new value and leaves the original unchanged. See [Return values instead of references](./differences.md#return-values-instead-of-references).
+
+Exported as `set` from `@tolki/arr` and `@tolki/obj`, and as `dataSet` from `@tolki/data`.
+
+Laravel: [`Arr::set()`](https://laravel.com/docs/helpers#method-array-set)
+
+::: code-group
+
+```js [@tolki/arr]
+import { set } from "@tolki/arr";
+
+const grid = [["a", "b"]];
+
+set(grid, "0.1", "x");
+// => [["a", "x"]]
+
+grid;
+// => [["a", "b"]]
+
+set(["a", "b", "c"], 1, "x");
+// => ["a", "x", "c"]
+```
+
+```js [@tolki/obj]
+import { set } from "@tolki/obj";
+
+const user = { user: { name: "John" } };
+
+set(user, "user.age", 30);
+// => { user: { name: "John", age: 30 } }
+
+user;
+// => { user: { name: "John" } }
+
+set({}, "products.desk.price", 200);
+// => { products: { desk: { price: 200 } } }
+```
+
+```js [@tolki/data]
+import { dataSet } from "@tolki/data";
+
+dataSet({ a: 1 }, "b.c", 3);
+// => { a: 1, b: { c: 3 } }
+
+dataSet(["a", "b"], 1, "x");
+// => ["a", "x"]
+```
+
+:::
+
+<FnTry label="dataSet" :fn="dataSet" :args="[
+  { name: 'data', type: 'json', default: { user: { name: 'John' } } },
+  { name: 'key', default: 'user.age' },
+  { name: 'value', type: 'json', default: 30 },
+]" />
+
+### shift
+
+Get and remove the first N items from an array or object. It changes the data you pass in, unlike most functions on this page. See [Return values instead of references](./differences.md#return-values-instead-of-references).
+
+Exported as `shift` from `@tolki/arr` and `@tolki/obj`, and as `dataShift` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { shift } from "@tolki/arr";
+
+const queue = [1, 2, 3];
+
+shift(queue);
+// => 1
+
+queue;
+// => [2, 3]
+
+shift(queue, 2);
+// => [2, 3]
+
+queue;
+// => []
+```
+
+```js [@tolki/obj]
+import { shift } from "@tolki/obj";
+
+const stock = { a: 1, b: 2, c: 3 };
+
+shift(stock);
+// => 1
+
+stock;
+// => { b: 2, c: 3 }
+```
+
+```js [@tolki/data]
+import { dataShift } from "@tolki/data";
+
+const queue = [1, 2, 3];
+
+dataShift(queue);
+// => 1
+
+queue;
+// => [2, 3]
+```
+
+:::
+
+<FnTry label="dataShift" :fn="dataShift" :args="[
+  { name: 'data', type: 'json', default: [1, 2, 3] },
+  { name: 'count', type: 'number', default: 2 },
+]" />
+
+### shuffle
+
+Shuffle an array or object and return the result. The result is a new value; an object comes back as a list-like object whose keys are `0` to `n - 1`.
+
+Exported as `shuffle` from `@tolki/arr` and `@tolki/obj`, and as `dataShuffle` from `@tolki/data`.
+
+Laravel: [`Arr::shuffle()`](https://laravel.com/docs/helpers#method-array-shuffle)
+
+::: code-group
+
+```js [@tolki/arr]
+import { shuffle } from "@tolki/arr";
+
+shuffle([1, 2, 3, 4, 5]);
+// e.g. [3, 1, 5, 2, 4]
+
+shuffle([1, 2, 3, 4, 5]).length;
+// => 5
+
+shuffle([3, 1, 2]).sort();
+// => [1, 2, 3]
+```
+
+```js [@tolki/obj]
+import { shuffle } from "@tolki/obj";
+
+shuffle({ a: 1, b: 2, c: 3 });
+// e.g. { 0: 3, 1: 1, 2: 2 }
+
+Object.keys(shuffle({ a: 1, b: 2, c: 3 }));
+// => ["0", "1", "2"]
+```
+
+```js [@tolki/data]
+import { dataShuffle } from "@tolki/data";
+
+dataShuffle([1, 2, 3, 4]);
+// e.g. [3, 1, 4, 2]
+
+dataShuffle([1, 2, 3, 4]).length;
+// => 4
+```
+
+:::
+
+<FnTry label="dataShuffle" :fn="dataShuffle" :args="[
+  { name: 'data', type: 'json', default: [1, 2, 3, 4, 5] },
+]" />
+
+### skipUntil
+
+Skip items in an array or object until the given condition is met, and return the rest. The condition is a value, matched strictly, so `"2"` does not match `2`, or a callback.
+
+Exported as `skipUntil` from `@tolki/arr` and `@tolki/obj`, and as `dataSkipUntil` from `@tolki/data`.
+
+::: code-group
+
+```js [@tolki/arr]
+import { skipUntil } from "@tolki/arr";
+
+skipUntil([1, 2, 3, 4], 3);
+// => [3, 4]
+
+skipUntil([1, 2, 3, 4], (value) => value >= 3);
+// => [3, 4]
+
+skipUntil([1, 2, 3, 4], 5);
+// => []
+
+skipUntil([1, 2, 3], "2");
+// => []
+```
+
+```js [@tolki/obj]
+import { skipUntil } from "@tolki/obj";
+
+skipUntil({ a: 1, b: 2, c: 3 }, 2);
+// => { b: 2, c: 3 }
+
+skipUntil({ a: 1, b: 2, c: 3 }, (value, key) => key === "b");
+// => { b: 2, c: 3 }
+```
+
+```js [@tolki/data]
+import { dataSkipUntil } from "@tolki/data";
+
+dataSkipUntil([1, 2, 3, 4], 3);
+// => [3, 4]
+
+dataSkipUntil({ a: 1, b: 2, c: 3 }, (value) => value > 1);
+// => { b: 2, c: 3 }
+```
+
+:::
+
+<FnTry label="dataSkipUntil" :fn="dataSkipUntil" :args="[
+  { name: 'data', type: 'json', default: [1, 2, 3, 4] },
+  { name: 'value', type: 'number', default: 3 },
 ]" />
