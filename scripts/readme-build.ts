@@ -433,6 +433,76 @@ export function discoverPackages(filterName?: string): PackageInfo[] {
 }
 
 /**
+ * Turns heading text into the anchor GitHub and npm give it, which drops punctuation instead of hyphenating it.
+ *
+ * @param text - The heading text.
+ * @returns The anchor slug, before any `-N` duplicate suffix.
+ */
+export function githubSlug(text: string): string {
+    return text
+        .replace(/`/g, "")
+        .replace(/<[A-Za-z/!][^>]*>/g, "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^\p{L}\p{N}\p{M}\s_-]/gu, "")
+        .replace(/\s/g, "-");
+}
+
+/**
+ * Rewrite in-page `](#slug)` links from VitePress slugs to GitHub's, so they scroll on GitHub and npm.
+ *
+ * @param content - Markdown with VitePress anchors.
+ * @returns The content with each matching in-page link pointing at the GitHub slug.
+ */
+export function rewriteAnchorsForGitHub(content: string): string {
+    const slugs = new Map<string, string>();
+    const seen = new Map<string, number>();
+
+    for (const heading of parseHeadings(content)) {
+        const base = githubSlug(heading.text);
+        const count = seen.get(base) ?? 0;
+
+        seen.set(base, count + 1);
+        slugs.set(heading.slug, count === 0 ? base : `${base}-${count}`);
+    }
+
+    let marker: string | null = null;
+
+    return content
+        .split("\n")
+        .map((line) => {
+            const fence = /^ {0,3}(`{3,}|~{3,})/.exec(line);
+
+            if (marker !== null) {
+                const trimmed = line.trim();
+
+                if (
+                    fence !== null &&
+                    trimmed === marker[0]?.repeat(trimmed.length) &&
+                    trimmed.length >= marker.length
+                ) {
+                    marker = null;
+                }
+
+                return line;
+            }
+
+            if (fence !== null) {
+                marker = fence[1] as string;
+
+                return line;
+            }
+
+            return line.replace(/\]\(#([^)\s]+)\)/g, (match, slug: string) => {
+                const target = slugs.get(slug);
+
+                return target === undefined ? match : `](#${target})`;
+            });
+        })
+        .join("\n");
+}
+
+/**
  * Assemble documentation content from VitePress files.
  *
  * @param docFiles - Array of doc file paths relative to docs/vitepress/.
@@ -466,7 +536,10 @@ export function assembleDocsContent(
         const docDir = docFile.includes("/")
             ? docFile.slice(0, docFile.lastIndexOf("/"))
             : "";
-        const cleaned = stripVitepressSyntax(raw, docDir);
+        const cleaned = stripVitepressSyntax(
+            rewriteAnchorsForGitHub(raw),
+            docDir,
+        );
 
         if (cleaned.length > 0) {
             sections.push(cleaned);

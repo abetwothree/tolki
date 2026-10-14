@@ -60,6 +60,10 @@ A page with no variant group comes back byte-identical. `scripts/__tests__/readm
 
 The `./` form uses the directory of the page that holds the link. The `../<dir>/` form names the directory itself. Never write root links such as `/collections/` in a page that a README includes, because the rewrite does not touch them.
 
+## Anchor rewrite
+
+VitePress turns `Symbol.iterator` into `#symbol-iterator`, but GitHub and npm drop the dot and give `#symboliterator`. `rewriteAnchorsForGitHub` computes both slugs for every heading outside fences, `-N` duplicate suffixes included, and rewrites each in-page `](#slug)` link to the GitHub one. It runs after the variant filter and before VitePress syntax is stripped. Links to unknown slugs and links inside fences are left alone.
+
 ## Publish path
 
 `prepack` runs `readme:build` before `build` for each package. In `.github/workflows/publish.yml`, the step `Commit readme updates` uses `stefanzweifel/git-auto-commit-action` to commit the regenerated READMEs after a release, with the message `docs: update readme with new version [skip ci]`.

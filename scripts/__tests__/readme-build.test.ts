@@ -7,6 +7,8 @@ import { describe, expect, it } from "vitest";
 import {
     assembleDocsContent,
     filterPackageVariants,
+    githubSlug,
+    rewriteAnchorsForGitHub,
     rewriteRelativeDocLinks,
 } from "../readme-build.ts";
 
@@ -274,7 +276,61 @@ describe("rewriteRelativeDocLinks", () => {
     });
 });
 
+describe("githubSlug", () => {
+    it("drops punctuation and hyphenates whitespace", () => {
+        expect(githubSlug("Symbol.iterator")).toBe("symboliterator");
+        expect(githubSlug("toJSON")).toBe("tojson");
+        expect(githubSlug("Loose and strict comparison")).toBe(
+            "loose-and-strict-comparison",
+        );
+        expect(githubSlug("`a_b` <b>c</b>")).toBe("a_b-c");
+    });
+});
+
+describe("rewriteAnchorsForGitHub", () => {
+    it("keeps duplicate-heading suffixes that already agree", () => {
+        const doc =
+            "#### toJson\n\n#### toJSON\n\n[toJson](#tojson) [toJSON](#tojson-1)";
+
+        expect(rewriteAnchorsForGitHub(doc)).toBe(doc);
+    });
+
+    it("rewrites a VitePress slug to GitHub's", () => {
+        const doc =
+            "#### Symbol.iterator\n\n[Symbol.iterator](#symbol-iterator)";
+
+        expect(rewriteAnchorsForGitHub(doc)).toBe(
+            "#### Symbol.iterator\n\n[Symbol.iterator](#symboliterator)",
+        );
+    });
+
+    it("leaves links inside fences and unknown slugs alone", () => {
+        const doc = [
+            "#### Symbol.iterator",
+            "",
+            "~~~md",
+            "[x](#symbol-iterator)",
+            "~~~",
+            "",
+            "[y](#nowhere)",
+        ].join("\n");
+
+        expect(rewriteAnchorsForGitHub(doc)).toBe(doc);
+    });
+});
+
 describe("assembleDocsContent", () => {
+    it("rewrites a Symbol.iterator chip to GitHub's slug", () => {
+        const result = assembleDocsContent(
+            ["arrays-objects/symbols.md"],
+            "@tolki/arr",
+            FIXTURE_ROOT,
+        );
+
+        expect(result).toContain("[Symbol.iterator](#symboliterator)");
+        expect(result).not.toContain("#symbol-iterator");
+    });
+
     it("keeps only the package's tab, sections and links from a shared page", () => {
         const pages = ["arrays-objects/shared.md"];
         const result = assembleDocsContent(pages, "@tolki/arr", FIXTURE_ROOT);
