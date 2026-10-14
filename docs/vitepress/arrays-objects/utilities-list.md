@@ -1909,7 +1909,7 @@ dataInteger([{ age: 30 }], "0.age");
 
 ### intersect
 
-Get the items whose values are also present in the other set. Values match the way PHP's `(string) $a === (string) $b` compares them, so `2` matches `"2"`. The keys of the kept items stay with them in an object.
+Get the items whose values are also present in the other set. Values are compared as strings, so `2` matches `"2"`. The keys of the kept items stay with them in an object.
 
 Exported as `intersect` from `@tolki/arr` and `@tolki/obj`, and as `dataIntersect` from `@tolki/data`.
 
