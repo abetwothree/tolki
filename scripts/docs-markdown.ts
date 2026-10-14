@@ -165,7 +165,8 @@ export function parseHeadings(markdown: string): MarkdownHeading[] {
     const seen = new Map<string, number>();
     let marker: string | null = null;
 
-    for (const [index, line] of markdown.split("\n").entries()) {
+    for (const [index, raw] of markdown.split("\n").entries()) {
+        const line = raw.endsWith("\r") ? raw.slice(0, -1) : raw;
         const fence = FENCE_OPEN.exec(line);
 
         if (marker !== null) {

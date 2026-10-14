@@ -54,6 +54,22 @@ describe("parseHeadings", () => {
 
         expect(slugs).toEqual(["tojson", "tojson-1"]);
     });
+
+    // A Windows checkout gives CRLF, and `.` never matches the `\r`.
+    it("reads headings and fences from CRLF lines", () => {
+        const markdown = [
+            "# Real",
+            "```bash",
+            "# comment",
+            "```",
+            "## Next",
+        ].join("\r\n");
+
+        expect(parseHeadings(markdown)).toEqual([
+            { level: 1, text: "Real", slug: "real", line: 1 },
+            { level: 2, text: "Next", slug: "next", line: 5 },
+        ]);
+    });
 });
 
 describe("parseFences", () => {
