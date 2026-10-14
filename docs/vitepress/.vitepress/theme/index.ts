@@ -33,8 +33,8 @@ export default {
     setup() {
         onContentUpdated(() => {
             void nextTick(() => {
-                restoreSelections(document, window);
                 labelMarkdownButtons(document);
+                restoreSelections(document, window);
             });
         });
     },

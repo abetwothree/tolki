@@ -122,7 +122,13 @@ export function restoreSelections(doc: Document, win: Window): void {
         return;
     }
 
-    const id = decodeURIComponent(win.location.hash.slice(1));
+    const raw = win.location.hash.slice(1);
+    let id = raw;
+    try {
+        id = decodeURIComponent(raw);
+    } catch {
+        // A malformed escape keeps the raw id; restoring must still run.
+    }
     const target = id ? doc.getElementById(id) : null;
     const before = target?.getBoundingClientRect().top ?? 0;
 

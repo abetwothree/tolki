@@ -307,6 +307,24 @@ describe("restoreSelections", () => {
         expect(scrollBy).toHaveBeenCalledWith(0, 240);
     });
 
+    it("restores choices when the hash is malformed", () => {
+        window.localStorage.setItem(
+            STORAGE_PREFIX + PKG_SIGNATURE,
+            "@tolki/obj",
+        );
+        const scrollBy = vi.fn();
+
+        expect(() =>
+            restoreSelections(document, {
+                localStorage: window.localStorage,
+                location: { hash: "#%E0%A4%A" },
+                scrollBy,
+            } as unknown as Window),
+        ).not.toThrow();
+        expect(activeTitle(groups()[0] as Element)).toBe("@tolki/obj");
+        expect(scrollBy).not.toHaveBeenCalled();
+    });
+
     it("skips re-anchoring when the hash matches no element", () => {
         const scrollBy = vi.fn();
         restoreSelections(document, {
