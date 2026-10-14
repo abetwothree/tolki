@@ -55,13 +55,20 @@ In TypeScript the class is `Collection<TValue, TKey, TShape>`. `TValue` is the i
 
 ## Methods that change the collection in place
 
-Most methods return a new collection. The few that change the collection they are called on are listed here. Most also return it; `getOrPut` returns the value it found or stored, and `offsetSet` returns nothing.
+Most methods return a new collection. The few that change the collection they are called on are listed here. Most also return it. `getOrPut` returns the value it found or stored, `pull` the item it removed, `pop` and `shift` the item or items they removed, and `offsetSet` and `offsetUnset` return nothing.
 
 - [`add`](./methods-list.md#add)
 - [`escapeWhenCastingToString`](./methods-list.md#escapewhencastingtostring)
 - [`forget`](./methods-list.md#forget)
 - [`getOrPut`](./methods-list.md#getorput)
 - [`offsetSet`](./methods-list.md#offsetset)
+- [`offsetUnset`](./methods-list.md#offsetunset)
+- [`pop`](./methods-list.md#pop)
+- [`prepend`](./methods-list.md#prepend)
+- [`pull`](./methods-list.md#pull)
+- [`push`](./methods-list.md#push)
+- [`put`](./methods-list.md#put)
+- [`shift`](./methods-list.md#shift)
 
 ## More documentation
 

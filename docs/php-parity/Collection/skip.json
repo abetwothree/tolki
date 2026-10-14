@@ -31,6 +31,20 @@
                     3
                 ]
             ]
+        },
+        {
+            "label": "skip-list-keys",
+            "php": "(new Collection([1, 2, 3, 4]))->skip(2)",
+            "value": [
+                [
+                    2,
+                    3
+                ],
+                [
+                    3,
+                    4
+                ]
+            ]
         }
     ]
 }
