@@ -57,8 +57,10 @@ In TypeScript the class is `Collection<TValue, TKey, TShape>`. `TValue` is the i
 
 Most methods return a new collection. The few that change the collection they are called on, and return it, are listed here.
 
+- [`add`](./methods-list.md#add)
+
 ## More documentation
 
-- The Methods List page documents every method with a live example. It is added to this section soon.
+- The [Methods List](./methods-list.md) page documents every method with a live example.
 - The [Differences from Laravel](./differences.md) page lists where the class departs from Laravel's, and why.
 - Methods that take a path such as `pluck` read it as "dot" notation. The [Dot Notation](../arrays-objects/dot-notation.md) page of [Arrays & Objects](../arrays-objects/index.md) explains the rules.

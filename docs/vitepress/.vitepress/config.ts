@@ -263,6 +263,10 @@ export default defineConfig({
                         link: "/collections/",
                     },
                     {
+                        text: "Methods List",
+                        link: "/collections/methods-list",
+                    },
+                    {
                         text: "Differences from Laravel",
                         link: "/collections/differences",
                     },

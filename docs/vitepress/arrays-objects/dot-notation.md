@@ -252,7 +252,7 @@ dataGet({ s: [{ x: 1 }, { x: 2 }] }, "s.{first}.x");
 
 ## Collections read the same paths
 
-`@tolki/collection` methods that look inside items, such as `pluck`, `where`, `sortBy`, `keyBy` and `sum`, take the same paths, and `pluck` takes the same `*`. `get` is the exception: it takes one key, not a path. The method pages are in the Collections section, under Methods List.
+`@tolki/collection` methods that look inside items, such as `pluck`, `where`, `sortBy`, `keyBy` and `sum`, take the same paths, and `pluck` takes the same `*`. `get` is the exception: it takes one key, not a path. The method pages are in the Collections section, under [Methods List](../collections/methods-list.md).
 
 ```js
 import { collect } from "@tolki/collection";
