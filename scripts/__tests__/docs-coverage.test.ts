@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import {
     brokenAnchors,
+    brokenCrossPageAnchors,
     type CoverageIssue,
     coverageReport,
     importedNames,
@@ -76,6 +77,80 @@ describe("brokenAnchors", () => {
         expect(issues).toEqual([
             { kind: "anchor", page: "page.md", slug: "nope", line: 7 },
         ]);
+    });
+});
+
+describe("brokenCrossPageAnchors", () => {
+    const docsRoot = path.join(
+        path.dirname(fileURLToPath(import.meta.url)),
+        "fixtures",
+        "docs-coverage-root",
+    );
+    const page = "arrays-objects/links.md";
+    const links = readFileSync(path.join(docsRoot, page), "utf8");
+
+    it("reports a cross-page anchor with no matching heading", () => {
+        expect(brokenCrossPageAnchors(links, page, docsRoot)).toEqual([
+            {
+                kind: "anchor",
+                page,
+                slug: "arrays-objects/other.md#nope",
+                line: 3,
+            },
+        ]);
+    });
+
+    it("accepts a cross-page anchor that matches a heading", () => {
+        expect(
+            brokenCrossPageAnchors(
+                "[a](./other.md#real-heading)",
+                page,
+                docsRoot,
+            ),
+        ).toEqual([]);
+    });
+
+    it("resolves parent-relative links", () => {
+        expect(
+            brokenCrossPageAnchors(
+                "[a](../collections/target.md#good)\n[b](../collections/target.md#bad)",
+                page,
+                docsRoot,
+            ),
+        ).toEqual([
+            {
+                kind: "anchor",
+                page,
+                slug: "collections/target.md#bad",
+                line: 2,
+            },
+        ]);
+    });
+
+    it("ignores links inside fences", () => {
+        expect(
+            brokenCrossPageAnchors(
+                "```md\n[a](./other.md#nope)\n```",
+                page,
+                docsRoot,
+            ),
+        ).toEqual([]);
+    });
+
+    it("ignores a missing target page", () => {
+        expect(
+            brokenCrossPageAnchors("[a](./ghost.md#x)", page, docsRoot),
+        ).toEqual([]);
+    });
+
+    it("uses VitePress slugs, including -1 suffixes", () => {
+        expect(
+            brokenCrossPageAnchors(
+                "[a](./other.md#tojson)\n[b](./other.md#tojson-1)\n[c](./other.md#tojson-2)",
+                page,
+                docsRoot,
+            ).map((issue) => (issue.kind === "anchor" ? issue.slug : "")),
+        ).toEqual(["arrays-objects/other.md#tojson-2"]);
     });
 });
 
@@ -155,6 +230,23 @@ describe("coverageReport", () => {
                 name: "get",
             },
         ]);
+    });
+
+    it("includes cross-page anchors, scoped by page", () => {
+        const expected = {
+            kind: "anchor",
+            page: "arrays-objects/links.md",
+            slug: "arrays-objects/other.md#nope",
+            line: 3,
+        };
+
+        expect(coverageReport({ docsRoot, only: [] })).toContainEqual(expected);
+        expect(
+            coverageReport({ docsRoot, only: [], page: "arrays-objects" }),
+        ).toContainEqual(expected);
+        expect(
+            coverageReport({ docsRoot, only: [], page: "collections" }),
+        ).not.toContainEqual(expected);
     });
 
     it("reports every collection member for a missing page", () => {

@@ -1,10 +1,10 @@
 /**
  * Checks the VitePress list pages against the packages: every export and public Collection member
- * has a section, every in-page anchor resolves, and every package tab imports its own package.
+ * has a section, every in-page and cross-page anchor resolves, and every package tab imports its own package.
  *
  * Reads sources with the TypeScript AST because a TypeScript `private` method still exists at runtime.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -204,6 +204,26 @@ export function importedNames(markdown: string): Map<string, Set<string>> {
 }
 
 /**
+ * Collects the 1-based line numbers a code fence covers, fence markers included.
+ *
+ * @param markdown - The page source.
+ * @returns The covered line numbers.
+ */
+function fenceLines(markdown: string): Set<number> {
+    const lines = new Set<number>();
+
+    for (const fence of parseFences(markdown)) {
+        const count = fence.code === "" ? 0 : fence.code.split("\n").length;
+
+        for (let line = fence.line; line <= fence.line + count + 1; line++) {
+            lines.add(line);
+        }
+    }
+
+    return lines;
+}
+
+/**
  * Finds in-page links whose anchor has no heading.
  *
  * @param markdown - The page source.
@@ -214,16 +234,8 @@ export function brokenAnchors(markdown: string, page: string): CoverageIssue[] {
     const slugs = new Set(
         parseHeadings(markdown).map((heading) => heading.slug),
     );
-    const inFence = new Set<number>();
+    const inFence = fenceLines(markdown);
     const issues: CoverageIssue[] = [];
-
-    for (const fence of parseFences(markdown)) {
-        const count = fence.code === "" ? 0 : fence.code.split("\n").length;
-
-        for (let line = fence.line; line <= fence.line + count + 1; line++) {
-            inFence.add(line);
-        }
-    }
 
     for (const [index, text] of markdown.split("\n").entries()) {
         if (inFence.has(index + 1)) {
@@ -235,6 +247,62 @@ export function brokenAnchors(markdown: string, page: string): CoverageIssue[] {
 
             if (!slugs.has(slug) && !slugs.has(decodeURIComponent(slug))) {
                 issues.push({ kind: "anchor", page, slug, line: index + 1 });
+            }
+        }
+    }
+
+    return issues;
+}
+
+/**
+ * Finds relative links to another docs page whose anchor has no heading there.
+ *
+ * @param markdown - The source of the page holding the links.
+ * @param page - That page's path relative to `docsRoot`.
+ * @param docsRoot - The docs root directory.
+ * @returns One issue per broken link; a link to a missing page is left to VitePress.
+ */
+export function brokenCrossPageAnchors(
+    markdown: string,
+    page: string,
+    docsRoot: string,
+): CoverageIssue[] {
+    const inFence = fenceLines(markdown);
+    const headings = new Map<string, Set<string>>();
+    const issues: CoverageIssue[] = [];
+
+    for (const [index, text] of markdown.split("\n").entries()) {
+        if (inFence.has(index + 1)) {
+            continue;
+        }
+
+        for (const match of text.matchAll(
+            /\]\((\.{1,2}\/[^)\s#]*\.md)#([^)\s]*)\)/g,
+        )) {
+            const target = path.posix.normalize(
+                path.posix.join(path.posix.dirname(page), match[1] as string),
+            );
+            const slug = match[2] as string;
+            let slugs = headings.get(target);
+
+            if (slugs === undefined) {
+                const source = readPage(docsRoot, target);
+
+                if (source === null) {
+                    continue;
+                }
+
+                slugs = new Set(parseHeadings(source).map((h) => h.slug));
+                headings.set(target, slugs);
+            }
+
+            if (!slugs.has(slug) && !slugs.has(decodeURIComponent(slug))) {
+                issues.push({
+                    kind: "anchor",
+                    page,
+                    slug: `${target}#${slug}`,
+                    line: index + 1,
+                });
             }
         }
     }
@@ -379,6 +447,23 @@ export function coverageReport(
                 ...brokenAnchors(markdown, page),
                 ...mismatchedVariantFences(markdown, page),
             );
+        }
+    }
+
+    for (const section of ["arrays-objects", "collections"]) {
+        const dir = path.join(root, section);
+
+        if (!existsSync(dir)) {
+            continue;
+        }
+
+        for (const file of readdirSync(dir, { recursive: true }).sort()) {
+            const page = path.posix.join(section, String(file));
+            const markdown = page.endsWith(".md") ? readPage(root, page) : null;
+
+            if (markdown !== null) {
+                issues.push(...brokenCrossPageAnchors(markdown, page, root));
+            }
         }
     }
 
