@@ -144,7 +144,7 @@ collect([1, 2, 3, 4, 5]).chunk(2).toArray();
 - **Examples** end in `.all()` or `.toArray()`. Use `.toArray()` when the items are collections.
 - **In-place methods** get Laravel's `::: warning` box ("Unlike most other collection methods, `forget` does not return a new modified collection; it modifies and returns the collection it is called on."), confirmed by an example that reads the original afterwards. Add the method to the in-place list in `collections/index.md`.
 - **JS-only members** (`length`, `Symbol.iterator`, `Symbol.toPrimitive`, `toJSON` and the extras on the differences page) get `<Badge type="info" text="JS only" />` on the line after the heading, never in it, so the anchor stays clean.
-- **Shared rules** live on the concept pages. A method that follows one links to it and does not restate it: `where` links to `../arrays-objects/php-semantics.md#loose-comparison`, and `pluck` to `../arrays-objects/dot-notation.md`.
+- **Shared rules** live on the concept pages. A method that follows one links to it and does not restate it: `where` links to `../arrays-objects/php-semantics.md#loose-and-strict-comparison`, and `pluck` to `../arrays-objects/dot-notation.md`.
 - **FnTry** is required except for `random`, `shuffle`, `dump`, `mapInto`, `pipeInto`, `whereInstanceOf` and `ensure` with class arguments.
 - **The page** starts with `# Tolki Collection Methods List`, then a `<script setup>` importing `collect`, `Collection` and the callback presets, `## Methods List` with the chip list, then `## Methods Details`.
 

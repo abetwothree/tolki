@@ -573,7 +573,7 @@ dataCombine(["name", "price"], ["Desk", 100]);
 
 ### contains
 
-Determine if there is a given value, a matching item or a matching key path. The comparison is loose, so `"1"` matches `1`; see [PHP Semantics](./php-semantics.md#loose-comparison).
+Determine if there is a given value, a matching item or a matching key path. The comparison is loose, so `"1"` matches `1`; see [PHP Semantics](./php-semantics.md#loose-and-strict-comparison).
 
 Exported as `contains` from `@tolki/arr` and `@tolki/obj`, and as `dataContains` from `@tolki/data`.
 
