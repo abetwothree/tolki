@@ -600,7 +600,11 @@ Get the values in the collection that are not present in the given array or coll
 
 Laravel: [`diff()`](https://laravel.com/docs/collections#method-diff)
 
-Keys are kept. Values are compared as strings, so `2` matches `"2"`. Array and object items are matched by identity: see [Differences from Laravel](https://tolki.abe.dev/collections/differences.html#values). The same operation on plain arrays and objects is in the [utilities list](https://tolki.abe.dev/arrays-objects/utilities-list.html#diff).
+A keyed collection keeps its keys. Values are compared as strings, so `2` matches `"2"`. Array and object items are matched by identity: see [Differences from Laravel](https://tolki.abe.dev/collections/differences.html#values). The same operation on plain arrays and objects is in the [utilities list](https://tolki.abe.dev/arrays-objects/utilities-list.html#diff).
+
+<!-- docs/php-parity/Collection/diff.json, "diff on array-backed collection" -->
+
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](https://tolki.abe.dev/collections/differences.html#keys-and-order).
 
 ```js
 import { collect } from "@tolki/collection";
@@ -622,6 +626,10 @@ Get the key and value pairs in the collection that are not present in the given 
 Laravel: [`diffAssoc()`](https://laravel.com/docs/collections#method-diffassoc)
 
 A pair is left out only when both its key and its value match. The same operation on plain arrays and objects is in the [utilities list](https://tolki.abe.dev/arrays-objects/utilities-list.html#diffassoc).
+
+<!-- docs/php-parity/Collection/diffAssoc.json, "diffAssoc on array-backed collection" -->
+
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](https://tolki.abe.dev/collections/differences.html#keys-and-order).
 
 ```js
 import { collect } from "@tolki/collection";

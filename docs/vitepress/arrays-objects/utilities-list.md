@@ -1118,7 +1118,7 @@ dataDivide({ name: "Desk", price: 100 });
 
 ### dot
 
-Flatten a multi-dimensional array or object into a single level that uses "dot" notation to show depth. See [Dot Notation](./dot-notation.md).
+Flatten a multi-dimensional array or object into a single level that uses "dot" notation to show depth. See [Dot Notation](./dot-notation.md). Pass a depth as the third argument to stop flattening early. A depth of `0` or `null` flattens nothing, as in Laravel. <!-- docs/php-parity/Arr/dot.json, "dot-depth-through-list", "dot-null-depth", "dot-zero-depth" -->
 
 Exported as `dot` from `@tolki/arr` and `@tolki/obj`, and as `dataDot` from `@tolki/data`.
 
@@ -1138,6 +1138,12 @@ import { dot } from "@tolki/obj";
 
 dot({ products: { desk: { price: 100 } } });
 // => { "products.desk.price": 100 }
+
+dot({ a: { b: { c: 1 } } }, "", 1);
+// => { "a.b": { c: 1 } }
+
+dot({ a: { b: 1 } }, "", null);
+// => { a: { b: 1 } }
 ```
 
 ```js [@tolki/data]

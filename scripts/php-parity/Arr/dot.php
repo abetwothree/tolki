@@ -44,6 +44,8 @@ probe('dot-object-leaf', "Arr::dot([\$o]), Arr::dot([['p' => \$o]]), Arr::dot(['
     ];
 });
 probe('dot-depth-through-list', "Arr::dot([['a' => ['b' => ['c' => 1]]]], '', 2)", fn () => Arr::dot([['a' => ['b' => ['c' => 1]]]], '', 2));
+probe('dot-null-depth', "Arr::dot(['a' => ['b' => 1]], '', null)", fn () => Arr::dot(['a' => ['b' => 1]], '', null));
+probe('dot-zero-depth', "Arr::dot(['a' => ['b' => 1]], '', 0)", fn () => Arr::dot(['a' => ['b' => 1]], '', 0));
 
 probe('dot-out-of-order', "Arr::dot([2 => 'c', 0 => 'a', 1 => 'b'])", fn () => arrayablePairs(Arr::dot(OUT_OF_ORDER)));
 probe('dot-out-of-order-prefixed', "Arr::dot([2 => 'c', 0 => 'a', 1 => 'b'], 'p.')", fn () => arrayablePairs(Arr::dot(OUT_OF_ORDER, 'p.')));
