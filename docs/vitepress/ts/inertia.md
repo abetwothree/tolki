@@ -23,7 +23,11 @@ With `inertia.enabled` on (the default), the package builds the file from your m
 - **`errors`**: left out. `@inertiajs/core` already types `page.props.errors` as `Errors & ErrorBag`, and [`errorValueType`](#anatomy-of-the-generated-file) sharpens it. A `#[TsCasts]` or `@return` docblock entry named `errors` still adds one if you want it.
 - **The output file**: the result is written to `inertia-config.d.ts`. Set `inertia.augmentation_filename` to change the name.
 
-`auth()->id()` and `Auth::id()` publish the auth model's key type with `| null`, such as `number | null`. When the package can't create an instance of the model, it reads the key type from the class, and publishes `unknown` if code works the key out. A model that overrides `getAuthIdentifierName()` or `getAuthIdentifier()` publishes `unknown` too, since the ID can then come from another column.
+`auth()->id()` and `Auth::id()` publish the type of the column the auth model identifies users by, with `| null`. That's the model's key, such as `number | null`, unless the model's `getAuthIdentifierName()` returns a literal column name. A model whose `getAuthIdentifierName()` returns `'email'` publishes `string | null`.
+
+When the package can't create an instance of the model, it reads the key type from the class, and publishes `unknown` if code works the key out. A `getAuthIdentifierName()` that works the column out in code, such as from config, publishes `unknown` too, and so does an override of `getAuthIdentifier()`, since only running your app shows which value the ID holds.
+
+In a route's [page props](./routing.md#inertia-integration), `getKey()` on a route-bound model publishes the model's key type with no `| null`, because Laravel binds only a saved row. With a `Post $post` action parameter, `'post_id' => $post->getKey()` publishes `post_id: number`.
 
 ::: warning A Ternary Between Two Different Enums
 A key whose ternary arms wrap different enums, such as `$cond ? EnumResource::make(Role::Admin) : EnumResource::make(Status::Draft)`, renders as `RoleType | StatusType` with no import for either name. Your build then fails with a `TS2304` error for each. Give both arms the same enum, or override that key with a `#[TsCasts]` entry that has an `import`.

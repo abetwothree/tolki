@@ -110,6 +110,10 @@ Step 3 lets a subclass use its parent's model without repeating the docblock, wh
 
 If no model resolves, a property read from the model, such as `$this->id`, publishes `unknown`.
 
+`$this->resource` holds the backing model, so a key that returns it whole publishes the model's interface. `'post' => $this->resource` publishes `post: Post`.
+
+A `ResourceCollection` is backed by no model, whatever its docblock or `#[TsResource(model:)]` names, because its `$this->resource` holds the collected items. A model read in a collection, such as `$this->title`, publishes `unknown`. See [Reading `$this->resource`](#reading-this-resource).
+
 ## Supported `toArray()` Patterns
 
 These sections cover the Laravel resource features you use in `toArray()`. Each one shows the PHP you write and the TypeScript it produces.
@@ -394,6 +398,31 @@ Here `owner` can't load `null`. On a relation that can, `owner_guessed` publishe
 
 A resource you name yourself is always used, even when this package doesn't publish it. That covers a class argument, `#[UseResource]` or `#[UseResourceCollection]`, and a collection's `#[Collects]` or `$collects`. When no resource matches at all, the property publishes `unknown`.
 
+A `?->` earlier in the same chain adds `| null` too, because PHP ends the whole chain with `null` when that step is `null`. A local variable ends the chain, so a call on it keeps the bare resource type:
+
+```php
+public function toArray(Request $request): array
+{
+    $grandparent = $this->parent?->parent;
+
+    return [
+        'grandparent' => $this->parent?->parent->toResource(),
+        'siblings' => $this->parent?->children->toResourceCollection(),
+        'local_grandparent' => $grandparent->toResource(),
+    ];
+}
+```
+
+On a `Category` resource, these keys publish:
+
+```typescript
+grandparent: CategoryResource | null;
+siblings: CategoryResource[] | null;
+local_grandparent: CategoryResource;
+```
+
+`$grandparent` can hold `null`, but calling `toResource()` on a `null` local throws instead of returning `null`, so `local_grandparent` never sends `null`.
+
 ### Enum Properties With `EnumResource`
 
 Wrap an enum-cast property in `EnumResource::make()` to send the enum as an object instead of its bare value:
@@ -631,11 +660,74 @@ export interface PostResource {
 
 A property read works the same way. Once `$post` holds a `Post`, `$post?->author?->name` publishes `string | null`. A value object's public property takes its declared type, so `$this->stats?->views` publishes `number | null`. A `?->` adds `| null` to the result once, however many steps use it.
 
+When the declaration says too little, as with no return type, `mixed`, or a bare `array`, the method's own `return` statements set the type:
+
+```php
+public function toArray(Request $request): array
+{
+    return [
+        'headline' => $this->headline(),
+        'size' => $this->size(),
+    ];
+}
+
+private function headline()
+{
+    return strtoupper($this->title);
+}
+
+private function size(): mixed
+{
+    if ($this->word_count > 1000) {
+        return 'long';
+    }
+
+    return 1.5;
+}
+```
+
+Each key publishes what its method's returns hold:
+
+```typescript
+headline: string;
+size: string | number;
+```
+
+Every `return` counts, so one the package can't type leaves the key `unknown`. A method that yields or returns a closure publishes `unknown` too. A method with no return type that can end without returning a value adds `| null`. This reading applies to the methods in your app, not to a vendor package's methods.
+
+A call to a method the resource declares takes that method's type, even when the backing model declares a method with the same name, because PHP runs the resource's method. Here the `Invoice` model declares `total(): string`, which formats the amount:
+
+```php
+'total' => $this->total(),                     // total: number
+'formatted_total' => $this->resource->total(), // formatted_total: string
+
+public function total(): mixed
+{
+    return (float) $this->resource->total;
+}
+```
+
+`$this->resource->total()` calls the model's method directly, so it publishes the model's type. When neither the resource method's declaration nor its body types the call, the key publishes `unknown`, never the model method's type. Give the method a return type to fix it. The same holds for a `$resource` redeclared as a class other than a model, such as `/** @var CartTotals */ public $resource;`. If `CartTotals` doesn't declare the method you call, the key publishes `unknown`, because Laravel throws there.
+
 Some of Laravel's own methods declare loose types, so the package reads the model instead. `getKey()` publishes the model's key type, `number` or `string`, and `modelKeys()` publishes a list of it. That's why `comment_ids` above is `number[]`. `resolveRouteBinding()` publishes the model you call it on, or `null`, so `$this->author?->resolveRouteBinding($this->user_id)` publishes `User | null`.
 
-A model you build in place with `new`, `replicate()`, `replicateQuietly()` or `newInstance()` has no key until you save it, so its `getKey()` adds `| null`: `(new Post)->getKey()` publishes `number | null`. On a model whose `$primaryKey` is `null`, `getKey()` publishes `null`.
+`getKey()` publishes the key type on any model the package can name, including one a variable holds, such as a `whenLoaded()` closure parameter, a `map()` element, or a helper's `Post $post` parameter. So `$this->comments->map(fn ($comment) => $comment->getKey())` publishes `number[]`.
+
+A model that no database row backs yet has no key, so its `getKey()` adds `| null`. That covers a model you build with `new`, `replicate()`, `replicateQuietly()` or `newInstance()`, and one that a query, a relation or a factory builds without saving it:
+
+```php
+'draft_id' => Post::make(['title' => 'Draft'])->getKey(),       // number | null
+'found_id' => Post::firstOrNew(['title' => 'Draft'])->getKey(), // number | null
+'reply_id' => $this->resource->comments()->make()->getKey(),    // number | null
+'fake_user_id' => User::factory()->make()->getKey(),            // number | null
+'created_id' => Post::create(['title' => 'Draft'])->getKey(),   // number
+```
+
+A call that returns the same model, such as `(new Post)->fill([...])`, keeps the `| null`. A helper's `Post $post` parameter adds it only where the call passes a model no row backs yet. The package doesn't follow `save()`, so a model you save after `new` still publishes `number | null`. On a model whose `$primaryKey` is `null`, `getKey()` publishes `null`.
 
 On an abstract model, `getKey()` publishes the key type the class declares, through `$keyType`, `HasUuids`, `HasUlids` or Laravel 13's `#[Table]`, joined with the key type of each published model that extends it. So a base whose subclasses key by integer and by UUID publishes `number | string`. When the abstract model works its key out in code, such as in an overridden `getKeyType()`, `getKey()` publishes `unknown`.
+
+`getAuthIdentifier()` on an authenticatable model publishes the type of the column the model identifies users by. That's the key type, or the type of the column a literal `getAuthIdentifierName()` returns, so a model whose `getAuthIdentifierName()` returns `'email'` publishes `string`. A model no row backs yet adds `| null`, and a model that overrides `getAuthIdentifier()` publishes the return type it declares.
 
 A method that returns a plain PHP `DateTime` or `DateTimeImmutable` publishes `{ date: string; timezone_type: number; timezone: string }`, the object `json_encode()` writes for it. A Carbon date publishes `string`, or `Date` under `timestamps_as_date`, and so do the `now()` and `today()` helpers, which return one. A `DateTimeInterface` can hold either kind, so it publishes the Carbon date's type or that object, and a `CarbonPeriod` publishes a list of the Carbon date's type. A `CarbonInterval` publishes the `DateInterval` fields `json_encode()` writes for it, such as `y`, `m`, `d` and `days`. `str($value)` publishes `string`, and `str()` with no argument publishes `Record<string, never>`. `url($path)` publishes `string` when the path can't be `null`, and `unknown` when it can or has no type.
 
@@ -710,7 +802,18 @@ private function authorCard($author): array
 }
 ```
 
-The package can't use the method body when the method can return something other than an array literal, apart from a `null`, boolean, string, or number literal its declaration allows. Returning another method call, a generator, or a bare `return;` all count. The property then publishes `unknown`.
+When the method can return something other than an array literal, apart from a `null`, boolean, string, or number literal its declaration allows, the package reads each `return` as a value instead, as [Method Return Types](#method-return-types) describes. So a method that returns a collection pipeline publishes its list:
+
+```php
+'contents' => $this->contents(), // contents: string[]
+
+private function contents(): array
+{
+    return $this->comments->map(fn ($comment) => $comment->content)->values()->all();
+}
+```
+
+If one `return` can't be typed, or the method yields, the property publishes `unknown`.
 
 When you use the method's result as a value, a value in the array that is an enum or a model publishes `unknown`, because a method body can't supply the import it needs. The rest of the shape keeps its types. Spreading the same method keeps an enum's type. To type that value, build the array in `toArray()` itself, or override the property with [`#[TsCasts]`](#overriding-property-types-with-tscasts) and a type your frontend exports, as in `['type' => 'StatusPayload', 'import' => '@/types/payloads']`. An entry imports only a type it names whole, so a type named inside a shape you write in the entry isn't imported.
 
@@ -744,6 +847,29 @@ The `role` column is an enum, so it's left `unknown`, and the to-many `replies` 
 ```typescript
 summary: { id: number; author: { id: number; name: string }; author_role: { id: number; role: unknown } | null; replies: unknown[] };
 ```
+
+#### Resource Macros
+
+Laravel runs a macro you register on `JsonResource` before it forwards a call to the model, so a call the macro answers publishes what the macro returns, never the type of a model method with the same name:
+
+```php
+// In a service provider's boot() method
+JsonResource::macro('label', function (): string {
+    return strtoupper($this->resource->title);
+});
+
+// In a Post resource, where the Post model declares label(): int
+'label' => $this->label(),                 // label: string
+'model_label' => $this->resource->label(), // model_label: number
+```
+
+`$this->resource->label()` calls the model directly, so it keeps the model's type. `$this?->label()`, `static::label()`, `self::label()` and `$this::label()` reach the macro, as `$this->label()` does. A method the resource declares or inherits, such as `whenLoaded()`, runs before any macro with its name, so a macro never changes it.
+
+The package types a macro from its native return type, then its `@return` docblock, then its body. It reads the body without the values the call passes, so a body whose result depends on its arguments publishes `unknown`. It doesn't read the body of a closure declared outside a class method, such as in `bootstrap/app.php`. To type such a macro, give the closure a return type. A `@return` docblock works only on a closure declared inside a class, such as in a service provider's `boot()` method.
+
+The package sees the macros your app registers while it boots. It doesn't see a macro registered later, or by a deferred service provider, so a call to that macro publishes as if the macro didn't exist.
+
+Registering, removing, or re-pointing a macro makes the next `ts:publish` rebuild every class instead of reusing the [generation cache](./generating-cache.md).
 
 ### Local Variables and Narrowing
 
@@ -915,7 +1041,7 @@ The annotation follows these rules:
 
 A conditional value stays optional, so `/** @var User $reviewer */ $reviewer = $this->whenLoaded('reviewer');` publishes `reviewer?: User`.
 
-A closure parameter you reassign reads the new value from that statement on, when the value or an annotation names its class. In `function (User $author)`, `$author = $author->profile;` makes the reads after it use `Profile`. The package can't tell which class `$author->comments->first()` returns, so after `$author = $author->comments->first();` the reads keep using `User` until you annotate the assignment with `/** @var Comment $author */`. A `foreach` variable bound to a model keeps reading that model.
+A closure parameter you reassign reads the new value from that statement on, when the value or an annotation names its class. In `function (User $author)`, `$author = $author->profile;` makes the reads after it use `Profile`. The package can't tell which class `$author->comments->find(1)` returns, so after `$author = $author->comments->find(1);` the reads keep using `User` until you annotate the assignment with `/** @var Comment $author */`. A `foreach` variable bound to a model keeps reading that model.
 
 The annotation's type counts only when it's built from these forms, and when every part of it resolves:
 
@@ -964,6 +1090,10 @@ These helpers and methods publish as follows:
 - **Typed `map()` parameters**: a model type hint on a `map()` parameter types every read through it, chained and nullsafe reads included, when you call `map()` on a variable such as a local or a `whenLoaded()` parameter. With `$rows = $this->resource->getRelation('comments')`, `$rows->map(fn (Comment $comment) => $comment->user?->name ?: null)->all()` publishes `(string | null)[]`. A relation chain such as `$this->comments->map(...)` uses the relation's model the same way. On a `collect(...)` root, or on a `map()` called straight on a method's result, such as `$this->resource->getRelation('comments')->map(...)`, the parameter holds no model, so reads through it publish `unknown`.
 
 `concat($other)` keeps the type only when `$other` is exactly the same collection type. Concatenating `Comment[]` and `Tag[]` publishes `unknown`, since the result is a different collection, not a longer one. A `data_get()` key with a `*` segment also publishes `unknown`.
+
+A chain can start at `$this->resource` too. `$this->resource->comments->map(fn ($comment) => $comment->id)` publishes `number[]`, as `$this->comments->map(...)` does. A `?->` on `$this->resource` adds `| null` once, since a resource can wrap `null`. `$this->resource?->comments->map(fn ($comment) => $comment->id)` publishes `number[] | null`.
+
+`first()`, `last()` and `firstWhere()` on a relation's collection return one of its models or `null`, so a read through them with `?->` is typed. `$this->comments->first()?->content` publishes `string | null`, and so does the same read after `last()` or `firstWhere('is_flagged', true)`. After a `first()` or `last()` call that passes a default, such as `first(null, 'none')`, the read publishes `unknown`, because Laravel returns that default when no model matches.
 
 ## Spreads and Inheritance
 
@@ -1602,6 +1732,8 @@ replies: Comment[];
 kept: Comment[] | null;
 ```
 
+A `?->` on `$this->resource` adds `| null` once, because a resource can wrap `null`. `$this->resource?->comments->only([1, 2])` publishes `Comment[] | null`.
+
 An accessor that returns an Eloquent collection of models filters the same way. It publishes a list of those models, such as `Comment[]`, whatever key type the accessor declares.
 
 A member holding a support `Collection` selects entries by key: `only()` keeps the listed keys, and `except()` drops them. Its filter publishes `Record<string, unknown>`, whatever the collection holds. This covers these members:
@@ -1811,6 +1943,64 @@ export interface TeamCollection {
 ```
 
 With `public static $wrap = null;` as well, the collection publishes the alias `export type TeamCollection = Record<string, TeamResource>;`.
+
+### Reading `$this->resource`
+
+Inside a collection, `$this->resource` holds the collected items, which are a collection of the singular resource or the paginator you passed in. A key that returns it, or its `toArray()`, publishes every shape Laravel can send, with the paginator types from `@tolki/types`:
+
+```php
+class UserCollection extends ResourceCollection
+{
+    public $collects = UserResource::class;
+
+    public function toArray(Request $request): array
+    {
+        return [
+            'data' => $this->collection,
+            'page' => $this->resource,
+            'first_user' => $this->resource->first(),
+            'user_count' => $this->resource->count(),
+        ];
+    }
+}
+```
+
+The collection publishes:
+
+```typescript
+import type {
+  CursorPaginator,
+  LengthAwarePaginator,
+  SimplePaginator,
+} from "@tolki/types";
+import type { UserResource } from ".";
+
+export interface UserCollection {
+  data: UserResource[];
+  page:
+    | UserResource[]
+    | LengthAwarePaginator<UserResource>
+    | SimplePaginator<UserResource>
+    | CursorPaginator<UserResource>;
+  first_user: UserResource | null;
+  user_count: number;
+}
+```
+
+These calls on `$this->resource` publish a type of their own:
+
+- `first()` and `last()` publish `UserResource | null`.
+- `count()` publishes `number`, and `isEmpty()` publishes `boolean`.
+- `only()` and `except()` publish `UserResource[] | Record<string, UserResource>`, since the items they keep come back under their own keys.
+- A paginator method, such as `total()`, `perPage()` or `nextPageUrl()`, publishes its return type, such as `number` or `string | null`.
+
+Laravel throws when the items are a plain collection, or a paginator without that method, so the type covers only the paginators that have it. `total()` exists only on the paginator `paginate()` returns, so call it only in a collection you always build from `paginate()`.
+
+If the collection always receives one kind of paginator, redeclare `$resource` with it. With `/** @var LengthAwarePaginator<int, UserResource> */ public $resource;`, `page` publishes `LengthAwarePaginator<UserResource>`.
+
+A call the collection forwards to `$this->resource`, such as `$this->first()` or `$this->total()`, publishes the same type. In a [key-preserving collection](#key-preserving-collections), the list type is `Record<string, UserResource>`. When no singular resource matches, each type holds `unknown`, such as `unknown[]` and `LengthAwarePaginator<unknown>`.
+
+The package doesn't follow a collection pipeline on `$this->resource`, such as `map()`, `pluck()` or `values()`, or a read on the item `first()` returns, such as `$this->resource->first()?->name`. Each publishes `unknown`. Type such a key with [`#[TsCasts]`](#overriding-property-types-with-tscasts).
 
 ### Paginated Collections
 
