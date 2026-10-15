@@ -115,6 +115,16 @@ function traversable(): Generator
     yield 2;
 }
 
+/** A generator over 1..$n that records each number it yields in $read, so a probe can count how far a caller read. */
+function countedGenerator(int $n, array &$read): Generator
+{
+    for ($i = 1; $i <= $n; $i++) {
+        $read[] = $i;
+
+        yield $i;
+    }
+}
+
 // ---- 4. An empty dot-path segment.
 /** Run one `Arr::set` on a fresh empty array and record what it wrote. */
 function setOn(string $label, string $expression, string $key): void
