@@ -1885,7 +1885,7 @@ collect([1, 2]).last((value) => value > 5, "none");
 
 Get the number of items in the collection, as a property.
 
-It gives the same number as [`count()`](#count), and lets code that checks `length` treat a collection like an array.
+It gives the same number as [`count()`](#count), and lets code that reads `length` treat a collection like an array.
 
 ```js
 import { collect } from "@tolki/collection";
