@@ -851,6 +851,43 @@ test("JsonApiSparse makes every attribute optional", () => {
             JsonApiSparse<UserResource> | CommentResource | CategoryResource
         >
     >();
+
+    // A sparse union stays a union of resource objects, so `type` still narrows each one.
+    const sparseUnion: JsonApiDocument<
+        PostResource,
+        JsonApiSparse<UserResource | CommentResource>
+    > = {
+        data: {
+            ...firstPost,
+            relationships: {
+                comments: { data: [{ id: "1", type: "comments" }] },
+            },
+        },
+        included: [
+            {
+                id: "1",
+                type: "comments",
+                attributes: { content: "c1" },
+                relationships: { user: { data: { id: "2", type: "users" } } },
+            },
+            { id: "2", type: "users", attributes: { name: "Bob" } },
+        ],
+    };
+
+    for (const included of sparseUnion.included ?? []) {
+        if (included.type === "comments") {
+            expectTypeOf(included.attributes).toEqualTypeOf<
+                Partial<CommentResource["attributes"]> | undefined
+            >();
+            expectTypeOf(included.relationships).toEqualTypeOf<
+                CommentResource["relationships"]
+            >();
+        } else {
+            expectTypeOf(included.attributes).toEqualTypeOf<
+                Partial<UserResource["attributes"]> | undefined
+            >();
+        }
+    }
 });
 
 test("a JSON:API collection over a simple or cursor paginator carries that kind's meta", () => {

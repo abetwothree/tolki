@@ -137,11 +137,13 @@ export interface JsonApiCursorPaginator<
 /**
  * A resource object read under a sparse fieldset (`?fields[type]=…`), where any attribute may be left out.
  *
+ * Over a union, it reads each resource object on its own, so narrowing on `type` still narrows `attributes`.
+ *
  * @see https://laravel.com/docs/master/eloquent-resources#jsonapi-sparse-fieldsets-and-includes
  */
-export type JsonApiSparse<TResource extends { attributes?: object }> = Omit<
-    TResource,
-    "attributes"
-> & {
-    attributes?: Partial<NonNullable<TResource["attributes"]>>;
-};
+export type JsonApiSparse<TResource extends { attributes?: object }> =
+    TResource extends unknown
+        ? Omit<TResource, "attributes"> & {
+              attributes?: Partial<NonNullable<TResource["attributes"]>>;
+          }
+        : never;
