@@ -3292,7 +3292,7 @@ export function set(
 }
 
 /**
- * Push one or more items into the array at the given key, using numeric-only dot notation.
+ * Push an item into an array using "dot" notation.
  *
  * Unlike PHP, the whole array is returned rather than `Arr::set`'s innermost container,
  * and an out-of-range index is clamped to an append instead of a gapped integer key.
