@@ -891,6 +891,19 @@
                     }
                 }
             ]
+        },
+        {
+            "label": "push-object-along-the-path",
+            "php": "$a = [['d' => (object) ['k' => 1]]]; Arr::push($a, '0.d.k', 'v')",
+            "value": [
+                {
+                    "d": {
+                        "k": [
+                            "v"
+                        ]
+                    }
+                }
+            ]
         }
     ]
 }

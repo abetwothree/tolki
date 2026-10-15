@@ -259,4 +259,12 @@ probe('push-assoc-leaf-appends', "\$a = [['x' => ['k' => 1]]]; Arr::push(\$a, '0
     return $a;
 });
 
+probe('push-object-along-the-path', "\$a = [['d' => (object) ['k' => 1]]]; Arr::push(\$a, '0.d.k', 'v')", function () {
+    // A stdClass is neither an array nor ArrayAccess, so get() stops at it and set() swaps it for a fresh array.
+    $a = [['d' => (object) ['k' => 1]]];
+    Arr::push($a, '0.d.k', 'v');
+
+    return $a;
+});
+
 emit();

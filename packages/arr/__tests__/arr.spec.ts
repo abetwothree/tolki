@@ -2926,6 +2926,20 @@ describe("Arr", () => {
             expect(Arr.push(["a"], "0.0", "v")).toEqual([[["v"]]]);
         });
 
+        it("replaces a class instance or a Date along the path, as Laravel's set replaces an object", () => {
+            // docs/php-parity/Arr/push.json, "push-object-along-the-path"
+            class Point {
+                k = 1;
+            }
+
+            expect(Arr.push([{ d: new Point() }], "0.d.k", "v")).toStrictEqual([
+                { d: { k: ["v"] } },
+            ]);
+            expect(Arr.push([{ d: new Date(0) }], "0.d.k", "v")).toStrictEqual([
+                { d: { k: ["v"] } },
+            ]);
+        });
+
         it("still rejects a plain object at the key", () => {
             // JS-only: Laravel appends under the next integer key (docs/php-parity/Arr/push.json,
             // "push-assoc-leaf-appends"); the port keeps throwing there, a parked decision.
