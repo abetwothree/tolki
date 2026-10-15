@@ -14,4 +14,8 @@ describe("theme source", () => {
             index.indexOf('from "vitepress/theme"'),
         );
     });
+
+    it("links the logo mark as the favicon", () => {
+        expect(read("../config.ts")).toContain('href: "/tolki-logo-mark.svg"');
+    });
 });

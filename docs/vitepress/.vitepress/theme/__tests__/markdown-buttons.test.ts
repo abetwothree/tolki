@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { labelMarkdownButtons } from "../markdown-buttons";
@@ -40,5 +43,23 @@ describe("labelMarkdownButtons", () => {
         expect(
             document.querySelector(".other")?.hasAttribute("aria-label"),
         ).toBe(false);
+    });
+
+    it("targets class names the installed vitepress-plugin-llms component still renders", () => {
+        const component = readFileSync(
+            fileURLToPath(
+                import.meta
+                    .resolve("vitepress-plugin-llms/vitepress-components/CopyOrDownloadAsMarkdownButtons.vue"),
+            ),
+            "utf8",
+        );
+
+        for (const name of [
+            "markdown-copy-buttons",
+            "chevron-wrapper",
+            "download-btn",
+        ]) {
+            expect(component).toContain(name);
+        }
     });
 });
