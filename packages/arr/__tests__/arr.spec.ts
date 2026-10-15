@@ -1318,6 +1318,42 @@ describe("Arr", () => {
             ).toBe(2);
             expect(calls).toBe(2);
         });
+
+        it("walks an object literal that has its own iterator, as Laravel walks a Traversable", () => {
+            // docs/php-parity/Arr/first.json, "first-traversable-stops-at-the-match",
+            // "first-traversable-without-callback-reads-one"
+            const read: number[] = [];
+            const range = {
+                from: 1,
+                to: 5,
+                *[Symbol.iterator]() {
+                    for (let i = this.from; i <= this.to; i++) {
+                        read.push(i);
+                        yield i * 10;
+                    }
+                },
+            };
+
+            expect(Arr.first(range)).toBe(10);
+            expect(read).toEqual([1]);
+
+            read.length = 0;
+            expect(Arr.first(range, (value) => value > 20)).toBe(30);
+            expect(read).toEqual([1, 2, 3]);
+        });
+
+        it("stops at the first match in an endless object literal iterator", () => {
+            // docs/php-parity/Arr/first.json, "first-traversable-stops-at-the-match"
+            const naturals = {
+                *[Symbol.iterator]() {
+                    for (let n = 1; ; n++) {
+                        yield n;
+                    }
+                },
+            };
+
+            expect(Arr.first(naturals, (value) => value > 3)).toBe(4);
+        });
     });
 
     describe("last", () => {
@@ -1516,6 +1552,23 @@ describe("Arr", () => {
                     (value: number) => value < 6,
                 ),
             ).toBe(5);
+        });
+
+        it("walks an object literal that has its own iterator", () => {
+            // JS-only: PHP has no object literal with its own iterator, so last.json has no row; it is walked like a
+            // generator rather than read as a record of its properties.
+            const range = {
+                from: 1,
+                to: 5,
+                *[Symbol.iterator]() {
+                    for (let i = this.from; i <= this.to; i++) {
+                        yield i * 10;
+                    }
+                },
+            };
+
+            expect(Arr.last(range)).toBe(50);
+            expect(Arr.last(range, (value) => value < 40)).toBe(30);
         });
     });
 

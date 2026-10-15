@@ -8011,6 +8011,23 @@ describe("Data", () => {
             );
             expect(keys).toEqual(["x", "y"]);
         });
+
+        it("walks an object literal that has its own iterator, as Laravel walks a Traversable", () => {
+            // docs/php-parity/Arr/first.json, "first-traversable-stops-at-the-match",
+            // "first-traversable-without-callback-reads-one"
+            const range = {
+                from: 1,
+                to: 5,
+                *[Symbol.iterator]() {
+                    for (let i = this.from; i <= this.to; i++) {
+                        yield i * 10;
+                    }
+                },
+            };
+
+            expect(Data.dataFirst(range)).toBe(10);
+            expect(Data.dataFirst(range, (value) => value > 20)).toBe(30);
+        });
     });
 
     describe("dataLast", () => {
@@ -8128,6 +8145,23 @@ describe("Data", () => {
                 },
             );
             expect(keys).toEqual(["y", "x"]);
+        });
+
+        it("walks an object literal that has its own iterator", () => {
+            // JS-only: PHP has no object literal with its own iterator, so last.json has no row; it is walked like a
+            // generator rather than read as a record of its properties.
+            const range = {
+                from: 1,
+                to: 5,
+                *[Symbol.iterator]() {
+                    for (let i = this.from; i <= this.to; i++) {
+                        yield i * 10;
+                    }
+                },
+            };
+
+            expect(Data.dataLast(range)).toBe(50);
+            expect(Data.dataLast(range, (value) => value < 40)).toBe(30);
         });
     });
 

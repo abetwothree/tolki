@@ -1242,7 +1242,8 @@ export function first<TValue, TFirstDefault = null>(
     const items = collectionItems(data);
 
     // obj reads a Map or a record with PHP's keys, as Laravel reads an array; a walk here yields entries or positions.
-    if (isMap(items) || isPlainObject(items)) {
+    // An object literal with its own iterator is a Traversable, which Laravel walks.
+    if (isMap(items) || (isPlainObject(items) && !isIterable(items))) {
         return objFirst(
             items,
             callback as
@@ -1383,7 +1384,8 @@ export function last<TValue, TFirstDefault = null>(
     const items = collectionItems(data);
 
     // obj reads a Map or a record with PHP's keys, as Laravel reads an array; a walk here yields entries or positions.
-    if (isMap(items) || isPlainObject(items)) {
+    // An object literal with its own iterator is a Traversable, which Laravel walks.
+    if (isMap(items) || (isPlainObject(items) && !isIterable(items))) {
         return objLast(
             items,
             callback as
