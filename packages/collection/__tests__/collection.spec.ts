@@ -2529,6 +2529,15 @@ describe("Collection", () => {
                 "keyed",
             );
         });
+
+        it("compares values as strings while the callback compares keys", () => {
+            // docs/php-parity/Collection/diffAssocUsing.json, "diffAssocUsing-values-as-strings"
+            const sameKey = (a: unknown, b: unknown) => (a === b ? 0 : 1);
+
+            expect(
+                collect({ a: 1 }).diffAssocUsing({ a: "1" }, sameKey).all(),
+            ).toEqual({});
+        });
     });
 
     describe("diffKeys", () => {
@@ -5565,6 +5574,17 @@ describe("Collection", () => {
                 ),
                 "keyed",
             );
+        });
+
+        it("compares values as strings while the callback compares keys", () => {
+            // docs/php-parity/Collection/intersectAssocUsing.json, "intersectAssocUsing-values-as-strings"
+            const sameKey = (a: unknown, b: unknown) => (a === b ? 0 : 1);
+
+            expect(
+                collect({ a: 1 })
+                    .intersectAssocUsing({ a: "1" }, sameKey)
+                    .all(),
+            ).toEqual({ a: 1 });
         });
     });
 

@@ -29,4 +29,6 @@ probe('intersectAssocUsing-scalar-backing', "(new Collection(5))->intersectAssoc
 
 probe('intersectAssocUsing-list-keeps-gap-keys', "(new Collection(['a', 'b', 'c']))->intersectAssocUsing([0 => 'a', 2 => 'c'], fn (\$a, \$b) => \$a <=> \$b)", fn () => (new Collection(['a', 'b', 'c']))->intersectAssocUsing([0 => 'a', 2 => 'c'], fn ($a, $b) => $a <=> $b)->all());
 
+probe('intersectAssocUsing-values-as-strings', "(new Collection(['a' => 1]))->intersectAssocUsing(['a' => '1'], 'strcasecmp')", fn () => (new Collection(['a' => 1]))->intersectAssocUsing(['a' => '1'], 'strcasecmp')->all());
+
 emit();

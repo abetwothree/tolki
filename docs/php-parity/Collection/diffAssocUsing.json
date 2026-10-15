@@ -77,6 +77,11 @@
                     "red"
                 ]
             }
+        },
+        {
+            "label": "diffAssocUsing-values-as-strings",
+            "php": "(new Collection(['a' => 1]))->diffAssocUsing(['a' => '1'], 'strcasecmp')",
+            "value": []
         }
     ]
 }

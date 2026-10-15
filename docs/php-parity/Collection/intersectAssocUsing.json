@@ -48,6 +48,13 @@
                 "0": "a",
                 "2": "c"
             }
+        },
+        {
+            "label": "intersectAssocUsing-values-as-strings",
+            "php": "(new Collection(['a' => 1]))->intersectAssocUsing(['a' => '1'], 'strcasecmp')",
+            "value": {
+                "a": 1
+            }
         }
     ]
 }
