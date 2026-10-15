@@ -103,6 +103,11 @@ describe("Arr", () => {
             expect(Arr.add([0], 0, 9)).toEqual([0]);
         });
 
+        it("adds a key to a plain-object row", () => {
+            // docs/php-parity/Arr/add.json, "add-list-of-assoc-rows"
+            expect(Arr.add([{ a: 1 }], "0.b", 2)).toEqual([{ a: 1, b: 2 }]);
+        });
+
         it("add", () => {
             // Test adding to array when key doesn't exist
             expect(Arr.add(["Desk"], 1, 100)).toEqual(["Desk", 100]);
@@ -1842,6 +1847,50 @@ describe("Arr", () => {
                 Arr.forget([10, 20, 30], [1.5 as unknown as number, -2]),
             ).toEqual([10, 20, 30]);
         });
+
+        it("removes a key from a plain-object row", () => {
+            // docs/php-parity/Arr/forget.json, "forget-list-of-assoc-rows", "forget-nested-assoc-in-a-row"
+            expect(Arr.forget([{ a: 1, b: 2 }], "0.a")).toEqual([{ b: 2 }]);
+            expect(Arr.forget([{ a: { x: 1, y: 2 } }], "0.a.x")).toEqual([
+                { a: { y: 2 } },
+            ]);
+        });
+
+        it("removes several keys at their original positions across rows", () => {
+            // docs/php-parity/Arr/forget.json, "forget-list-of-assoc-rows-many", "forget-list-inside-a-row":
+            // PHP leaves the inner list keyed {1: 2}, which a JS list renumbers to [2].
+            expect(
+                Arr.forget([{ a: 1, b: 2 }, { a: 3 }], ["0.a", "1.a"]),
+            ).toEqual([{ b: 2 }, {}]);
+            expect(Arr.forget([{ l: [1, 2, 3] }], ["0.l.0", "0.l.2"])).toEqual([
+                { l: [2] },
+            ]);
+        });
+
+        it("skips a key whose path meets null", () => {
+            // docs/php-parity/Arr/forget.json, "forget-null-inside-a-row"
+            expect(Arr.forget([{ a: null }], "0.a.b")).toEqual([{ a: null }]);
+        });
+
+        it("leaves the caller's rows untouched", () => {
+            const calls: [unknown[], string | string[]][] = [
+                [[{ a: 1, b: 2 }], "0.a"],
+                [[{ a: { x: 1, y: 2 } }], "0.a.x"],
+                [
+                    [{ a: 1, b: 2 }, { a: 3 }],
+                    ["0.a", "1.a"],
+                ],
+                [[{ l: [1, 2, 3] }], ["0.l.0", "0.l.2"]],
+                [[{ a: null }], "0.a.b"],
+            ];
+
+            for (const [rows, keys] of calls) {
+                const snapshot = structuredClone(rows);
+
+                Arr.forget(rows, keys);
+                expect(rows).toEqual(snapshot);
+            }
+        });
     });
 
     describe("from", () => {
@@ -2804,6 +2853,42 @@ describe("Arr", () => {
             const nested = Arr.push([], "0.1.2", "deep-value");
             expect(nested).toEqual([[[["deep-value"]]]]);
         });
+
+        it("appends into a list inside a plain-object row", () => {
+            // docs/php-parity/Arr/push.json, "push-list-of-assoc-rows", "push-empty-assoc-row"
+            expect(Arr.push([{ x: [1] }], "0.x", 2)).toEqual([{ x: [1, 2] }]);
+            expect(Arr.push([{}], "0.1", "v")).toEqual([{ 1: ["v"] }]);
+        });
+
+        it("replaces null or a scalar along the path, as Laravel's set does", () => {
+            // docs/php-parity/Arr/push.json, "push-null-row-string-segment", "push-string-row-string-segment",
+            // "push-boolean-row" (PHP's key 1 lands at index 0, the port's clamp), "push-string-row-integer-segment"
+            expect(Arr.push([null], "0.child", "v")).toEqual([
+                { child: ["v"] },
+            ]);
+            expect(Arr.push(["existing"], "0.name", "v")).toEqual([
+                { name: ["v"] },
+            ]);
+            expect(Arr.push([true], "0.1", "v")).toEqual([[["v"]]]);
+            expect(Arr.push(["a"], "0.0", "v")).toEqual([[["v"]]]);
+        });
+
+        it("still rejects a plain object at the key", () => {
+            // JS-only: Laravel appends under the next integer key (docs/php-parity/Arr/push.json,
+            // "push-assoc-leaf-appends"); the port keeps throwing there, a parked decision.
+            const push = (): unknown => Arr.push([{ x: { k: 1 } }], "0.x", "v");
+
+            expect(push).toThrow(InvalidArgumentException);
+            expect(push).toThrow(
+                "Array value for key [0.x] must be an array, object found.",
+            );
+        });
+
+        it("still writes nothing for a string key under a list", () => {
+            // JS-only: PHP turns the inner list into an associative array, which a JS list cannot hold
+            // (docs/php-parity/Arr/push.json, "push-string-segment-under-a-list-row").
+            expect(Arr.push([["a"]], "0.name", "v")).toEqual([["a"]]);
+        });
     });
 
     describe("pull", () => {
@@ -2898,6 +2983,18 @@ describe("Arr", () => {
             const result = Arr.pull(["x", "y"], "01", "d");
             expect(result.value).toBe("d");
             expect(result.data).toEqual(["x", "y"]);
+        });
+
+        it("pulls a key out of a plain-object row", () => {
+            // docs/php-parity/Arr/pull.json, "pull-list-of-assoc-rows", "pull-nested-assoc-in-a-row"
+            expect(Arr.pull([{ a: 1, b: 2 }], "0.a")).toEqual({
+                value: 1,
+                data: [{ b: 2 }],
+            });
+            expect(Arr.pull([{ a: { x: 1, y: 2 } }], "0.a.x")).toEqual({
+                value: 1,
+                data: [{ a: { y: 2 } }],
+            });
         });
     });
 
@@ -8192,6 +8289,46 @@ describe("Arr", () => {
                 ).toEqual(expected);
             },
         );
+    });
+
+    describe("prototype keys in a row", () => {
+        const probed = ["a", "v", "x", "0"];
+
+        afterEach(() => {
+            for (const key of probed) {
+                Reflect.deleteProperty(Object.prototype, key);
+            }
+        });
+
+        it("never writes through a prototype while walking a row", () => {
+            // docs/php-parity/Arr/push.json, "push-proto-key-on-a-row", "push-proto-segment-through-a-row";
+            // docs/php-parity/Arr/forget.json, "forget-proto-segment-in-a-row"
+            const [row] = Arr.push([{}], "0.__proto__", "v") as unknown[];
+            const [deep] = Arr.push([{}], "0.__proto__.x", "v") as unknown[];
+
+            expect(
+                Object.getOwnPropertyDescriptor(row, "__proto__")?.value,
+            ).toEqual(["v"]);
+            expect(Object.getPrototypeOf(row)).toBe(Object.prototype);
+            expect(
+                Object.getOwnPropertyDescriptor(deep, "__proto__")?.value,
+            ).toEqual({ x: ["v"] });
+            expect(Object.getPrototypeOf(deep)).toBe(Object.prototype);
+            expect(Arr.forget([{ a: 1 }], "0.__proto__.a")).toEqual([{ a: 1 }]);
+
+            for (const key of probed) {
+                expect(Object.hasOwn(Object.prototype, key)).toBe(false);
+            }
+        });
+
+        it("skips a key whose path meets a prototype object", () => {
+            // JS-only: PHP has no prototype object, so no row records one; a row holding one keeps it, not a copy.
+            const [objectRow] = Arr.forget([{ p: Object.prototype }], "0.p.a");
+            const [arrayRow] = Arr.forget([{ p: Array.prototype }], "0.p.0");
+
+            expect(objectRow?.p).toBe(Object.prototype);
+            expect(arrayRow?.p).toBe(Array.prototype);
+        });
     });
 
     // Array.prototype passes `isArray` and Object.prototype passes `isObjectAny`,

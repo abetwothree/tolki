@@ -2253,6 +2253,13 @@ describe("Data", () => {
             expect(result).toEqual(["products", ["desk"]]);
         });
 
+        it("removes a key from a plain-object row", () => {
+            // docs/php-parity/Arr/forget.json, "forget-list-of-assoc-rows"
+            expect(Data.dataForget([{ a: 1, b: 2 }], "0.a")).toEqual([
+                { b: 2 },
+            ]);
+        });
+
         it("resolves a top-level key following a dot key against the top level", () => {
             const result = Data.dataForget(
                 { users: { name: "Joe", id: 1 }, id: 99 },
@@ -3758,6 +3765,14 @@ describe("Data", () => {
             expect(result1.data).toEqual([1, 3]);
         });
 
+        it("pulls a key out of a plain-object row", () => {
+            // docs/php-parity/Arr/pull.json, "pull-list-of-assoc-rows"
+            expect(Data.dataPull([{ a: 1, b: 2 }], "0.a")).toEqual({
+                value: 1,
+                data: [{ b: 2 }],
+            });
+        });
+
         it("pulls a first-level key that contains dots, through the object backing", () => {
             // PHP-verified: docs/php-parity/Arr/pull.json, "Arr::pull
             // — first-level key containing dots".
@@ -4810,6 +4825,13 @@ describe("Data", () => {
             const obj = { items: ["a", "b"] };
             const result = Data.dataPush(obj, "items", "c", "d");
             expect(result).toEqual({ items: ["a", "b", "c", "d"] });
+        });
+
+        it("appends into a list inside a plain-object row", () => {
+            // docs/php-parity/Arr/push.json, "push-list-of-assoc-rows"
+            expect(Data.dataPush([{ x: [1] }], "0.x", 2)).toEqual([
+                { x: [1, 2] },
+            ]);
         });
         it("appends with the next integer key when the key is null", () => {
             // docs/php-parity/Arr/push.json, "Arr::push with a null key appends"

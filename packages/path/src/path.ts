@@ -430,8 +430,7 @@ export function forgetKeysObject<
 }
 
 /**
- * Remove items from an array using dot notation keys (immutable).
- * Creates a new array with specified items removed, supporting nested paths.
+ * Remove one or many array items from a copy of the given array using "dot" notation, walking lists and plain objects.
  *
  * @param data - The array to remove items from.
  * @param keys - The key(s) to remove (number, string, or array of keys).
@@ -440,165 +439,107 @@ export function forgetKeysObject<
  * @example
  *
  * Remove items by keys
- * forgetKeys(['a', 'b', 'c'], 1); -> ['a', 'c']
- * forgetKeys([['x', 'y'], ['z']], "0.1"); -> [['x'], ['z']]
- * forgetKeys(['a', 'b', 'c'], [0, 2]); -> ['b']
+ * forgetKeysArray(['a', 'b', 'c'], 1); -> ['a', 'c']
+ * forgetKeysArray([['x', 'y'], ['z']], "0.1"); -> [['x'], ['z']]
+ * forgetKeysArray(['a', 'b', 'c'], [0, 2]); -> ['b']
+ * forgetKeysArray([{a: 1, b: 2}, {a: 3}], ['0.a', '1.a']); -> [{b: 2}, {}]
  */
 export function forgetKeysArray<TValue>(
     data: ArrayItems<TValue>,
     keys: PathKeys,
 ): TValue[] {
-    // This mirrors Arr.forget implementation (immutable). A string index is a key
-    // PHP kept a string ("01", ""), which no JS list holds, so it removes nothing.
-    const removeAt = <U>(arr: ArrayItems<U>, index: string | number): U[] => {
-        if (!isInteger(index) || index < 0 || index >= arr.length) {
-            return arr.slice();
-        }
+    type Container = unknown[] | Record<string, unknown>;
 
-        const clone = arr.slice();
-        clone.splice(index, 1);
-
-        return clone;
-    };
-
-    const forgetPath = <U>(arr: ArrayItems<U>, path: number[]): U[] => {
-        const head = path[0];
-        const rest = path.slice(1);
-        const clone = arr.slice();
-
-        if (rest.length === 0) {
-            return removeAt(clone, head!);
-        }
-
-        if (!isInteger(head) || head! < 0 || head! >= clone.length) {
-            return clone;
-        }
-
-        const child = clone[head!] as unknown;
-
-        if (isArray(child)) {
-            clone[head!] = forgetPath(child as unknown[], rest) as unknown as U;
-        }
-
-        return clone;
-    };
-
-    // Helper to immutably update a nested array at a given parent path
-    const updateAtPath = <U>(
-        arr: ArrayItems<U>,
-        parentPath: number[],
-        updater: (child: U[]) => U[],
-    ): U[] => {
-        if (parentPath.length === 0) {
-            return updater(arr.slice() as unknown as U[]) as unknown as U[];
-        }
-
-        const [head, ...rest] = parentPath;
-
-        if (!isInteger(head) || head! < 0 || head! >= arr.length) {
-            return arr.slice();
-        }
-
-        const clone = arr.slice();
-        const child = clone[head!] as unknown;
-
-        if (!isArray(child)) {
-            return clone;
-        }
-
-        clone[head!] = updateAtPath(
-            child as unknown[],
-            rest,
-            updater as unknown as (child: unknown[]) => unknown[],
-        ) as unknown as U;
-
-        return clone;
-    };
+    const result = data.slice() as unknown[];
 
     if (isNull(keys)) {
-        return data.slice();
+        return result as TValue[];
     }
 
-    const keyList = isArray(keys) ? keys : [keys];
-    if (keyList.length === 0) {
-        return data.slice();
-    }
+    /**
+     * Copy each container a parent path enters, descending only as PHP's `isset() && accessible()` lets Arr::forget.
+     *
+     * @param parent - The segments leading to the container a key's leaf is removed from.
+     * @returns The copied container the path ends at, or null when the path meets anything else.
+     */
+    const copyParent = (parent: (number | string)[]): Container | null => {
+        let cursor: Container = result;
 
-    if (keyList.length === 1) {
-        const k = keyList[0]!;
-        if (isInteger(k)) {
-            return removeAt(data, k);
-        }
+        for (const segment of parent) {
+            let child: unknown;
 
-        // PHP's array-key cast, so "01" is a string key no list holds, not index 1.
-        const parts = forgetName(k).split(".").map(phpArrayKey);
-
-        if (parts.length === 1) {
-            return removeAt(data, parts[0]!);
-        }
-
-        if (parts.some((n) => !isNumber(n))) {
-            return data.slice();
-        }
-
-        return forgetPath(data, parts as number[]);
-    }
-
-    type Group = { path: number[]; indices: Set<number> };
-    const groupsMap = new Map<string, Group>();
-
-    // At this point, keyList.length > 1, so we iterate over keyList directly
-    for (const k of keyList) {
-        if (isInteger(k)) {
-            const key = "";
-            const entry = groupsMap.get(key) ?? {
-                path: [],
-                indices: new Set(),
-            };
-            entry.indices.add(k);
-            groupsMap.set(key, entry);
-            continue;
-        }
-        const parts = forgetName(k).split(".").map(phpArrayKey);
-        if (parts.length === 0 || parts.some((n) => !isNumber(n))) {
-            continue;
-        }
-        const parent = parts.slice(0, -1) as number[];
-        const leaf = parts[parts.length - 1]! as number;
-        const key = parent.join(".");
-        const entry = groupsMap.get(key) ?? {
-            path: parent,
-            indices: new Set(),
-        };
-        entry.indices.add(leaf);
-        groupsMap.set(key, entry);
-    }
-
-    const groups = Array.from(groupsMap.values()).sort(
-        (a, b) => b.path.length - a.path.length,
-    );
-
-    let out = data.slice() as unknown[];
-    for (const { path, indices } of groups) {
-        const sorted = Array.from(indices)
-            .filter((i) => isInteger(i) && i >= 0)
-            .sort((a, b) => b - a);
-
-        if (sorted.length === 0) {
-            continue;
-        }
-
-        out = updateAtPath(out, path, (child) => {
-            const clone = child.slice();
-            for (const idx of sorted) {
-                if (idx >= 0 && idx < clone.length) clone.splice(idx, 1);
+            if (isArray(cursor)) {
+                // A list holds only its indices, so a string segment never names one of its items.
+                child =
+                    isNumber(segment) && segment >= 0
+                        ? cursor[segment]
+                        : undefined;
+            } else if (Object.hasOwn(cursor, segment)) {
+                // Only an own key counts: an inherited `__proto__` would lead the walk into Object.prototype.
+                child = cursor[segment];
             }
 
-            return clone as unknown as TValue[];
-        }) as unknown[];
+            if (
+                (!isArray(child) && !isPlainObject(child)) ||
+                isPrototypeObject(child)
+            ) {
+                return null;
+            }
+
+            const copy: Container = isArray(child)
+                ? child.slice()
+                : { ...child };
+
+            defineKey(cursor as Record<PropertyKey, unknown>, segment, copy);
+            cursor = copy;
+        }
+
+        return cursor;
+    };
+
+    // Keys sharing a parent act together, so each one names the position it held before any removal, as in PHP.
+    const groups = new Map<
+        string,
+        { parent: (number | string)[]; leaves: Set<number | string> }
+    >();
+
+    for (const key of isArray(keys) ? keys : [keys]) {
+        // PHP's array-key cast, so "01" is a string key no list holds, not index 1.
+        const segments = isInteger(key)
+            ? [key]
+            : forgetName(key).split(".").map(phpArrayKey);
+        const parent = segments.slice(0, -1);
+        const id = JSON.stringify(parent);
+        const group = groups.get(id) ?? { parent, leaves: new Set() };
+
+        group.leaves.add(segments[parent.length] as number | string);
+        groups.set(id, group);
     }
 
-    return out as TValue[];
+    // Deeper parents go first, so splicing a list never shifts a path still to be walked.
+    const ordered = [...groups.values()].sort(
+        (a, b) => b.parent.length - a.parent.length,
+    );
+
+    for (const { parent, leaves } of ordered) {
+        const container = copyParent(parent);
+
+        if (isArray(container)) {
+            const indices = [...leaves]
+                .filter((leaf): leaf is number => isNumber(leaf) && leaf >= 0)
+                .sort((a, b) => b - a);
+
+            for (const index of indices) {
+                container.splice(index, 1);
+            }
+        } else if (!isNull(container)) {
+            for (const leaf of leaves) {
+                delete container[leaf];
+            }
+        }
+    }
+
+    return result as TValue[];
 }
 
 /**
@@ -715,14 +656,13 @@ export function setImmutable<TValue>(
 }
 
 /**
- * Push values to an array at a specific path using dot notation.
- * Creates nested arrays as needed and pushes values into the array at the target key.
+ * Push an item into an array using "dot" notation, walking lists and plain objects and creating what is missing.
  *
  * @param data - The array to push values into.
  * @param key - The path where to push values (number, string, null, or undefined).
  * @param values - The values to push.
  * @returns The modified array with values pushed at the specified path.
- * @throws InvalidArgumentException if a value along the path is not an array.
+ * @throws InvalidArgumentException if the value at the key is not an array.
  *
  * @example
  *
@@ -730,6 +670,8 @@ export function setImmutable<TValue>(
  * pushWithPath(['a'], null, 'b', 'c'); -> ['a', 'b', 'c']
  * pushWithPath([['x']], "0", 'y'); -> [['x', 'y']]
  * pushWithPath([], "0", 'first'); -> [['first']]
+ * pushWithPath([{x: [1]}], "0.x", 2); -> [{x: [1, 2]}]
+ * pushWithPath([null], "0.child", 'v'); -> [{child: ['v']}]
  */
 export function pushWithPath<TValue>(
     data: TValue[] | unknown,
@@ -753,68 +695,86 @@ export function pushWithPath<TValue>(
         return root as TValue[];
     }
 
-    // Filter to only numeric segments for array operations
-    const numericSegs = segs.filter((s): s is number => isNumber(s));
-    if (numericSegs.length !== segs.length) {
-        // Mixed paths not supported in this array-only function
-        return root as TValue[];
-    }
+    type Container = unknown[] | Record<PropertyKey, unknown>;
 
-    const clamp = (idx: number, length: number): number => {
-        return idx > length ? length : idx;
-    };
+    /**
+     * Find where a segment lands in a container: a list's index or a plain object's own key.
+     *
+     * @param container - The list or plain object the path has reached.
+     * @param segment - The path segment to look up.
+     * @returns The slot and whether the container holds it, or null for a string segment under a list.
+     */
+    const locate = (
+        container: Container,
+        segment: number | string,
+    ): { slot: PropertyKey; present: boolean } | null => {
+        if (isArray(container)) {
+            // A list holds no string key; an index past its end appends, where PHP would leave a gapped key.
+            if (!isNumber(segment)) {
+                return null;
+            }
 
-    let cursor: unknown[] = root;
-    for (let i = 0; i < numericSegs.length - 1; i++) {
-        const desired = numericSegs[i]!;
-        const idx = clamp(desired, cursor.length);
+            const slot = Math.min(segment, container.length);
 
-        if (idx === cursor.length) {
-            const child: unknown[] = [];
-            cursor.push(child);
-            cursor = child;
-            continue;
+            return { slot, present: slot < container.length };
         }
 
-        const next = cursor[idx];
+        const slot = String(segment);
+
+        return { slot, present: Object.hasOwn(container, slot) };
+    };
+
+    let cursor: Container = root;
+
+    for (const [depth, segment] of segs.slice(0, -1).entries()) {
+        const place = locate(cursor, segment);
+        if (isNull(place)) {
+            return root as TValue[];
+        }
+
+        const next = place.present
+            ? (cursor as Record<PropertyKey, unknown>)[place.slot]
+            : undefined;
+
         if (isPrototypeObject(next)) {
             return root as TValue[];
         }
 
-        if (isNull(next)) {
-            const child: unknown[] = [];
-            cursor[idx] = child;
-            cursor = child;
+        if (isArray(next) || isPlainObject(next)) {
+            cursor = next;
+
             continue;
         }
 
-        if (isArray(next)) {
-            cursor = next as unknown[];
-            continue;
-        }
+        // Arr::set swaps anything that is no array for a fresh one, shaped by the segment it holds next.
+        const fresh: Container = isNumber(segs[depth + 1]) ? [] : {};
 
-        throw new InvalidArgumentException(arrayValueMessage(next, key));
+        defineKey(cursor as Record<PropertyKey, unknown>, place.slot, fresh);
+        cursor = fresh;
     }
+
+    const leaf = locate(cursor, segs[segs.length - 1] as number | string);
+    if (isNull(leaf)) {
+        return root as TValue[];
+    }
+
+    const target = cursor as Record<PropertyKey, unknown>;
 
     // `Arr::push` appends into the array AT the key, never beside it; an existing
     // value there must itself be an array (PHP's `Arr::array()` rule), and an
     // absent one becomes a fresh array first.
-    const leaf = clamp(numericSegs[numericSegs.length - 1]!, cursor.length);
-
-    if (leaf < cursor.length && !isArray(cursor[leaf])) {
-        throw new InvalidArgumentException(
-            arrayValueMessage(cursor[leaf], key),
-        );
+    if (!leaf.present) {
+        defineKey(target, leaf.slot, []);
     }
 
-    if (leaf === cursor.length) {
-        cursor.push([]);
+    const list = target[leaf.slot];
+
+    if (!isArray(list)) {
+        throw new InvalidArgumentException(arrayValueMessage(list, key));
     }
 
-    const target = cursor[leaf];
-
-    if (!isPrototypeObject(target)) {
-        (target as unknown[]).push(...(values as unknown[]));
+    if (!isPrototypeObject(list)) {
+        list.push(...(values as unknown[]));
     }
 
     return root as TValue[];

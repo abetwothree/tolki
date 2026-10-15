@@ -2276,6 +2276,13 @@ describe("Obj", () => {
             });
         });
 
+        it("removes a key from a plain-object row inside a list", () => {
+            // docs/php-parity/Arr/forget.json, "forget-assoc-through-a-list-row"
+            expect(Obj.forget({ rows: [{ a: 1, b: 2 }] }, "rows.0.a")).toEqual({
+                rows: [{ b: 2 }],
+            });
+        });
+
         it("should handle non-existent keys gracefully", () => {
             const obj = { name: "John" };
             expect(Obj.forget(obj, "age")).toEqual({ name: "John" });
@@ -7559,6 +7566,13 @@ describe("Obj", () => {
             expect(result.data).toEqual({ user: { age: 30 } });
         });
 
+        it("pulls a key out of a plain-object row inside a list", () => {
+            // docs/php-parity/Arr/pull.json, "pull-assoc-through-a-list-row"
+            const result = Obj.pull({ rows: [{ a: 1, b: 2 }] }, "rows.0.a");
+            expect(result.value).toBe(1);
+            expect(result.data).toEqual({ rows: [{ b: 2 }] });
+        });
+
         it("should handle non-object values", () => {
             const result = Obj.pull(null, "key", "default");
             expect(result.value).toBe("default");
@@ -8331,6 +8345,13 @@ describe("Obj", () => {
             const obj = {};
             const result = Obj.push(obj, "items", "a", "b");
             expect(result).toEqual({ items: ["a", "b"] });
+        });
+
+        it("appends into a list inside a plain-object row inside a list", () => {
+            // docs/php-parity/Arr/push.json, "push-assoc-through-a-list-row"
+            expect(Obj.push({ rows: [{ x: [1] }] }, "rows.0.x", 2)).toEqual({
+                rows: [{ x: [1, 2] }],
+            });
         });
 
         it("leaves the caller's nested value alone for an integer key", () => {

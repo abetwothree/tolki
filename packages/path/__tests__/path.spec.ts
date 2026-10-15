@@ -820,10 +820,9 @@ describe("Path Functions", () => {
             expect(Path.pushWithPath([], "0.0", "deep")).toEqual([[["deep"]]]);
         });
 
-        it("handles existing non-array elements", () => {
-            expect(() => Path.pushWithPath(["a"], "0.0", "b")).toThrow(
-                "Array value for key [0.0] must be an array, string found.",
-            );
+        it("replaces a string row along the path with a list", () => {
+            // docs/php-parity/Arr/push.json, "push-string-row-integer-segment"
+            expect(Path.pushWithPath(["a"], "0.0", "b")).toEqual([[["b"]]]);
         });
 
         it("handles boolean elements specifically", () => {
@@ -852,9 +851,10 @@ describe("Path Functions", () => {
         });
 
         it("covers additional pushWithPath edge cases", () => {
-            // Test Complex path traversal with non-accessible data - doesn't throw, returns empty array
+            // docs/php-parity/Arr/push.json, "push-1-non-array-under-a-new-row": PHP keys the new row's
+            // entry 1, which the port clamps to index 0.
             const result1 = Path.pushWithPath(null, "0.1.non-array", "value");
-            expect(result1).toEqual([]);
+            expect(result1).toEqual([[{ "non-array": ["value"] }]]);
 
             // Test When leaf index exists but contains boolean (covered already)
             // Test when invalid path segments in accessible data
@@ -863,11 +863,10 @@ describe("Path Functions", () => {
                 data,
             );
 
-            // Test Navigation through null elements and non-arrays
+            // docs/php-parity/Arr/push.json, "push-null-row-string-segment"
             const data2: unknown[] = [null];
             const result = Path.pushWithPath(data2, "0.child", "value");
-            // When we can't navigate through null, the array remains unchanged
-            expect(result).toEqual([null]);
+            expect(result).toEqual([{ child: ["value"] }]);
 
             // Test empty string key with array data - returns data unchanged
             const data3 = ["a", "b"];
@@ -888,11 +887,11 @@ describe("Path Functions", () => {
             expect(result).toEqual(["existing"]);
         });
 
-        it("pushWithPath returns data for mixed paths when data is array", () => {
-            // pushWithPath mixed paths not supported - returns data when data IS array
+        it("replaces a string row with a plain object for a string segment", () => {
+            // docs/php-parity/Arr/push.json, "push-string-row-string-segment"
             const data = ["existing"];
             const result = Path.pushWithPath(data, "0.name", "value");
-            expect(result).toEqual(["existing"]);
+            expect(result).toEqual([{ name: ["value"] }]);
         });
 
         it("pushWithPath clamps idx to cursor length", () => {
@@ -923,14 +922,11 @@ describe("Path Functions", () => {
                 expect(data).toEqual([["existing", ["new"]]]);
             });
 
-            it("throws for non-array at existing position", () => {
-                // Tests non-array at position
-                const data = ["string"];
-                expect(() => {
-                    Path.pushWithPath(data, "0.0", "value");
-                }).toThrow(
-                    "Array value for key [0.0] must be an array, string found.",
-                );
+            it("replaces a non-array at an existing position", () => {
+                // docs/php-parity/Arr/push.json, "push-string-row-integer-segment"
+                const data: unknown[] = ["string"];
+                Path.pushWithPath(data, "0.0", "value");
+                expect(data).toEqual([[["value"]]]);
             });
 
             it("throws for boolean at leaf position", () => {
@@ -959,16 +955,13 @@ describe("Path Functions", () => {
                 expect(result).toEqual([[[["value"]]]]);
             });
 
-            it("throws for non-array element in non-array data branch", () => {
-                // This tests where next is not array
-                // Need to create a structure and then try to navigate through non-array
+            it("replaces a non-array element along the path", () => {
+                // docs/php-parity/Arr/push.json, "push-string-row-integer-segment"
                 const data: unknown[] = [];
-                data[0] = "string"; // Not an array
-                expect(() => {
-                    Path.pushWithPath(data, "0.0", "value");
-                }).toThrow(
-                    "Array value for key [0.0] must be an array, string found.",
-                );
+                data[0] = "string";
+                expect(Path.pushWithPath(data, "0.0", "value")).toEqual([
+                    [["value"]],
+                ]);
             });
 
             it("pushes a boolean value into the created leaf array", () => {
@@ -1017,7 +1010,7 @@ describe("Path Functions", () => {
             expect(result).toEqual([["a"]]);
         });
 
-        it("specific error conditions", () => {
+        it("walks or replaces each value along the path, appending for an index past the end", () => {
             // Test pushWithPath navigation creating child arrays
             const data: unknown[] = [];
             Path.pushWithPath(data, "0.1.2", "deep-value");
@@ -1025,27 +1018,23 @@ describe("Path Functions", () => {
             // integer key instead (docs/php-parity/Arr/push.json, "push at an out-of-range index").
             expect(data[0]).toEqual([[["deep-value"]]]);
 
-            // Test pushWithPath with non-array existing value
-            const data2 = [{}]; // Object at index 0
-            expect(() => {
-                Path.pushWithPath(data2, "0.1", "value");
-            }).toThrow(
-                "Array value for key [0.1] must be an array, object found.",
-            );
+            // docs/php-parity/Arr/push.json, "push-empty-assoc-row"
+            const data2 = [{}];
+            expect(Path.pushWithPath(data2, "0.1", "value")).toEqual([
+                { 1: ["value"] },
+            ]);
 
-            // Test pushWithPath boolean error
-            const data3 = [true]; // Boolean at index 0
-            expect(() => {
-                Path.pushWithPath(data3, "0.1", "value");
-            }).toThrow(
-                "Array value for key [0.1] must be an array, boolean found.",
-            );
+            // docs/php-parity/Arr/push.json, "push-boolean-row": PHP's key 1 lands at index 0, the port's clamp.
+            const data3 = [true];
+            expect(Path.pushWithPath(data3, "0.1", "value")).toEqual([
+                [["value"]],
+            ]);
         });
 
-        it("handles non-accessible data with mixed path", () => {
-            // Non-array data with mixed (non-numeric) path segments
+        it("builds a plain-object row for string segments over non-accessible data", () => {
+            // docs/php-parity/Arr/push.json, "push-missing-path-under-a-new-row"
             const result = Path.pushWithPath(null, "0.name.items", "value");
-            expect(result).toEqual([]);
+            expect(result).toEqual([{ name: { items: ["value"] } }]);
         });
 
         it("navigates through existing null elements", () => {
