@@ -7,6 +7,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 
 import ts from "typescript";
 
@@ -386,7 +387,7 @@ function selected(
 }
 
 /**
- * Checks both list pages, their anchors and their tabs.
+ * Checks the list pages for missing names, and every docs page for broken anchors and mismatched tabs.
  *
  * @param options - `only` limits `missing` issues to those names; `page` keeps one section's issues;
  * `docsRoot` replaces `docs/vitepress`.
@@ -438,18 +439,6 @@ export function coverageReport(
         }
     }
 
-    for (const [page, markdown] of [
-        [UTILITIES_PAGE, utilities],
-        [METHODS_PAGE, methods],
-    ] as const) {
-        if (markdown !== null) {
-            issues.push(
-                ...brokenAnchors(markdown, page),
-                ...mismatchedVariantFences(markdown, page),
-            );
-        }
-    }
-
     for (const section of ["arrays-objects", "collections"]) {
         const dir = path.join(root, section);
 
@@ -462,7 +451,11 @@ export function coverageReport(
             const markdown = page.endsWith(".md") ? readPage(root, page) : null;
 
             if (markdown !== null) {
-                issues.push(...brokenCrossPageAnchors(markdown, page, root));
+                issues.push(
+                    ...brokenAnchors(markdown, page),
+                    ...mismatchedVariantFences(markdown, page),
+                    ...brokenCrossPageAnchors(markdown, page, root),
+                );
             }
         }
     }
@@ -490,27 +483,63 @@ function formatIssue(issue: CoverageIssue): string {
 }
 
 /**
+ * Parses the CLI flags.
+ *
+ * @param argv - The arguments after the script path.
+ * @returns The flags, or `null` for an unknown flag or one with no value.
+ */
+export function parseCoverageArgs(
+    argv: readonly string[],
+): { only?: string[]; page?: string } | null {
+    try {
+        const { values } = parseArgs({
+            args: [...argv],
+            options: { only: { type: "string" }, page: { type: "string" } },
+            strict: true,
+        });
+
+        if (
+            [values.only, values.page].some((value) => value?.startsWith("--"))
+        ) {
+            return null;
+        }
+
+        return {
+            ...(values.only === undefined
+                ? {}
+                : { only: values.only.split(",").filter((n) => n !== "") }),
+            ...(values.page === undefined ? {} : { page: values.page }),
+        };
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Runs the CLI: prints one line per issue and exits 1 if there were any.
  *
  * @param argv - The arguments after the script path.
  */
 function main(argv: string[]): void {
-    const flag = argv.indexOf("--only");
-    const only =
-        flag === -1
-            ? undefined
-            : (argv[flag + 1] ?? "").split(",").filter((name) => name !== "");
-    const pageFlag = argv.indexOf("--page");
-    const page = pageFlag === -1 ? undefined : argv[pageFlag + 1];
+    const usage =
+        "usage: docs-coverage [--only a,b,c] [--page arrays-objects|collections]";
+    const args = parseCoverageArgs(argv);
+
+    if (args === null) {
+        console.error(usage);
+        process.exitCode = 1;
+
+        return;
+    }
+
+    const { only, page } = args;
 
     if (
         page !== undefined &&
         page !== "arrays-objects" &&
         page !== "collections"
     ) {
-        console.error(
-            "usage: docs-coverage [--only a,b,c] [--page arrays-objects|collections]",
-        );
+        console.error(usage);
         process.exitCode = 2;
 
         return;

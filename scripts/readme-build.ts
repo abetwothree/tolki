@@ -1,29 +1,12 @@
 /**
- * Assembles package README files from VitePress documentation.
- *
- * For each package with a `tolki.docs` field in its package.json, this script:
- * 1. Reads the package's README.md
- * 2. Finds the `<!-- AUTO-GENERATED-DOCS:START -->` sentinel
- * 3. Reads and strips VitePress-specific syntax from the listed doc files
- * 4. Replaces everything between the sentinels with the assembled content
- *
- * Usage:
- *   ts-node scripts/readme-build.ts                    # all packages
- *   ts-node scripts/readme-build.ts --filter @tolki/enum  # single package
- *
- * Configuration:
- *   In each package's package.json, add:
- *   {
- *     "tolki": {
- *       "docs": ["enums/index.md", "enums/enum-utilities-list.md"]
- *     }
- *   }
- *   Paths are relative to docs/vitepress/
+ * Builds each package README from the VitePress pages listed in its `tolki.docs` field.
+ * Usage: `ts-node scripts/readme-build.ts [--filter @tolki/<pkg>]`
  */
 
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 
 import { parseHeadings } from "./docs-markdown.ts";
 
@@ -48,11 +31,7 @@ interface PackageInfo {
 }
 
 /**
- * Increase markdown heading levels by one while preserving fenced code blocks.
- *
- * Headings from `#` through `#####` are shifted down one level. Existing
- * `######` headings are clamped at level 6 so the output stays valid markdown.
- * Triple-backtick fenced code blocks are left untouched.
+ * Increase markdown heading levels by one, leaving fenced code blocks untouched.
  *
  * @param content - Markdown content to adjust.
  * @returns Markdown content with headings shifted down one level.
@@ -161,15 +140,9 @@ function scanCodeGroups(lines: string[]): {
 /**
  * Narrow a shared docs page to one package's own code-group tabs.
  *
- * A group is a variant group when every titled fence in it has a title that
- * starts with `@tolki/`. Such a group keeps only the tab titled `packageName`.
- * When no tab matches, the enclosing section is dropped, along with every
- * `[text](#slug)` link that pointed at it. Other groups are left untouched.
- *
  * @param content - Raw VitePress markdown content.
  * @param packageName - The package whose tab to keep, e.g. "@tolki/arr".
- * @returns The content for that package, or `content` itself when the page
- *   has no variant group.
+ * @returns The content for that package, or `content` itself when the page has no variant group.
  */
 export function filterPackageVariants(
     content: string,
@@ -177,6 +150,7 @@ export function filterPackageVariants(
 ): string {
     const lines = content.split("\n");
     const { groups, fencedLines } = scanCodeGroups(lines);
+    // A variant group titles every fence `@tolki/<pkg>`; other groups stay as written.
     const variantGroups = groups.filter((candidate) => {
         const titles = candidate.fences.flatMap((fence) =>
             fence.title === null ? [] : [fence.title],
@@ -214,6 +188,7 @@ export function filterPackageVariants(
             continue;
         }
 
+        // No matching tab: drop the whole section, and the in-page links to it.
         const heading = headings
             .filter((candidate) => candidate.line - 1 < variantGroup.start)
             .at(-1);
@@ -293,22 +268,11 @@ function removeDroppedLinks(line: string, slugs: Set<string>): string {
 }
 
 /**
- * Rewrite relative markdown doc links (`./foo.md`, `../dir/foo.md`, each with
- * an optional `#frag`) to absolute docs-site URLs.
- *
- * Within docs/vitepress, a link like `./analyzer-api.md` resolves fine
- * because VitePress renders it alongside its sibling files. Once the same
- * text is spliced into a package README (npm, GitHub), that relative path
- * points at a `.md` file that doesn't exist there, so the link dangles.
- * Rewriting it to the published site URL (matching the `.html`-suffixed
- * canonical links already hand-written elsewhere in this repo, e.g.
- * `packages/str/src/str.ts`'s `@see` comments) keeps the link resolvable.
+ * Rewrite relative markdown doc links to absolute docs-site URLs.
  *
  * @param content - Markdown content to rewrite.
- * @param docDir - Directory of the source doc file, relative to
- *   docs/vitepress/ (e.g. "ts"), used as the URL's section segment.
- * @returns Markdown content with relative `./*.md` and `../<dir>/*.md`
- *   links rewritten to absolute docs-site URLs.
+ * @param docDir - Directory of the source doc file, relative to docs/vitepress/.
+ * @returns Markdown content with `./*.md` and `../<dir>/*.md` links rewritten.
  */
 export function rewriteRelativeDocLinks(
     content: string,
@@ -321,7 +285,7 @@ export function rewriteRelativeDocLinks(
                 `](${SITE_BASE}/${docDir}/${slug}.html${fragment ?? ""})`,
         )
         .replace(
-            /\]\(\.\.\/([^)#/]+)\/([^)#]+)\.md(#[^)]*)?\)/g,
+            /\]\(\.\.\/((?!\.\.\/)[^)#/]+)\/((?:(?!\.\.\/)[^)#])+)\.md(#[^)]*)?\)/g,
             (_match, dir: string, slug: string, fragment: string | undefined) =>
                 `](${SITE_BASE}/${dir}/${slug}.html${fragment ?? ""})`,
         );
@@ -330,26 +294,14 @@ export function rewriteRelativeDocLinks(
 /**
  * Strip VitePress-specific syntax from markdown content.
  *
- * Removes:
- * - YAML frontmatter (--- ... ---)
- * - ::: code-group / ::: containers (keeps inner content)
- * - Raw HTML wrappers (<div>, </div>, <script setup>, etc.)
- * - Increases markdown headings by one level for README nesting
- * - Collapses 3+ consecutive blank lines into 2
- * - Rewrites relative `./*.md` doc links to absolute docs-site URLs
- *   (when `docDir` is given)
- *
  * @param content - Raw VitePress markdown content.
- * @param docDir - Directory of the source doc file, relative to
- *   docs/vitepress/, used to resolve relative doc links. Omit to leave
- *   relative doc links untouched.
+ * @param docDir - Directory of the source doc file; omit to leave relative doc links untouched.
  * @returns Cleaned markdown suitable for GitHub/npm README rendering.
  */
 export function stripVitepressSyntax(content: string, docDir?: string): string {
     let result = content;
 
-    // Remove YAML frontmatter
-    result = result.replace(/^---\n[\s\S]*?\n---\n?/, "");
+    result = result.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
 
     // Rewrite relative doc links before anything else touches the text.
     if (docDir) {
@@ -444,8 +396,8 @@ export function githubSlug(text: string): string {
         .replace(/<[A-Za-z/!][^>]*>/g, "")
         .toLowerCase()
         .trim()
-        .replace(/[^\p{L}\p{N}\p{M}\s_-]/gu, "")
-        .replace(/\s/g, "-");
+        .replace(/[^\p{L}\p{N}\p{M} _-]/gu, "")
+        .replace(/ /g, "-");
 }
 
 /**
@@ -456,14 +408,18 @@ export function githubSlug(text: string): string {
  */
 export function rewriteAnchorsForGitHub(content: string): string {
     const slugs = new Map<string, string>();
-    const seen = new Map<string, number>();
+    const used = new Set<string>();
 
     for (const heading of parseHeadings(content)) {
         const base = githubSlug(heading.text);
-        const count = seen.get(base) ?? 0;
+        let slug = base;
 
-        seen.set(base, count + 1);
-        slugs.set(heading.slug, count === 0 ? base : `${base}-${count}`);
+        for (let count = 1; used.has(slug); count++) {
+            slug = `${base}-${count}`;
+        }
+
+        used.add(slug);
+        slugs.set(heading.slug, slug);
     }
 
     let marker: string | null = null;
@@ -606,15 +562,45 @@ export function buildReadme(pkg: PackageInfo): boolean {
 }
 
 /**
+ * Parses the CLI flags.
+ *
+ * @param argv - The arguments after the script path.
+ * @returns The flags, or `null` for an unknown flag or one with no value.
+ */
+export function parseReadmeArgs(
+    argv: readonly string[],
+): { filter?: string } | null {
+    try {
+        const { values } = parseArgs({
+            args: [...argv],
+            options: { filter: { type: "string" } },
+            strict: true,
+        });
+
+        if (values.filter?.startsWith("--")) {
+            return null;
+        }
+
+        return values.filter === undefined ? {} : { filter: values.filter };
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Main entry point for the README build script.
  */
 export function main(): void {
     console.log("📝 Building package READMEs from VitePress docs...");
 
-    // Parse --filter argument
-    const filterIndex = process.argv.indexOf("--filter");
-    const filterName =
-        filterIndex !== -1 ? process.argv[filterIndex + 1] : undefined;
+    const args = parseReadmeArgs(process.argv.slice(2));
+
+    if (args === null) {
+        console.error("usage: readme-build [--filter <package name>]");
+        process.exit(1);
+    }
+
+    const filterName = args.filter;
 
     if (filterName) {
         console.log(`  Filtering to: ${filterName}`);

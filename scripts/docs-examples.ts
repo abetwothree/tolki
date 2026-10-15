@@ -1,9 +1,5 @@
 /**
  * Compiles the `// =>` assertions in documented examples and runs them against the real packages.
- *
- * Grammar: a `// => <expression>` comment right after an expression statement asserts that
- * statement's value; `// => throws <ErrorName>` asserts the thrown error's `name`. Further
- * `//` lines directly below continue the expected value.
  */
 import ts from "typescript";
 import { expect } from "vitest";
@@ -26,6 +22,7 @@ export interface CompiledExample {
 }
 
 const RUNNABLE_LANGS = new Set(["js", "javascript", "ts", "typescript"]);
+// `// => throws <Name>` asserts the error name; `//` lines below the arrow continue the value.
 const ARROW = "// =>";
 
 type AsyncRunner = new (
