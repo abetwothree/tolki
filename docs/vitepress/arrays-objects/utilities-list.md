@@ -1418,6 +1418,15 @@ first([100, 200, 300], (value) => value >= 150);
 
 first([100, 200, 300], (value) => value > 500, "none");
 // => "none"
+
+function* naturals() {
+  for (let n = 1; ; n++) {
+    yield n;
+  }
+}
+
+first(naturals(), (value) => value > 3);
+// => 4
 ```
 
 ```js [@tolki/obj]
@@ -1444,6 +1453,15 @@ dataFirst({ a: 1, b: 2, c: 3 }, (value) => value > 1);
 
 dataFirst([], null, "none");
 // => "none"
+
+function* naturals() {
+  for (let n = 1; ; n++) {
+    yield n;
+  }
+}
+
+dataFirst(naturals(), (value) => value > 3);
+// => 4
 ```
 
 :::

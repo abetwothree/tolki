@@ -563,6 +563,15 @@ dataFirst({ a: 1, b: 2, c: 3 }, (value) => value > 1);
 
 dataFirst([], null, "none");
 // => "none"
+
+function* naturals() {
+  for (let n = 1; ; n++) {
+    yield n;
+  }
+}
+
+dataFirst(naturals(), (value) => value > 3);
+// => 4
 ```
 
 #### flatten
