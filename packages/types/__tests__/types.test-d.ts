@@ -8,13 +8,31 @@ import type {
     AsMin,
     AsSum,
     CursorPaginator,
+    JsonApiCollection,
+    JsonApiCursorPaginator,
+    JsonApiDocument,
+    JsonApiObject,
+    JsonApiPaginator,
+    JsonApiRelationship,
+    JsonApiResourceIdentifier,
+    JsonApiResourceObject,
+    JsonApiSimplePaginator,
+    JsonApiSparse,
+    JsonApiToManyRelationship,
+    JsonApiToOneRelationship,
+    JsonResourceCursorMeta,
+    JsonResourceCursorPaginator,
     JsonResourceLinks,
     JsonResourceMeta,
     JsonResourcePaginator,
+    JsonResourceSimpleMeta,
+    JsonResourceSimplePaginator,
     LengthAwarePaginator,
     Model,
     PaginatorLink,
+    ResourceCursorPagination,
     ResourcePagination,
+    ResourceSimplePagination,
     SimplePaginator,
     SoftDeleteModel,
     SoftDeletes,
@@ -175,6 +193,784 @@ test("ResourcePagination", () => {
 });
 
 // ----------------------------------------------
+// What Laravel 13 sends for `paginate(2)`, `simplePaginate(2)` and `cursorPaginate(2)` over three cards
+// ----------------------------------------------
+
+interface Card {
+    id: number;
+    title: string;
+}
+
+// A bare paginator sends each model's own `toArray()`, timestamps included.
+interface CardRow extends Card {
+    created_at: string | null;
+    updated_at: string | null;
+}
+
+const cards = [
+    { id: 1, title: "Alpha" },
+    { id: 2, title: "Beta" },
+] satisfies Card[];
+
+const cardRows = [
+    {
+        id: 1,
+        title: "Alpha",
+        created_at: "2026-10-15T15:35:05.000000Z",
+        updated_at: "2026-10-15T15:35:05.000000Z",
+    },
+    {
+        id: 2,
+        title: "Beta",
+        created_at: "2026-10-15T15:35:05.000000Z",
+        updated_at: "2026-10-15T15:35:05.000000Z",
+    },
+] satisfies CardRow[];
+
+const lengthAwareLinks = [
+    { url: null, label: "&laquo; Previous", page: null, active: false },
+    { url: "http://localhost/cards?page=1", label: "1", page: 1, active: true },
+    {
+        url: "http://localhost/cards?page=2",
+        label: "2",
+        page: 2,
+        active: false,
+    },
+    {
+        url: "http://localhost/cards?page=2",
+        label: "Next &raquo;",
+        page: 2,
+        active: false,
+    },
+] satisfies PaginatorLink[];
+
+test("each paginated resource collection type accepts what Laravel sends", () => {
+    expectTypeOf({
+        data: cards,
+        links: {
+            first: "http://localhost/cards?page=1",
+            last: "http://localhost/cards?page=2",
+            prev: null,
+            next: "http://localhost/cards?page=2",
+        },
+        meta: {
+            current_page: 1,
+            from: 1,
+            last_page: 2,
+            links: lengthAwareLinks,
+            path: "http://localhost/cards",
+            per_page: 2,
+            to: 2,
+            total: 3,
+        },
+    } satisfies JsonResourcePaginator<Card>).toExtend<
+        JsonResourcePaginator<Card>
+    >();
+
+    expectTypeOf({
+        data: cards,
+        links: {
+            first: "http://localhost/cards?page=1",
+            last: null,
+            prev: null,
+            next: "http://localhost/cards?page=2",
+        },
+        meta: {
+            current_page: 1,
+            current_page_url: "http://localhost/cards?page=1",
+            from: 1,
+            path: "http://localhost/cards",
+            per_page: 2,
+            to: 2,
+        },
+    } satisfies JsonResourceSimplePaginator<Card>).toExtend<
+        JsonResourceSimplePaginator<Card>
+    >();
+
+    expectTypeOf({
+        data: cards,
+        links: {
+            first: null,
+            last: null,
+            prev: null,
+            next: "http://localhost/cards?cursor=eyJjYXJkcy5pZCI6MiwiX3BvaW50c1RvTmV4dEl0ZW1zIjp0cnVlfQ",
+        },
+        meta: {
+            path: "http://localhost/cards",
+            per_page: 2,
+            next_cursor:
+                "eyJjYXJkcy5pZCI6MiwiX3BvaW50c1RvTmV4dEl0ZW1zIjp0cnVlfQ",
+            prev_cursor: null,
+        },
+    } satisfies JsonResourceCursorPaginator<Card>).toExtend<
+        JsonResourceCursorPaginator<Card>
+    >();
+
+    expectTypeOf({
+        data: [],
+        links: {
+            first: "http://localhost/cards?page=1",
+            last: null,
+            prev: null,
+            next: null,
+        },
+        meta: {
+            current_page: 1,
+            current_page_url: "http://localhost/cards?page=1",
+            from: null,
+            path: "http://localhost/cards",
+            per_page: 2,
+            to: null,
+        },
+    } satisfies JsonResourceSimplePaginator<Card>).toExtend<
+        JsonResourceSimplePaginator<Card>
+    >();
+});
+
+test("each paginator type accepts what Laravel sends", () => {
+    expectTypeOf({
+        current_page: 1,
+        data: cardRows,
+        first_page_url: "http://localhost/cards?page=1",
+        from: 1,
+        last_page: 2,
+        last_page_url: "http://localhost/cards?page=2",
+        links: lengthAwareLinks,
+        next_page_url: "http://localhost/cards?page=2",
+        path: "http://localhost/cards",
+        per_page: 2,
+        prev_page_url: null,
+        to: 2,
+        total: 3,
+    } satisfies LengthAwarePaginator<CardRow>).toExtend<
+        LengthAwarePaginator<CardRow>
+    >();
+
+    expectTypeOf({
+        current_page: 1,
+        current_page_url: "http://localhost/cards?page=1",
+        data: cardRows,
+        first_page_url: "http://localhost/cards?page=1",
+        from: 1,
+        next_page_url: "http://localhost/cards?page=2",
+        path: "http://localhost/cards",
+        per_page: 2,
+        prev_page_url: null,
+        to: 2,
+    } satisfies SimplePaginator<CardRow>).toExtend<SimplePaginator<CardRow>>();
+
+    expectTypeOf({
+        data: cardRows,
+        path: "http://localhost/cards",
+        per_page: 2,
+        next_cursor: "eyJjYXJkcy5pZCI6MiwiX3BvaW50c1RvTmV4dEl0ZW1zIjp0cnVlfQ",
+        next_page_url:
+            "http://localhost/cards?cursor=eyJjYXJkcy5pZCI6MiwiX3BvaW50c1RvTmV4dEl0ZW1zIjp0cnVlfQ",
+        prev_cursor: null,
+        prev_page_url: null,
+    } satisfies CursorPaginator<CardRow>).toExtend<CursorPaginator<CardRow>>();
+
+    // `firstItem()` and `lastItem()` are `null` on a page with no items.
+    expectTypeOf({
+        current_page: 1,
+        current_page_url: "http://localhost/cards?page=1",
+        data: [],
+        first_page_url: "http://localhost/cards?page=1",
+        from: null,
+        next_page_url: null,
+        path: "http://localhost/cards",
+        per_page: 2,
+        prev_page_url: null,
+        to: null,
+    } satisfies SimplePaginator<CardRow>).toExtend<SimplePaginator<CardRow>>();
+});
+
+test("a simple or cursor meta block claims no length-aware field", () => {
+    expectTypeOf<JsonResourceSimpleMeta>().not.toHaveProperty("total");
+    expectTypeOf<JsonResourceSimpleMeta>().not.toHaveProperty("last_page");
+    expectTypeOf<JsonResourceSimpleMeta>().not.toHaveProperty("links");
+    expectTypeOf<JsonResourceCursorMeta>().not.toHaveProperty("total");
+    expectTypeOf<JsonResourceCursorMeta>().not.toHaveProperty("last_page");
+    expectTypeOf<JsonResourceCursorMeta>().not.toHaveProperty("links");
+    expectTypeOf<JsonResourceCursorMeta>().not.toHaveProperty("current_page");
+    expectTypeOf<JsonResourceCursorMeta>().not.toHaveProperty("from");
+    expectTypeOf<JsonResourceCursorMeta>().not.toHaveProperty("to");
+    expectTypeOf<JsonResourceCursorMeta>()
+        .toHaveProperty("next_cursor")
+        .toEqualTypeOf<string | null>();
+    expectTypeOf<JsonResourceCursorMeta>()
+        .toHaveProperty("prev_cursor")
+        .toEqualTypeOf<string | null>();
+});
+
+test("the simple and cursor pagination blocks compose like ResourcePagination", () => {
+    expectTypeOf<
+        ResourceSimplePagination["meta"]
+    >().toEqualTypeOf<JsonResourceSimpleMeta>();
+    expectTypeOf<
+        ResourceSimplePagination["links"]
+    >().toEqualTypeOf<JsonResourceLinks>();
+    expectTypeOf<
+        ResourceCursorPagination["meta"]
+    >().toEqualTypeOf<JsonResourceCursorMeta>();
+    expectTypeOf<
+        ResourceCursorPagination["links"]
+    >().toEqualTypeOf<JsonResourceLinks>();
+
+    // `.branded` compares an interface with an intersection by structure.
+    expectTypeOf<JsonResourcePaginator<Card>>().branded.toEqualTypeOf<
+        { data: Card[] } & ResourcePagination
+    >();
+    expectTypeOf<JsonResourceSimplePaginator<Card>>().branded.toEqualTypeOf<
+        { data: Card[] } & ResourceSimplePagination
+    >();
+    expectTypeOf<JsonResourceCursorPaginator<Card>>().branded.toEqualTypeOf<
+        { data: Card[] } & ResourceCursorPagination
+    >();
+
+    // A collection that renames its wrap key keeps each kind's pagination block.
+    expectTypeOf({
+        items: cards,
+        links: {
+            first: null,
+            last: null,
+            prev: null,
+            next: null,
+        },
+        meta: {
+            path: "http://localhost/cards",
+            per_page: 2,
+            next_cursor: null,
+            prev_cursor: null,
+        },
+    } satisfies {
+        items: Card[];
+    } & ResourceCursorPagination).toExtend<ResourceCursorPagination>();
+});
+
+test("PaginatorLink's page is optional, since the separator has none", () => {
+    expectTypeOf<PaginatorLink["page"]>().toEqualTypeOf<
+        number | null | undefined
+    >();
+
+    // `LengthAwarePaginator::linkCollection()` sends the `...` separator without a `page`.
+    expectTypeOf([
+        { url: null, label: "&laquo; Previous", page: null, active: false },
+        {
+            url: "http://localhost/cards?page=1",
+            label: "1",
+            page: 1,
+            active: true,
+        },
+        { url: null, label: "...", active: false },
+    ] satisfies PaginatorLink[]).toExtend<PaginatorLink[]>();
+});
+
+test("SimplePaginator's current_page_url is optional, since Laravel before 12.15 does not send it", () => {
+    expectTypeOf<SimplePaginator<Card>["current_page_url"]>().toEqualTypeOf<
+        string | undefined
+    >();
+    expectTypeOf<JsonResourceSimpleMeta["current_page_url"]>().toEqualTypeOf<
+        string | undefined
+    >();
+    expectTypeOf<LengthAwarePaginator<Card>>().not.toHaveProperty(
+        "current_page_url",
+    );
+});
+
+// ----------------------------------------------
+// What Laravel 13's `JsonApiResource` sends: the resource objects the documents below hold
+// ----------------------------------------------
+
+interface UserResource {
+    id: string;
+    type: "users";
+    attributes: { name: string; email: string };
+}
+
+interface CommentResource {
+    id: string;
+    type: "comments";
+    attributes: { content: string; is_flagged: boolean };
+    relationships?: { user?: JsonApiToOneRelationship<"users"> };
+}
+
+interface CategoryResource {
+    id: string;
+    type: "categories";
+    attributes: { name: string; slug: string };
+}
+
+interface PostResource {
+    id: string;
+    type: "posts";
+    attributes: {
+        title: string;
+        content: string;
+        word_count: number | null;
+        published_at: string | null;
+    };
+    relationships?: {
+        author?: JsonApiToOneRelationship<"users">;
+        comments?: JsonApiToManyRelationship<"comments">;
+        categoryRel?: JsonApiToOneRelationship<"categories">;
+    };
+}
+
+interface LinkedPostResource {
+    id: string;
+    type: "linked_posts";
+    attributes: { title: string };
+    links?: { self: string };
+    meta?: { readable: boolean; words: number | null };
+}
+
+type PostIncluded = UserResource | CommentResource | CategoryResource;
+
+const firstPost = {
+    id: "1",
+    type: "posts",
+    attributes: {
+        title: "First",
+        content: "Body one",
+        word_count: 1200,
+        published_at: null,
+    },
+} satisfies PostResource;
+
+const secondPost = {
+    id: "2",
+    type: "posts",
+    attributes: {
+        title: "Second",
+        content: "Body two",
+        word_count: 10,
+        published_at: null,
+    },
+} satisfies PostResource;
+
+test("a JSON:API document accepts what Laravel sends", () => {
+    // `?include=author,comments,categoryRel`
+    expectTypeOf({
+        data: {
+            ...firstPost,
+            relationships: {
+                author: { data: { id: "1", type: "users" } },
+                comments: {
+                    data: [
+                        { id: "1", type: "comments" },
+                        { id: "2", type: "comments" },
+                    ],
+                },
+                categoryRel: { data: null },
+            },
+        },
+        included: [
+            {
+                id: "1",
+                type: "users",
+                attributes: { name: "Ann", email: "ann@example.test" },
+            },
+            {
+                id: "1",
+                type: "comments",
+                attributes: { content: "c1", is_flagged: false },
+            },
+            {
+                id: "2",
+                type: "comments",
+                attributes: { content: "c2", is_flagged: false },
+            },
+        ],
+    } satisfies JsonApiDocument<PostResource, PostIncluded>).toExtend<
+        JsonApiDocument<PostResource, PostIncluded>
+    >();
+
+    // `?include=comments.user`: an included resource object carries its own relationships.
+    expectTypeOf({
+        data: {
+            ...firstPost,
+            relationships: {
+                comments: {
+                    data: [
+                        { id: "1", type: "comments" },
+                        { id: "2", type: "comments" },
+                    ],
+                },
+            },
+        },
+        included: [
+            {
+                id: "1",
+                type: "comments",
+                attributes: { content: "c1", is_flagged: false },
+                relationships: { user: { data: { id: "2", type: "users" } } },
+            },
+            {
+                id: "2",
+                type: "comments",
+                attributes: { content: "c2", is_flagged: false },
+                relationships: { user: { data: { id: "1", type: "users" } } },
+            },
+            {
+                id: "2",
+                type: "users",
+                attributes: { name: "Bob", email: "bob@example.test" },
+            },
+            {
+                id: "1",
+                type: "users",
+                attributes: { name: "Ann", email: "ann@example.test" },
+            },
+        ],
+    } satisfies JsonApiDocument<PostResource, PostIncluded>).toExtend<
+        JsonApiDocument<PostResource, PostIncluded>
+    >();
+
+    // A missing to-one and an empty to-many, with nothing to include.
+    expectTypeOf({
+        data: {
+            ...secondPost,
+            relationships: {
+                comments: { data: [] },
+                categoryRel: { data: null },
+            },
+        },
+    } satisfies JsonApiDocument<PostResource, PostIncluded>).toExtend<
+        JsonApiDocument<PostResource, PostIncluded>
+    >();
+
+    // `toLinks()` and `toMeta()` overrides.
+    expectTypeOf({
+        data: {
+            id: "1",
+            type: "linked_posts",
+            attributes: { title: "First" },
+            links: { self: "https://example.test/posts/1" },
+            meta: { readable: true, words: 1200 },
+        },
+    } satisfies JsonApiDocument<LinkedPostResource>).toExtend<
+        JsonApiDocument<LinkedPostResource>
+    >();
+
+    // After `JsonApiResource::configure('1.1', meta: [...])`.
+    expectTypeOf({
+        data: firstPost,
+        jsonapi: { version: "1.1", meta: { copyright: "Probe" } },
+    } satisfies JsonApiDocument<PostResource>).toExtend<
+        JsonApiDocument<PostResource>
+    >();
+    expectTypeOf({
+        data: [firstPost, secondPost],
+        jsonapi: { version: "1.1", meta: { copyright: "Probe" } },
+    } satisfies JsonApiCollection<PostResource>).toExtend<
+        JsonApiCollection<PostResource>
+    >();
+    expectTypeOf<JsonApiDocument<PostResource>["jsonapi"]>().toEqualTypeOf<
+        JsonApiObject | undefined
+    >();
+
+    // `PostResource::collection()` with `?include=author`, and over no models.
+    expectTypeOf({
+        data: [
+            {
+                ...firstPost,
+                relationships: {
+                    author: { data: { id: "1", type: "users" } },
+                },
+            },
+            {
+                ...secondPost,
+                relationships: {
+                    author: { data: { id: "2", type: "users" } },
+                },
+            },
+        ],
+        included: [
+            {
+                id: "1",
+                type: "users",
+                attributes: { name: "Ann", email: "ann@example.test" },
+            },
+            {
+                id: "2",
+                type: "users",
+                attributes: { name: "Bob", email: "bob@example.test" },
+            },
+        ],
+    } satisfies JsonApiCollection<PostResource, PostIncluded>).toExtend<
+        JsonApiCollection<PostResource, PostIncluded>
+    >();
+    expectTypeOf({
+        data: [],
+    } satisfies JsonApiCollection<PostResource>).toExtend<
+        JsonApiCollection<PostResource>
+    >();
+
+    // `PostResource::collection(Post::paginate(1))` with `?include=author`, as an Inertia prop.
+    expectTypeOf({
+        data: [
+            {
+                ...firstPost,
+                attributes: {
+                    ...firstPost.attributes,
+                    published_at: "2026-01-02T03:04:05.000000Z",
+                },
+                relationships: {
+                    author: { data: { id: "1", type: "users" } },
+                },
+            },
+        ],
+        links: {
+            first: "http://localhost/probe/inertia?page=1",
+            last: "http://localhost/probe/inertia?page=2",
+            prev: null,
+            next: "http://localhost/probe/inertia?page=2",
+        },
+        meta: {
+            current_page: 1,
+            from: 1,
+            last_page: 2,
+            links: [
+                {
+                    url: null,
+                    label: "&laquo; Previous",
+                    page: null,
+                    active: false,
+                },
+                {
+                    url: "http://localhost/probe/inertia?page=1",
+                    label: "1",
+                    page: 1,
+                    active: true,
+                },
+                {
+                    url: "http://localhost/probe/inertia?page=2",
+                    label: "2",
+                    page: 2,
+                    active: false,
+                },
+                {
+                    url: "http://localhost/probe/inertia?page=2",
+                    label: "Next &raquo;",
+                    page: 2,
+                    active: false,
+                },
+            ],
+            path: "http://localhost/probe/inertia",
+            per_page: 1,
+            to: 1,
+            total: 2,
+        },
+        included: [
+            {
+                id: "1",
+                type: "users",
+                attributes: { name: "Ann", email: "ann@example.test" },
+            },
+        ],
+    } satisfies JsonApiPaginator<PostResource, PostIncluded>).toExtend<
+        JsonApiPaginator<PostResource, PostIncluded>
+    >();
+});
+
+test("a to-one relationship's data may be null", () => {
+    expectTypeOf<
+        JsonApiToOneRelationship<"users">["data"]
+    >().toEqualTypeOf<JsonApiResourceIdentifier<"users"> | null>();
+    expectTypeOf<JsonApiToManyRelationship<"comments">["data"]>().toEqualTypeOf<
+        JsonApiResourceIdentifier<"comments">[]
+    >();
+    expectTypeOf<JsonApiResourceIdentifier>().toEqualTypeOf<{
+        id: string;
+        type: string;
+    }>();
+    expectTypeOf<JsonApiRelationship<"users">>().toEqualTypeOf<
+        JsonApiToOneRelationship<"users"> | JsonApiToManyRelationship<"users">
+    >();
+    expectTypeOf({
+        data: null,
+    } satisfies JsonApiToOneRelationship<"categories">).toExtend<
+        JsonApiRelationship<"categories">
+    >();
+    expectTypeOf<{ data: null }>().not.toExtend<
+        JsonApiToManyRelationship<"comments">
+    >();
+});
+
+test("JsonApiSparse makes every attribute optional", () => {
+    expectTypeOf<JsonApiSparse<PostResource>["attributes"]>().toEqualTypeOf<
+        | {
+              title?: string;
+              content?: string;
+              word_count?: number | null;
+              published_at?: string | null;
+          }
+        | undefined
+    >();
+    expectTypeOf<
+        JsonApiSparse<PostResource>["type"]
+    >().toEqualTypeOf<"posts">();
+    expectTypeOf<JsonApiSparse<PostResource>["relationships"]>().toEqualTypeOf<
+        PostResource["relationships"]
+    >();
+
+    expectTypeOf<{
+        id: string;
+        type: "posts";
+        attributes: { title: string };
+    }>().not.toExtend<PostResource>();
+
+    // `?fields[posts]=title`, then `?fields[posts]=`, which sends no `attributes` at all.
+    expectTypeOf({
+        data: { id: "1", type: "posts", attributes: { title: "First" } },
+    } satisfies JsonApiDocument<JsonApiSparse<PostResource>>).toExtend<
+        JsonApiDocument<JsonApiSparse<PostResource>>
+    >();
+    expectTypeOf({
+        data: { id: "1", type: "posts" },
+    } satisfies JsonApiDocument<JsonApiSparse<PostResource>>).toExtend<
+        JsonApiDocument<JsonApiSparse<PostResource>>
+    >();
+
+    // `?fields[users]=name&include=author` narrows only the included users.
+    expectTypeOf({
+        data: {
+            ...firstPost,
+            relationships: {
+                author: { data: { id: "1", type: "users" } },
+            },
+        },
+        included: [{ id: "1", type: "users", attributes: { name: "Ann" } }],
+    } satisfies JsonApiDocument<
+        PostResource,
+        JsonApiSparse<UserResource> | CommentResource | CategoryResource
+    >).toExtend<
+        JsonApiDocument<
+            PostResource,
+            JsonApiSparse<UserResource> | CommentResource | CategoryResource
+        >
+    >();
+});
+
+test("a JSON:API collection over a simple or cursor paginator carries that kind's meta", () => {
+    expectTypeOf<
+        JsonApiPaginator<PostResource>["meta"]
+    >().toEqualTypeOf<JsonResourceMeta>();
+    expectTypeOf<
+        JsonApiSimplePaginator<PostResource>["meta"]
+    >().toEqualTypeOf<JsonResourceSimpleMeta>();
+    expectTypeOf<
+        JsonApiCursorPaginator<PostResource>["meta"]
+    >().toEqualTypeOf<JsonResourceCursorMeta>();
+    expectTypeOf<
+        JsonApiSimplePaginator<PostResource>["links"]
+    >().toEqualTypeOf<JsonResourceLinks>();
+    expectTypeOf<
+        JsonApiCursorPaginator<PostResource>["links"]
+    >().toEqualTypeOf<JsonResourceLinks>();
+
+    // `.branded` compares an interface with an intersection by structure.
+    expectTypeOf<
+        JsonApiPaginator<PostResource, PostIncluded>
+    >().branded.toEqualTypeOf<
+        JsonApiCollection<PostResource, PostIncluded> & ResourcePagination
+    >();
+    expectTypeOf<
+        JsonApiSimplePaginator<PostResource, PostIncluded>
+    >().branded.toEqualTypeOf<
+        JsonApiCollection<PostResource, PostIncluded> & ResourceSimplePagination
+    >();
+    expectTypeOf<
+        JsonApiCursorPaginator<PostResource, PostIncluded>
+    >().branded.toEqualTypeOf<
+        JsonApiCollection<PostResource, PostIncluded> & ResourceCursorPagination
+    >();
+
+    // `PostResource::collection(Post::simplePaginate(1))`
+    expectTypeOf({
+        data: [firstPost],
+        links: {
+            first: "http://localhost/x?page=1",
+            last: null,
+            prev: null,
+            next: "http://localhost/x?page=2",
+        },
+        meta: {
+            current_page: 1,
+            current_page_url: "http://localhost/x?page=1",
+            from: 1,
+            path: "http://localhost/x",
+            per_page: 1,
+            to: 1,
+        },
+    } satisfies JsonApiSimplePaginator<PostResource>).toExtend<
+        JsonApiSimplePaginator<PostResource>
+    >();
+
+    // `PostResource::collection(Post::cursorPaginate(1))`
+    expectTypeOf({
+        data: [firstPost],
+        links: {
+            first: null,
+            last: null,
+            prev: null,
+            next: "http://localhost/x?cursor=eyJpZCI6MSwiX3BvaW50c1RvTmV4dEl0ZW1zIjp0cnVlfQ",
+        },
+        meta: {
+            path: "http://localhost/x",
+            per_page: 1,
+            next_cursor: "eyJpZCI6MSwiX3BvaW50c1RvTmV4dEl0ZW1zIjp0cnVlfQ",
+            prev_cursor: null,
+        },
+    } satisfies JsonApiCursorPaginator<PostResource>).toExtend<
+        JsonApiCursorPaginator<PostResource>
+    >();
+});
+
+test("JsonApiResourceObject's type parameters default to today's shape", () => {
+    expectTypeOf<JsonApiResourceObject>().toEqualTypeOf<{
+        id: string;
+        type: string;
+        attributes?: Record<string, unknown>;
+        relationships?: Record<
+            string,
+            JsonApiToOneRelationship | JsonApiToManyRelationship
+        >;
+        links?: Record<string, unknown>;
+        meta?: Record<string, unknown>;
+    }>();
+    expectTypeOf<JsonApiDocument<PostResource>["included"]>().toEqualTypeOf<
+        JsonApiResourceObject[] | undefined
+    >();
+
+    expectTypeOf<
+        JsonApiResourceObject<"users", UserResource["attributes"]>["attributes"]
+    >().toEqualTypeOf<UserResource["attributes"] | undefined>();
+    expectTypeOf<
+        JsonApiResourceObject<
+            "comments",
+            CommentResource["attributes"],
+            NonNullable<CommentResource["relationships"]>
+        >["relationships"]
+    >().toEqualTypeOf<CommentResource["relationships"]>();
+
+    // Each resource object a document names fits the default `included` member.
+    expectTypeOf<PostResource>().toExtend<JsonApiResourceObject<"posts">>();
+    expectTypeOf<CommentResource>().toExtend<JsonApiResourceObject>();
+    expectTypeOf<LinkedPostResource>().toExtend<JsonApiResourceObject>();
+
+    // A `toId()` returning an int is still sent as a string.
+    expectTypeOf({
+        id: "1000",
+        type: "articles",
+        attributes: { title: "First" },
+    } satisfies JsonApiResourceObject<"articles">).toExtend<
+        JsonApiResourceObject<"articles">
+    >();
+});
+
+// ----------------------------------------------
 // Enhanced positive literal + mapped type tests
 // ----------------------------------------------
 
@@ -223,12 +1019,12 @@ test("SimplePaginator structure + value shapes", () => {
     expectTypeOf(sp.current_page).toEqualTypeOf<number>();
     expectTypeOf(sp.data).toEqualTypeOf<Data[]>();
     expectTypeOf(sp.first_page_url).toEqualTypeOf<string>();
-    expectTypeOf(sp.from).toEqualTypeOf<number>();
+    expectTypeOf(sp.from).toEqualTypeOf<number | null>();
     expectTypeOf(sp.next_page_url).toEqualTypeOf<string | null>();
     expectTypeOf(sp.path).toEqualTypeOf<string>();
     expectTypeOf(sp.per_page).toEqualTypeOf<number>();
     expectTypeOf(sp.prev_page_url).toEqualTypeOf<string | null>();
-    expectTypeOf(sp.to).toEqualTypeOf<number>();
+    expectTypeOf(sp.to).toEqualTypeOf<number | null>();
 });
 
 test("LengthAwarePaginator structure + value shapes", () => {
@@ -251,7 +1047,7 @@ test("LengthAwarePaginator structure + value shapes", () => {
     expectTypeOf(sp.current_page).toEqualTypeOf<number>();
     expectTypeOf(sp.data).toEqualTypeOf<Data[]>();
     expectTypeOf(sp.first_page_url).toEqualTypeOf<string>();
-    expectTypeOf(sp.from).toEqualTypeOf<number>();
+    expectTypeOf(sp.from).toEqualTypeOf<number | null>();
     expectTypeOf(sp.last_page).toEqualTypeOf<number>();
     expectTypeOf(sp.last_page_url).toEqualTypeOf<string>();
     expectTypeOf(sp.links).toEqualTypeOf<PaginatorLink[]>();
@@ -259,7 +1055,7 @@ test("LengthAwarePaginator structure + value shapes", () => {
     expectTypeOf(sp.path).toEqualTypeOf<string>();
     expectTypeOf(sp.per_page).toEqualTypeOf<number>();
     expectTypeOf(sp.prev_page_url).toEqualTypeOf<string | null>();
-    expectTypeOf(sp.to).toEqualTypeOf<number>();
+    expectTypeOf(sp.to).toEqualTypeOf<number | null>();
     expectTypeOf(sp.total).toEqualTypeOf<number>();
 });
 
@@ -300,6 +1096,8 @@ test("JsonResourcePaginator structure + value shapes", () => {
     };
     expectTypeOf(jrOk.data[0]!.id).toBeNumber();
     expectTypeOf(jrOk.meta.total).toBeNumber();
+    expectTypeOf(jrOk.meta.from).toEqualTypeOf<number | null>();
+    expectTypeOf(jrOk.meta.to).toEqualTypeOf<number | null>();
 });
 
 test("PaginatorLink shape", () => {
