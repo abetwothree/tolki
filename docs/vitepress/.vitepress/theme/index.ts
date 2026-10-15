@@ -1,12 +1,12 @@
 // https://vitepress.dev/guide/custom-theme
-import "./style.css";
-import "virtual:group-icons.css";
-
 import type { Theme } from "vitepress";
 import { inBrowser, onContentUpdated } from "vitepress";
 import DefaultTheme from "vitepress/theme";
 import CopyOrDownloadAsMarkdownButtons from "vitepress-plugin-llms/vitepress-components/CopyOrDownloadAsMarkdownButtons.vue";
 import { h, nextTick } from "vue";
+
+import "./style.css";
+import "virtual:group-icons.css";
 
 import { installCodeGroupSync, restoreSelections } from "./code-group-sync";
 import FnTry from "./components/FnTry.vue";

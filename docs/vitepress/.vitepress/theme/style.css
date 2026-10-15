@@ -292,10 +292,6 @@ html {
   --shiki-dark: #8b949e !important;
 }
 
-:root {
-  --vp-code-lang-color: #67676c;
-}
-
 /* Language label chip: brand-tinted */
 .vp-doc div[class*="language-"] .lang {
   color: var(--vp-c-brand-1);
