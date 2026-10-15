@@ -440,8 +440,11 @@ html {
   margin-left: 0;
 }
 
+/* A "Laravel:" line may link two helpers; its prose is text, so only its links count as children. */
 .vp-doc:is(._collections_methods-list, ._arrays-objects_utilities-list)
-  p:has(> a[href^="https://laravel.com/docs/"]:only-child) {
+  p:has(> a[href^="https://laravel.com/docs/"]):not(
+    :has(> :not(a[href^="https://laravel.com/docs/"]))
+  ) {
   font-size: 14px;
   color: var(--vp-c-text-2);
 }
