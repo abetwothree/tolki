@@ -25,6 +25,34 @@ export function formatError(error: unknown): string {
 }
 
 /**
+ * Sizes a JSON textarea to its text, between 2 rows and a maximum.
+ *
+ * @param text - The textarea's current text.
+ * @param max - The most rows the box may grow to.
+ * @returns The row count.
+ */
+export function jsonRows(text: string, max = 8): number {
+    return Math.min(max, Math.max(2, text.split("\n").length));
+}
+
+/**
+ * Runs a playground call and formats its outcome, catching a failure in either step.
+ *
+ * @param run - The call to run.
+ * @returns Whether it succeeded, and the display text of the result or error.
+ */
+export function runForDisplay(run: () => unknown): {
+    ok: boolean;
+    value: string;
+} {
+    try {
+        return { ok: true, value: formatResult(run()) };
+    } catch (error) {
+        return { ok: false, value: formatError(error) };
+    }
+}
+
+/**
  * Formats one value, tracking its ancestors to detect cycles.
  *
  * @param value - The value to format.

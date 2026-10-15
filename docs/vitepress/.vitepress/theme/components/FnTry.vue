@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive } from "vue";
 
-import { formatError, formatResult } from "../fn-try-format";
+import { jsonRows, runForDisplay } from "../fn-try-format";
 
 type FnArgValue =
   | string
@@ -41,8 +41,8 @@ const values = reactive<Record<string, FnArgValue>>(
   ),
 );
 
-const result = computed(() => {
-  try {
+const result = computed(() =>
+  runForDisplay(() => {
     const ordered = props.args.map((arg) => {
       const value = values[arg.name];
 
@@ -59,17 +59,9 @@ const result = computed(() => {
       return value;
     });
 
-    return {
-      ok: true,
-      value: (props.fn as (...a: unknown[]) => unknown)(...ordered),
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      value: formatError(error),
-    };
-  }
-});
+    return (props.fn as (...a: unknown[]) => unknown)(...ordered);
+  }),
+);
 </script>
 
 <template>
@@ -115,7 +107,7 @@ const result = computed(() => {
           v-model="values[arg.name]"
           :name="arg.name"
           class="fn-try-input fn-try-json"
-          rows="2"
+          :rows="jsonRows(String(values[arg.name]))"
           spellcheck="false"
         />
         <input
@@ -140,9 +132,7 @@ const result = computed(() => {
         result.ok ? "Result" : "Error"
       }}</span>
       <!-- random and shuffle demos print a different value on the server and in the browser -->
-      <code data-allow-mismatch="text">{{
-        result.ok ? formatResult(result.value) : result.value
-      }}</code>
+      <code data-allow-mismatch="text">{{ result.value }}</code>
     </div>
   </div>
 </template>
@@ -208,6 +198,11 @@ const result = computed(() => {
 .fn-try-input:focus {
   outline: none;
   border-color: var(--vp-c-brand-1);
+}
+
+.fn-try-input:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 1px;
 }
 
 .fn-try-select {
