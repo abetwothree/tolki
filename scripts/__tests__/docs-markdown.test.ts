@@ -15,6 +15,10 @@ describe("slugify", () => {
         expect(slugify("toCssClasses")).toBe("tocssclasses");
     });
 
+    it("treats a backslash as a separator, as VitePress does", () => {
+        expect(slugify("a\\b")).toBe("a-b");
+    });
+
     it("prefixes a leading digit with an underscore", () => {
         expect(slugify("1st")).toBe("_1st");
     });
@@ -53,6 +57,18 @@ describe("parseHeadings", () => {
         );
 
         expect(slugs).toEqual(["tojson", "tojson-1"]);
+    });
+
+    it("numbers a repeated slug past one that is already taken", () => {
+        const slugs = (markdown: string): string[] =>
+            parseHeadings(markdown).map(({ slug }) => slug);
+
+        expect(slugs("## a\n\n## a-1\n\n## a\n")).toEqual(["a", "a-1", "a-2"]);
+        expect(slugs("## a\r\n\r\n## a-1\r\n\r\n## a\r\n")).toEqual([
+            "a",
+            "a-1",
+            "a-2",
+        ]);
     });
 
     // A Windows checkout gives CRLF, and `.` never matches the `\r`.
@@ -114,6 +130,13 @@ describe("parseFences", () => {
         expect(fences.map(({ line, lang }) => ({ line, lang }))).toEqual([
             { line: 3, lang: "ts" },
         ]);
+    });
+
+    it("keeps a fence left open at the end of the file", () => {
+        expect(parseFences("```js\nx;").map((f) => f.code)).toEqual(["x;"]);
+        expect(parseFences("```js\r\nx;\r\ny;\r\n").map((f) => f.code)).toEqual(
+            ["x;\ny;\n"],
+        );
     });
 
     it("keeps a longer fence open past a shorter fence line", () => {

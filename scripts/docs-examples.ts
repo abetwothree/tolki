@@ -39,9 +39,24 @@ const AsyncFunction = Object.getPrototypeOf(async () => undefined)
  * Describes a value with everything `toEqual` would ignore: entry order, `-0`, `NaN` and the type of a primitive.
  *
  * @param value - A plain value, array, Map, Set or Date, nested to any depth.
+ * @param ancestors - The objects being described above this value; internal to the recursion.
  * @returns A shape that two values share only when they print alike.
  */
-export function orderedShape(value: unknown): Shape {
+export function orderedShape(
+    value: unknown,
+    ancestors: readonly object[] = [],
+): Shape {
+    if (typeof value === "object" && value !== null) {
+        if (ancestors.includes(value)) {
+            throw new TypeError("Cannot compare a circular value");
+        }
+    }
+
+    const path =
+        typeof value === "object" && value !== null
+            ? [...ancestors, value]
+            : ancestors;
+
     if (value instanceof Date) {
         return {
             type: "date",
@@ -52,21 +67,27 @@ export function orderedShape(value: unknown): Shape {
     }
 
     if (Array.isArray(value)) {
-        return { type: "array", items: value.map(orderedShape) };
+        return {
+            type: "array",
+            items: value.map((item) => orderedShape(item, path)),
+        };
     }
 
     if (value instanceof Map) {
         return {
             type: "map",
             entries: [...value].map(([key, item]) => [
-                orderedShape(key),
-                orderedShape(item),
+                orderedShape(key, path),
+                orderedShape(item, path),
             ]),
         };
     }
 
     if (value instanceof Set) {
-        return { type: "set", values: [...value].map(orderedShape) };
+        return {
+            type: "set",
+            values: [...value].map((item) => orderedShape(item, path)),
+        };
     }
 
     if (typeof value === "object" && value !== null) {
@@ -82,7 +103,7 @@ export function orderedShape(value: unknown): Shape {
             type: "object",
             entries: Object.entries(value).map(([key, item]) => [
                 key,
-                orderedShape(item),
+                orderedShape(item, path),
             ]),
         };
     }
@@ -178,6 +199,57 @@ function importStatement(node: ts.ImportDeclaration): string {
 }
 
 /**
+ * Tells whether every bracket in a piece of code is closed, ignoring brackets inside strings.
+ *
+ * @param text - The expected-value text read so far.
+ * @returns True when no `(`, `[` or `{` is left open.
+ */
+function isBalanced(text: string): boolean {
+    const scanner = ts.createScanner(
+        ts.ScriptTarget.ES2022,
+        true,
+        ts.LanguageVariant.Standard,
+        text,
+    );
+    const templates: number[] = [];
+    let depth = 0;
+
+    for (
+        let token = scanner.scan();
+        token !== ts.SyntaxKind.EndOfFileToken;
+        token = scanner.scan()
+    ) {
+        if (token === ts.SyntaxKind.CloseBraceToken && templates.length > 0) {
+            if (depth - 1 === templates[templates.length - 1]) {
+                token = scanner.reScanTemplateToken(false);
+            }
+        }
+
+        if (
+            token === ts.SyntaxKind.OpenParenToken ||
+            token === ts.SyntaxKind.OpenBracketToken ||
+            token === ts.SyntaxKind.OpenBraceToken
+        ) {
+            depth++;
+        } else if (token === ts.SyntaxKind.TemplateHead) {
+            templates.push(depth);
+            depth++;
+        } else if (token === ts.SyntaxKind.TemplateTail) {
+            templates.pop();
+            depth--;
+        } else if (
+            token === ts.SyntaxKind.CloseParenToken ||
+            token === ts.SyntaxKind.CloseBracketToken ||
+            token === ts.SyntaxKind.CloseBraceToken
+        ) {
+            depth--;
+        }
+    }
+
+    return depth <= 0;
+}
+
+/**
  * Reads the `// =>` comment run that follows a statement.
  *
  * @param code - The fence body.
@@ -199,6 +271,10 @@ function assertionAfter(
     let previous = first;
 
     for (const range of ranges.slice(1)) {
+        if (isBalanced(lines.join("\n"))) {
+            break;
+        }
+
         const gap = code.slice(previous.end, range.pos);
 
         if (
@@ -273,8 +349,8 @@ export function compileExample(
             end: statement.end,
             text:
                 thrown === null
-                    ? `await __expect(() => (${expression}), () => (${assertion.expected}), ${line});`
-                    : `await __throws(() => (${expression}), ${JSON.stringify(thrown[1])}, ${line});`,
+                    ? `await __expect(async () => (${expression}), () => (${assertion.expected}), ${line});`
+                    : `await __throws(async () => (${expression}), ${JSON.stringify(thrown[1])}, ${line});`,
         });
     }
 
@@ -346,14 +422,20 @@ export async function runExample(
         line: number,
     ): Promise<void> => {
         let thrown: unknown = null;
+        let threw = false;
 
         try {
             await call();
         } catch (error) {
             thrown = error;
+            threw = true;
         }
 
-        const actual = thrown instanceof Error ? thrown.name : null;
+        const actual = !threw
+            ? null
+            : thrown instanceof Error
+              ? thrown.name
+              : String(thrown);
 
         if (actual !== name) {
             throw new Error(

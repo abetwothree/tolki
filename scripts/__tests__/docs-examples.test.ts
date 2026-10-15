@@ -106,6 +106,14 @@ describe("orderedShape", () => {
         expect(() => orderedShape(new Box())).toThrow(".all() or .toArray()");
         expect(() => orderedShape(() => 1)).toThrow(".all() or .toArray()");
     });
+
+    it("refuses a circular value", () => {
+        const a: unknown[] = [];
+
+        a.push(a);
+
+        expect(() => orderedShape(a)).toThrow("circular");
+    });
 });
 
 describe("compileExample", () => {
@@ -137,6 +145,24 @@ describe("compileExample", () => {
         );
     });
 
+    it("ends the expected value at a balanced expression, so a note below it stays a comment", async () => {
+        const example = compiled("1 + 1;\n// => 2\n// a note about it\n3;");
+
+        await expect(runExample(example, async () => ({}))).resolves.toBe(
+            undefined,
+        );
+    });
+
+    it("does not count brackets inside strings or templates", async () => {
+        const example = compiled(
+            'const n = 1;\n`a(${n}`;\n// => `a(${n}`\n// a note )\n"(";\n// => "("',
+        );
+
+        await expect(runExample(example, async () => ({}))).resolves.toBe(
+            undefined,
+        );
+    });
+
     it("throws when the comment follows a declaration", () => {
         expect(() =>
             compileExample(fence("const x = 1;\n// => 1"), "file.md"),
@@ -148,6 +174,15 @@ describe("runExample", () => {
     it("resolves a passing assertion", async () => {
         await expect(
             runExample(compiled("1 + 1;\n// => 2"), async () => ({})),
+        ).resolves.toBe(undefined);
+    });
+
+    it("awaits an asserted expression", async () => {
+        await expect(
+            runExample(
+                compiled("await Promise.resolve(5);\n// => 5"),
+                async () => ({}),
+            ),
         ).resolves.toBe(undefined);
     });
 
@@ -214,6 +249,21 @@ describe("runExample", () => {
                 async () => ({}),
             ),
         ).rejects.toThrow("file.md:11");
+    });
+
+    it("names a non-Error thrown value", async () => {
+        await expect(
+            runExample(
+                compiled(
+                    'import { fail } from "x";\nfail();\n// => throws Error',
+                ),
+                async () => ({
+                    fail: () => {
+                        throw "boom";
+                    },
+                }),
+            ),
+        ).rejects.toThrow("got boom");
     });
 
     it("fails when the call throws another error", async () => {

@@ -20,7 +20,7 @@ export interface MarkdownHeading {
 }
 
 const FENCE_OPEN = /^( {0,3})(`{3,}|~{3,})\s*(.*)$/;
-const SLUG_SEPARATORS = /[\s~`!@#$%^&*()\-_+=[\]{}|;:"'“”‘’<>,.?/]+/g;
+const SLUG_SEPARATORS = /[\s~`!@#$%^&*()\-_+=[\]{}|\\;:"'“”‘’<>,.?/]+/g;
 const COMBINING_MARKS = /[̀-ͯ]/g;
 
 /**
@@ -76,6 +76,32 @@ function plainText(text: string): string {
 }
 
 /**
+ * Builds a fence from its opening line and body lines.
+ *
+ * @param open - The fence being read.
+ * @param open.info - The text after the opening marker.
+ * @param open.line - The 1-based line of the opening marker.
+ * @param open.body - The body lines.
+ * @param group - The code group the fence sits in, if any.
+ * @returns The fence.
+ */
+function fenceFrom(
+    open: { info: string; line: number; body: string[] },
+    group: number | null,
+): MarkdownFence {
+    const [lang = "", ...rest] = open.info.split(/\s+/);
+    const title = /\[([^\]]*)\]/.exec(rest.join(" "))?.[1] ?? null;
+
+    return {
+        lang: lang.replace(/\{.*$/, ""),
+        title,
+        code: open.body.join("\n"),
+        line: open.line,
+        codeGroup: group,
+    };
+}
+
+/**
  * Finds each fenced code block and the `::: code-group` it sits in.
  *
  * @param markdown - The page source.
@@ -103,16 +129,7 @@ export function parseFences(markdown: string): MarkdownFence[] {
                 trimmed.length >= open.marker.length &&
                 trimmed === open.marker[0]?.repeat(trimmed.length)
             ) {
-                const [lang = "", ...rest] = open.info.split(/\s+/);
-                const title = /\[([^\]]*)\]/.exec(rest.join(" "))?.[1] ?? null;
-
-                fences.push({
-                    lang: lang.replace(/\{.*$/, ""),
-                    title,
-                    code: open.body.join("\n"),
-                    line: open.line,
-                    codeGroup: group,
-                });
+                fences.push(fenceFrom(open, group));
                 open = null;
             } else {
                 open.body.push(
@@ -141,6 +158,10 @@ export function parseFences(markdown: string): MarkdownFence[] {
         }
     }
 
+    if (open !== null) {
+        fences.push(fenceFrom(open, group));
+    }
+
     return fences;
 }
 
@@ -162,7 +183,7 @@ function indentOf(line: string): number {
  */
 export function parseHeadings(markdown: string): MarkdownHeading[] {
     const headings: MarkdownHeading[] = [];
-    const seen = new Map<string, number>();
+    const used = new Set<string>();
     let marker: string | null = null;
 
     for (const [index, raw] of markdown.split("\n").entries()) {
@@ -197,13 +218,17 @@ export function parseHeadings(markdown: string): MarkdownHeading[] {
 
         const text = plainText((heading[2] as string).replace(/[ \t]+#+$/, ""));
         const base = slugify(text);
-        const count = seen.get(base) ?? 0;
+        let slug = base;
 
-        seen.set(base, count + 1);
+        for (let count = 1; used.has(slug); count++) {
+            slug = `${base}-${count}`;
+        }
+
+        used.add(slug);
         headings.push({
             level: (heading[1] as string).length,
             text,
-            slug: count === 0 ? base : `${base}-${count}`,
+            slug,
             line: index + 1,
         });
     }
