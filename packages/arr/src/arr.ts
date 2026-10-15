@@ -1241,23 +1241,14 @@ export function first<TValue, TFirstDefault = null>(
         return resolveDefault();
     }
 
-    // Convert to array to ensure we can iterate properly with callback
-    const array = fromItems(data);
-
-    if (!isArray(array)) {
-        // If from() returns an object, iterate over values
-        let index = 0;
-        for (const value of Object.values(array)) {
-            if (!isPhpFalsy(callback(value as TValue, index++))) {
-                return value as TValue;
-            }
-        }
-
-        return resolveDefault();
-    }
+    // Laravel walks a Traversable as it goes, so a match ends the read and an endless generator still answers.
+    const items: Iterable<unknown> =
+        isIterable(data) && !isArrayable && !isMap(data)
+            ? data
+            : toWalkable(fromItems(data));
 
     let index = 0;
-    for (const item of array) {
+    for (const item of items) {
         if (!isPhpFalsy(callback(item as TValue, index++))) {
             return item as TValue;
         }

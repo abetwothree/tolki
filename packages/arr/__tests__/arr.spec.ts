@@ -1091,6 +1091,169 @@ describe("Arr", () => {
             expect(Arr.first(undefined, null, "default")).toBe("default");
             expect(Arr.first(undefined)).toBeNull();
         });
+
+        it("stops reading an iterable at the first match, as Laravel walks a Traversable", () => {
+            // docs/php-parity/Arr/first.json, "first-traversable-stops-at-the-match",
+            // "first-lazy-collection-stops-at-the-match"
+            const read: number[] = [];
+            const numbers = function* () {
+                for (let i = 1; i <= 100; i++) {
+                    read.push(i);
+                    yield i;
+                }
+            };
+            const naturals = function* () {
+                for (let n = 1; ; n++) {
+                    yield n;
+                }
+            };
+
+            expect(Arr.first(numbers(), (value) => value === 2)).toBe(2);
+            expect(read).toEqual([1, 2]);
+            // Must stay below the read count, which fails fast: an unfixed first() never returns from this call.
+            expect(Arr.first(naturals(), (value) => value > 3)).toBe(4);
+        });
+
+        it("reads all of an iterable when nothing matches", () => {
+            // docs/php-parity/Arr/first.json, "first-traversable-no-match-reads-all", "first-traversable-empty",
+            // "first-traversable-closure-default"
+            let reads = 0;
+            const numbers = (function* () {
+                for (let i = 1; i <= 100; i++) {
+                    reads++;
+                    yield i;
+                }
+            })();
+
+            expect(Arr.first(numbers, () => false, "none")).toBe("none");
+            expect(reads).toBe(100);
+            expect(
+                Arr.first(
+                    (function* () {
+                        yield* [];
+                    })(),
+                    () => true,
+                    "none",
+                ),
+            ).toBe("none");
+            expect(
+                Arr.first(
+                    (function* () {
+                        yield 1;
+                        yield 2;
+                    })(),
+                    () => false,
+                    () => "lazy",
+                ),
+            ).toBe("lazy");
+        });
+
+        it("finds a value yielded from several arrays", () => {
+            // docs/php-parity/Arr/first.json, "first-yield-from"
+            const products = (function* () {
+                yield* ["Laptop", "Monitor"];
+                yield* ["Keyboard", "Mouse"];
+            })();
+
+            expect(Arr.first(products, (product) => product === "Laptop")).toBe(
+                "Laptop",
+            );
+        });
+
+        it("hands the callback an iterable's position as its key", () => {
+            // docs/php-parity/Arr/first.json, "first-traversable-keys", "first-yield-from-keys"
+            // JS-only: a JS iterator has no keys, so the port counts positions; PHP's restart at each `yield from`.
+            const keys: number[] = [];
+            const yielded: number[] = [];
+
+            Arr.first(
+                (function* () {
+                    yield 10;
+                    yield 20;
+                    yield 30;
+                })(),
+                (_value, key) => {
+                    keys.push(key);
+                    return false;
+                },
+            );
+            Arr.first(
+                (function* () {
+                    yield* ["Laptop", "Monitor"];
+                    yield* ["Keyboard", "Mouse"];
+                })(),
+                (_value, key) => {
+                    yielded.push(key);
+                    return false;
+                },
+            );
+
+            expect(keys).toEqual([0, 1, 2]);
+            expect(yielded).toEqual([0, 1, 2, 3]);
+        });
+
+        it("reads the callback's answer as PHP truthiness while walking an iterable", () => {
+            // docs/php-parity/Arr/first.json, "first-traversable-php-truthiness"
+            const numbers = (function* () {
+                yield 1;
+                yield 2;
+                yield 3;
+            })();
+
+            expect(
+                Arr.first(numbers, (value) => (value === 1 ? "0" : "yes")),
+            ).toBe(2);
+        });
+
+        it("still throws for a string when given a callback", () => {
+            // docs/php-parity/Arr/first.json, "first-scalar-callback"
+            expect(() => Arr.first("abc", () => true)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() => Arr.first("abc", () => true)).toThrow(
+                "Items cannot be represented by a scalar value.",
+            );
+        });
+
+        it("reads a Map through from() when given a callback", () => {
+            // JS-only: arr reads a Map as keyed data, as from() does, so the callback sees values, not entries.
+            expect(
+                Arr.first(
+                    new Map([
+                        ["a", 1],
+                        ["b", 2],
+                    ]),
+                    (value: unknown) => value === 2,
+                ),
+            ).toBe(2);
+        });
+
+        it("closes a generator once it finds a match", () => {
+            // docs/php-parity/Arr/first.json, "first-generator-after-a-match",
+            // "first-generator-rewalked-after-a-match"
+            // JS-only: for...of closes the generator; PHP leaves it suspended and a second foreach throws.
+            const numbers = (function* () {
+                yield 1;
+                yield 2;
+                yield 3;
+            })();
+
+            expect(Arr.first(numbers, (value) => value === 2)).toBe(2);
+            expect([...numbers]).toEqual([]);
+        });
+
+        it("stops calling the callback at the first match in an array", () => {
+            // docs/php-parity/Arr/first.json, "first-array-stops-at-the-match"
+            let calls = 0;
+
+            expect(
+                Arr.first([1, 2, 3], (value) => {
+                    calls++;
+                    return value === 2;
+                }),
+            ).toBe(2);
+            expect(calls).toBe(2);
+        });
     });
 
     describe("last", () => {
