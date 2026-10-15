@@ -1215,17 +1215,76 @@ describe("Arr", () => {
             );
         });
 
-        it("reads a Map through from() when given a callback", () => {
-            // JS-only: arr reads a Map as keyed data, as from() does, so the callback sees values, not entries.
+        it("reads a Map as keyed data, as Laravel reads an array", () => {
+            // docs/php-parity/Arr/first.json, "first-out-of-order", "first-out-of-order-callback-order",
+            // "first-collision"
+            const keys: unknown[] = [];
+            const outOfOrder = () =>
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+
+            expect(Arr.first(outOfOrder())).toBe("c");
             expect(
                 Arr.first(
-                    new Map([
-                        ["a", 1],
-                        ["b", 2],
+                    outOfOrder(),
+                    (_value, key) => {
+                        keys.push(key);
+                        return false;
+                    },
+                    "none",
+                ),
+            ).toBe("none");
+            expect(keys).toEqual([2, 0, 1]);
+            expect(
+                Arr.first(
+                    new Map<number | string, string>([
+                        [1, "a"],
+                        ["1", "b"],
                     ]),
-                    (value: unknown) => value === 2,
+                ),
+            ).toBe("b");
+        });
+
+        it("hands the callback a plain object's keys", () => {
+            // docs/php-parity/Arr/first.json, "first-assoc-keys"
+            const keys: unknown[] = [];
+
+            Arr.first(keyed({ a: 1, b: 2 }), (_value: number, key: unknown) => {
+                keys.push(key);
+                return false;
+            });
+            expect(keys).toEqual(["a", "b"]);
+        });
+
+        it("reads a collection through all(), with its keys", () => {
+            // docs/php-parity/Arr/first.json, "first-collection-keys", "first-collection-callback",
+            // "first-collection-no-callback"
+            const keys: unknown[] = [];
+
+            expect(Arr.first(collectionLike({ x: 1, y: 2 }))).toBe(1);
+            expect(
+                Arr.first(
+                    collectionLike({ x: 1, y: 2 }),
+                    (value: number) => value > 1,
                 ),
             ).toBe(2);
+            Arr.first(
+                collectionLike({ x: 1, y: 2 }),
+                (_value: number, key: unknown) => {
+                    keys.push(key);
+                    return false;
+                },
+            );
+            expect(keys).toEqual(["x", "y"]);
+            expect(
+                Arr.first(
+                    keyed(collectionLike([5, 6])),
+                    (value: number) => value > 5,
+                ),
+            ).toBe(6);
         });
 
         it("closes a generator once it finds a match", () => {
@@ -1379,6 +1438,79 @@ describe("Arr", () => {
             expect(Arr.last(keyed({}), null, "default")).toBe("default");
             expect(Arr.last(undefined, null, "default")).toBe("default");
             expect(Arr.last(undefined)).toBeNull();
+        });
+
+        it("reads a Map as keyed data, as Laravel reads an array", () => {
+            // docs/php-parity/Arr/last.json, "last-out-of-order", "last-out-of-order-callback-order",
+            // "last-collision"
+            const keys: unknown[] = [];
+            const outOfOrder = () =>
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+
+            expect(Arr.last(outOfOrder())).toBe("b");
+            expect(
+                Arr.last(
+                    outOfOrder(),
+                    (_value, key) => {
+                        keys.push(key);
+                        return false;
+                    },
+                    "none",
+                ),
+            ).toBe("none");
+            expect(keys).toEqual([1, 0, 2]);
+            expect(
+                Arr.last(
+                    new Map<number | string, string>([
+                        [1, "a"],
+                        [0, "z"],
+                        ["1", "b"],
+                    ]),
+                ),
+            ).toBe("z");
+        });
+
+        it("hands the callback a plain object's keys", () => {
+            // docs/php-parity/Arr/last.json, "last-assoc-keys"
+            const keys: unknown[] = [];
+
+            Arr.last(keyed({ a: 1, b: 2 }), (_value: number, key: unknown) => {
+                keys.push(key);
+                return false;
+            });
+            expect(keys).toEqual(["b", "a"]);
+        });
+
+        it("reads a collection through all(), with its keys", () => {
+            // docs/php-parity/Arr/last.json, "last-collection-keys", "last-collection-callback",
+            // "last-collection-no-callback"
+            const keys: unknown[] = [];
+
+            expect(Arr.last(collectionLike({ x: 1, y: 2 }))).toBe(2);
+            expect(
+                Arr.last(
+                    collectionLike({ x: 1, y: 2 }),
+                    (value: number) => value < 2,
+                ),
+            ).toBe(1);
+            Arr.last(
+                collectionLike({ x: 1, y: 2 }),
+                (_value: number, key: unknown) => {
+                    keys.push(key);
+                    return false;
+                },
+            );
+            expect(keys).toEqual(["y", "x"]);
+            expect(
+                Arr.last(
+                    keyed(collectionLike([5, 6])),
+                    (value: number) => value < 6,
+                ),
+            ).toBe(5);
         });
     });
 

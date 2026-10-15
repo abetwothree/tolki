@@ -199,6 +199,19 @@
             "php": "Arr::first('abc', fn () => true)",
             "threw": "InvalidArgumentException",
             "message": "Items cannot be represented by a scalar value."
+        },
+        {
+            "label": "first-collection-no-callback",
+            "php": "Arr::first(collect(['x' => 1, 'y' => 2]))",
+            "value": 1
+        },
+        {
+            "label": "first-assoc-keys",
+            "php": "keys seen by Arr::first(['a' => 1, 'b' => 2], fn () => false)",
+            "value": [
+                "a",
+                "b"
+            ]
         }
     ]
 }

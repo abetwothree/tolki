@@ -153,4 +153,7 @@ probe('first-assoc-stops-at-the-match', "calls made by Arr::first(['a' => 1, 'b'
 });
 probe('first-scalar-callback', "Arr::first('abc', fn () => true)", fn () => Arr::first('abc', fn () => true));
 
+probe('first-collection-no-callback', "Arr::first(collect(['x' => 1, 'y' => 2]))", fn () => Arr::first(new Collection(['x' => 1, 'y' => 2])));
+probe('first-assoc-keys', "keys seen by Arr::first(['a' => 1, 'b' => 2], fn () => false)", fn () => keysSeen(fn ($cb) => Arr::first(['a' => 1, 'b' => 2], $cb), false));
+
 emit();

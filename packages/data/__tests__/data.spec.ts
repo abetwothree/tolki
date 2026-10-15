@@ -25,6 +25,25 @@ const collectionLike = <T>(items: T): { all: () => T } =>
     })();
 
 /**
+ * Wrap items in a Collection-like operand that is iterable too, as a Collection is, so dispatch hands it to arr.
+ *
+ * @param items - The items `all()` returns
+ * @returns A class instance whose `all()` returns the items and whose iterator yields their values
+ */
+const iterableCollectionLike = <T extends object>(
+    items: T,
+): { all: () => T } & Iterable<unknown> =>
+    new (class {
+        all() {
+            return items;
+        }
+
+        *[Symbol.iterator]() {
+            yield* Object.values(items);
+        }
+    })();
+
+/**
  * Build `["a", <hole>, "c"]`: a three-element list whose middle index is absent.
  *
  * Written by index because oxlint's `no-sparse-arrays` rejects the elision literal.
@@ -7956,6 +7975,20 @@ describe("Data", () => {
                 Data.dataDiff(["first", "second", "third"], byObject()),
             ).toEqual(["third"]);
         });
+
+        it("reads a collection through all(), with its keys", () => {
+            // docs/php-parity/Arr/first.json, "first-collection-keys"
+            const keys: unknown[] = [];
+
+            Data.dataFirst(
+                iterableCollectionLike({ x: 1, y: 2 }),
+                (_value: number, key: unknown) => {
+                    keys.push(key);
+                    return false;
+                },
+            );
+            expect(keys).toEqual(["x", "y"]);
+        });
     });
 
     describe("dataLast", () => {
@@ -8059,6 +8092,20 @@ describe("Data", () => {
                     ]),
                 ),
             ).toBe("z");
+        });
+
+        it("reads a collection through all(), with its keys", () => {
+            // docs/php-parity/Arr/last.json, "last-collection-keys"
+            const keys: unknown[] = [];
+
+            Data.dataLast(
+                iterableCollectionLike({ x: 1, y: 2 }),
+                (_value: number, key: unknown) => {
+                    keys.push(key);
+                    return false;
+                },
+            );
+            expect(keys).toEqual(["y", "x"]);
         });
     });
 

@@ -2,6 +2,8 @@ import { SortDirection } from "@tolki/enum";
 import {
     collapse as objCollapse,
     crossJoin as objCrossJoin,
+    first as objFirst,
+    last as objLast,
     prepend as objPrepend,
     replaceRecursive as objReplaceRecursive,
     select as objSelect,
@@ -337,6 +339,18 @@ function toWalkable<TValue>(data: unknown): Iterable<TValue> {
     }
 
     return data as Iterable<TValue>;
+}
+
+/**
+ * Get the items behind a collection's `all()`; a plain object models a PHP array, so an `all` member on one is data.
+ *
+ * @param value - The value to read.
+ * @returns What a collection's `all()` returns, otherwise the value itself.
+ */
+function collectionItems(value: unknown): unknown {
+    return !isPlainObject(value) && isObject(value) && isFunction(value["all"])
+        ? value["all"]()
+        : value;
 }
 
 /**
@@ -709,11 +723,7 @@ export function collapse<TValue extends ArrayItems<unknown>>(
 ): Record<string, unknown> | ArrayInnerValue<TValue[number]>[] | unknown[] {
     // Arr::collapse merges a Collection item's items; a plain object models a PHP array, so an
     // `all` member on one is data.
-    const items = data.map((item) =>
-        !isPlainObject(item) && isObject(item) && isFunction(item["all"])
-            ? item["all"]()
-            : item,
-    );
+    const items = data.map((item) => collectionItems(item));
 
     // A plain object among the items is a PHP map, making array_merge's result one; obj.collapse runs that merge.
     if (items.some((item) => isPlainObject(item))) {
@@ -1159,6 +1169,18 @@ export function exists<TValue>(data: readonly TValue[], key: PathKey): boolean {
  * first([1, 2, 3], x => x > 1); -> 2
  * first([1, 2, 3], x => x > 5, 'none'); -> 'none'
  */
+// Overload: a Map, read as the PHP array it stands for, with PHP's keys
+export function first<TValue, TKey, TFirstDefault = null>(
+    data: ReadonlyMap<TKey, TValue>,
+    callback?: ((value: TValue, key: MapArrayKey<TKey>) => unknown) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Overload: a collection holding keyed items, read through all() with its keys
+export function first<TValue, TFirstDefault = null>(
+    data: { all(): Readonly<Record<string, TValue>> },
+    callback?: ((value: TValue, key: string | number) => unknown) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
 // Overload: array type with callback for proper type inference
 export function first<TValue, TFirstDefault = null>(
     data: TValue[],
@@ -1217,15 +1239,29 @@ export function first<TValue, TFirstDefault = null>(
         return resolveDefault();
     }
 
-    const isArrayable = isArray(data);
+    const items = collectionItems(data);
+
+    // obj reads a Map or a record with PHP's keys, as Laravel reads an array; a walk here yields entries or positions.
+    if (isMap(items) || isPlainObject(items)) {
+        return objFirst(
+            items,
+            callback as
+                | ((value: unknown, key: string | number) => unknown)
+                | null
+                | undefined,
+            defaultValue,
+        ) as TValue | TFirstDefault | null;
+    }
+
+    const isArrayable = isArray(items);
     const iterable: Iterable<TValue> = isArrayable
-        ? (data as readonly TValue[])
-        : toWalkable<TValue>(data);
+        ? (items as readonly TValue[])
+        : toWalkable<TValue>(items);
 
     // No callback: just return first element if it exists.
     if (!callback) {
         if (isArrayable) {
-            const arr = data as readonly TValue[];
+            const arr = items as readonly TValue[];
             if (arr.length === 0) {
                 return resolveDefault();
             }
@@ -1242,13 +1278,13 @@ export function first<TValue, TFirstDefault = null>(
     }
 
     // Laravel walks a Traversable as it goes, so a match ends the read and an endless generator still answers.
-    const items: Iterable<unknown> =
-        isIterable(data) && !isArrayable && !isMap(data)
-            ? data
-            : toWalkable(fromItems(data));
+    const walkable: Iterable<unknown> =
+        isIterable(items) && !isArrayable
+            ? items
+            : toWalkable(fromItems(items));
 
     let index = 0;
-    for (const item of items) {
+    for (const item of walkable) {
         if (!isPhpFalsy(callback(item as TValue, index++))) {
             return item as TValue;
         }
@@ -1274,6 +1310,18 @@ export function first<TValue, TFirstDefault = null>(
  * last([1, 2, 3], x => x < 3); -> 2
  * last([1, 2, 3], x => x > 5, 'none'); -> 'none'
  */
+// Overload: a Map, read as the PHP array it stands for, with PHP's keys
+export function last<TValue, TKey, TFirstDefault = null>(
+    data: ReadonlyMap<TKey, TValue>,
+    callback?: ((value: TValue, key: MapArrayKey<TKey>) => unknown) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Overload: a collection holding keyed items, read through all() with its keys
+export function last<TValue, TFirstDefault = null>(
+    data: { all(): Readonly<Record<string, TValue>> },
+    callback?: ((value: TValue, key: string | number) => unknown) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
 // Overload: array type with callback for proper type inference
 export function last<TValue, TFirstDefault = null>(
     data: TValue[],
@@ -1332,15 +1380,29 @@ export function last<TValue, TFirstDefault = null>(
         return resolveDefault();
     }
 
-    const isArrayable = isArray(data);
+    const items = collectionItems(data);
+
+    // obj reads a Map or a record with PHP's keys, as Laravel reads an array; a walk here yields entries or positions.
+    if (isMap(items) || isPlainObject(items)) {
+        return objLast(
+            items,
+            callback as
+                | ((value: unknown, key: string | number) => unknown)
+                | null
+                | undefined,
+            defaultValue,
+        ) as TValue | TFirstDefault | null;
+    }
+
+    const isArrayable = isArray(items);
     const iterable: Iterable<TValue> = isArrayable
-        ? (data as readonly TValue[])
-        : toWalkable<TValue>(data);
+        ? (items as readonly TValue[])
+        : toWalkable<TValue>(items);
 
     // No callback case
     if (!callback) {
         if (isArrayable) {
-            const arr = data as readonly TValue[];
+            const arr = items as readonly TValue[];
             if (arr.length === 0) {
                 return resolveDefault();
             }
@@ -1360,7 +1422,7 @@ export function last<TValue, TFirstDefault = null>(
     }
 
     if (isArrayable) {
-        const arr = data as readonly TValue[];
+        const arr = items as readonly TValue[];
         for (let i = arr.length - 1; i >= 0; i--) {
             if (!isPhpFalsy(callback(arr[i] as TValue, i))) {
                 return arr[i] as TValue;
@@ -1480,10 +1542,7 @@ export function flatten<TValue>(
     for (const entry of data as ArrayItems<unknown>) {
         // Arr::flatten flattens a Collection item's items, and only an array otherwise; a plain
         // object models a PHP array, so an `all` member on one is data.
-        const item =
-            !isPlainObject(entry) && isObject(entry) && isFunction(entry["all"])
-                ? entry["all"]()
-                : entry;
+        const item = collectionItems(entry);
 
         if (!isArray(item) && !isPlainObject(item)) {
             result.push(item as TValue);
@@ -2722,10 +2781,7 @@ export function mapSpread<TMapReturn>(
         // A Collection row carries its items behind all(): `$chunk[] = $key` appends to the
         // Collection itself and `...$chunk` then walks the Traversable, not its fields. A plain
         // object models a PHP array, so an `all` member on one is data.
-        const chunk =
-            !isPlainObject(row) && isObject(row) && isFunction(row["all"])
-                ? row["all"]()
-                : row;
+        const chunk = collectionItems(row);
 
         // PHP appends the key to the row: a null row becomes an array and a plain object or a Map stands for one, so
         // obj's wrap() holds each as its values; any other row, which PHP rejects, stays whole as JS leniency.

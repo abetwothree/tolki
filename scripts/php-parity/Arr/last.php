@@ -50,4 +50,9 @@ probe('last-out-of-order-callback', "Arr::last([2 => 'c', 0 => 'a', 1 => 'b'], f
 probe('last-out-of-order-callback-order', "Arr::last([2 => 'c', 0 => 'a', 1 => 'b'], fn (\$v, \$k) => false) => keys seen", fn () => keysSeen(fn ($cb) => Arr::last(OUT_OF_ORDER, $cb), false));
 probe('last-collision', "Arr::last([1 => 'a', 0 => 'z', '1' => 'b'])", fn () => Arr::last([1 => 'a', 0 => 'z', '1' => 'b']));
 
+probe('last-collection-keys', "keys seen by Arr::last(collect(['x' => 1, 'y' => 2]), fn () => false)", fn () => keysSeen(fn ($cb) => Arr::last(new Collection(['x' => 1, 'y' => 2]), $cb), false));
+probe('last-collection-callback', "Arr::last(collect(['x' => 1, 'y' => 2]), fn (\$v) => \$v < 2)", fn () => Arr::last(new Collection(['x' => 1, 'y' => 2]), fn ($v) => $v < 2));
+probe('last-collection-no-callback', "Arr::last(collect(['x' => 1, 'y' => 2]))", fn () => Arr::last(new Collection(['x' => 1, 'y' => 2])));
+probe('last-assoc-keys', "keys seen by Arr::last(['a' => 1, 'b' => 2], fn () => false)", fn () => keysSeen(fn ($cb) => Arr::last(['a' => 1, 'b' => 2], $cb), false));
+
 emit();

@@ -26299,6 +26299,33 @@ describe("Collection", () => {
             });
         });
     });
+
+    describe("passed to Arr.first and Arr.last", () => {
+        it("hands the callback the collection's keys", () => {
+            // docs/php-parity/Arr/first.json, "first-collection-keys"; docs/php-parity/Arr/last.json,
+            // "last-collection-keys"
+            const firstKeys: unknown[] = [];
+            const lastKeys: unknown[] = [];
+
+            Arr.first(
+                collect({ x: 1, y: 2 }),
+                (_value: number, key: unknown) => {
+                    firstKeys.push(key);
+                    return false;
+                },
+            );
+            Arr.last(
+                collect({ x: 1, y: 2 }),
+                (_value: number, key: unknown) => {
+                    lastKeys.push(key);
+                    return false;
+                },
+            );
+
+            expect(firstKeys).toEqual(["x", "y"]);
+            expect(lastKeys).toEqual(["y", "x"]);
+        });
+    });
 });
 
 // Only JSON.parse produces a real own enumerable "__proto__" key; a literal
