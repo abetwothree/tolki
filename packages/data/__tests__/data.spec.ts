@@ -7816,15 +7816,67 @@ describe("Data", () => {
                     yield 300;
                 })();
 
-            // Guards the streaming normalizer these four pass explicitly: it hands the Set or
-            // generator on UNREAD, so a callback-less call answers an infinite generator; given a
-            // callback `arrFirst` materialises, so that form still needs a finite backing.
+            // Guards the streaming normalizer these four pass explicitly: it hands the Set or generator on UNREAD,
+            // so `dataFirst` reads it only up to the first match.
             expect(Data.dataFirst(items())).toBe(100);
             expect(Data.dataFirst(items(), (value) => value > 150)).toBe(200);
             expect(Data.dataFirst(new Set([100, 200]))).toBe(100);
             expect(Data.dataFirst(new Set<number>(), null, "default")).toBe(
                 "default",
             );
+        });
+
+        it("stops reading a generator at the first match, with or without a callback", () => {
+            // docs/php-parity/Arr/first.json, "first-traversable-stops-at-the-match",
+            // "first-traversable-without-callback-reads-one"
+            const read: number[] = [];
+            const numbers = function* () {
+                for (let i = 1; i <= 100; i++) {
+                    read.push(i);
+                    yield i;
+                }
+            };
+            const naturals = function* () {
+                for (let n = 1; ; n++) {
+                    yield n;
+                }
+            };
+
+            expect(Data.dataFirst(numbers(), (value) => value === 2)).toBe(2);
+            expect(read).toEqual([1, 2]);
+
+            read.length = 0;
+            expect(Data.dataFirst(numbers())).toBe(1);
+            expect(read).toEqual([1]);
+            expect(Data.dataFirst(naturals(), (value) => value > 3)).toBe(4);
+        });
+
+        it("stops calling the callback at the first match in a list or an object", () => {
+            // docs/php-parity/Arr/first.json, "first-array-stops-at-the-match", "first-assoc-stops-at-the-match"
+            let calls = 0;
+            const isTwo = (value: number) => {
+                calls++;
+                return value === 2;
+            };
+
+            expect(Data.dataFirst([1, 2, 3], isTwo)).toBe(2);
+            expect(calls).toBe(2);
+
+            calls = 0;
+            expect(Data.dataFirst({ a: 1, b: 2, c: 3 }, isTwo)).toBe(2);
+            expect(calls).toBe(2);
+        });
+
+        it("finds a value yielded from several arrays", () => {
+            // docs/php-parity/Arr/first.json, "first-yield-from"
+            const products = (function* () {
+                yield* ["Laptop", "Monitor"];
+                yield* ["Keyboard", "Mouse"];
+            })();
+
+            expect(
+                Data.dataFirst(products, (product) => product === "Laptop"),
+            ).toBe("Laptop");
         });
 
         it("treats scalars as single positional items", () => {

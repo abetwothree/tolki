@@ -2711,6 +2711,31 @@ describe("Obj", () => {
                 ),
             ).toBe("b");
         });
+
+        it("stops calling the callback at the first match, as Laravel's array walk does", () => {
+            // docs/php-parity/Arr/first.json, "first-assoc-stops-at-the-match"
+            let calls = 0;
+            const isTwo = (value: number) => {
+                calls++;
+                return value === 2;
+            };
+
+            expect(Obj.first({ a: 1, b: 2, c: 3 }, isTwo)).toBe(2);
+            expect(calls).toBe(2);
+
+            calls = 0;
+            expect(
+                Obj.first(
+                    new Map([
+                        ["a", 1],
+                        ["b", 2],
+                        ["c", 3],
+                    ]),
+                    isTwo,
+                ),
+            ).toBe(2);
+            expect(calls).toBe(2);
+        });
     });
 
     describe("last", () => {
