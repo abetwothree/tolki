@@ -23,7 +23,7 @@ With `inertia.enabled` on (the default), the package builds the file from your m
 - **`errors`**: left out. `@inertiajs/core` already types `page.props.errors` as `Errors & ErrorBag`, and [`errorValueType`](#anatomy-of-the-generated-file) sharpens it. A `#[TsCasts]` or `@return` docblock entry named `errors` still adds one if you want it.
 - **The output file**: the result is written to `inertia-config.d.ts`. Set `inertia.augmentation_filename` to change the name.
 
-`auth()->id()` and `Auth::id()` publish the type of the column the auth model identifies users by, with `| null`. That's the model's key, such as `number | null`, unless the model's `getAuthIdentifierName()` returns a literal column name. A model whose `getAuthIdentifierName()` returns `'email'` publishes `string | null`.
+`auth()->id()` and `Auth::id()` publish the type of the column the auth model identifies users by, with `| null`. That's the model's key, such as `number | null`, unless the model's `getAuthIdentifierName()` returns a literal column name. A model whose `getAuthIdentifierName()` returns `'email'` publishes `string | null`. An identifier column cast to an enum publishes `unknown`.
 
 When the package can't create an instance of the model, it reads the key type from the class, and publishes `unknown` if code works the key out. A `getAuthIdentifierName()` that works the column out in code, such as from config, publishes `unknown` too, and so does an override of `getAuthIdentifier()`, since only running your app shows which value the ID holds.
 

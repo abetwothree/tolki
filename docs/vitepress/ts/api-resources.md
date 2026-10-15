@@ -110,7 +110,7 @@ Step 3 lets a subclass use its parent's model without repeating the docblock, wh
 
 If no model resolves, a property read from the model, such as `$this->id`, publishes `unknown`.
 
-`$this->resource` holds the backing model, so a key that returns it whole publishes the model's interface. `'post' => $this->resource` publishes `post: Post`.
+`$this->resource` holds the backing model, so a key that returns it whole publishes the model's interface. `'post' => $this->resource` publishes `post: Post`. If the resource redeclares `$resource` as nullable, such as `/** @var Post|null */ public $resource;` or `?Post`, the key keeps that `null`: `post: Post | null`.
 
 A `ResourceCollection` is backed by no model, whatever its docblock or `#[TsResource(model:)]` names, because its `$this->resource` holds the collected items. A model read in a collection, such as `$this->title`, publishes `unknown`. See [Reading `$this->resource`](#reading-this-resource).
 
