@@ -2251,7 +2251,7 @@ export function prependKeysWith<TValue>(
 /**
  * Get a subset of the items from the given array.
  *
- * Mirrors PHP's `(array) $keys` cast in `Arr::only` (Arr.php:744): `null` becomes
+ * Mirrors PHP's `(array) $keys` cast in `Arr::only` (Arr.php:754): `null` becomes
  * no keys, a bare index becomes a single-index selection.
  *
  * Items keep the array's order, not the order of `keys`, as with `array_intersect_key`.
@@ -4068,7 +4068,7 @@ export function toCssClasses(
     for (const [key, value] of Object.entries(classList)) {
         // PHP's is_numeric, not Number()/isNaN — hex, empty/blank
         // strings, and "Infinity" all parse under Number() but aren't
-        // PHP-numeric (Arr.php:1214/1237); scientific notation is.
+        // PHP-numeric (Arr.php:1224/1237); scientific notation is.
         const numericKey = isPhpNumeric(key);
 
         if (numericKey) {
@@ -4126,7 +4126,7 @@ export function toCssStyles(
     for (const [key, value] of Object.entries(styleList)) {
         // PHP's is_numeric, not Number()/isNaN — hex, empty/blank
         // strings, and "Infinity" all parse under Number() but aren't
-        // PHP-numeric (Arr.php:1214/1237); scientific notation is.
+        // PHP-numeric (Arr.php:1224/1237); scientific notation is.
         const numericKey = isPhpNumeric(key);
 
         if (numericKey) {

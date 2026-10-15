@@ -31,7 +31,7 @@ function nums(): array
 
 /**
  * `Arr::push()` takes `$array` by reference AND returns `Arr::set()`'s value,
- * which is the INNERMOST container for a dotted key (Arr.php:1062). The port
+ * which is the INNERMOST container for a dotted key (Arr.php:1072). The port
  * returns the whole array, so `after` is the row the TypeScript pins.
  */
 function pushed(array $array, string|int|null $key, mixed ...$values): array

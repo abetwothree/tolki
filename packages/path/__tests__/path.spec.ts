@@ -2150,7 +2150,7 @@ describe("Path Functions", () => {
         });
 
         it("resolves a literal key containing dots before traversing it as a path", () => {
-            // Arr::has calls Arr::exists first (Arr.php:534) — the literal key wins
+            // Arr::has calls Arr::exists first (Arr.php:544) — the literal key wins
             // even though it contains dots (PHP-verified:
             // docs/php-parity/Arr/has.json, "Arr::has — literal dotted key").
             expect(
@@ -2243,7 +2243,7 @@ describe("Path Functions", () => {
         });
 
         it("resolves a literal key containing dots before traversing it as a path", () => {
-            // Arr::get calls Arr::exists first (Arr.php:497), so a literal key wins even
+            // Arr::get calls Arr::exists first (Arr.php:507), so a literal key wins even
             // when it contains dots. PHP-verified in docs/php-parity/Arr/get.json.
             expect(
                 Path.getObjectValue(
@@ -2384,7 +2384,7 @@ describe("Path Functions", () => {
         });
 
         it("resolves a literal key containing dots before traversing it as a path", () => {
-            // Arr::exists is a literal array_key_exists check (Arr.php:497, :534) — it
+            // Arr::exists is a literal array_key_exists check (Arr.php:507, :534) — it
             // must win over dot-path traversal (PHP-verified:
             // docs/php-parity/Arr/exists.json, "Arr::exists — literal dotted key").
             expect(

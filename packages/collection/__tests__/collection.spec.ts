@@ -3516,7 +3516,7 @@ describe("Collection", () => {
             expect(result.all()).toEqual([5, 10]);
         });
 
-        // Arr.php:368 defaults $depth to INF. Array- and object-backed Collections must
+        // Arr.php:378 defaults $depth to INF. Array- and object-backed Collections must
         // agree, per the unison rule.
         it("flattens fully by default, either backing", () => {
             expect(
@@ -8092,7 +8092,7 @@ describe("Collection", () => {
             });
         });
 
-        // Arr.php:744 casts via (array) $keys, so a bare key and a null key both work
+        // Arr.php:754 casts via (array) $keys, so a bare key and a null key both work
         // directly, not just spread via varargs. Array- and object-backed Collections
         // must agree, per the unison rule.
         it("accepts a single key and a null key, either backing", () => {

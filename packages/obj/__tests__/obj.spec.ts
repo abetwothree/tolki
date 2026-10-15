@@ -2552,7 +2552,7 @@ describe("Obj", () => {
         });
 
         it("resolves a literal dotted key before traversing", () => {
-            // Arr::exists is a literal array_key_exists check (Arr.php:497, :534) — it
+            // Arr::exists is a literal array_key_exists check (Arr.php:507, :534) — it
             // must win over dot-path traversal. PHP-verified:
             // docs/php-parity/Arr/exists.json, "Arr::exists — literal dotted key".
             expect(Obj.exists({ "products.desk": {} }, "products.desk")).toBe(
@@ -2951,7 +2951,7 @@ describe("Obj", () => {
         });
 
         it("resolves a literal dotted key before traversing", () => {
-            // Arr::get calls Arr::exists first (Arr.php:497) — a literal key wins over
+            // Arr::get calls Arr::exists first (Arr.php:507) — a literal key wins over
             // path traversal even when it contains dots. PHP-verified:
             // docs/php-parity/Arr/get.json, "Arr::get — literal dotted key wins".
             expect(
@@ -5681,7 +5681,7 @@ describe("Obj", () => {
     });
 
     describe("flatten", () => {
-        it("flattens fully by default, matching Arr::flatten's INF default (Arr.php:368)", () => {
+        it("flattens fully by default, matching Arr::flatten's INF default (Arr.php:378)", () => {
             // Flatten used to default to depth 2, pinning a divergence from
             // Arr::flatten, whose $depth defaults to INF.
             const obj = {
@@ -6752,7 +6752,7 @@ describe("Obj", () => {
         });
 
         it("accepts a bare string key and a null key, like PHP's (array) cast", () => {
-            // Arr.php:744 casts via (array) $keys: null -> [], a bare string -> [key].
+            // Arr.php:754 casts via (array) $keys: null -> [], a bare string -> [key].
             // obj used to iterate a bare string's characters and throw on null.
             expect(Obj.only({ foo: 1, bar: "baz" }, "bar")).toEqual({
                 bar: "baz",
@@ -7171,7 +7171,7 @@ describe("Obj", () => {
         });
 
         it("returns a plain object even for numeric-like mapped keys", () => {
-            // Arr::mapWithKeys (Arr.php:880) builds one plain array; there is no Map in
+            // Arr::mapWithKeys (Arr.php:890) builds one plain array; there is no Map in
             // PHP, so obj must not special-case numeric-like keys by returning a Map
             // either.
             const obj = { a: "x", b: "y" };
@@ -7757,7 +7757,7 @@ describe("Obj", () => {
         });
 
         it("throws when more items are requested than exist, even against an empty object", () => {
-            // Arr.php:977 checks `$requested > $count` ABOVE the empty guard, so an
+            // Arr.php:987 checks `$requested > $count` ABOVE the empty guard, so an
             // empty object throws rather than returning null; a request of 0 or fewer
             // still short-circuits to {}.
             const obj = {};
@@ -7777,7 +7777,7 @@ describe("Obj", () => {
         });
 
         it("reindexes from zero by default", () => {
-            // Arr.php:971 defaults $preserveKeys = false.
+            // Arr.php:981 defaults $preserveKeys = false.
             const result = Obj.random(
                 { one: "foo", two: "bar", three: "baz" },
                 2,
@@ -10884,7 +10884,7 @@ describe("Obj", () => {
         });
 
         it("emits the value for numeric keys and the key for truthy string keys", () => {
-            // Arr.php:1214, is_numeric($class) pushes the VALUE. Captured:
+            // Arr.php:1224, is_numeric($class) pushes the VALUE. Captured:
             // docs/php-parity/Arr/toCssClasses.json ("Arr::toCssClasses mixed keys")
             // -> "font-bold mt-4 ml-2".
             expect(
@@ -11020,7 +11020,7 @@ describe("Obj", () => {
         });
 
         it("emits the value for numeric keys and the key for truthy string keys", () => {
-            // Arr.php:1237, is_numeric($class) pushes the VALUE (finished with a
+            // Arr.php:1247, is_numeric($class) pushes the VALUE (finished with a
             // semicolon), not the key.
             expect(
                 Obj.toCssStyles({

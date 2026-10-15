@@ -3312,7 +3312,7 @@ describe("Data", () => {
             expect(result).toEqual({ key_a: 2, key_b: 4 });
         });
 
-        // Arr::mapWithKeys (Arr.php:880) builds one plain array; there is no Map in
+        // Arr::mapWithKeys (Arr.php:890) builds one plain array; there is no Map in
         // PHP. Array- and object-backed data must agree, per the unison rule.
         it("returns a plain object even for numeric-like mapped keys, either backing", () => {
             const fromArray = Data.dataMapWithKeys([1, 2], (value) => ({
@@ -3841,7 +3841,7 @@ describe("Data", () => {
             expect(arr).toContain(result);
         });
 
-        // Arr.php:977 throws above the empty guard, and Arr.php:971 defaults
+        // Arr.php:987 throws above the empty guard, and Arr.php:981 defaults
         // preserveKeys to false. Both backings agree.
         it("throws on an empty source and reindexes by default, either backing", () => {
             expect(() => Data.dataRandom([])).toThrow(
@@ -6261,7 +6261,7 @@ describe("Data", () => {
             );
         });
 
-        // Arr.php:1214, is_numeric($class) pushes the VALUE. Both backings must agree,
+        // Arr.php:1224, is_numeric($class) pushes the VALUE. Both backings must agree,
         // per the unison rule.
         it("emits the value for numeric keys, either backing", () => {
             expect(
@@ -6339,7 +6339,7 @@ describe("Data", () => {
             ).toBe("font-weight: bold; margin-top: 4px;");
         });
 
-        // Arr.php:1237, is_numeric($class) pushes the VALUE, finished with a semicolon.
+        // Arr.php:1247, is_numeric($class) pushes the VALUE, finished with a semicolon.
         // Both backings must agree, per the unison rule.
         it("emits the value for numeric keys, either backing", () => {
             expect(
