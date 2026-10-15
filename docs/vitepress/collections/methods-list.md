@@ -2318,7 +2318,7 @@ collect([1, 2]).last((value) => value > 5, "none");
 
 Get the number of items in the collection, as a property.
 
-It gives the same number as [`count()`](#count), and lets a collection work with APIs that read `length`, such as `Array.from()`.
+It gives the same number as [`count()`](#count), and lets code that checks `length` treat a collection like an array.
 
 ```js
 import { collect } from "@tolki/collection";
@@ -2328,6 +2328,9 @@ collect([1, 2, 3]).length;
 
 collect({ a: 1, b: 2 }).length;
 // => 2
+
+collect([]).length === 0;
+// => true
 ```
 
 <FnTry label="collect(items).length" :fn="(items) => collect(items).length" :args="[
@@ -4564,6 +4567,8 @@ Laravel: [`sum()`](https://laravel.com/docs/collections#method-sum)
 
 Pass a key, which may be a [dot-notation](../arrays-objects/dot-notation.md) path, or a callback to choose the value to add from each item. An empty collection gives `0`. Numeric strings are added as numbers, `null` counts as 0 and `true` as 1. A value that cannot be added, such as a non-numeric string or an array, throws a `TypeError`.
 
+<!-- docs/php-parity/Collection/sum.json, "C32-H-sum-null-and-bools" -->
+
 ```js
 import { collect } from "@tolki/collection";
 
@@ -4585,6 +4590,12 @@ collect([
 
 collect(["1", "2.5", 3]).sum();
 // => 6.5
+
+collect([1, null, 2]).sum();
+// => 3
+
+collect([true, true, false]).sum();
+// => 2
 
 collect([]).sum();
 // => 0
@@ -5180,6 +5191,8 @@ Laravel: [`unless()`](https://laravel.com/docs/collections#method-unless)
 
 The callback receives the collection and the value, and `unless` returns what the callback returns. If that is `null` or `undefined`, it returns the collection. A third argument is a callback to run when the value is truthy. The value may also be a function, which is called with the collection and whose result is tested. Truthiness is PHP's: see [Truthiness](../arrays-objects/php-semantics.md#truthiness). Laravel's one-argument form is not available: see [Not portable](./differences.md#not-portable). The inverse is [when](#when).
 
+<!-- docs/php-parity/Collection/unless.json, "unless-closure-value", "unless-closure-value-false" -->
+
 ```js
 import { collect } from "@tolki/collection";
 
@@ -5206,6 +5219,14 @@ collect([1, 2, 3])
   .unless(false, (collection) => collection.map((item) => item * 2))
   .all();
 // => [2, 4, 6]
+
+collect([1])
+  .unless(
+    (collection) => collection.count() > 2,
+    (collection) => collection.push(4),
+  )
+  .all();
+// => [1, 4]
 ```
 
 <FnTry label="collect(items).unless(value, callback, defaultCallback)" :fn="(items, value) => collect(items).unless(value, (c) => c.push(4), (c) => c.push(5)).all()" :args="[
@@ -5352,6 +5373,8 @@ Laravel: [`value()`](https://laravel.com/docs/collections#method-value)
 
 The key may be a path: see [Dot Notation](../arrays-objects/dot-notation.md). Items that lack the key are skipped. When no item holds it, you get the default, which may be a function that returns it, or `null` if you pass none. A `null` key always gives `null`.
 
+<!-- docs/php-parity/Collection/value.json, "C32-C-value-null-key" -->
+
 ```js
 import { collect } from "@tolki/collection";
 
@@ -5376,6 +5399,9 @@ products.value("weight", () => 25);
 // => 25
 
 collect([]).value("price");
+// => null
+
+collect([{ a: 1 }]).value(null);
 // => null
 ```
 

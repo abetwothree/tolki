@@ -102,6 +102,12 @@ dataAdd([1, 2], 2, 3);
 
 dataAdd({ name: "Desk" }, "price", 100);
 // => { name: "Desk", price: 100 }
+
+dataAdd({ name: "Desk", price: 100 }, "price", 200);
+// => { name: "Desk", price: 100 }
+
+dataAdd({}, "product.price", 100);
+// => { product: { price: 100 } }
 ```
 
 #### after

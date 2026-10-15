@@ -243,6 +243,12 @@ dataAdd([1, 2], 2, 3);
 
 dataAdd({ name: "Desk" }, "price", 100);
 // => { name: "Desk", price: 100 }
+
+dataAdd({ name: "Desk", price: 100 }, "price", 200);
+// => { name: "Desk", price: 100 }
+
+dataAdd({}, "product.price", 100);
+// => { product: { price: 100 } }
 ```
 
 :::
@@ -3910,6 +3916,22 @@ sort(people, (person) => person.name);
 // => [
 //   { name: "Al", age: 20 },
 //   { name: "Jane", age: 30 },
+//   { name: "John", age: 25 },
+// ]
+
+const staff = [
+  { name: "John", age: 25 },
+  { name: "Jane", age: 30 },
+  { name: "Al", age: 25 },
+];
+
+sort(staff, [
+  ["age", "desc"],
+  ["name", "asc"],
+]);
+// => [
+//   { name: "Jane", age: 30 },
+//   { name: "Al", age: 25 },
 //   { name: "John", age: 25 },
 // ]
 ```

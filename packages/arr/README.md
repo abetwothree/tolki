@@ -1499,6 +1499,22 @@ sort(people, (person) => person.name);
 //   { name: "Jane", age: 30 },
 //   { name: "John", age: 25 },
 // ]
+
+const staff = [
+  { name: "John", age: 25 },
+  { name: "Jane", age: 30 },
+  { name: "Al", age: 25 },
+];
+
+sort(staff, [
+  ["age", "desc"],
+  ["name", "asc"],
+]);
+// => [
+//   { name: "Jane", age: 30 },
+//   { name: "Al", age: 25 },
+//   { name: "John", age: 25 },
+// ]
 ```
 
 #### sortDesc
