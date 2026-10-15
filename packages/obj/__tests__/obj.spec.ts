@@ -2559,7 +2559,7 @@ describe("Obj", () => {
         });
 
         it("resolves a literal dotted key before traversing", () => {
-            // Arr::exists is a literal array_key_exists check (Arr.php:507, :534) — it
+            // Arr::exists is a literal array_key_exists check (Arr.php:507, :544) — it
             // must win over dot-path traversal. PHP-verified:
             // docs/php-parity/Arr/exists.json, "Arr::exists — literal dotted key".
             expect(Obj.exists({ "products.desk": {} }, "products.desk")).toBe(

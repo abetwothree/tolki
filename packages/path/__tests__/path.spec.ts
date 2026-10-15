@@ -535,15 +535,15 @@ describe("Path Functions", () => {
         });
 
         it("handles edge cases in nested removal operations", () => {
-            // Test when head index is out of bounds in forgetPath
+            // A key under a row that does not exist removes nothing
             const data = [["a", "b"]];
             expect(Path.forgetKeys(data, "5.0")).toEqual(data); // Index 5 doesn't exist
 
-            // Test when head index is out of bounds in updateAtPath
+            // A key under a missing row is skipped while the key beside it still applies
             const data2 = [["x", "y"]];
             expect(Path.forgetKeys(data2, ["10.0", "0.1"])).toEqual([["x"]]); // Index 10 doesn't exist
 
-            // Test when child is not an array in updateAtPath
+            // A key under a string row is skipped while the key beside it still applies
             const data3 = ["not-array", ["b", "c"]];
             expect(Path.forgetKeys(data3, ["0.0", "1.0"])).toEqual([
                 "not-array",
@@ -2373,7 +2373,7 @@ describe("Path Functions", () => {
         });
 
         it("resolves a literal key containing dots before traversing it as a path", () => {
-            // Arr::exists is a literal array_key_exists check (Arr.php:507, :534) — it
+            // Arr::exists is a literal array_key_exists check (Arr.php:507, :544) — it
             // must win over dot-path traversal (PHP-verified:
             // docs/php-parity/Arr/exists.json, "Arr::exists — literal dotted key").
             expect(
@@ -2787,7 +2787,7 @@ describe("Path Functions", () => {
 
         it("handles invalid indices during grouping", () => {
             const arr = [["a", "b"]];
-            // Invalid index (NaN) should be skipped
+            // A list holds no string key, so "0.invalid" names nothing
             const result = Path.forgetKeysArray(arr, ["0.invalid"]);
             expect(result).toEqual([["a", "b"]]);
         });
@@ -2800,44 +2800,36 @@ describe("Path Functions", () => {
         });
 
         it("handles multiple paths with same parent", () => {
-            // Tests grouping and sorting
+            // Each key names the position it held before either removal, as in PHP
             const arr = [["a", "b", "c", "d"]];
             const result = Path.forgetKeysArray(arr, ["0.1", "0.3"]);
-            // Removes indices 1 and 3, sorted in reverse order
             expect(result).toEqual([["a", "c"]]);
         });
 
         it("handles empty path after filtering", () => {
-            // Tests sorted.length === 0
-            // Need keys.length > 1 to enter the grouping loop
-            // And indices that filter out (like negative or float)
+            // A fractional key names no list index, so several of them remove nothing
             const arr = [["a", "b"]];
-            // Multiple keys, some invalid - enters grouping loop
             const result = Path.forgetKeysArray(arr, [1.5, 2.5]);
             expect(result).toEqual([["a", "b"]]);
         });
 
         it("skips entries with invalid string indices", () => {
-            // Tests continue when parts have NaN
-            // Need keys.length > 1 to enter the grouping loop
+            // A list holds no string key, so only "0.1" removes an item
             const arr = [["a", "b"]];
             const result = Path.forgetKeysArray(arr, ["0.invalid", "0.1"]);
-            // "0.invalid" is skipped due to NaN, "0.1" removes index 1
             expect(result).toEqual([["a"]]);
         });
 
         it("forgetKeysArray handles single non-array key in grouping path", () => {
-            // when keys is NOT an array, wrap it
+            // A single key acts as a list holding that one key
             const arr = ["a", "b", "c"];
-            // Single numeric key (not array) enters grouping path since keyList.length > 1 check fails first
-            // But we need keyList.length > 1 for this path... let's check the logic
             const result = Path.forgetKeysArray(arr, 1);
             expect(result).toEqual(["a", "c"]);
         });
 
         it("forgetKeysArray handles multiple numeric keys at root level", () => {
             const arr = ["a", "b", "c", "d"];
-            // Multiple numeric keys - groupsMap.get("") will return existing entry on second iteration
+            // Root keys share one parent, so each names the position it held before either removal
             const result = Path.forgetKeysArray(arr, [0, 2]);
             expect(result).toEqual(["b", "d"]);
         });

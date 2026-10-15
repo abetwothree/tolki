@@ -387,7 +387,8 @@ function selected(
 }
 
 /**
- * Checks the list pages for missing names, and every docs page for broken anchors and mismatched tabs.
+ * Checks the list pages for missing names, and every page under arrays-objects and collections for broken anchors
+ * and mismatched tabs.
  *
  * @param options - `only` limits `missing` issues to those names; `page` keeps one section's issues;
  * `docsRoot` replaces `docs/vitepress`.

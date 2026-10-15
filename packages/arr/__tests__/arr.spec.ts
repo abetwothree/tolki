@@ -1887,15 +1887,13 @@ describe("Arr", () => {
             expect(res).toEqual(["products", [[100]]]);
             expect(JSON.stringify(subject)).toBe(snapshot);
 
-            // 13) Multi-key path: parent index out-of-range triggers updateAtPath early return
-            // Provide 2+ keys to bypass single-key fast path
+            // 13) A key under a missing row is skipped, even beside another key
             expect(Arr.forget(base, ["5.0", 99])).toEqual(base);
 
-            // 14) Multi-key path: parent exists but child is not an array -> updateAtPath returns clone unchanged
-            // Parent path [0] points to a string 'products', so attempting to delete '0.1' should no-op
+            // 14) A key under a string row ('products') is skipped, even beside another key
             expect(Arr.forget(base, ["0.1", 99])).toEqual(base);
 
-            // 15) Root group with only invalid indices (non-integer/negative) -> sorted becomes empty and is skipped
+            // 15) Fractional and negative keys name no list index, so together they remove nothing
             expect(
                 Arr.forget([10, 20, 30], [1.5 as unknown as number, -2]),
             ).toEqual([10, 20, 30]);

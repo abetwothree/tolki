@@ -1153,13 +1153,13 @@ export function exists<TValue>(data: readonly TValue[], key: PathKey): boolean {
 }
 
 /**
- * Get the first element of an array or iterable.
- * Optionally pass a callback to find the first matching element.
+ * Return the first element in an iterable passing a given truth test.
+ * A Map, a plain object or a collection is read by its keys, as Laravel reads an array.
  *
- * @param data - The array or iterable to search through.
- * @param callback - Optional callback function to test elements.
- * @param defaultValue - Value to return if no element is found.
- * @returns The first element or default value.
+ * @param data - The array, iterable, Map, plain object or collection to search through.
+ * @param callback - Optional truth test, given each value and its key or position.
+ * @param defaultValue - Value, or a callback returning it, to use when no element passes.
+ * @returns The first element passing the test, otherwise the default (null when none is given).
  *
  * @example
  *
@@ -1168,6 +1168,7 @@ export function exists<TValue>(data: readonly TValue[], key: PathKey): boolean {
  * first([], null, 'default'); -> 'default'
  * first([1, 2, 3], x => x > 1); -> 2
  * first([1, 2, 3], x => x > 5, 'none'); -> 'none'
+ * first(new Map([['a', 1], ['b', 2]])); -> 1
  */
 // Overload: a Map, read as the PHP array it stands for, with PHP's keys
 export function first<TValue, TKey, TFirstDefault = null>(
@@ -1295,13 +1296,13 @@ export function first<TValue, TFirstDefault = null>(
 }
 
 /**
- * Get the last element of an array or iterable.
- * Optionally pass a callback to find the last matching element.
+ * Return the last element in an iterable passing a given truth test.
+ * A Map, a plain object or a collection is read by its keys, as Laravel reads an array.
  *
- * @param data - The array or iterable to search through.
- * @param callback - Optional callback function to test elements.
- * @param defaultValue - Value to return if no element is found.
- * @returns The last element or default value.
+ * @param data - The array, iterable, Map, plain object or collection to search through.
+ * @param callback - Optional truth test, given each value and its key or position.
+ * @param defaultValue - Value, or a callback returning it, to use when no element passes.
+ * @returns The last element passing the test, otherwise the default (null when none is given).
  *
  * @example
  *
@@ -1310,6 +1311,7 @@ export function first<TValue, TFirstDefault = null>(
  * last([], null, 'default'); -> 'default'
  * last([1, 2, 3], x => x < 3); -> 2
  * last([1, 2, 3], x => x > 5, 'none'); -> 'none'
+ * last(new Map([['a', 1], ['b', 2]])); -> 2
  */
 // Overload: a Map, read as the PHP array it stands for, with PHP's keys
 export function last<TValue, TKey, TFirstDefault = null>(
@@ -4117,7 +4119,7 @@ export function toCssClasses(
     for (const [key, value] of Object.entries(classList)) {
         // PHP's is_numeric, not Number()/isNaN — hex, empty/blank
         // strings, and "Infinity" all parse under Number() but aren't
-        // PHP-numeric (Arr.php:1224/1237); scientific notation is.
+        // PHP-numeric (Arr.php:1224/1247); scientific notation is.
         const numericKey = isPhpNumeric(key);
 
         if (numericKey) {
@@ -4175,7 +4177,7 @@ export function toCssStyles(
     for (const [key, value] of Object.entries(styleList)) {
         // PHP's is_numeric, not Number()/isNaN — hex, empty/blank
         // strings, and "Infinity" all parse under Number() but aren't
-        // PHP-numeric (Arr.php:1224/1237); scientific notation is.
+        // PHP-numeric (Arr.php:1224/1247); scientific notation is.
         const numericKey = isPhpNumeric(key);
 
         if (numericKey) {
