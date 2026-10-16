@@ -3253,6 +3253,30 @@ describe("Arr", () => {
             // (docs/php-parity/Arr/push.json, "push-string-segment-under-a-list-row").
             expect(Arr.push([["a"]], "0.name", "v")).toEqual([["a"]]);
         });
+
+        it("replaces a scalar inside a Map row along the path, in its place", () => {
+            // docs/php-parity/Arr/push.json, "push-string-row-string-segment"
+            const replaced = Arr.push(
+                [new Map<number, unknown>([[2, "c"]])],
+                "0.2.k",
+                "v",
+            );
+            const appended = Arr.push(
+                [new Map<number, unknown>([[2, "c"]])],
+                "0.0.k",
+                "v",
+            );
+
+            expect([
+                ...(replaced[0] as unknown as Map<number, unknown>),
+            ]).toEqual([[2, { k: ["v"] }]]);
+            expect([
+                ...(appended[0] as unknown as Map<number, unknown>),
+            ]).toEqual([
+                [2, "c"],
+                [0, { k: ["v"] }],
+            ]);
+        });
     });
 
     describe("pull", () => {
@@ -3526,6 +3550,23 @@ describe("Arr", () => {
                 prefix0: "a",
                 "prefix1.0": ["b"],
             });
+        });
+        it("walks a Map row in its order", () => {
+            // docs/php-parity/Arr/dot.json, "dot-nested-out-of-order"
+            const out = Arr.dot([
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                ]),
+            ]);
+
+            expect(Object.keys(out)).toEqual(["0.2", "0.0"]);
+            expect(Object.values(out)).toEqual(["c", "a"]);
+        });
+
+        it("keeps an empty Map as a leaf", () => {
+            // docs/php-parity/Arr/dot.json, "dot-nested-empty-leaf"
+            expect(Arr.dot([new Map()])).toEqual({ 0: new Map() });
         });
     });
 

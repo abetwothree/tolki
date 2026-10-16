@@ -1919,7 +1919,7 @@ export function flatten<TValue>(
 
 /**
  * Flatten a multi-dimensional object into dot-notation with depth control.
- * Like `dot`, it walks only arrays and plain objects below the root; any other object is a leaf.
+ * Like `dot`, it walks only arrays, plain objects and Maps below the root; any other object is a leaf.
  *
  * One divergence from `Arr::dot`/`Obj.dot`: an empty nested container is dropped
  * here, where PHP keeps it as a leaf value.
@@ -1961,7 +1961,8 @@ export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
         maxSegments: number,
     ): void => {
         const pathLen = pathParts.length;
-        const isObj = pathLen === 0 ? isObject(node) : isPlainObject(node);
+        const isObj =
+            pathLen === 0 ? isObject(node) : isPlainObject(node) || isMap(node);
         const isArr = isArray(node);
 
         // Stop if node is scalar or we've reached the target segment length
@@ -1983,7 +1984,7 @@ export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
             return;
         }
 
-        for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+        for (const [k, v] of keyedEntries(node as object)) {
             walk(v, [...pathParts, String(k)], maxSegments);
         }
     };

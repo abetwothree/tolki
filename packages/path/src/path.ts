@@ -892,8 +892,8 @@ export function pushWithPath<TValue>(
 /**
  * Flatten a nested structure into a flat object with dot notation keys.
  * Converts nested arrays and plain objects into a single-level object with path-based keys;
- * any other object (a class instance, Date or Map) is kept whole as a value. The root itself
- * may be a Map, whose entries are flattened in its insertion order.
+ * a non-empty Map is walked in its insertion order; any other object (a class instance or Date)
+ * is kept whole as a value.
  *
  * @param data - The data to flatten.
  * @param prepend - Optional string to prepend to all keys.
@@ -931,8 +931,8 @@ export function dotFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Flatten a nested object structure into a flat object with dot notation keys.
- * Converts nested objects into a single-level object with path-based keys. A Map root is
- * read in its insertion order; a Map nested inside is kept whole as a value.
+ * Converts nested objects into a single-level object with path-based keys. A Map, at the root
+ * or nested, is read in its insertion order.
  *
  * @param data - The object or Map to flatten.
  * @param prepend - Optional string to prepend to all keys.
@@ -979,8 +979,8 @@ export function dotFlattenObject<
                 );
             } else if (
                 currentDepth < depth &&
-                isPlainObject(value) &&
-                Object.keys(value).length > 0
+                ((isPlainObject(value) && Object.keys(value).length > 0) ||
+                    (isMap(value) && keyedEntries(value).length > 0))
             ) {
                 walk(
                     value as Record<TKey, TValue>,
@@ -1033,10 +1033,11 @@ export function dotFlattenArray<TValue>(
                 walk(item, `${nextPath}.`, currentDepth + 1);
             } else if (
                 currentDepth < depth &&
-                isPlainObject(item) &&
-                Object.keys(item).length > 0
+                ((isPlainObject(item) && Object.keys(item).length > 0) ||
+                    (isMap(item) && keyedEntries(item).length > 0))
             ) {
-                // PHP's is_array covers assoc arrays, which a plain object models; a class instance stays a leaf.
+                // PHP's is_array covers assoc arrays, which a plain object or Map models; a class instance
+                // stays a leaf.
                 for (const [key, value] of Object.entries(
                     dotFlattenObject(
                         item,

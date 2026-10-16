@@ -1217,6 +1217,19 @@ describe("Path Functions", () => {
                 a: 1,
             });
         });
+
+        it("walks a nested Map in its order", () => {
+            // docs/php-parity/Arr/dot.json, "dot-nested-out-of-order"
+            const row = new Map<number, string>([
+                [2, "c"],
+                [0, "a"],
+            ]);
+
+            expect(Object.keys(Path.dotFlatten({ m: row }))).toEqual([
+                "m.2",
+                "m.0",
+            ]);
+        });
     });
 
     describe("undotExpand", () => {
@@ -2896,6 +2909,22 @@ describe("Path Functions", () => {
                 "prefix...a": 1,
             });
         });
+
+        it("walks a nested Map in its order and keeps an empty one", () => {
+            // docs/php-parity/Arr/dot.json, "dot-nested-out-of-order", "dot-nested-empty-leaf"
+            const row = new Map<number, string>([
+                [2, "c"],
+                [0, "a"],
+            ]);
+
+            expect(Object.keys(Path.dotFlattenObject({ m: row }))).toEqual([
+                "m.2",
+                "m.0",
+            ]);
+            expect(Path.dotFlattenObject({ m: new Map() })).toEqual({
+                m: new Map(),
+            });
+        });
     });
 
     describe("dotFlattenArray", () => {
@@ -2968,6 +2997,22 @@ describe("Path Functions", () => {
             expect(
                 Path.dotFlattenArray([{ a: { b: { c: 1 } } }], "", 2),
             ).toEqual({ "0.a.b": { c: 1 } });
+        });
+
+        it("walks a Map item in its order and keeps an empty one", () => {
+            // docs/php-parity/Arr/dot.json, "dot-nested-out-of-order", "dot-nested-empty-leaf"
+            const row = new Map<number, string>([
+                [2, "c"],
+                [0, "a"],
+            ]);
+
+            expect(Object.keys(Path.dotFlattenArray([row]))).toEqual([
+                "0.2",
+                "0.0",
+            ]);
+            expect(Path.dotFlattenArray([new Map()])).toEqual({
+                0: new Map(),
+            });
         });
     });
 

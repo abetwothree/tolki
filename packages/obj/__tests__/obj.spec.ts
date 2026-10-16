@@ -163,8 +163,8 @@ describe("Obj", () => {
             const result = Obj.add({ a: point }, "a.y", 2);
 
             expect(result).toEqual({ a: { y: 2 } });
-            expect(result.a).not.toBe(point);
-            expect(result.a).not.toBeInstanceOf(D4Point);
+            expect(result["a"]).not.toBe(point);
+            expect(result["a"]).not.toBeInstanceOf(D4Point);
             expect(Object.entries(point)).toEqual([["x", 1]]);
         });
 
@@ -176,7 +176,7 @@ describe("Obj", () => {
             const result = Obj.add({ a: inner }, "a.1", "y");
 
             expect(result).toEqual({ a: ["q", "y"] });
-            expect(result.a).not.toBe(inner);
+            expect(result["a"]).not.toBe(inner);
             expect(inner).toEqual(["q"]);
         });
 
@@ -1716,19 +1716,37 @@ describe("Obj", () => {
             ]);
         });
 
-        it("keeps a Map nested inside a Map whole, as a value", () => {
-            // JS-only: only the Map at the root is walked; a nested Map is a leaf, as a nested
-            // Date or class instance is.
-            const inner = new Map([["x", 1]]);
+        it("walks a Map nested inside a Map, as Laravel walks a nested array", () => {
+            // docs/php-parity/Arr/dot.json, "dot-nested-out-of-order"
+            // JS-only: the outer Map is the whole data.
             const result = Obj.dot(
                 new Map<string, unknown>([
-                    ["a", inner],
+                    ["a", new Map([["x", 1]])],
                     ["b", { y: 2 }],
                 ]),
             );
 
-            expect(Object.keys(result)).toEqual(["a", "b.y"]);
-            expect(result["a"]).toBe(inner);
+            expect(Object.keys(result)).toEqual(["a.x", "b.y"]);
+            expect(result["a.x"]).toBe(1);
+        });
+
+        it("walks a nested Map in its order", () => {
+            // docs/php-parity/Arr/dot.json, "dot-nested-out-of-order"
+            const out = Obj.dot({
+                m: new Map([
+                    [2, "c"],
+                    [0, "a"],
+                ]),
+            });
+
+            expect(Object.keys(out)).toEqual(["m.2", "m.0"]);
+        });
+
+        it("stops at the depth limit inside a Map", () => {
+            // docs/php-parity/Arr/dot.json, "dot-nested-out-of-order"
+            expect(Obj.dot({ m: new Map([["a", { b: 1 }]]) }, "", 1)).toEqual({
+                "m.a": { b: 1 },
+            });
         });
     });
 
@@ -1853,6 +1871,19 @@ describe("Obj", () => {
                     ]),
                 ),
             ).toEqual({ 2: "c", 0: "a", 1: "b" });
+        });
+
+        it("merges a later dotted key into a Map value, as Laravel merges into an array", () => {
+            // docs/php-parity/Arr/undot.json, "undot-list-plain-first-collision"
+            const input = new Map([["k", 1]]);
+            const result = Obj.undot({ a: input, "a.j": 2 });
+
+            expect(result["a"]).toBeInstanceOf(Map);
+            expect(mapEntries(result["a"])).toEqual([
+                ["k", 1],
+                ["j", 2],
+            ]);
+            expect([...input]).toEqual([["k", 1]]);
         });
     });
 
@@ -3999,8 +4030,8 @@ describe("Obj", () => {
             const result = Obj.set({ a: point }, "a.y", 2);
 
             expect(result).toEqual({ a: { y: 2 } });
-            expect(result.a).not.toBe(point);
-            expect(result.a).not.toBeInstanceOf(D4Point);
+            expect(result["a"]).not.toBe(point);
+            expect(result["a"]).not.toBeInstanceOf(D4Point);
             expect(Object.entries(point)).toEqual([["x", 1]]);
         });
 
@@ -4012,7 +4043,7 @@ describe("Obj", () => {
             const result = Obj.set({ a: inner }, "a.1", "y");
 
             expect(result).toEqual({ a: ["q", "y"] });
-            expect(result.a).not.toBe(inner);
+            expect(result["a"]).not.toBe(inner);
             expect(inner).toEqual(["q"]);
         });
 
@@ -6219,6 +6250,16 @@ describe("Obj", () => {
             expect(result["a"]).toBe(point);
             expect(result["b.c"]).toBe(date);
             expect(result["l.0"]).toBe(point);
+        });
+
+        it("walks a Map given as the data or nested", () => {
+            // JS-only: flattenDot has no Laravel twin; it walks a Map as Obj.dot does and drops an empty one.
+            expect(Obj.flattenDot(new Map([["a", { b: 1 }]]))).toEqual({
+                "a.b": 1,
+            });
+            expect(
+                Obj.flattenDot({ m: new Map([["b", 1]]), e: new Map() }),
+            ).toEqual({ "m.b": 1 });
         });
     });
 

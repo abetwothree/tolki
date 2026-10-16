@@ -1325,6 +1325,27 @@ describe("Data", () => {
                 ["y.k", 3],
             ]);
         });
+
+        it("walks a Map nested in either root", () => {
+            // docs/php-parity/Arr/dot.json, "dot-nested-out-of-order"
+            const row = new Map<number, string>([
+                [2, "c"],
+                [0, "a"],
+            ]);
+
+            expect(Object.keys(Data.dataDot({ m: row }))).toEqual([
+                "m.2",
+                "m.0",
+            ]);
+            expect(Object.keys(Data.dataDot([row]))).toEqual(["0.2", "0.0"]);
+        });
+
+        it("walks a Map given as the data", () => {
+            // JS-only: a whole-data Map has no PHP twin; its entries read as an array's.
+            expect(Data.dataDot(new Map([["a", { b: 1 }]]))).toEqual({
+                "a.b": 1,
+            });
+        });
     });
 
     describe("dataUndot", () => {
