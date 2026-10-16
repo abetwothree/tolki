@@ -130,8 +130,8 @@ type ObjectPullRest<T, P> = P extends keyof T
     : OmitObjectPath<T, `${P & (string | number)}`>;
 type ArrayElementOf<T> = T extends readonly (infer E)[] ? E : never;
 // PushedAt (push): a list at the path grows, while an object or Map there gains the values under integer keys.
-// A missing path is created as a list; a scalar throws, so it keeps the list type it always had. `infer E` keeps
-// `E[]` an eager array type: one written over a type alias is deferred, and a union then holds `number[]` twice.
+// A path that may be missing reads as `[]` and adds the list it is created as; a scalar or built-in throws, so it
+// keeps the old list type. `infer E` keeps `E[]` eager: a deferred one leaves a union holding `number[]` twice.
 type PushedAt<X, V> = [ArrayElementOf<X> | V] extends [infer E]
     ? 0 extends 1 & X
         ? E[]
@@ -146,7 +146,7 @@ type PushedAt<X, V> = [ArrayElementOf<X> | V] extends [infer E]
 type PushedKeyed<X, V> =
     X extends ReadonlyMap<infer MK, infer MV>
         ? Map<MK | number, MV | V>
-        : X extends NonObjectItems
+        : X extends NonObjectItems | Date | RegExp | Promise<unknown>
           ? never
           : X extends object
             ? X & Record<number, V>
@@ -4596,7 +4596,7 @@ export function push<T extends object, P extends string | number, V>(
     data: T,
     key: P,
     ...values: V[]
-): ObjectWriteResult<T, P, PushedAt<ObjectResolvePath<T, P, never>, V>>;
+): ObjectWriteResult<T, P, PushedAt<ObjectResolvePath<T, P, []>, V>>;
 export function push(
     data: unknown,
     key: PathKey,

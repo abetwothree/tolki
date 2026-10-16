@@ -152,8 +152,30 @@ describe("obj write type tests", () => {
                 Obj.push({ m: new Map<number, string>() }, "m", "x").m,
             ).toEqualTypeOf<Map<number, string>>();
             expectTypeOf(
+                Obj.push({ m: new Map<string, number>() }, "m", "x").m,
+            ).toEqualTypeOf<Map<string | number, number | string>>();
+            expectTypeOf(
                 Obj.push({ items: ["a"] }, "items", "b").items,
             ).toEqualTypeOf<string[]>();
+        });
+
+        it("adds the list a missing key is created as, where the path may be missing", () => {
+            // docs/php-parity/Arr/push.json, "push at a missing key creates the array" and "push-assoc-leaf-appends".
+            expectTypeOf(
+                Obj.push({} as { x?: { k: number } }, "x", "v").x,
+            ).toEqualTypeOf<
+                ({ k: number } & Record<number, string>) | string[]
+            >();
+            expectTypeOf(
+                Obj.push({} as { m?: Map<number, string> }, "m", "v").m,
+            ).toEqualTypeOf<Map<number, string> | string[]>();
+        });
+
+        it("keeps the list type for a Date at the key, which push rejects", () => {
+            // JS-only: a Date is not a plain object, so push throws for it, and the type keeps the list it always had.
+            expectTypeOf(Obj.push({ d: new Date() }, "d", 1).d).toEqualTypeOf<
+                number[]
+            >();
         });
     });
 
@@ -266,6 +288,16 @@ describe("obj write type tests", () => {
             expectTypeOf(Obj.pull(profile, "nick").value).toEqualTypeOf<
                 string | null
             >();
+        });
+
+        it("answers an untyped value and a record for a Map given as the data", () => {
+            // JS-only: a Map given as the whole data becomes the record from() builds.
+            expectTypeOf(
+                Obj.pull(new Map<string, number>(), "n"),
+            ).toEqualTypeOf<{
+                value: unknown;
+                data: Record<string, unknown>;
+            }>();
         });
     });
 });
