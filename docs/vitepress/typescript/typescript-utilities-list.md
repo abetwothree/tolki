@@ -96,6 +96,8 @@ Example in Vue template:
 </template>
 ```
 
+`from` and `to` are `number | null`, because Laravel sends `null` for both on a page with no items. Each entry of `links` is a `PaginatorLink`, whose `page` field is optional, because Laravel sends it from 12.23, and never on the `...` separator.
+
 ### SimplePaginator
 
 If you use the `simplePaginate` response function as show below, you can use the `SimplePaginator` type to define the response structure.
@@ -141,6 +143,8 @@ defineProps<{
 }>();
 </script>
 ```
+
+`current_page_url` is optional, because Laravel sends it from 12.15. `from` and `to` are `number | null`, as on `LengthAwarePaginator`.
 
 ### CursorPaginator
 
@@ -513,3 +517,76 @@ export interface JsonResourcePaginator<T> {
 ```
 
 If needed, you can also use these types individually to define the structure of the `links` and `meta` sections separately. You can also compose your own JSON resource structures if your PHP resources return custom structures.
+
+### Simple and Cursor Paginated Resources
+
+A collection over `simplePaginate()` or `cursorPaginate()` sends a smaller `meta` block. A simple paginator's has no `last_page`, `links`, or `total`, and a cursor paginator's has only `path`, `per_page`, `next_cursor`, and `prev_cursor`. Use the types that match the paginator:
+
+- `paginate()`: `JsonResourcePaginator<T>` for the whole response, `ResourcePagination` for the `meta` and `links` blocks, and `JsonResourceMeta` for the `meta` block alone.
+- `simplePaginate()`: `JsonResourceSimplePaginator<T>`, `ResourceSimplePagination`, and `JsonResourceSimpleMeta`.
+- `cursorPaginate()`: `JsonResourceCursorPaginator<T>`, `ResourceCursorPagination`, and `JsonResourceCursorMeta`.
+
+A `meta` and `links` type extends a collection's own interface, as in `UserCollection & ResourceSimplePagination`. `JsonResourceSimpleMeta` has the optional `current_page_url` that `SimplePaginator` has. In `JsonResourceMeta` and `JsonResourceSimpleMeta`, `from` and `to` are `number | null`.
+
+## JSON:API Utilities Types
+
+Laravel's [JSON:API resources](https://laravel.com/docs/eloquent-resources#jsonapi-resources), from Laravel 12.45, send a [JSON:API](https://jsonapi.org/format/) document. These types describe each document, given the resource object it sends under `data` and the resource objects its `included` member can hold:
+
+| Type                           | What Laravel sends                                                      |
+| ------------------------------ | ----------------------------------------------------------------------- |
+| `JsonApiDocument<R, I>`        | A single resource, as `{ data: R; included?: I[]; jsonapi? }`           |
+| `JsonApiCollection<R, I>`      | `SomeResource::collection()` over items that aren't paginated           |
+| `JsonApiPaginator<R, I>`       | `SomeResource::collection()` over `paginate()`, with `links` and `meta` |
+| `JsonApiSimplePaginator<R, I>` | The same over `simplePaginate()`                                        |
+| `JsonApiCursorPaginator<R, I>` | The same over `cursorPaginate()`                                        |
+
+`I` defaults to `JsonApiResourceObject`, which fits any resource object. The paginator documents take their `meta` block from the matching type above, such as `JsonResourceSimpleMeta`.
+
+The parts of a document have types of their own:
+
+- `JsonApiResourceObject<TType, TAttributes, TRelationships>`: a resource object, with `id`, `type`, and the optional `attributes`, `relationships`, `links`, and `meta`.
+- `JsonApiResourceIdentifier<TType>`: `{ id: string; type: TType }`, which names a related resource.
+- `JsonApiToOneRelationship<TType>`: a relationship whose `data` is one identifier, or `null`.
+- `JsonApiToManyRelationship<TType>`: a relationship whose `data` is a list of identifiers.
+- `JsonApiRelationship<TType>`: either kind of relationship.
+- `JsonApiObject`: the top-level `jsonapi` member, which Laravel sends once `JsonApiResource::configure()` sets it.
+
+Describe a resource object with `JsonApiResourceObject`, then type a response with the document:
+
+```typescript
+import type {
+  JsonApiDocument,
+  JsonApiResourceObject,
+  JsonApiToOneRelationship,
+} from "@tolki/types";
+
+type User = JsonApiResourceObject<"users", { name: string }>;
+
+type Post = JsonApiResourceObject<
+  "posts",
+  { title: string; published_at: string | null },
+  { author?: JsonApiToOneRelationship<"users"> }
+>;
+
+const response = await fetch("/api/posts/1?include=author");
+const post: JsonApiDocument<Post, User> = await response.json();
+
+post.data.relationships?.author?.data?.id; // string | undefined
+```
+
+The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) writes each resource object interface for you. See [JSON:API Resources](../ts/api-resources.md#json-api-resources).
+
+### Sparse Fieldsets
+
+A request with a sparse fieldset, such as `?fields[posts]=title`, sends only the attributes it names. `JsonApiSparse<R>` makes every attribute of a resource object optional:
+
+```typescript
+import type { JsonApiDocument, JsonApiSparse } from "@tolki/types";
+
+const response = await fetch("/api/posts/1?fields[posts]=title");
+const post: JsonApiDocument<JsonApiSparse<Post>> = await response.json();
+
+post.data.attributes?.title; // string | undefined
+```
+
+Over a union of resource objects, `JsonApiSparse` reads each one on its own, so checking `type` still narrows `attributes`.

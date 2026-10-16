@@ -361,7 +361,7 @@ These expressions are typed:
 - **`$request->user()`**, typed through your `auth` config the same way [shared data](./inertia.md) is, and the typed `Request` reads such as `integer()`, `boolean()`, `string()` and `url()`.
 - **`compact()` and `array_merge()`**: passed as the whole props argument, as in `Inertia::render('Posts/Show', compact('post', 'comments'))` or `array_merge($base, [...])`, each types the same as the array literal it builds.
 - **Inertia v2 prop wrappers**: `defer()`, `optional()` and `lazy()` type as the value they wrap and make the key optional, since a partial reload can leave it out. `always()`, `merge()` and `deepMerge()` type as the value they wrap.
-- **API resources and resource collections**, typed from what they wrap, including a `#[PreserveKeys]` collection's keyed `data` member.
+- **API resources and resource collections**, typed as the response Inertia sends for each, such as `{ data: PostResource }` for a single resource and `JsonResourceSimplePaginator<PostResource>` over `simplePaginate()`, including a `#[PreserveKeys]` collection's keyed `data` member. See [API Resources in Props](./inertia.md#api-resources-in-props).
 - **A props array assigned from a ternary**, or props built whole by a method on an injected service, as in `Inertia::render('Posts/Show', $this->service->build())`.
 - **Closures and first-class callables**: Inertia calls a callable prop, so `fn () => $this->label()` and `$this->label(...)` are both typed from what the call returns. In props that another class's method or a controller helper method builds, a first-class callable publishes `Record<string, never>` and `ts:publish` warns, even though Inertia does call it. Use a closure there.
 

@@ -371,6 +371,16 @@ A resource can reference itself:
 
 Calling `resolve()` on a nested resource, as in `new UserResource($this->author)->resolve($request)`, publishes the same interface.
 
+A named collection nests the same way, with `new` or `::make()`. Inside another resource, Laravel sends what the collection's `toArray()` returns, so a collection with a `toArray()` of its own publishes its interface:
+
+```php
+'staff' => new UserCollection($this->staff),
+```
+
+With the `UserCollection` from [Resource Collections](#resource-collections), whose `toArray()` returns `data` and `has_admin`, `staff` publishes `staff: UserCollection;`. A collection with no `toArray()`, or one whose `toArray()` returns the collected list, sends the bare list, so it publishes `UserResource[]`. An argument-less `toResourceCollection()` that finds a collection by name follows the same rule.
+
+A [JSON:API resource](#json-api-resources) nests differently. See [Nesting a JSON:API Resource](#nesting-a-json-api-resource).
+
 ### `toResource()` and `toResourceCollection()`
 
 Laravel's `Model::toResource()` and `Collection::toResourceCollection()` find their resource three ways, and the package follows each one:
@@ -1210,7 +1220,7 @@ A subclass of `LabelResource` with no `toArray()` of its own publishes the same 
 
 ### JsonResource Base Delegation
 
-A resource with no `toArray()`, or whose `toArray()` returns `parent::toArray($request)`, publishes the backing model's columns, its appended accessors, and its relations, each relation an optional key. These follow the keys Laravel's `Model::toArray()` writes, with the differences below. A subclass of Laravel's `JsonApiResource` (12.45 and later, and 13) is the exception: Laravel sends it as a JSON:API document, which the package doesn't type, so leave it out with `#[TsExclude]`. This resource has no `toArray()`:
+A resource with no `toArray()`, or whose `toArray()` returns `parent::toArray($request)`, publishes the backing model's columns, its appended accessors, and its relations, each relation an optional key. These follow the keys Laravel's `Model::toArray()` writes, with the differences below. A subclass of Laravel's `JsonApiResource` is the exception: it publishes the resource object it sends, as [JSON:API Resources](#json-api-resources) describes. This resource has no `toArray()`:
 
 ```php
 /**
@@ -1440,17 +1450,21 @@ export interface TagResource {
 The variable can start from an array literal, as above, or from any of these:
 
 - `parent::toArray($request)`, which on a `JsonResource` parent holds the model's properties, as [JsonResource Base Delegation](#jsonresource-base-delegation) describes
+- `parent::with($request)`, which holds the keys of the resource's `$with` property
 - `$this->only([...])` with a literal list of keys
 - `array_merge()` of array literals and `parent::toArray($request)` calls
 - A helper method on the resource that returns an array
+
+A spread of `...$this->with($request)` or `...parent::with($request)` in `toArray()` adds the `$with` keys too.
 
 These rules decide each key:
 
 - **A write inside a block**: a key first written inside an `if`, a loop, a `try` or `catch` block, or a `switch` case publishes optional, because that path may not run.
 - **A key written more than once**: the key takes the type of its last write. `+=` adds only the keys the array doesn't have yet, and assigning a whole new array drops the keys written before it.
+- **An `unset()`**: `unset($data['slug'])` removes the key. Inside a block, it makes the key optional instead.
 - **Other `return` statements**: the variable counts as one branch beside the method's other returns, so a `return []` guard, or a returned array literal that leaves a key out, makes that key optional.
 
-The package doesn't follow `$data[] = ...`, a key computed at runtime such as `$data[$key]`, a nested key such as `$data['meta']['label']`, or `unset()`. It also reads the method in one pass. A key written after an early `return $data;` publishes required when that write always runs, though the early return sends the array without it. In either case, return an array literal on each path, or list the keys with [`#[TsCasts]`](#overriding-property-types-with-tscasts), which can also mark a key optional.
+The package doesn't follow `$data[] = ...`, a key computed at runtime such as `$data[$key]`, or a nested key such as `$data['meta']['label']`, whether written or passed to `unset()`. It also reads the method in one pass. A key written after an early `return $data;` publishes required when that write always runs, though the early return sends the array without it. In either case, return an array literal on each path, or list the keys with [`#[TsCasts]`](#overriding-property-types-with-tscasts), which can also mark a key optional.
 
 `+` publishes PHP's array union, where the left side's keys win and the right side adds the keys it lacks. That holds in a key's value, so `['code' => 'in'] + ['code' => 0, 'lane' => 2]` publishes `{ code: string; lane: number }`, and in a whole return, such as `return parent::toArray($request) + ['note' => 'none'];`.
 
@@ -1836,11 +1850,13 @@ export interface UserCollection {
 }
 ```
 
-The singular resource comes from the first of these that applies:
+The singular resource comes from the first of these that names a class, in the order Laravel's `collects()` reads them:
 
 1. The `#[Collects(UserResource::class)]` attribute on the collection. This attribute needs Laravel 13.
 2. The `$collects` property.
-3. The naming convention: `UserCollection` collects `UserResource`, or else `User`, from the same namespace, when the package publishes that class.
+3. The naming convention: `UserCollection` collects `User` when a class of that name exists in the same namespace, or else `UserResource`. The package uses the convention's pick only when it publishes that class.
+
+When the class it names isn't an API resource, Laravel throws a `LogicException` instead of trying the next step. The collection then publishes an empty interface, and `ts:publish` warns.
 
 The `$collects` property works on every supported Laravel version:
 
@@ -1860,9 +1876,11 @@ class OrderCollection extends ResourceCollection
 
 On Laravel 12, use the `$collects` property or the naming convention. The `#[Collects]` attribute doesn't exist there, so the package can't find the resource of a collection that relies on it.
 
-When no singular resource matches, such as for a `MiscCollection` with no `MiscResource`, `$this->collection` publishes `unknown`.
+The package reads the attribute, the property's declared value, and the class name. A collection that overrides `collects()`, or assigns `$this->collects` in its constructor, publishes an empty interface. Declare `public $collects` instead.
 
-A collection with no `toArray()` publishes Laravel's default shape, `{ data: R[] }`. With `public static $wrap = null;`, the collection is the list itself, so the package publishes a type alias instead of an interface:
+When no singular resource matches, such as for a `MiscCollection` with no `MiscResource`, `$this->collection` publishes `unknown[]`.
+
+A collection with no `toArray()` publishes Laravel's default shape, `{ data: R[] }`. So does a `toArray()` that returns the collected list: the `return parent::toArray($request);` stub that `php artisan make:resource` writes, `$this->collection`, or `$this->resource`. With `public static $wrap = null;`, the collection is the list itself, so the package publishes a type alias instead of an interface:
 
 ```php
 #[Collects(PostResource::class)] // Laravel 13+
@@ -1878,7 +1896,7 @@ The unwrapped collection becomes an alias:
 export type PostFlatCollection = PostResource[];
 ```
 
-A collection with no `toArray()` that extends another collection applies the list above to its own class. It inherits the parent's `$collects` property and `$wrap`, but not a `#[Collects]` or `#[PreserveKeys]` attribute, because PHP attributes aren't inherited. When the child names no resource at all, Laravel sends the plain models, but the package publishes the parent's resource, or an empty interface when the parent's `$wrap` is `null`. Set `$collects` on the child to name its resource, as `HandoverDigestCollection` does:
+A collection with no `toArray()` that extends another collection applies the list above to its own class. It inherits the parent's `$collects` property and `$wrap`, but not a `#[Collects]` or `#[PreserveKeys]` attribute, because PHP attributes aren't inherited. When the child names no resource at all, Laravel sends the plain models. The package then publishes the model behind the parent's resource, such as `data: Supplier[]`, or the parent's resource when it doesn't publish that model. Set `$collects` on the child to name its resource, as `HandoverDigestCollection` does:
 
 ```php
 class HandoverCollection extends ResourceCollection
@@ -1902,9 +1920,26 @@ export interface HandoverDigestCollection {
 }
 ```
 
-::: warning Delete the `toArray()` Stub
-`php artisan make:resource` writes `return parent::toArray($request);` into a new collection. A collection that keeps that `toArray()` publishes an empty interface. When it extends another collection, it publishes that collection's resource instead. Delete the stub. It only repeats the inherited method, and without it the collection publishes as this section describes.
-:::
+A child that inherits its parent's own `toArray()` runs it as itself, so `$this->collection` in that method lists the child's resource.
+
+### The Wrap Key Your App Sets
+
+The package reads the wrap key your app has set by the time `ts:publish` runs, so a call in a service provider's `boot()` method reaches the published types:
+
+```php
+use Illuminate\Http\Resources\Json\JsonResource;
+
+public function boot(): void
+{
+    JsonResource::withoutWrapping();
+}
+```
+
+After `JsonResource::withoutWrapping()`, every collection that publishes Laravel's default shape is the list itself, so it publishes a type alias instead of an interface with a `data` key. A `PostCollection` with no `toArray()` publishes `export type PostCollection = PostResource[];`. Code that reads its `data` key then fails to compile, since Laravel no longer sends that key. After `JsonResource::wrap('items')`, the same collections publish `{ items: PostResource[] }`.
+
+A class that redeclares `$wrap` keeps its own key through `withoutWrapping()`, and so do its subclasses. `HandoverDigestCollection` above keeps `handovers`. Calling `HandoverCollection::wrap('crew')` changes the key for that class and its subclasses only.
+
+Call these methods unconditionally in a provider's `boot()`. A wrap set anywhere else, such as in middleware, in a controller, or behind a `runningInConsole()` check, isn't in place when `ts:publish` runs, so the published types miss it. A change to the wrap key rebuilds every cached file on the next run. Inertia props follow the same key, as [API Resources in Props](./inertia.md#api-resources-in-props) describes.
 
 ### Key-Preserving Collections
 
@@ -1943,6 +1978,8 @@ export interface TeamCollection {
 ```
 
 With `public static $wrap = null;` as well, the collection publishes the alias `export type TeamCollection = Record<string, TeamResource>;`.
+
+The type follows `#[PreserveKeys]` or `$preserveKeys`, not the keys of the items you pass, which the package can't see. A collection without either that you give items keyed by `keyBy()` sends an object, while its type says `TeamResource[]`. One with either that you give a plain list sends an array, while its type says `Record<string, TeamResource>`. In your own `toArray()`, `$this->collection` and `$this->resource` keep the keys of the items you pass, whatever the class declares, so items that `filter()` left with gaps are sent as an object. Give `#[PreserveKeys]` to a collection that receives keyed items, and call `values()` on filtered items before you pass them in.
 
 ### Reading `$this->resource`
 
@@ -2004,7 +2041,138 @@ The package doesn't follow a collection pipeline on `$this->resource`, such as `
 
 ### Paginated Collections
 
-A collection's interface covers what its `toArray()` returns. The `links` and `meta` keys Laravel adds to a paginated response, and any data you add with `additional()`, aren't part of it. An Inertia page prop that passes a paginator to a resource collection gets its pagination members from the page prop's type instead. See [Paginating Inline in the Render Call](./inertia.md#paginating-inline-in-the-render-call) on the Inertia page.
+A collection's interface covers what its `toArray()` returns. The `links` and `meta` keys Laravel adds to a paginated response, and any data you add with `with()` or `additional()`, aren't part of it. An Inertia page prop that passes a paginator to a resource collection gets its pagination members from the page prop's type instead, with the `meta` block of each paginator kind. See [Paginating Inline in the Render Call](./inertia.md#paginating-inline-in-the-render-call) on the Inertia page.
+
+Over a paginator, Laravel merges a `meta` or `links` key that your `toArray()` returns beside `data` into its own pagination block with `array_merge_recursive()`, and it merges the `with()` and `additional()` data the same way. A key your `toArray()` adds, such as `links.self`, is in the page prop's type. A key that two of these name, such as `meta.total`, is sent as a list of both values, such as `[3, 3]`, while the type still says `number`. Give your key another name, or remove Laravel's from `paginationInformation()`.
+
+Over a paginator, `$this->resource` holds the paginator itself. A `toArray()` that returns it sends the paginator's own array, with `current_page`, `first_page_url`, and its other keys, beside `links` and `meta`, and the page prop's type covers only `data`, `links`, and `meta`. Return `$this->collection` in a collection you paginate.
+
+## JSON:API Resources
+
+Laravel's [`JsonApiResource`](https://laravel.com/docs/eloquent-resources#jsonapi-resources), added in Laravel 12.45, sends a model as a [JSON:API](https://jsonapi.org/format/) document. The package publishes a subclass as the resource object it sends under `data`, and `@tolki/types` provides the document types around it:
+
+```php
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
+
+/**
+ * @mixin Post
+ */
+class PostResource extends JsonApiResource
+{
+    public $attributes = ['title', 'word_count', 'published_at'];
+
+    public $relationships = [
+        'author' => UserResource::class,
+        'comments' => CommentResource::class,
+    ];
+}
+```
+
+Here `UserResource` and `CommentResource` are JSON:API resources too. The package generates:
+
+```typescript
+import type {
+  JsonApiToManyRelationship,
+  JsonApiToOneRelationship,
+} from "@tolki/types";
+
+export interface PostResource {
+  id: string;
+  type: "posts";
+  attributes: {
+    title: string;
+    word_count: number | null;
+    published_at: string | null;
+  };
+  relationships?: {
+    author?: JsonApiToOneRelationship<"users">;
+    comments?: JsonApiToManyRelationship<"comments">;
+  };
+}
+```
+
+Each member follows what Laravel sends:
+
+- **`id`**: always `string`, because Laravel sends the model's key as a string, even an integer one.
+- **`type`**: the type Laravel works out for the resource when `ts:publish` runs, such as `'posts'` for `PostResource`, or the string literal your `toType()` returns.
+- **`attributes`**: taken from the first source the resource declares, in the order Laravel reads them:
+  1. A `toAttributes()` method. A key that `when()` or another conditional method wraps is optional, and an attribute name listed without a key, such as `'title'`, reads that model attribute.
+  2. The `$attributes` property, a list of model attribute names.
+  3. A `toArray()` method. Its keys become the attributes, not the whole response.
+  4. With none of these, every key of the model's own `toArray()`, as [JsonResource Base Delegation](#jsonresource-base-delegation) describes.
+- **`relationships`**: one key per relationship that `$relationships` or `toRelationships()` declares, named after its relation method. The member and each key are optional, because Laravel sends a relationship only when the request asks for it with `?include=`. A to-one relationship publishes `JsonApiToOneRelationship<'users'>`, and a to-many one `JsonApiToManyRelationship<'comments'>`.
+- **`links` and `meta`**: optional members, published from `toLinks()` and `toMeta()`, or from the `$jsonApiLinks` and `$jsonApiMeta` properties.
+
+`attributes` is required while at least one attribute is always sent. A `#[TsCasts]` entry on the resource or on its model retypes a key inside `attributes`, and never `id` or `type`.
+
+### Sparse Fieldsets
+
+Every attribute the resource always sends is required. A request with a sparse fieldset, such as `?fields[posts]=title`, sends only the attributes it names. Read such a response through `JsonApiSparse` from `@tolki/types`, which makes each attribute optional:
+
+```typescript
+import type { JsonApiDocument, JsonApiSparse } from "@tolki/types";
+import type { PostResource } from "@js/types/data/app/http/resources";
+
+const response = await fetch(`/api/posts/${id}?fields[posts]=title`);
+const post: JsonApiDocument<JsonApiSparse<PostResource>> =
+  await response.json();
+
+post.data.attributes?.title; // string | undefined
+```
+
+### Fetching a Document
+
+The package doesn't type the response of a route, so type what `fetch()` returns with the document types from `@tolki/types`. The second type parameter lists the resource objects that `included` can hold:
+
+```typescript
+import type { JsonApiDocument } from "@tolki/types";
+import type {
+  CommentResource,
+  PostResource,
+  UserResource,
+} from "@js/types/data/app/http/resources";
+
+const response = await fetch(`/api/posts/${id}?include=author,comments`);
+const post: JsonApiDocument<PostResource, UserResource | CommentResource> =
+  await response.json();
+
+post.data.attributes.title; // string
+post.included; // (UserResource | CommentResource)[] | undefined
+```
+
+`JsonApiCollection<PostResource>` types what `PostResource::collection()` sends, and `JsonApiPaginator`, `JsonApiSimplePaginator`, and `JsonApiCursorPaginator` type it over each paginator. [JSON:API Utilities Types](../typescript/typescript-utilities-list.md#json-api-utilities-types) lists every type.
+
+As an Inertia prop, a JSON:API resource publishes its whole document for you. See [JSON:API Resources in Props](./inertia.md#json-api-resources-in-props).
+
+### Nesting a JSON:API Resource
+
+Inside a plain API resource, Laravel sends a JSON:API resource without its document:
+
+```php
+'author' => new UserResource($this->author),
+'comments' => CommentResource::collection($this->comments),
+'related' => new PostCollection($this->related),
+```
+
+Here `PostCollection` is a `ResourceCollection` that collects `PostResource`. The keys publish:
+
+```typescript
+author: { data: UserResource };
+comments: CommentResource[];
+related: { data: PostResource }[];
+```
+
+- A single resource, from `new`, `make()`, or `toResource()`, sends its resource object under `data`, and adds `| null` where its model can be `null`.
+- `collection()` sends a list of resource objects.
+- A named collection sends each item under its own `data` key.
+
+A nested JSON:API resource never sends `included`.
+
+### What Isn't Typed
+
+- A `toType()` that returns anything other than one string literal publishes `type: string`. The type is worked out when `ts:publish` runs, so a morph map or `Pluralizer::useLanguage()` call your app makes only later doesn't reach it.
+- Keys that `additional()` adds beside `data` aren't published.
+- A relationship whose resource is a plain `JsonResource` publishes `type: string`. Laravel throws when a request includes it.
 
 ## Resource Attributes
 
@@ -2105,7 +2273,7 @@ Entries also work on two less common kinds of key:
 - **An index signature**: use its published name as the key, such as ``'[key: `${string}_tag`]' => 'string'``. `'optional' => true` adds `| undefined` to its value instead of a `?`, because `[key: T]?:` isn't valid TypeScript. [Interpolated Keys](#interpolated-keys) covers how to write the key.
 - **A numeric key**: `'42' => 'boolean'` publishes `"42": boolean`.
 
-You can put `#[TsCasts]` on the resource class, on `toArray()` itself, or on a trait or helper method that `toArray()` spreads. On a method, it works the same way as on the class. See [Trait Method Spread](#trait-method-spread).
+You can put `#[TsCasts]` on the resource class, on `toArray()` itself, or on a trait or helper method that `toArray()` spreads. On a method, it works the same way as on the class, including on a `toArray()` that returns `parent::toArray($request)`. See [Trait Method Spread](#trait-method-spread).
 
 The backing model's own `#[TsCasts]` applies here too. An entry on the model retypes the resource property with the same name, including its `optional` flag. For example, an `Address` model entry `'latitude' => ['type' => 'number | null', 'optional' => true]` makes a resource's `'latitude' => $this->whenNotNull($this->latitude)` publish `latitude?: number | null`. A model entry never adds a property.
 
