@@ -33,6 +33,7 @@ import {
     phpArrayKey,
     readMapKey,
     toPhpKeyString,
+    writeMapKey,
 } from "@tolki/utils";
 
 /**
@@ -1365,14 +1366,14 @@ export function getMixedValue<TValue, TDefault = null>(
 /**
  * Determine whether a path segment's value is a container a write descends into.
  *
- * `Arr::set` tests `is_array`, so a class instance, `Date` or `Map` is not a
- * container: the write replaces it wholesale rather than merging onto it.
+ * `Arr::set` tests `is_array`, so a class instance or `Date` is not a container: the write replaces it wholesale
+ * rather than merging onto it. A `Map` stands for a PHP array, so the write descends into it.
  *
  * @param value - The value found at a path segment.
- * @returns True when the value is a list or a plain object.
+ * @returns True when the value is a list, a plain object or a Map.
  */
 function isWritableContainer(value: unknown): boolean {
-    return isArray(value) || isPlainObject(value);
+    return isArray(value) || isPlainObject(value) || isMap(value);
 }
 
 /**
@@ -1461,6 +1462,16 @@ export function setMixed<TValue>(
             }
 
             current = current[segment];
+        } else if (isMap(current)) {
+            const mapKey = String(segment);
+            let child = readMapKey(current, mapKey).value;
+
+            if (!isWritableContainer(child)) {
+                child = isNumber(nextSegment) ? [] : {};
+                writeMapKey(current, mapKey, child);
+            }
+
+            current = child;
         } else {
             // Handle non-numeric keys (object properties)
             // At this point, current is guaranteed to be an object (or array treated as object)
@@ -1489,9 +1500,11 @@ export function setMixed<TValue>(
                     property,
                     (isArray(nextValue)
                         ? [...(nextValue as unknown[])]
-                        : {
-                              ...(nextValue as Record<string, unknown>),
-                          }) as TValue,
+                        : isMap(nextValue)
+                          ? new Map(nextValue)
+                          : {
+                                ...(nextValue as Record<string, unknown>),
+                            }) as TValue,
                 );
             }
             current = obj[property];
@@ -1514,6 +1527,8 @@ export function setMixed<TValue>(
             current.push(undefined as TValue);
         }
         current[lastSegment] = value as TValue;
+    } else if (isMap(current)) {
+        writeMapKey(current, String(lastSegment), value);
     } else if (!isNull(current) && isObjectAny(current)) {
         // The traversal above builds structure as it goes, so `current` is
         // an array or plain object here for any array-shaped root — this
@@ -1641,9 +1656,9 @@ export function pushMixed<TValue>(
  * Set a value in an array using mixed array/object dot notation (immutable version).
  * Supports both numeric array indices and object property names in paths.
  *
- * The copy is deep through arrays and plain objects only. A class instance, a `Date` or a
- * `Map` is aliased into the result rather than copied, because PHP holds an object by handle
- * where it copies an array by value — copying one's entries flattened it into a plain object.
+ * The copy is deep through arrays, plain objects and Maps, which stand for PHP arrays; a Map stays a Map in its key
+ * order. A class instance or a `Date` is aliased into the result rather than copied, because PHP holds an object by
+ * handle where it copies an array by value — copying one's entries flattened it into a plain object.
  * Such a value is shared with the caller's input; the write path itself is never shared.
  *
  * @param data - The data to set the value in.
@@ -1671,8 +1686,8 @@ export function setMixedImmutable<TValue>(
         return [] as TValue[];
     }
 
-    // Copy every array and plain object along the way, so the caller's value is never written
-    // through. A class instance, Date or Map is ALIASED into the result instead — deliberately:
+    // Copy every array, plain object and Map along the way, so the caller's value is never written
+    // through. A class instance or Date is ALIASED into the result instead — deliberately:
     // PHP holds an object by handle, and copying its entries flattened it into a plain object.
     const deepCopy = (obj: unknown): unknown => {
         // Return primitives and null/undefined as-is
@@ -1684,7 +1699,16 @@ export function setMixedImmutable<TValue>(
             return obj.map(deepCopy);
         }
 
-        // A class instance, a Date or a Map is no PHP array: copying its entries flattened it
+        if (isMap(obj)) {
+            return new Map(
+                [...obj].map(([mapKey, mapValue]): [unknown, unknown] => [
+                    mapKey,
+                    deepCopy(mapValue),
+                ]),
+            );
+        }
+
+        // A class instance or a Date is no PHP array: copying its entries flattened it
         // into a plain object, and setMixed then MERGED onto it where `is_array` replaces it
         // wholesale. PHP holds an object by handle, so sharing the reference is the copy.
         if (!isPlainObject(obj)) {
@@ -1867,7 +1891,7 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
 
     // Handle nested property access with dot notation
     const segments = keyStr.split(".");
-    let current: Record<string, unknown> = result;
+    let current: Record<string, unknown> | Map<unknown, unknown> = result;
 
     const lastIndex = segments.length - 1;
 
@@ -1875,32 +1899,41 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
     // `$a['a']['']['b']`. Skipping it wrote the wrong path or dropped the value.
     for (const [index, segment] of segments.entries()) {
         if (index === lastIndex) {
-            defineKey(current, segment, value);
+            if (isMap(current)) {
+                writeMapKey(current, segment, value);
+            } else {
+                defineKey(current, segment, value);
+            }
 
             break;
         }
 
         // An unsafe segment not yet its own risks reading the inherited
         // accessor/data value (e.g. Object.prototype); treat it as absent.
-        const existing =
-            isUnsafeKey(segment) && !Object.hasOwn(current, segment)
-                ? undefined
-                : current[segment];
+        const existing = isMap(current)
+            ? readMapKey(current, segment).value
+            : isUnsafeKey(segment) && !Object.hasOwn(current, segment)
+              ? undefined
+              : current[segment];
 
-        // Arr::set descends by is_array, so a class instance, Date or Map on the path is
-        // replaced wholesale; a list is a container and keeps its elements. The clone is
-        // what makes the write immutable, so it has to match the container's own shape.
-        defineKey(
-            current,
-            segment,
-            !isWritableContainer(existing)
-                ? {}
-                : isArray(existing)
-                  ? [...(existing as unknown[])]
-                  : { ...(existing as Record<string, unknown>) },
-        );
+        // Arr::set descends by is_array, so a class instance or Date on the path is replaced wholesale; a list
+        // or Map is a container and keeps its entries. The clone is what makes the write immutable, so it has to
+        // match the container's own shape.
+        const next = !isWritableContainer(existing)
+            ? {}
+            : isArray(existing)
+              ? [...existing]
+              : isMap(existing)
+                ? new Map(existing)
+                : { ...(existing as Record<string, unknown>) };
 
-        current = current[segment] as Record<string, unknown>;
+        if (isMap(current)) {
+            writeMapKey(current, segment, next);
+        } else {
+            defineKey(current, segment, next);
+        }
+
+        current = next as Record<string, unknown> | Map<unknown, unknown>;
     }
 
     return result as Record<TKey, TValue>;

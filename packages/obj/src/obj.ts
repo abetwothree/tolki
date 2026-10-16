@@ -422,6 +422,16 @@ function rewriteEntries<TValue>(
 }
 
 /**
+ * Get the record a path writer works on: a Map given as the whole data becomes the record `from()` builds.
+ *
+ * @param data - The data the writer was given.
+ * @returns The record built from a Map, otherwise the data itself.
+ */
+function rootRecord(data: unknown): unknown {
+    return isMap(data) ? from(data) : data;
+}
+
+/**
  * Determine whether the given value is objectifiable.
  *
  * Same rule as `accessible`: a plain object or a `Map` carries entries, a `Date`, a `Set`
@@ -457,6 +467,7 @@ export function objectifiable(
  * add({ name: 'John' }, 'age', 30); -> { name: 'John', age: 30 }
  * add({ user: { name: 'John' } }, 'user.age', 30); -> { user: { name: 'John', age: 30 } }
  * add({ name: 'John' }, 'name', 'Jane'); -> { name: 'John' } (no change, key exists)
+ * add({ m: new Map([[2, 'c']]) }, 'm.0', 'a'); -> { m: new Map([[2, 'c'], [0, 'a']]) } (a Map keeps its key order)
  */
 export function add(
     data: NonObjectItems,
@@ -478,7 +489,7 @@ export function add<TValue, TKey extends PropertyKey = PropertyKey>(
     key: PathKey,
     value: unknown,
 ): Record<TKey, TValue> {
-    const mutableData = { ...(data as Record<TKey, TValue>) };
+    const mutableData = { ...(rootRecord(data) as Record<TKey, TValue>) };
 
     if (isNull(getObjectValue(mutableData, key))) {
         return setObjectValue(mutableData, key, value);
@@ -4399,6 +4410,7 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
  * @example
  * set({ name: 'John', age: 30 }, 'age', 31); -> { name: 'John', age: 31 }
  * set({ user: { name: 'John' } }, 'user.age', 30); -> { user: { name: 'John', age: 30 } }
+ * set({ m: new Map([[2, 'c']]) }, 'm.2', 'C'); -> { m: new Map([[2, 'C']]) } (a Map key keeps its place)
  */
 export function set<V>(data: unknown, key: null | undefined, value: V): V;
 export function set<K extends PathKey, V>(
@@ -4431,10 +4443,11 @@ export function set<TValue, TKey extends PropertyKey = PropertyKey>(
         return {} as Record<TKey, TValue>;
     }
 
-    return setObjectValue(object as Record<TKey, TValue>, key, value) as Record<
-        TKey,
-        TValue
-    >;
+    return setObjectValue(
+        rootRecord(object) as Record<TKey, TValue>,
+        key,
+        value,
+    ) as Record<TKey, TValue>;
 }
 
 /**

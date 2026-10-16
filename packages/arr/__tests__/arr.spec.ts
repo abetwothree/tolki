@@ -254,6 +254,39 @@ describe("Arr", () => {
             expect(Arr.add(source, "0.desk", 150)).not.toBe(source);
         });
 
+        it("adds a missing Map key after the others", () => {
+            // docs/php-parity/Arr/add.json, "add-nested-keeps-key-order", "add-existing-key-is-a-no-op"
+            const row = new Map<number, string>([[2, "c"]]);
+
+            expect([
+                ...(Arr.add([row], "0.0", "a")[0] as Map<number, string>),
+            ]).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            expect([...row]).toEqual([[2, "c"]]);
+            expect([
+                ...(Arr.add([row], "0.2", "X")[0] as Map<number, string>),
+            ]).toEqual([[2, "c"]]);
+        });
+
+        it("copies each Map along the path, leaving the caller's alone", () => {
+            // docs/php-parity/Arr/add.json, "add-nested-keeps-key-order",
+            // "add-nested-list-leaves-the-caller-value-untouched"
+            const inner = new Map<number, string>([[2, "c"]]);
+            const row = new Map<string, unknown>([["k", inner]]);
+            const [result] = Arr.add([row], "0.k.0", "a") as unknown[];
+            const written = (result as Map<string, unknown>).get("k");
+
+            expect([...(written as Map<number, string>)]).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            expect(written).not.toBe(inner);
+            expect([...inner]).toEqual([[2, "c"]]);
+            expect([...row]).toEqual([["k", inner]]);
+        });
+
         // add's shallow `[...data]` copy exposes an item's own aliased
         // "__proto__" key to setMixed; the clone-before-descend fix covers it.
         it("never pollutes Object.prototype through an item's own aliased __proto__ key", () => {
@@ -2566,16 +2599,81 @@ describe("Arr", () => {
             expect(inner).toEqual(["q"]);
         });
 
-        it("keeps a nested Date or Map whole instead of copying its entries", () => {
-            // JS-only: PHP has neither, and it holds an object by handle where an array is
+        it("keeps a nested Date whole, and writes into a nested Map", () => {
+            // JS-only: PHP has no Date, and it holds an object by handle where an array is
             // copied by value. Copying a Date's entries left an empty object behind.
             const when = new Date(0);
             const result = Arr.set([{ when, tag: "x" }], "0.n", 1);
 
             expect(result[0]).toEqual({ when, tag: "x", n: 1 });
             expect((result[0] as { when: Date }).when).toBe(when);
+            // docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order"
             expect(Arr.set([{ m: new Map([["k", 1]]) }], "0.m.y", 2)).toEqual([
-                { m: { y: 2 } },
+                {
+                    m: new Map([
+                        ["k", 1],
+                        ["y", 2],
+                    ]),
+                },
+            ]);
+        });
+
+        it("writes into a Map row and keeps its key order, as Laravel's set keeps a nested array's", () => {
+            // docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order"
+            const rows = [
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                ]),
+            ];
+
+            expect([
+                ...(Arr.set(rows, "0.1", "b")[0] as Map<number, string>),
+            ]).toEqual([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+        });
+
+        it("overwrites a Map key in its place", () => {
+            // docs/php-parity/Arr/set.json, "set-nested-overwrite-keeps-place"
+            const rows = [
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                ]),
+            ];
+
+            expect([
+                ...(Arr.set(rows, "0.2", "C")[0] as Map<number, string>),
+            ]).toEqual([
+                [2, "C"],
+                [0, "a"],
+            ]);
+        });
+
+        it("leaves the caller's Map unchanged", () => {
+            // docs/php-parity/Arr/add.json, "add-leaves-the-caller-value-untouched": PHP copies the array it is given.
+            const row = new Map<number, string>([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            const appended = Arr.set([row], "0.1", "b");
+            const overwritten = Arr.set([row], "0.2", "C");
+
+            expect([...row]).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            expect(appended[0]).not.toBe(row);
+            expect(overwritten[0]).not.toBe(row);
+        });
+
+        it("creates a container inside a Map for a missing step", () => {
+            // docs/php-parity/Arr/set.json, "set-creates-missing-path"
+            expect(Arr.set([new Map()], "0.k.x", 1)).toEqual([
+                new Map([["k", { x: 1 }]]),
             ]);
         });
 

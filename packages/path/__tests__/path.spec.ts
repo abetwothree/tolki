@@ -1336,10 +1336,12 @@ describe("Path Functions", () => {
             expect(Path.getNestedValue(new Map([["a", { b: 1 }]]), "a.b")).toBe(
                 1,
             );
-            // JS-only: a PHP array has no members, so a Map's own `size` is never one of its keys.
+            // JS-only: a Map's members and own properties are not keys of the PHP array it stands for.
             expect(
                 Path.getNestedValue({ m: new Map([["k", 1]]) }, "m.size"),
             ).toBeUndefined();
+            const m = Object.assign(new Map([["k", 1]]), { foo: "own" });
+            expect(Path.getNestedValue({ m }, "m.foo")).toBeUndefined();
         });
     });
 
@@ -1640,6 +1642,32 @@ describe("Path Functions", () => {
             ]);
         });
 
+        it("writes through a Map at any depth by the key PHP stores", () => {
+            // docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order", "set-creates-missing-path"
+            const row = new Map<unknown, unknown>([
+                [2, "c"],
+                ["0", "a"],
+            ]);
+            const result = Path.setMixed([row], "0.1", "b");
+
+            expect(result[0]).toBe(row);
+            expect([...row]).toEqual([
+                [2, "c"],
+                ["0", "a"],
+                [1, "b"],
+            ]);
+            Path.setMixed([row], "0.0", "A");
+            Path.setMixed([row], "0.k.x", 1);
+            Path.setMixed([row], "0.l.0", 1);
+            expect([...row]).toEqual([
+                [2, "c"],
+                ["0", "A"],
+                [1, "b"],
+                ["k", { x: 1 }],
+                ["l", [1]],
+            ]);
+        });
+
         // docs/php-parity/Arr/set.json, "Arr::set writes a nested \"constructor.prototype\" path"
         it("keeps a __proto__ key as own data in a nested path", () => {
             const arr: unknown[] = [{}];
@@ -1702,6 +1730,25 @@ describe("Path Functions", () => {
                 expect(shared).toEqual(["keep"]);
             });
 
+            it("clones a shared Map reference, keeping it a Map", () => {
+                // JS-only: PHP has no Map; the copy keeps it one, as it keeps a list a list.
+                const shared = new Map([["keep", true]]);
+                const item = Object.create(null) as Record<string, unknown>;
+                item["__proto__"] = shared;
+                const result = Path.setMixed([item], "0.__proto__.added", 1);
+                const owned = (result[0] as Record<string, unknown>)[
+                    "__proto__"
+                ];
+                expect(owned).not.toBe(shared);
+                expect(owned).toEqual(
+                    new Map<string, unknown>([
+                        ["keep", true],
+                        ["added", 1],
+                    ]),
+                );
+                expect([...shared]).toEqual([["keep", true]]);
+            });
+
             it("never writes onto Object.prototype through an aliased __proto__ key", () => {
                 const item = Object.create(null) as Record<string, unknown>;
                 item["__proto__"] = Object.prototype;
@@ -1714,6 +1761,19 @@ describe("Path Functions", () => {
                 item["__proto__"] = Object.prototype;
                 Path.setMixed([item], "0.__proto__.constructor.PWN", 1);
                 expect(Object.prototype.constructor).toBe(before);
+            });
+
+            it("never writes onto a prototype held by a Map key", () => {
+                // JS-only: PHP has no prototype; a Map's value is walked into, so the same refusal applies there.
+                const row = new Map<string, unknown>([
+                    ["__proto__", Object.prototype],
+                    ["list", Array.prototype],
+                ]);
+                Path.setMixed([row], "0.__proto__.PWN", 1);
+                Path.setMixed([row], "0.list.PWN", 1);
+                expect(
+                    ([] as unknown as { PWN?: unknown }).PWN,
+                ).toBeUndefined();
             });
         });
 
@@ -2145,6 +2205,22 @@ describe("Path Functions", () => {
             // Original unchanged
             expect(data).toEqual([{ nested: { deep: "value" } }]);
         });
+
+        it("copies a Map rather than sharing it", () => {
+            // JS-only: PHP copies an array by value; a Map stands for one, so the result never holds the caller's Map.
+            const inner = { n: 1 };
+            const map = new Map<string, unknown>([
+                ["k", 1],
+                ["o", inner],
+            ]);
+            const result = Path.setMixedImmutable<unknown>([map], 1, "x");
+
+            expect(result[0]).not.toBe(map);
+            expect(result[0]).toEqual(map);
+            expect((result[0] as Map<string, unknown>).get("o")).not.toBe(
+                inner,
+            );
+        });
     });
 
     describe("hasMixed", () => {
@@ -2439,6 +2515,42 @@ describe("Path Functions", () => {
             const withPrototype = Path.setObjectValue(obj, "prototype", "bad");
             expect(Object.hasOwn(withPrototype, "prototype")).toBe(true);
             expect(withPrototype).toEqual({ a: 1, prototype: "bad" });
+        });
+
+        it("writes into a copy of a Map along the path", () => {
+            // docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order", "set-creates-missing-path"
+            const inner = new Map<unknown, unknown>([["x", 1]]);
+            const map = new Map<unknown, unknown>([
+                [2, "c"],
+                [0, "a"],
+                ["n", inner],
+            ]);
+            const appended = Path.setObjectValue({ m: map }, "m.1", "b");
+            const nested = Path.setObjectValue({ m: map }, "m.n.y", 2);
+            const created = Path.setObjectValue({ m: map }, "m.k.x", 1);
+
+            expect([...(appended.m as Map<unknown, unknown>)]).toEqual([
+                [2, "c"],
+                [0, "a"],
+                ["n", inner],
+                [1, "b"],
+            ]);
+            const nestedMap = nested.m as Map<unknown, unknown>;
+            expect([...nestedMap.keys()]).toEqual([2, 0, "n"]);
+            expect([...(nestedMap.get("n") as Map<unknown, unknown>)]).toEqual([
+                ["x", 1],
+                ["y", 2],
+            ]);
+            expect((created.m as Map<unknown, unknown>).get("k")).toEqual({
+                x: 1,
+            });
+            expect(appended.m).not.toBe(map);
+            expect([...map]).toEqual([
+                [2, "c"],
+                [0, "a"],
+                ["n", inner],
+            ]);
+            expect([...inner]).toEqual([["x", 1]]);
         });
     });
 

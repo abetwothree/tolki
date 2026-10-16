@@ -179,6 +179,25 @@ describe("Data", () => {
             expect(recordInner).toEqual(["q"]);
         });
 
+        it("adds a missing key to a Map inside a list or an object, after its other keys", () => {
+            // docs/php-parity/Arr/add.json, "add-nested-keeps-key-order"
+            const listRow = new Map<number, string>([[2, "c"]]);
+            const recordRow = new Map<number, string>([[2, "c"]]);
+            const fromList = Data.dataAdd([listRow], "0.0", "a");
+            const fromRecord = Data.dataAdd({ m: recordRow }, "m.0", "a");
+
+            for (const result of [fromList, fromRecord]) {
+                expect([
+                    ...(Object.values(result)[0] as Map<number, string>),
+                ]).toEqual([
+                    [2, "c"],
+                    [0, "a"],
+                ]);
+            }
+            expect([...listRow]).toEqual([[2, "c"]]);
+            expect([...recordRow]).toEqual([[2, "c"]]);
+        });
+
         it("materializes a Set backing and answers from arr.add", () => {
             // JS-only: PHP has no Set, and Arr::add takes an array, so no PHP call records
             // this. The type follows obj here; only the runtime follows arr.
@@ -4752,6 +4771,37 @@ describe("Data", () => {
             expect(Object.values(fromRecord)[0]).not.toBe(recordInner);
             expect(listInner).toEqual(["q"]);
             expect(recordInner).toEqual(["q"]);
+        });
+
+        it("writes into a Map inside a list or an object and keeps its key order", () => {
+            // docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order"
+            const makeRow = () =>
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                ]);
+            const listRow = makeRow();
+            const recordRow = makeRow();
+            const fromList = Data.dataSet([listRow], "0.1", "b");
+            const fromRecord = Data.dataSet({ m: recordRow }, "m.1", "b");
+
+            for (const result of [fromList, fromRecord]) {
+                expect([
+                    ...(Object.values(result)[0] as Map<number, string>),
+                ]).toEqual([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+            }
+            expect([...listRow]).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            expect([...recordRow]).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
         });
 
         // docs/php-parity/Arr/set.json: "Arr::set writes a

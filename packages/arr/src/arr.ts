@@ -98,12 +98,14 @@ import {
     phpTypeName,
     phpValueMatch,
     phpValueMatcher,
+    readMapKey,
     resolvePadLength,
     resolveSliceRange,
     resolveSpliceRange,
     resolveTakeCount,
     strictEqual,
     toPhpKeyString,
+    writeMapKey,
 } from "@tolki/utils";
 
 /**
@@ -376,49 +378,65 @@ function copyAlongPath(
     }
 
     const segments = isString(key) ? key.split(".") : [String(key)];
-    let cursor = root as unknown as Record<string, unknown>;
+    let cursor: Record<string, unknown> | Map<unknown, unknown> =
+        root as unknown as Record<string, unknown>;
 
     for (const segment of throughLeaf ? segments : segments.slice(0, -1)) {
         // The bail below must stay in step with setMixed's own descend test: it
         // replaces an absent or non-container child wholesale, so nothing of the
         // caller's value survives below this point to be written into.
-        if (!Object.hasOwn(cursor, segment)) {
+        const step: { found: boolean; value?: unknown } = isMap(cursor)
+            ? readMapKey(cursor, segment)
+            : Object.hasOwn(cursor, segment)
+              ? { found: true, value: cursor[segment] }
+              : { found: false };
+
+        if (!step.found) {
             return root;
         }
 
-        const child = cursor[segment];
-        if (!isArray(child) && !isPlainObject(child)) {
+        const child = step.value;
+        if (!isArray(child) && !isPlainObject(child) && !isMap(child)) {
             return root;
         }
 
-        // The spread carries the elements and the length; Arr::set also stores non-index
-        // keys on the list itself, so each key it missed is replayed below.
-        const clone: unknown[] | Record<string, unknown> = isArray(child)
-            ? [...child]
-            : {};
-        const source = child as Record<PropertyKey, unknown>;
+        let clone: unknown[] | Record<string, unknown> | Map<unknown, unknown>;
 
-        for (const name of Reflect.ownKeys(child)) {
-            if (Object.hasOwn(clone, name)) {
-                continue;
+        if (isMap(child)) {
+            clone = new Map(child);
+        } else {
+            // The spread carries the elements and the length; Arr::set also stores non-index
+            // keys on the list itself, so each key it missed is replayed below.
+            clone = isArray(child) ? [...child] : {};
+            const source = child as Record<PropertyKey, unknown>;
+
+            for (const name of Reflect.ownKeys(child)) {
+                if (Object.hasOwn(clone, name)) {
+                    continue;
+                }
+
+                // Normalised data, never the source descriptor: `writable: false` would break
+                // the very write this copy exists for, and a replayed accessor would leave the
+                // copy reading the caller's backing store.
+                Object.defineProperty(clone, name, {
+                    value: source[name],
+                    writable: true,
+                    enumerable: Object.prototype.propertyIsEnumerable.call(
+                        child,
+                        name,
+                    ),
+                    configurable: true,
+                });
             }
-
-            // Normalised data, never the source descriptor: `writable: false` would break
-            // the very write this copy exists for, and a replayed accessor would leave the
-            // copy reading the caller's backing store.
-            Object.defineProperty(clone, name, {
-                value: source[name],
-                writable: true,
-                enumerable: Object.prototype.propertyIsEnumerable.call(
-                    child,
-                    name,
-                ),
-                configurable: true,
-            });
         }
 
-        defineKey(cursor, segment, clone);
-        cursor = clone as Record<string, unknown>;
+        if (isMap(cursor)) {
+            writeMapKey(cursor, segment, clone);
+        } else {
+            defineKey(cursor, segment, clone);
+        }
+
+        cursor = clone as Record<string, unknown> | Map<unknown, unknown>;
     }
 
     return root;

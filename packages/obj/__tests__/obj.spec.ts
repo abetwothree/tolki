@@ -39,6 +39,16 @@ class D4Point {
     x = 1;
 }
 
+/**
+ * Read a Map's entries in insertion order, which `toEqual` ignores when it compares two Maps.
+ *
+ * @param value - The Map to read
+ * @returns Its entries, in insertion order
+ */
+const mapEntries = (value: unknown): [unknown, unknown][] => [
+    ...(value as Map<unknown, unknown>),
+];
+
 describe("Obj", () => {
     describe("accessible", () => {
         it("should return true for objects", () => {
@@ -189,6 +199,23 @@ describe("Obj", () => {
             // docs/php-parity/Arr/add.json, "add-int-key", "add-float-key"
             expect(Obj.add({}, 1, "hAz")).toEqual({ 1: "hAz" });
             expect(Obj.add({}, 1.1, "hAz")).toEqual({ 1: { 1: "hAz" } });
+        });
+
+        it("adds into a Map, or a Map passed as the data", () => {
+            // docs/php-parity/Arr/add.json, "add-nested-keeps-key-order"
+            const m = new Map<number, string>([[2, "c"]]);
+            const result = Obj.add({ m }, "m.0", "a");
+
+            expect(mapEntries(result.m)).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            expect([...m]).toEqual([[2, "c"]]);
+            // JS-only: PHP has no Map; a Map given as the whole data comes back as the record from() builds.
+            expect(Obj.add(new Map([["a", 1]]), "b", 2)).toEqual({
+                a: 1,
+                b: 2,
+            });
         });
     });
 
@@ -3931,15 +3958,73 @@ describe("Obj", () => {
             expect(inner).toEqual(["q"]);
         });
 
-        it("replaces a nested Date or Map, which carry no array entries", () => {
-            // JS-only: PHP has neither, but Arr::set's is_array test replaces every
-            // non-array, and both fail isPlainObject here for the same reason.
+        it("replaces a nested Date, and writes into a nested Map", () => {
+            // JS-only: PHP has no Date, but Arr::set's is_array test replaces every
+            // non-array, and a Date carries no array entries.
             expect(Obj.set({ a: new Date(0) }, "a.y", 2)).toEqual({
                 a: { y: 2 },
             });
+            // docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order"
             expect(Obj.set({ a: new Map() }, "a.y", 2)).toEqual({
-                a: { y: 2 },
+                a: new Map([["y", 2]]),
             });
+        });
+
+        it("writes into a Map and keeps its key order", () => {
+            // docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order", "set-nested-overwrite-keeps-place"
+            const data = () => ({
+                m: new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                ]),
+            });
+
+            expect(mapEntries(Obj.set(data(), "m.1", "b").m)).toEqual([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+            expect(mapEntries(Obj.set(data(), "m.2", "C").m)).toEqual([
+                [2, "C"],
+                [0, "a"],
+            ]);
+        });
+
+        it("leaves the caller's Map unchanged", () => {
+            // docs/php-parity/Arr/add.json, "add-nested-record-leaves-the-caller-value-untouched"
+            const m = new Map<number, string>([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            const result = Obj.set({ m }, "m.1", "b");
+
+            expect([...m]).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            expect(result.m).not.toBe(m);
+        });
+
+        it("keeps every entry of a Map passed as the data", () => {
+            // JS-only: PHP has no Map; a Map given as the whole data comes back as the record from() builds.
+            expect(
+                Obj.set(
+                    new Map<unknown, unknown>([
+                        ["a", 1],
+                        [2, "two"],
+                    ]),
+                    "b",
+                    3,
+                ),
+            ).toEqual({ a: 1, 2: "two", b: 3 });
+        });
+
+        it("never writes through a prototype inside a Map", () => {
+            // docs/php-parity/Arr/set.json, "Arr::set writes a \"__proto__\" key"
+            const result = Obj.set({ m: new Map() }, "m.__proto__.x", 1);
+
+            expect(mapEntries(result.m)).toEqual([["__proto__", { x: 1 }]]);
+            expect(({} as Record<string, unknown>)["x"]).toBeUndefined();
         });
 
         it("should replace entire object when key is null", () => {
