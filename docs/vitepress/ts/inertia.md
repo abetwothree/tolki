@@ -2,7 +2,7 @@
 
 The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) reads the `share()` method of your `HandleInertiaRequests` middleware and writes `inertia-config.d.ts`. That file declares a global `Inertia.SharedData` type and augments `@inertiajs/core`, so every Inertia page gets typed shared props without a type you maintain by hand.
 
-This page covers shared data. A route's own page props, meaning the `component` field and the page-props type on its route helper, are covered in [Inertia Integration](./routing.md#inertia-integration) on the Routing page.
+This page covers shared data, and the API resources that shared data and a route's page props hold. A route's own page props, meaning the `component` field and the page-props type on its route helper, are covered in [Inertia Integration](./routing.md#inertia-integration) on the Routing page.
 
 ## How the Augmentation File Is Generated
 
@@ -18,6 +18,7 @@ With `inertia.enabled` on (the default), the package builds the file from your m
 - **Value helpers**: `now()` and `today()` are typed as `string`, or `Date` under [`timestamps_as_date`](./models.md#timestamps-as-date-objects). `str($value)` is typed as `string`, and `str()` with no argument as `Record<string, never>`. `url($path)` is typed as `string` when the path can't be `null`, and stays `unknown` when it can or has no type. `collect([...])` and a bare array literal are both typed as the list or object the array encodes as, such as `string[]` for `['a', 'b']`. `+` on two arrays is typed as PHP's array union, where the left side's keys win.
 - **Closures and first-class callables**: Inertia calls a callable prop before it sends it, so closures and first-class callables, such as `fn () => $request->url()` and `now(...)`, are typed from what the call returns.
 - **Inertia v2 prop wrappers**: `Inertia::defer()`, `optional()`, `lazy()`, `always()`, `merge()` and `deepMerge()` type as the value they wrap. The three a partial reload can leave out, `defer`, `optional` and `lazy`, make the key optional.
+- **API resources**: a resource or resource collection is typed as the response Inertia sends for it, as [API Resources in Props](#api-resources-in-props) describes.
 - **`EnumResource` props**: a prop that wraps an enum in `EnumResource`, such as `'role' => EnumResource::make(Role::Admin)`, becomes `AsEnum<typeof Role>` when `enums.use_tolki_package` is on (the default), the same as in [API Resources](./api-resources.md#enum-properties-with-enumresource). With it off, the key keeps the enum's type alias (`role: RoleType`). The change applies per key, so another key that reads the enum directly keeps `RoleType`.
 - **Enum cases**: a bare case, such as `'defaultStatus' => Status::Draft`, is typed as the enum's type alias (`defaultStatus: StatusType`), which matches the value Laravel sends for a backed enum. The file imports the alias for you.
 - **`errors`**: left out. `@inertiajs/core` already types `page.props.errors` as `Errors & ErrorBag`, and [`errorValueType`](#anatomy-of-the-generated-file) sharpens it. A `#[TsCasts]` or `@return` docblock entry named `errors` still adds one if you want it.
@@ -136,9 +137,68 @@ class HandleInertiaRequests extends Middleware
 
 Here `appName` takes its type from `#[TsCasts]` and `flash` takes its type from the `@return` docblock. Any other key that `share()` returns falls back to inference.
 
+## API Resources in Props
+
+Inertia sends an API resource prop as the resource's whole response, the same JSON a route that returns the resource sends. That holds at any depth of a route's page props and in `share()`, so each prop publishes that response:
+
+```php
+return Inertia::render('Posts/Show', [
+    'post' => new PostResource($post),
+    'comments' => CommentResource::collection($post->comments),
+    'tags' => new TagCollection($post->tags),
+]);
+```
+
+The page-props type matches what Inertia sends:
+
+```typescript
+export type ShowPageProps = Inertia.SharedData & {
+  post: { data: PostResource };
+  comments: AnonymousResourceCollection<CommentResource>;
+  tags: TagCollection;
+};
+```
+
+Each kind of prop follows its own rule:
+
+- **A single resource**, from `new`, `make()`, or `toResource()`, publishes `{ data: PostResource }`, because Laravel sends it under the `data` key. Code that reads `props.post.title` doesn't compile, since Laravel sends the title at `props.post.data.title`. A resource whose `toArray()` already returns its wrap key, such as `data`, isn't wrapped again, and `EnumResource::make()` keeps `AsEnum<typeof Role>`, because `EnumResource` turns wrapping off.
+- **`Resource::collection()`** publishes `AnonymousResourceCollection<CommentResource>` from `@tolki/types`, which is `{ data: CommentResource[] }`.
+- **A named collection** publishes its own interface, which already holds its wrap key. One whose `toArray()` returns no wrap key publishes `{ data: TagCollection }`, because Laravel nests that body under `data`.
+- **`->toResourceCollection()`** with no argument publishes the collection Laravel guesses. Over an empty collection, Laravel skips the guess and sends `{ data: [] }`, so the prop also publishes that empty response, such as `UserCollection | { data: never[] }` or, over `paginate()`, `| JsonResourcePaginator<never>`. A guessed collection whose response is only its `data` list already fits it and gets no extra type.
+
+The wrap key is the one your app sets by the time `ts:publish` runs, as [The Wrap Key Your App Sets](./api-resources.md#the-wrap-key-your-app-sets) describes. After `JsonResource::withoutWrapping()`, a single resource publishes the bare `PostResource`, and `Resource::collection()` over items that aren't paginated publishes `CommentResource[]`. Over a paginator, Laravel keeps the `data` key. After `JsonResource::wrap('items')`, a single resource publishes `{ items: PostResource }`.
+
+Some props publish less than Inertia sends. The keys that `additional()` or a resource's `with()` method add beside `data` aren't published, and after `JsonResource::withoutWrapping()` those keys still make Laravel nest the resource under `data`, while the package publishes it bare. `Resource::collection(...)->additional(...)` publishes `unknown`. Props that another class's method builds, as in `Inertia::render('Posts/Show', $this->props->build())`, publish each API resource inside them bare, though Inertia sends it under `data`. Type such a prop with [`#[TsCasts]`](./routing.md#overriding-props-with-tscasts).
+
+### JSON:API Resources in Props
+
+A [JSON:API resource](./api-resources.md#json-api-resources) prop publishes the document Inertia sends, with the document types from `@tolki/types`. Here `PostResource` extends `JsonApiResource`, and its one relationship, `author`, is a `UserResource`:
+
+```php
+return Inertia::render('Posts/Index', [
+    'post' => new PostResource($post),
+    'posts' => PostResource::collection(Post::all()),
+    'paged' => PostResource::collection(Post::query()->paginate(10)),
+]);
+```
+
+The page-props type names each document:
+
+```typescript
+export type IndexPageProps = Inertia.SharedData & {
+  post: JsonApiDocument<PostResource, UserResource>;
+  posts: JsonApiCollection<PostResource, UserResource>;
+  paged: JsonApiPaginator<PostResource, UserResource>;
+};
+```
+
+The second type parameter lists every resource object that an `?include=` request can add to `included`, a union when there are several, through the relationships of each related resource too. A related model with no JSON:API resource of its own adds Laravel's fallback, such as `JsonApiResourceObject<"reports">`. Over `simplePaginate()` and `cursorPaginate()`, the prop publishes `JsonApiSimplePaginator` and `JsonApiCursorPaginator`. `toResource()` and `toResourceCollection()` publish the same documents.
+
+After `JsonResource::withoutWrapping()`, `PostResource::collection()` over items that aren't paginated publishes the bare `PostResource[]`. A request with `?include=`, or any request once `JsonApiResource::configure()` sets the `jsonapi` member, still sends it under `data`, and the published type doesn't cover that.
+
 ## Preserve-Keys Resource Collections in Page Props
 
-This section covers a route's page props, not `share()`. See [Inertia Integration](./routing.md#inertia-integration) for how page props are typed in general.
+This section covers resource collections in a route's page props. A collection that `share()` returns is typed the same way. See [Inertia Integration](./routing.md#inertia-integration) for how page props are typed in general.
 
 A `ResourceCollection`, or a resource collected with `Resource::collection()`, can keep its source collection's keys through the `#[PreserveKeys]` attribute or the older `public $preserveKeys = true;` property. Laravel then serializes its `data` as a JSON object keyed by those keys, not as an array. A paginated page prop backed by such a collection types `data` to match:
 
@@ -153,7 +213,7 @@ export type TeamsPageProps = Inertia.SharedData & {
 };
 ```
 
-`JsonResourcePaginator<T>` types its `data` as `T[]` (see [Paginated Collections](./api-resources.md#paginated-collections) on the API Resources page), so a key-preserving collection can't use it as is. The page-props type drops the array `data` with `Omit` and adds a keyed `Record<string, T>` in its place.
+`JsonResourcePaginator<T>` types its `data` as `T[]` (see [Paginated Collections](./api-resources.md#paginated-collections) on the API Resources page), so a key-preserving collection can't use it as is. The page-props type drops the array `data` with `Omit` and adds a keyed `Record<string, T>` in its place. Over `simplePaginate()` or `cursorPaginate()`, it starts from `JsonResourceSimplePaginator<T>` or `JsonResourceCursorPaginator<T>` instead.
 
 A named collection that wraps its items in a `data` key, such as `new TeamCollection($paginator)`, doesn't need this. Its page prop is the collection's own interface plus pagination (`TeamCollection & ResourcePagination`), and that interface already types `data` as `Record<string, T>` when the collection keeps keys, paginated or not. Only the flat collection and the anonymous `Resource::collection()` form need the `Omit<...> & { data: Record<...> }` shape.
 
@@ -183,10 +243,18 @@ export type IndexPageProps = Inertia.SharedData & {
 };
 ```
 
-`paginate()`, `simplePaginate()` and `cursorPaginate()` are all recognized, in both the `new SomeCollection(...)` and `SomeResource::collection(...)` forms.
+`paginate()`, `simplePaginate()`, and `cursorPaginate()` are all recognized, in the `new SomeCollection(...)`, `SomeResource::collection(...)`, and `->toResourceCollection()` forms.
+
+Each paginator sends its own `meta` block, so each gets its own type from `@tolki/types`. A named collection adds the pagination type to its own interface. An anonymous collection, from `SomeResource::collection(...)`, publishes the paginator's whole response, and so does a collection with `$wrap = null`, because Laravel sends it under `data` over a paginator. In this list, the named form comes first, and `R` is the collected resource:
+
+- `paginate()`: `TeamCollection & ResourcePagination`, or `JsonResourcePaginator<R>`.
+- `simplePaginate()`: `TeamCollection & ResourceSimplePagination`, or `JsonResourceSimplePaginator<R>`.
+- `cursorPaginate()`: `TeamCollection & ResourceCursorPagination`, or `JsonResourceCursorPaginator<R>`.
+
+A prop that can hold more than one paginator kind, such as a ternary over `paginate()` and `simplePaginate()`, publishes `TeamCollection & (ResourceSimplePagination | ResourcePagination)`. One that can hold a plain collection or a paginator publishes both shapes, `TeamCollection | (TeamCollection & ResourcePagination)`. A collection that `share()` returns is typed the same way.
 
 ::: warning A Missed Paginator Gives a Wrong Type
-When the package doesn't see a paginator, the prop doesn't lose its type. It gets the collection's type without the pagination part, which is wrong rather than missing. One form isn't followed: a query builder held in a variable before the paginator call. The chain has to start at a static call on the model.
+When the package doesn't see a paginator, the prop doesn't lose its type. It gets the collection's type without the pagination part, which is wrong rather than missing. The package sees a paginator that a query chain starting at the model returns, such as `Post::query()->simplePaginate(10)`, or one held in a local variable assigned that way. It doesn't follow a paginator from a query builder held in a variable, from a controller method such as `$this->page()`, or from a method of an injected service:
 
 ```php
 $q = Post::query();
@@ -196,7 +264,7 @@ return Inertia::render('Posts/Index', [
 ]);
 ```
 
-Here `posts` types as `PostCollection`, without `& ResourcePagination`.
+Here `posts` types as `PostCollection`, without `& ResourcePagination`, and the same paginator passed without a resource publishes `unknown`. Build the paginator in the props, or type the prop with [`#[TsCasts]`](./routing.md#overriding-props-with-tscasts).
 :::
 
 ## Output Location

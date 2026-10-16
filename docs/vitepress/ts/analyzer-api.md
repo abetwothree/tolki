@@ -85,7 +85,11 @@ $result = resolve(AstEngine::class)->analyze(App\Http\Resources\PostResource::cl
 
 `analyze()` doesn't use a custom `resources.transformer_class`, so a [`resolveModelClass()` override](./customizing-the-pipeline.md#changing-how-a-resource-finds-its-model) doesn't apply here. To choose the model yourself, pass it as the third argument.
 
-Every pattern in [API Resources](./api-resources.md) gives the same properties, imports, and optionality as a publish. That includes the `when()` family of conditional methods, `EnumResource::make()`, nested and collection resources, `merge()` and `mergeWhen()`, and relation filters such as `$this->author->only([...])`. The exceptions are a `morphTo` union, a `$wrap = null` collection, class-level and model-level `#[TsCasts]`, a `toResource()` guess by naming convention, and the filled index signature of an interpolated key. [What It Cannot Do](#what-it-cannot-do) covers each one.
+Every pattern in [API Resources](./api-resources.md) gives the same properties, imports, and optionality as a publish. That includes the `when()` family of conditional methods, `EnumResource::make()`, nested and collection resources, `merge()` and `mergeWhen()`, and relation filters such as `$this->author->only([...])`. The exceptions are a `morphTo` union, a collection that publishes as an alias, class-level and model-level `#[TsCasts]`, a `toResource()` guess by naming convention, and the filled index signature of an interpolated key. [What It Cannot Do](#what-it-cannot-do) covers each one.
+
+A [JSON:API resource](./api-resources.md#json-api-resources) returns its resource object, the `id`, `type`, `attributes`, and other members a publish writes, even when it declares a `toArray()`.
+
+To read a resource's `with()`, `resolve()`, or `jsonSerialize()`, pass that method's name as the second argument. `analyze($resource, 'with')` starts from the resource's `$with` property, so a `with()` that returns `parent::with($request)`, or builds on it, returns the `$with` keys. A `resolve()` or `jsonSerialize()` built on the parent's method returns the resource's `toArray()` keys, as Laravel sends them, and a `jsonSerialize()` reads the resource's own `resolve()` when it declares one.
 
 ### Models
 
@@ -117,7 +121,7 @@ For example, a `share()` whose docblock declares `filters?: array<string, string
 
 **`morphTo` unions.** `analyze()` can't list the models a `morphTo` relation can hold, because only a publish scans your models for the `morphOne` and `morphMany` relations that point back. The relation is left out of a model's shape, and it comes back `unknown` where a `toArray()` names it. A [`@return MorphTo<A|B, $this>` docblock](./models.md#typing-morphto-relations) on the relation method gives both `analyze()` and a publish the union.
 
-**`$wrap = null` collections.** A `ResourceCollection` with `$wrap = null` and no keys beyond its items publishes as a flat alias, `export type X = Y[]`, rather than an interface. An alias has no property list or imports to put in an `AnalysisResult`, so all three properties come back empty. `ts:publish` writes the alias.
+**Collections that publish as an alias.** A `ResourceCollection` with no keys beyond its items publishes as a flat alias, `export type X = Y[]`, rather than an interface, when it has `$wrap = null`. After [`JsonResource::withoutWrapping()`](./api-resources.md#the-wrap-key-your-app-sets), so does every collection with Laravel's default shape that doesn't redeclare `$wrap`. An alias has no property list or imports to put in an `AnalysisResult`, so all three properties come back empty. `ts:publish` writes the alias.
 
 **Class-level and model-level `#[TsCasts]`.** `analyze()` applies a `#[TsCasts]` on the analyzed method only. `ts:publish` then applies a resource's class-level `#[TsCasts]` and its model's `#[TsCasts]`, types and optionality both. On a `CommentResource` whose class-level casts name `flagged_at` and `metadata`, `analyze()` returns `flagged_at: string | null` and `metadata: unknown[] | null`. The published interface has `flagged_at?: string | null` and `metadata: Record<string, unknown>`.
 

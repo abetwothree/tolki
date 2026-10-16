@@ -32,6 +32,7 @@ The whole cache clears, and the next run rebuilds everything, when any of these 
 - **Your config**: any `ts-publish` setting outside the `cache` block. The order of keys doesn't matter.
 - **Your templates**: the template each cached feature renders from its [`*.template` key](./customizing-the-pipeline.md#publishing-and-editing-templates), and each view that template includes by name. Publishing an unedited copy doesn't count, but editing or deleting one does.
 - **Your database driver**: `database.default`, a connection's driver, or the driver that its `url` names.
+- **Your resource wrap key**: a `JsonResource::withoutWrapping()` or `wrap()` call that your service providers make, as [The Wrap Key Your App Sets](./api-resources.md#the-wrap-key-your-app-sets) describes.
 - **The signing key**: `cache.key`, or `app.key` when `cache.key` isn't set.
 
 Classes you delete from your app drop out of the cache on the next run.
