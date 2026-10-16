@@ -1790,7 +1790,7 @@ export function take<TValue extends Record<PropertyKey, unknown>>(
  * Declared types, pinned in `obj-residuals.test-d.ts`, walk a class instance or typed array and do not unwrap an
  * OPTIONAL `all?()`.
  *
- * @see Arr::flatten — `packages/arr/stubs/Arr.php:368`.
+ * @see Arr::flatten — `packages/arr/stubs/Arr.php:378`.
  *
  * @param data - The object, Map (or value) to flatten.
  * @param depth - Maximum depth to flatten, Infinity by default; depth 1 stops after one level.
@@ -1855,7 +1855,7 @@ export function flatten<TValue>(
             if (!isArray(item) && !isPlainObject(item)) {
                 result.push(item);
             } else if (currentDepth === 1) {
-                // Arr.php:378 spends the last level of depth on the
+                // Arr.php:388 spends the last level of depth on the
                 // container's own values, so depth 1 still unwraps once.
                 const nested = isArray(item) ? item : Object.values(item);
 
@@ -2812,7 +2812,7 @@ export function prependKeysWith<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get a subset of the items from the given object.
  *
- * Mirrors PHP's `(array) $keys` cast in `Arr::only` (Arr.php:744): `null` becomes
+ * Mirrors PHP's `(array) $keys` cast in `Arr::only` (Arr.php:754): `null` becomes
  * no keys, a bare string becomes a single-key selection.
  *
  * Items keep the data's order, not the order of `keys`, as with `array_intersect_key`; a Map's is its insertion order.
@@ -3534,7 +3534,7 @@ export function map<
  * Run an associative map over each of the items; the callback should return an object with key/value pairs.
  *
  * Always returns a plain object, even when every mapped key is numeric-like —
- * there's no PHP `Map` concept to preserve here (Arr.php:880).
+ * there's no PHP `Map` concept to preserve here (Arr.php:890).
  *
  * A Map is walked in its insertion order, which orders the string keys returned and decides which item wins a key.
  *
@@ -4044,7 +4044,7 @@ export function query(data: unknown): string {
  *
  * @param data - The object or Map to get random values from.
  * @param number - The number of items to return, a fraction truncated. If null, returns a single item.
- * @param preserveKeys - Preserve original keys when returning multiple items. Defaults to `false` (Arr.php:971).
+ * @param preserveKeys - Preserve original keys when returning multiple items. Defaults to `false` (Arr.php:981).
  * @returns A single random item, an object of random items, or null if object is empty.
  * @throws InvalidArgumentException if more items are requested than available, even against an empty object.
  * @throws TypeError for a NAN count or a string that is not numeric, which PHP's Randomizer rejects too.
@@ -4849,7 +4849,7 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * A Map's ties keep its insertion order, and keys PHP stores as one (`1` and `"1"`) are one item, with the last value.
  *
- * @see Arr::sort — `packages/arr/stubs/Arr.php:1114`. Delegates to `Collection::sortBy`.
+ * @see Arr::sort — `packages/arr/stubs/Arr.php:1124`. Delegates to `Collection::sortBy`.
  *
  * @param data - The object or Map to sort.
  * @param callback - The sorting callback, field name, an array of sort descriptors, or null for natural sorting.
@@ -4983,7 +4983,7 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * A Map's ties keep its insertion order, and keys PHP stores as one (`1` and `"1"`) are one item, with the last value.
  *
- * @see Arr::sortDesc — `packages/arr/stubs/Arr.php:1129`. Delegates to `Collection::sortByDesc`.
+ * @see Arr::sortDesc — `packages/arr/stubs/Arr.php:1139`. Delegates to `Collection::sortByDesc`.
  *
  * @param data - The object or Map to sort.
  * @param callback - The value extractor callback, field name, sort descriptors, or null for natural sorting.
@@ -5541,7 +5541,7 @@ export function toCssClasses(data: unknown): string {
     const classes: string[] = [];
 
     for (const [key, value] of keyedEntries(data)) {
-        // Numeric-like keys (Arr.php:1214's is_numeric($class)) push the value as
+        // Numeric-like keys (Arr.php:1224's is_numeric($class)) push the value as
         // the class name; other keys push the key when truthy. isPhpNumeric, not
         // Number()/isNaN: hex, "", " ", and "Infinity" parse under Number() but aren't PHP-numeric.
         if (isPhpNumeric(key)) {
@@ -5582,7 +5582,7 @@ export function toCssStyles(data: unknown): string {
     const styles: string[] = [];
 
     for (const [key, value] of keyedEntries(data)) {
-        // Numeric-like keys (Arr.php:1237's is_numeric($class)) push the value as
+        // Numeric-like keys (Arr.php:1247's is_numeric($class)) push the value as
         // the style; other keys push the key when truthy. isPhpNumeric, not
         // Number()/isNaN: hex, "", " ", and "Infinity" parse under Number() but aren't PHP-numeric.
         if (isPhpNumeric(key)) {

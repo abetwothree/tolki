@@ -2,6 +2,8 @@ import { SortDirection } from "@tolki/enum";
 import {
     collapse as objCollapse,
     crossJoin as objCrossJoin,
+    first as objFirst,
+    last as objLast,
     prepend as objPrepend,
     replaceRecursive as objReplaceRecursive,
     select as objSelect,
@@ -337,6 +339,18 @@ function toWalkable<TValue>(data: unknown): Iterable<TValue> {
     }
 
     return data as Iterable<TValue>;
+}
+
+/**
+ * Get the items behind a collection's `all()`; a plain object models a PHP array, so an `all` member on one is data.
+ *
+ * @param value - The value to read.
+ * @returns What a collection's `all()` returns, otherwise the value itself.
+ */
+function collectionItems(value: unknown): unknown {
+    return !isPlainObject(value) && isObject(value) && isFunction(value["all"])
+        ? value["all"]()
+        : value;
 }
 
 /**
@@ -709,11 +723,7 @@ export function collapse<TValue extends ArrayItems<unknown>>(
 ): Record<string, unknown> | ArrayInnerValue<TValue[number]>[] | unknown[] {
     // Arr::collapse merges a Collection item's items; a plain object models a PHP array, so an
     // `all` member on one is data.
-    const items = data.map((item) =>
-        !isPlainObject(item) && isObject(item) && isFunction(item["all"])
-            ? item["all"]()
-            : item,
-    );
+    const items = data.map((item) => collectionItems(item));
 
     // A plain object among the items is a PHP map, making array_merge's result one; obj.collapse runs that merge.
     if (items.some((item) => isPlainObject(item))) {
@@ -1143,13 +1153,13 @@ export function exists<TValue>(data: readonly TValue[], key: PathKey): boolean {
 }
 
 /**
- * Get the first element of an array or iterable.
- * Optionally pass a callback to find the first matching element.
+ * Return the first element in an iterable passing a given truth test.
+ * A Map, a plain object or a collection is read by its keys, as Laravel reads an array.
  *
- * @param data - The array or iterable to search through.
- * @param callback - Optional callback function to test elements.
- * @param defaultValue - Value to return if no element is found.
- * @returns The first element or default value.
+ * @param data - The array, iterable, Map, plain object or collection to search through.
+ * @param callback - Optional truth test, given each value and its key or position.
+ * @param defaultValue - Value, or a callback returning it, to use when no element passes.
+ * @returns The first element passing the test, otherwise the default (null when none is given).
  *
  * @example
  *
@@ -1158,7 +1168,20 @@ export function exists<TValue>(data: readonly TValue[], key: PathKey): boolean {
  * first([], null, 'default'); -> 'default'
  * first([1, 2, 3], x => x > 1); -> 2
  * first([1, 2, 3], x => x > 5, 'none'); -> 'none'
+ * first(new Map([['a', 1], ['b', 2]])); -> 1
  */
+// Overload: a Map, read as the PHP array it stands for, with PHP's keys
+export function first<TValue, TKey, TFirstDefault = null>(
+    data: ReadonlyMap<TKey, TValue>,
+    callback?: ((value: TValue, key: MapArrayKey<TKey>) => unknown) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Overload: a collection holding keyed items, read through all() with its keys
+export function first<TValue, TFirstDefault = null>(
+    data: { all(): Readonly<Record<string, TValue>> },
+    callback?: ((value: TValue, key: string | number) => unknown) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
 // Overload: array type with callback for proper type inference
 export function first<TValue, TFirstDefault = null>(
     data: TValue[],
@@ -1217,15 +1240,30 @@ export function first<TValue, TFirstDefault = null>(
         return resolveDefault();
     }
 
-    const isArrayable = isArray(data);
+    const items = collectionItems(data);
+
+    // obj reads a Map or a record with PHP's keys, as Laravel reads an array; a walk here yields entries or positions.
+    // An object literal with its own iterator is a Traversable, which Laravel walks.
+    if (isMap(items) || (isPlainObject(items) && !isIterable(items))) {
+        return objFirst(
+            items,
+            callback as
+                | ((value: unknown, key: string | number) => unknown)
+                | null
+                | undefined,
+            defaultValue,
+        ) as TValue | TFirstDefault | null;
+    }
+
+    const isArrayable = isArray(items);
     const iterable: Iterable<TValue> = isArrayable
-        ? (data as readonly TValue[])
-        : toWalkable<TValue>(data);
+        ? (items as readonly TValue[])
+        : toWalkable<TValue>(items);
 
     // No callback: just return first element if it exists.
     if (!callback) {
         if (isArrayable) {
-            const arr = data as readonly TValue[];
+            const arr = items as readonly TValue[];
             if (arr.length === 0) {
                 return resolveDefault();
             }
@@ -1241,23 +1279,14 @@ export function first<TValue, TFirstDefault = null>(
         return resolveDefault();
     }
 
-    // Convert to array to ensure we can iterate properly with callback
-    const array = fromItems(data);
-
-    if (!isArray(array)) {
-        // If from() returns an object, iterate over values
-        let index = 0;
-        for (const value of Object.values(array)) {
-            if (!isPhpFalsy(callback(value as TValue, index++))) {
-                return value as TValue;
-            }
-        }
-
-        return resolveDefault();
-    }
+    // Laravel walks a Traversable as it goes, so a match ends the read and an endless generator still answers.
+    const walkable: Iterable<unknown> =
+        isIterable(items) && !isArrayable
+            ? items
+            : toWalkable(fromItems(items));
 
     let index = 0;
-    for (const item of array) {
+    for (const item of walkable) {
         if (!isPhpFalsy(callback(item as TValue, index++))) {
             return item as TValue;
         }
@@ -1267,13 +1296,13 @@ export function first<TValue, TFirstDefault = null>(
 }
 
 /**
- * Get the last element of an array or iterable.
- * Optionally pass a callback to find the last matching element.
+ * Return the last element in an iterable passing a given truth test.
+ * A Map, a plain object or a collection is read by its keys, as Laravel reads an array.
  *
- * @param data - The array or iterable to search through.
- * @param callback - Optional callback function to test elements.
- * @param defaultValue - Value to return if no element is found.
- * @returns The last element or default value.
+ * @param data - The array, iterable, Map, plain object or collection to search through.
+ * @param callback - Optional truth test, given each value and its key or position.
+ * @param defaultValue - Value, or a callback returning it, to use when no element passes.
+ * @returns The last element passing the test, otherwise the default (null when none is given).
  *
  * @example
  *
@@ -1282,7 +1311,20 @@ export function first<TValue, TFirstDefault = null>(
  * last([], null, 'default'); -> 'default'
  * last([1, 2, 3], x => x < 3); -> 2
  * last([1, 2, 3], x => x > 5, 'none'); -> 'none'
+ * last(new Map([['a', 1], ['b', 2]])); -> 2
  */
+// Overload: a Map, read as the PHP array it stands for, with PHP's keys
+export function last<TValue, TKey, TFirstDefault = null>(
+    data: ReadonlyMap<TKey, TValue>,
+    callback?: ((value: TValue, key: MapArrayKey<TKey>) => unknown) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Overload: a collection holding keyed items, read through all() with its keys
+export function last<TValue, TFirstDefault = null>(
+    data: { all(): Readonly<Record<string, TValue>> },
+    callback?: ((value: TValue, key: string | number) => unknown) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
 // Overload: array type with callback for proper type inference
 export function last<TValue, TFirstDefault = null>(
     data: TValue[],
@@ -1341,15 +1383,30 @@ export function last<TValue, TFirstDefault = null>(
         return resolveDefault();
     }
 
-    const isArrayable = isArray(data);
+    const items = collectionItems(data);
+
+    // obj reads a Map or a record with PHP's keys, as Laravel reads an array; a walk here yields entries or positions.
+    // An object literal with its own iterator is a Traversable, which Laravel walks.
+    if (isMap(items) || (isPlainObject(items) && !isIterable(items))) {
+        return objLast(
+            items,
+            callback as
+                | ((value: unknown, key: string | number) => unknown)
+                | null
+                | undefined,
+            defaultValue,
+        ) as TValue | TFirstDefault | null;
+    }
+
+    const isArrayable = isArray(items);
     const iterable: Iterable<TValue> = isArrayable
-        ? (data as readonly TValue[])
-        : toWalkable<TValue>(data);
+        ? (items as readonly TValue[])
+        : toWalkable<TValue>(items);
 
     // No callback case
     if (!callback) {
         if (isArrayable) {
-            const arr = data as readonly TValue[];
+            const arr = items as readonly TValue[];
             if (arr.length === 0) {
                 return resolveDefault();
             }
@@ -1369,7 +1426,7 @@ export function last<TValue, TFirstDefault = null>(
     }
 
     if (isArrayable) {
-        const arr = data as readonly TValue[];
+        const arr = items as readonly TValue[];
         for (let i = arr.length - 1; i >= 0; i--) {
             if (!isPhpFalsy(callback(arr[i] as TValue, i))) {
                 return arr[i] as TValue;
@@ -1489,10 +1546,7 @@ export function flatten<TValue>(
     for (const entry of data as ArrayItems<unknown>) {
         // Arr::flatten flattens a Collection item's items, and only an array otherwise; a plain
         // object models a PHP array, so an `all` member on one is data.
-        const item =
-            !isPlainObject(entry) && isObject(entry) && isFunction(entry["all"])
-                ? entry["all"]()
-                : entry;
+        const item = collectionItems(entry);
 
         if (!isArray(item) && !isPlainObject(item)) {
             result.push(item as TValue);
@@ -2251,7 +2305,7 @@ export function prependKeysWith<TValue>(
 /**
  * Get a subset of the items from the given array.
  *
- * Mirrors PHP's `(array) $keys` cast in `Arr::only` (Arr.php:744): `null` becomes
+ * Mirrors PHP's `(array) $keys` cast in `Arr::only` (Arr.php:754): `null` becomes
  * no keys, a bare index becomes a single-index selection.
  *
  * Items keep the array's order, not the order of `keys`, as with `array_intersect_key`.
@@ -2731,10 +2785,7 @@ export function mapSpread<TMapReturn>(
         // A Collection row carries its items behind all(): `$chunk[] = $key` appends to the
         // Collection itself and `...$chunk` then walks the Traversable, not its fields. A plain
         // object models a PHP array, so an `all` member on one is data.
-        const chunk =
-            !isPlainObject(row) && isObject(row) && isFunction(row["all"])
-                ? row["all"]()
-                : row;
+        const chunk = collectionItems(row);
 
         // PHP appends the key to the row: a null row becomes an array and a plain object or a Map stands for one, so
         // obj's wrap() holds each as its values; any other row, which PHP rejects, stays whole as JS leniency.
@@ -3245,7 +3296,7 @@ export function set(
 }
 
 /**
- * Push one or more items into the array at the given key, using numeric-only dot notation.
+ * Push an item into an array using "dot" notation.
  *
  * Unlike PHP, the whole array is returned rather than `Arr::set`'s innermost container,
  * and an out-of-range index is clamped to an append instead of a gapped integer key.
@@ -4068,7 +4119,7 @@ export function toCssClasses(
     for (const [key, value] of Object.entries(classList)) {
         // PHP's is_numeric, not Number()/isNaN — hex, empty/blank
         // strings, and "Infinity" all parse under Number() but aren't
-        // PHP-numeric (Arr.php:1214/1237); scientific notation is.
+        // PHP-numeric (Arr.php:1224/1247); scientific notation is.
         const numericKey = isPhpNumeric(key);
 
         if (numericKey) {
@@ -4126,7 +4177,7 @@ export function toCssStyles(
     for (const [key, value] of Object.entries(styleList)) {
         // PHP's is_numeric, not Number()/isNaN — hex, empty/blank
         // strings, and "Infinity" all parse under Number() but aren't
-        // PHP-numeric (Arr.php:1214/1237); scientific notation is.
+        // PHP-numeric (Arr.php:1224/1247); scientific notation is.
         const numericKey = isPhpNumeric(key);
 
         if (numericKey) {

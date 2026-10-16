@@ -57,4 +57,6 @@ probe('d6-diff-assoc-using-and-diff-keys-using-on-a-list', "(new Collection([1, 
 $fViews = fn (Collection $c) => ['all' => $c->all(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all()];
 probe('C32-F-diffAssocUsing-mixed-keys-order', "collect(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red'])->diffAssocUsing(collect(['A' => 'green', 'yellow', 'red']), 'strcasecmp')", fn () => $fViews(collect(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red'])->diffAssocUsing(collect(['A' => 'green', 'yellow', 'red']), 'strcasecmp')));
 
+probe('diffAssocUsing-values-as-strings', "(new Collection(['a' => 1]))->diffAssocUsing(['a' => '1'], 'strcasecmp')", fn () => (new Collection(['a' => 1]))->diffAssocUsing(['a' => '1'], 'strcasecmp')->all());
+
 emit();

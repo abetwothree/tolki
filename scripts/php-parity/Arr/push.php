@@ -179,4 +179,92 @@ probe('push-integer-key-mutates-the-caller-by-reference', "\$src = [['x']]; Arr:
     return ['source' => $src, 'result' => $result];
 });
 
+// ==== D7: a dot path walks into an associative array inside a list, which the port holds as a plain-object row.
+probe('push-list-of-assoc-rows', "\$a = [['x' => [1]]]; Arr::push(\$a, '0.x', 2)", function () {
+    $a = [['x' => [1]]];
+    Arr::push($a, '0.x', 2);
+
+    return $a;
+});
+probe('push-empty-assoc-row', "\$a = [[]]; Arr::push(\$a, '0.1', 'v')", function () {
+    $a = [[]];
+    Arr::push($a, '0.1', 'v');
+
+    return $a;
+});
+probe('push-null-row-string-segment', "\$a = [null]; Arr::push(\$a, '0.child', 'v')", function () {
+    $a = [null];
+    Arr::push($a, '0.child', 'v');
+
+    return $a;
+});
+probe('push-string-row-string-segment', "\$a = ['existing']; Arr::push(\$a, '0.name', 'v')", function () {
+    $a = ['existing'];
+    Arr::push($a, '0.name', 'v');
+
+    return $a;
+});
+probe('push-boolean-row', "\$a = [true]; Arr::push(\$a, '0.1', 'v')", function () {
+    $a = [true];
+    Arr::push($a, '0.1', 'v');
+
+    return $a;
+});
+probe('push-string-row-integer-segment', "\$a = ['a']; Arr::push(\$a, '0.0', 'v')", function () {
+    $a = ['a'];
+    Arr::push($a, '0.0', 'v');
+
+    return $a;
+});
+probe('push-missing-path-under-a-new-row', "\$a = []; Arr::push(\$a, '0.name.items', 'v')", function () {
+    $a = [];
+    Arr::push($a, '0.name.items', 'v');
+
+    return $a;
+});
+probe('push-1-non-array-under-a-new-row', "\$a = []; Arr::push(\$a, '0.1.non-array', 'v')", function () {
+    $a = [];
+    Arr::push($a, '0.1.non-array', 'v');
+
+    return $a;
+});
+probe('push-proto-key-on-a-row', "\$a = [[]]; Arr::push(\$a, '0.__proto__', 'v')", function () {
+    $a = [[]];
+    Arr::push($a, '0.__proto__', 'v');
+
+    return $a;
+});
+probe('push-proto-segment-through-a-row', "\$a = [[]]; Arr::push(\$a, '0.__proto__.x', 'v')", function () {
+    $a = [[]];
+    Arr::push($a, '0.__proto__.x', 'v');
+
+    return $a;
+});
+probe('push-assoc-through-a-list-row', "\$a = ['rows' => [['x' => [1]]]]; Arr::push(\$a, 'rows.0.x', 2)", function () {
+    $a = ['rows' => [['x' => [1]]]];
+    Arr::push($a, 'rows.0.x', 2);
+
+    return $a;
+});
+probe('push-string-segment-under-a-list-row', "\$a = [['a']]; Arr::push(\$a, '0.name', 'v')", function () {
+    $a = [['a']];
+    Arr::push($a, '0.name', 'v');
+
+    return $a;
+});
+probe('push-assoc-leaf-appends', "\$a = [['x' => ['k' => 1]]]; Arr::push(\$a, '0.x', 'v')", function () {
+    $a = [['x' => ['k' => 1]]];
+    Arr::push($a, '0.x', 'v');
+
+    return $a;
+});
+
+probe('push-object-along-the-path', "\$a = [['d' => (object) ['k' => 1]]]; Arr::push(\$a, '0.d.k', 'v')", function () {
+    // A stdClass is neither an array nor ArrayAccess, so get() stops at it and set() swaps it for a fresh array.
+    $a = [['d' => (object) ['k' => 1]]];
+    Arr::push($a, '0.d.k', 'v');
+
+    return $a;
+});
+
 emit();

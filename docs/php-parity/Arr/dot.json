@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.35.0-45-g01ac36d93a"
+        "laravel": "v13.36.0-32-g6d2eefbb14"
     },
     "probes": [
         {
@@ -133,6 +133,24 @@
             "value": {
                 "0.a.b": {
                     "c": 1
+                }
+            }
+        },
+        {
+            "label": "dot-null-depth",
+            "php": "Arr::dot(['a' => ['b' => 1]], '', null)",
+            "value": {
+                "a": {
+                    "b": 1
+                }
+            }
+        },
+        {
+            "label": "dot-zero-depth",
+            "php": "Arr::dot(['a' => ['b' => 1]], '', 0)",
+            "value": {
+                "a": {
+                    "b": 1
                 }
             }
         },

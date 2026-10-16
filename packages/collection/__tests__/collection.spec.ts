@@ -2529,6 +2529,15 @@ describe("Collection", () => {
                 "keyed",
             );
         });
+
+        it("compares values as strings while the callback compares keys", () => {
+            // docs/php-parity/Collection/diffAssocUsing.json, "diffAssocUsing-values-as-strings"
+            const sameKey = (a: unknown, b: unknown) => (a === b ? 0 : 1);
+
+            expect(
+                collect({ a: 1 }).diffAssocUsing({ a: "1" }, sameKey).all(),
+            ).toEqual({});
+        });
     });
 
     describe("diffKeys", () => {
@@ -3516,7 +3525,7 @@ describe("Collection", () => {
             expect(result.all()).toEqual([5, 10]);
         });
 
-        // Arr.php:368 defaults $depth to INF. Array- and object-backed Collections must
+        // Arr.php:378 defaults $depth to INF. Array- and object-backed Collections must
         // agree, per the unison rule.
         it("flattens fully by default, either backing", () => {
             expect(
@@ -5565,6 +5574,17 @@ describe("Collection", () => {
                 ),
                 "keyed",
             );
+        });
+
+        it("compares values as strings while the callback compares keys", () => {
+            // docs/php-parity/Collection/intersectAssocUsing.json, "intersectAssocUsing-values-as-strings"
+            const sameKey = (a: unknown, b: unknown) => (a === b ? 0 : 1);
+
+            expect(
+                collect({ a: 1 })
+                    .intersectAssocUsing({ a: "1" }, sameKey)
+                    .all(),
+            ).toEqual({ a: 1 });
         });
     });
 
@@ -8092,7 +8112,7 @@ describe("Collection", () => {
             });
         });
 
-        // Arr.php:744 casts via (array) $keys, so a bare key and a null key both work
+        // Arr.php:754 casts via (array) $keys, so a bare key and a null key both work
         // directly, not just spread via varargs. Array- and object-backed Collections
         // must agree, per the unison rule.
         it("accepts a single key and a null key, either backing", () => {
@@ -26297,6 +26317,33 @@ describe("Collection", () => {
                 hasSole: false,
                 hasMany: false,
             });
+        });
+    });
+
+    describe("passed to Arr.first and Arr.last", () => {
+        it("hands the callback the collection's keys", () => {
+            // docs/php-parity/Arr/first.json, "first-collection-keys"; docs/php-parity/Arr/last.json,
+            // "last-collection-keys"
+            const firstKeys: unknown[] = [];
+            const lastKeys: unknown[] = [];
+
+            Arr.first(
+                collect({ x: 1, y: 2 }),
+                (_value: number, key: unknown) => {
+                    firstKeys.push(key);
+                    return false;
+                },
+            );
+            Arr.last(
+                collect({ x: 1, y: 2 }),
+                (_value: number, key: unknown) => {
+                    lastKeys.push(key);
+                    return false;
+                },
+            );
+
+            expect(firstKeys).toEqual(["x", "y"]);
+            expect(lastKeys).toEqual(["y", "x"]);
         });
     });
 });

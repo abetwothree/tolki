@@ -31,4 +31,21 @@ probe('pull-list-non-canonical-index', "\$a = ['x', 'y']; Arr::pull(\$a, '01', '
     return ['value' => $value, 'array' => $a];
 });
 
+// ==== D7: a dot path walks into an associative array inside a list, which the port holds as a plain-object row.
+probe('pull-list-of-assoc-rows', "\$a = [['a' => 1, 'b' => 2]]; [Arr::pull(\$a, '0.a'), \$a]", function () {
+    $a = [['a' => 1, 'b' => 2]];
+
+    return [Arr::pull($a, '0.a'), $a];
+});
+probe('pull-nested-assoc-in-a-row', "\$a = [['a' => ['x' => 1, 'y' => 2]]]; [Arr::pull(\$a, '0.a.x'), \$a]", function () {
+    $a = [['a' => ['x' => 1, 'y' => 2]]];
+
+    return [Arr::pull($a, '0.a.x'), $a];
+});
+probe('pull-assoc-through-a-list-row', "\$a = ['rows' => [['a' => 1, 'b' => 2]]]; [Arr::pull(\$a, 'rows.0.a'), \$a]", function () {
+    $a = ['rows' => [['a' => 1, 'b' => 2]]];
+
+    return [Arr::pull($a, 'rows.0.a'), $a];
+});
+
 emit();

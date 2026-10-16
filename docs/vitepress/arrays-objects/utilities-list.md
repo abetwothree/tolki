@@ -243,6 +243,12 @@ dataAdd([1, 2], 2, 3);
 
 dataAdd({ name: "Desk" }, "price", 100);
 // => { name: "Desk", price: 100 }
+
+dataAdd({ name: "Desk", price: 100 }, "price", 200);
+// => { name: "Desk", price: 100 }
+
+dataAdd({}, "product.price", 100);
+// => { product: { price: 100 } }
 ```
 
 :::
@@ -1118,7 +1124,7 @@ dataDivide({ name: "Desk", price: 100 });
 
 ### dot
 
-Flatten a multi-dimensional array or object into a single level that uses "dot" notation to show depth. See [Dot Notation](./dot-notation.md).
+Flatten a multi-dimensional array or object into a single level that uses "dot" notation to show depth. See [Dot Notation](./dot-notation.md). The second argument is a key prefix, usually `""`. The third is a depth: how many levels to join into dotted keys. A depth of `0` or `null` joins none, as in Laravel. <!-- docs/php-parity/Arr/dot.json, "dot-depth-through-list", "dot-null-depth", "dot-zero-depth" -->
 
 Exported as `dot` from `@tolki/arr` and `@tolki/obj`, and as `dataDot` from `@tolki/data`.
 
@@ -1138,6 +1144,12 @@ import { dot } from "@tolki/obj";
 
 dot({ products: { desk: { price: 100 } } });
 // => { "products.desk.price": 100 }
+
+dot({ a: { b: { c: 1 } } }, "", 1);
+// => { "a.b": { c: 1 } }
+
+dot({ a: { b: 1 } }, "", null);
+// => { a: { b: 1 } }
 ```
 
 ```js [@tolki/data]
@@ -1418,6 +1430,15 @@ first([100, 200, 300], (value) => value >= 150);
 
 first([100, 200, 300], (value) => value > 500, "none");
 // => "none"
+
+function* naturals() {
+  for (let n = 1; ; n++) {
+    yield n;
+  }
+}
+
+first(naturals(), (value) => value > 3);
+// => 4
 ```
 
 ```js [@tolki/obj]
@@ -1444,6 +1465,15 @@ dataFirst({ a: 1, b: 2, c: 3 }, (value) => value > 1);
 
 dataFirst([], null, "none");
 // => "none"
+
+function* naturals() {
+  for (let n = 1; ; n++) {
+    yield n;
+  }
+}
+
+dataFirst(naturals(), (value) => value > 3);
+// => 4
 ```
 
 :::
@@ -3886,6 +3916,22 @@ sort(people, (person) => person.name);
 // => [
 //   { name: "Al", age: 20 },
 //   { name: "Jane", age: 30 },
+//   { name: "John", age: 25 },
+// ]
+
+const staff = [
+  { name: "John", age: 25 },
+  { name: "Jane", age: 30 },
+  { name: "Al", age: 25 },
+];
+
+sort(staff, [
+  ["age", "desc"],
+  ["name", "asc"],
+]);
+// => [
+//   { name: "Jane", age: 30 },
+//   { name: "Al", age: 25 },
 //   { name: "John", age: 25 },
 // ]
 ```

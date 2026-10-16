@@ -117,4 +117,7 @@ probe('add-over-null-nested-keyed', "Arr::add(['a'=>['b'=>null]], 'a.b', 9)", fn
 probe('add-leaves-false-alone', 'Arr::add([false], 0, 9)', fn () => Arr::add([false], 0, 9));
 probe('add-leaves-zero-alone', "Arr::add(['a'=>0], 'a', 9)", fn () => Arr::add(['a' => 0], 'a', 9));
 
+// ==== D7: a dot path walks into an associative array inside a list, which the port holds as a plain-object row.
+probe('add-list-of-assoc-rows', "Arr::add([['a' => 1]], '0.b', 2)", fn () => Arr::add([['a' => 1]], '0.b', 2));
+
 emit();

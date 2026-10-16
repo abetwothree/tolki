@@ -25,6 +25,25 @@ const collectionLike = <T>(items: T): { all: () => T } =>
     })();
 
 /**
+ * Wrap items in a Collection-like operand that is iterable too, as a Collection is, so dispatch hands it to arr.
+ *
+ * @param items - The items `all()` returns
+ * @returns A class instance whose `all()` returns the items and whose iterator yields their values
+ */
+const iterableCollectionLike = <T extends object>(
+    items: T,
+): { all: () => T } & Iterable<unknown> =>
+    new (class {
+        all() {
+            return items;
+        }
+
+        *[Symbol.iterator]() {
+            yield* Object.values(items);
+        }
+    })();
+
+/**
  * Build `["a", <hole>, "c"]`: a three-element list whose middle index is absent.
  *
  * Written by index because oxlint's `no-sparse-arrays` rejects the elision literal.
@@ -2234,6 +2253,13 @@ describe("Data", () => {
             expect(result).toEqual(["products", ["desk"]]);
         });
 
+        it("removes a key from a plain-object row", () => {
+            // docs/php-parity/Arr/forget.json, "forget-list-of-assoc-rows"
+            expect(Data.dataForget([{ a: 1, b: 2 }], "0.a")).toEqual([
+                { b: 2 },
+            ]);
+        });
+
         it("resolves a top-level key following a dot key against the top level", () => {
             const result = Data.dataForget(
                 { users: { name: "Joe", id: 1 }, id: 99 },
@@ -3312,7 +3338,7 @@ describe("Data", () => {
             expect(result).toEqual({ key_a: 2, key_b: 4 });
         });
 
-        // Arr::mapWithKeys (Arr.php:880) builds one plain array; there is no Map in
+        // Arr::mapWithKeys (Arr.php:890) builds one plain array; there is no Map in
         // PHP. Array- and object-backed data must agree, per the unison rule.
         it("returns a plain object even for numeric-like mapped keys, either backing", () => {
             const fromArray = Data.dataMapWithKeys([1, 2], (value) => ({
@@ -3739,6 +3765,14 @@ describe("Data", () => {
             expect(result1.data).toEqual([1, 3]);
         });
 
+        it("pulls a key out of a plain-object row", () => {
+            // docs/php-parity/Arr/pull.json, "pull-list-of-assoc-rows"
+            expect(Data.dataPull([{ a: 1, b: 2 }], "0.a")).toEqual({
+                value: 1,
+                data: [{ b: 2 }],
+            });
+        });
+
         it("pulls a first-level key that contains dots, through the object backing", () => {
             // PHP-verified: docs/php-parity/Arr/pull.json, "Arr::pull
             // — first-level key containing dots".
@@ -3841,7 +3875,7 @@ describe("Data", () => {
             expect(arr).toContain(result);
         });
 
-        // Arr.php:977 throws above the empty guard, and Arr.php:971 defaults
+        // Arr.php:987 throws above the empty guard, and Arr.php:981 defaults
         // preserveKeys to false. Both backings agree.
         it("throws on an empty source and reindexes by default, either backing", () => {
             expect(() => Data.dataRandom([])).toThrow(
@@ -4791,6 +4825,13 @@ describe("Data", () => {
             const obj = { items: ["a", "b"] };
             const result = Data.dataPush(obj, "items", "c", "d");
             expect(result).toEqual({ items: ["a", "b", "c", "d"] });
+        });
+
+        it("appends into a list inside a plain-object row", () => {
+            // docs/php-parity/Arr/push.json, "push-list-of-assoc-rows"
+            expect(Data.dataPush([{ x: [1] }], "0.x", 2)).toEqual([
+                { x: [1, 2] },
+            ]);
         });
         it("appends with the next integer key when the key is null", () => {
             // docs/php-parity/Arr/push.json, "Arr::push with a null key appends"
@@ -6261,7 +6302,7 @@ describe("Data", () => {
             );
         });
 
-        // Arr.php:1214, is_numeric($class) pushes the VALUE. Both backings must agree,
+        // Arr.php:1224, is_numeric($class) pushes the VALUE. Both backings must agree,
         // per the unison rule.
         it("emits the value for numeric keys, either backing", () => {
             expect(
@@ -6339,7 +6380,7 @@ describe("Data", () => {
             ).toBe("font-weight: bold; margin-top: 4px;");
         });
 
-        // Arr.php:1237, is_numeric($class) pushes the VALUE, finished with a semicolon.
+        // Arr.php:1247, is_numeric($class) pushes the VALUE, finished with a semicolon.
         // Both backings must agree, per the unison rule.
         it("emits the value for numeric keys, either backing", () => {
             expect(
@@ -7816,15 +7857,67 @@ describe("Data", () => {
                     yield 300;
                 })();
 
-            // Guards the streaming normalizer these four pass explicitly: it hands the Set or
-            // generator on UNREAD, so a callback-less call answers an infinite generator; given a
-            // callback `arrFirst` materialises, so that form still needs a finite backing.
+            // Guards the streaming normalizer these four pass explicitly: it hands the Set or generator on UNREAD,
+            // so `dataFirst` reads it only up to the first match.
             expect(Data.dataFirst(items())).toBe(100);
             expect(Data.dataFirst(items(), (value) => value > 150)).toBe(200);
             expect(Data.dataFirst(new Set([100, 200]))).toBe(100);
             expect(Data.dataFirst(new Set<number>(), null, "default")).toBe(
                 "default",
             );
+        });
+
+        it("stops reading a generator at the first match, with or without a callback", () => {
+            // docs/php-parity/Arr/first.json, "first-traversable-stops-at-the-match",
+            // "first-traversable-without-callback-reads-one"
+            const read: number[] = [];
+            const numbers = function* () {
+                for (let i = 1; i <= 100; i++) {
+                    read.push(i);
+                    yield i;
+                }
+            };
+            const naturals = function* () {
+                for (let n = 1; ; n++) {
+                    yield n;
+                }
+            };
+
+            expect(Data.dataFirst(numbers(), (value) => value === 2)).toBe(2);
+            expect(read).toEqual([1, 2]);
+
+            read.length = 0;
+            expect(Data.dataFirst(numbers())).toBe(1);
+            expect(read).toEqual([1]);
+            expect(Data.dataFirst(naturals(), (value) => value > 3)).toBe(4);
+        });
+
+        it("stops calling the callback at the first match in a list or an object", () => {
+            // docs/php-parity/Arr/first.json, "first-array-stops-at-the-match", "first-assoc-stops-at-the-match"
+            let calls = 0;
+            const isTwo = (value: number) => {
+                calls++;
+                return value === 2;
+            };
+
+            expect(Data.dataFirst([1, 2, 3], isTwo)).toBe(2);
+            expect(calls).toBe(2);
+
+            calls = 0;
+            expect(Data.dataFirst({ a: 1, b: 2, c: 3 }, isTwo)).toBe(2);
+            expect(calls).toBe(2);
+        });
+
+        it("finds a value yielded from several arrays", () => {
+            // docs/php-parity/Arr/first.json, "first-yield-from"
+            const products = (function* () {
+                yield* ["Laptop", "Monitor"];
+                yield* ["Keyboard", "Mouse"];
+            })();
+
+            expect(
+                Data.dataFirst(products, (product) => product === "Laptop"),
+            ).toBe("Laptop");
         });
 
         it("treats scalars as single positional items", () => {
@@ -7903,6 +7996,37 @@ describe("Data", () => {
             expect(
                 Data.dataDiff(["first", "second", "third"], byObject()),
             ).toEqual(["third"]);
+        });
+
+        it("reads a collection through all(), with its keys", () => {
+            // docs/php-parity/Arr/first.json, "first-collection-keys"
+            const keys: unknown[] = [];
+
+            Data.dataFirst(
+                iterableCollectionLike({ x: 1, y: 2 }),
+                (_value: number, key: unknown) => {
+                    keys.push(key);
+                    return false;
+                },
+            );
+            expect(keys).toEqual(["x", "y"]);
+        });
+
+        it("walks an object literal that has its own iterator, as Laravel walks a Traversable", () => {
+            // docs/php-parity/Arr/first.json, "first-traversable-stops-at-the-match",
+            // "first-traversable-without-callback-reads-one"
+            const range = {
+                from: 1,
+                to: 5,
+                *[Symbol.iterator]() {
+                    for (let i = this.from; i <= this.to; i++) {
+                        yield i * 10;
+                    }
+                },
+            };
+
+            expect(Data.dataFirst(range)).toBe(10);
+            expect(Data.dataFirst(range, (value) => value > 20)).toBe(30);
         });
     });
 
@@ -8007,6 +8131,37 @@ describe("Data", () => {
                     ]),
                 ),
             ).toBe("z");
+        });
+
+        it("reads a collection through all(), with its keys", () => {
+            // docs/php-parity/Arr/last.json, "last-collection-keys"
+            const keys: unknown[] = [];
+
+            Data.dataLast(
+                iterableCollectionLike({ x: 1, y: 2 }),
+                (_value: number, key: unknown) => {
+                    keys.push(key);
+                    return false;
+                },
+            );
+            expect(keys).toEqual(["y", "x"]);
+        });
+
+        it("walks an object literal that has its own iterator", () => {
+            // JS-only: PHP has no object literal with its own iterator, so last.json has no row; it is walked like a
+            // generator rather than read as a record of its properties.
+            const range = {
+                from: 1,
+                to: 5,
+                *[Symbol.iterator]() {
+                    for (let i = this.from; i <= this.to; i++) {
+                        yield i * 10;
+                    }
+                },
+            };
+
+            expect(Data.dataLast(range)).toBe(50);
+            expect(Data.dataLast(range, (value) => value < 40)).toBe(30);
         });
     });
 

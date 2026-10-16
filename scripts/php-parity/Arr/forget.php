@@ -73,4 +73,13 @@ probe('forget-list-noncanonical-among-several-keys', "Arr::forget([['x','y','z']
     return $d4Shape($a[0]);
 });
 
+// ==== D7: a dot path walks into an associative array inside a list, which the port holds as a plain-object row.
+probe('forget-list-of-assoc-rows', "\$a = [['a' => 1, 'b' => 2]]; Arr::forget(\$a, '0.a')", fn () => $f([['a' => 1, 'b' => 2]], '0.a'));
+probe('forget-list-of-assoc-rows-many', "\$a = [['a' => 1, 'b' => 2], ['a' => 3]]; Arr::forget(\$a, ['0.a', '1.a'])", fn () => $f([['a' => 1, 'b' => 2], ['a' => 3]], ['0.a', '1.a']));
+probe('forget-nested-assoc-in-a-row', "\$a = [['a' => ['x' => 1, 'y' => 2]]]; Arr::forget(\$a, '0.a.x')", fn () => $f([['a' => ['x' => 1, 'y' => 2]]], '0.a.x'));
+probe('forget-list-inside-a-row', "\$a = [['l' => [1, 2, 3]]]; Arr::forget(\$a, ['0.l.0', '0.l.2'])", fn () => $f([['l' => [1, 2, 3]]], ['0.l.0', '0.l.2']));
+probe('forget-null-inside-a-row', "\$a = [['a' => null]]; Arr::forget(\$a, '0.a.b')", fn () => $f([['a' => null]], '0.a.b'));
+probe('forget-proto-segment-in-a-row', "\$a = [['a' => 1]]; Arr::forget(\$a, '0.__proto__.a')", fn () => $f([['a' => 1]], '0.__proto__.a'));
+probe('forget-assoc-through-a-list-row', "\$a = ['rows' => [['a' => 1, 'b' => 2]]]; Arr::forget(\$a, 'rows.0.a')", fn () => $f(['rows' => [['a' => 1, 'b' => 2]]], 'rows.0.a'));
+
 emit();

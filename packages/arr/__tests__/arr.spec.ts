@@ -103,6 +103,11 @@ describe("Arr", () => {
             expect(Arr.add([0], 0, 9)).toEqual([0]);
         });
 
+        it("adds a key to a plain-object row", () => {
+            // docs/php-parity/Arr/add.json, "add-list-of-assoc-rows"
+            expect(Arr.add([{ a: 1 }], "0.b", 2)).toEqual([{ a: 1, b: 2 }]);
+        });
+
         it("add", () => {
             // Test adding to array when key doesn't exist
             expect(Arr.add(["Desk"], 1, 100)).toEqual(["Desk", 100]);
@@ -1091,6 +1096,264 @@ describe("Arr", () => {
             expect(Arr.first(undefined, null, "default")).toBe("default");
             expect(Arr.first(undefined)).toBeNull();
         });
+
+        it("stops reading an iterable at the first match, as Laravel walks a Traversable", () => {
+            // docs/php-parity/Arr/first.json, "first-traversable-stops-at-the-match",
+            // "first-lazy-collection-stops-at-the-match"
+            const read: number[] = [];
+            const numbers = function* () {
+                for (let i = 1; i <= 100; i++) {
+                    read.push(i);
+                    yield i;
+                }
+            };
+            const naturals = function* () {
+                for (let n = 1; ; n++) {
+                    yield n;
+                }
+            };
+
+            expect(Arr.first(numbers(), (value) => value === 2)).toBe(2);
+            expect(read).toEqual([1, 2]);
+            // Must stay below the read count, which fails fast: an unfixed first() never returns from this call.
+            expect(Arr.first(naturals(), (value) => value > 3)).toBe(4);
+        });
+
+        it("reads all of an iterable when nothing matches", () => {
+            // docs/php-parity/Arr/first.json, "first-traversable-no-match-reads-all", "first-traversable-empty",
+            // "first-traversable-closure-default"
+            let reads = 0;
+            const numbers = (function* () {
+                for (let i = 1; i <= 100; i++) {
+                    reads++;
+                    yield i;
+                }
+            })();
+
+            expect(Arr.first(numbers, () => false, "none")).toBe("none");
+            expect(reads).toBe(100);
+            expect(
+                Arr.first(
+                    (function* () {
+                        yield* [];
+                    })(),
+                    () => true,
+                    "none",
+                ),
+            ).toBe("none");
+            expect(
+                Arr.first(
+                    (function* () {
+                        yield 1;
+                        yield 2;
+                    })(),
+                    () => false,
+                    () => "lazy",
+                ),
+            ).toBe("lazy");
+        });
+
+        it("finds a value yielded from several arrays", () => {
+            // docs/php-parity/Arr/first.json, "first-yield-from"
+            const products = (function* () {
+                yield* ["Laptop", "Monitor"];
+                yield* ["Keyboard", "Mouse"];
+            })();
+
+            expect(Arr.first(products, (product) => product === "Laptop")).toBe(
+                "Laptop",
+            );
+        });
+
+        it("hands the callback an iterable's position as its key", () => {
+            // docs/php-parity/Arr/first.json, "first-traversable-keys", "first-yield-from-keys"
+            // JS-only: a JS iterator has no keys, so the port counts positions; PHP's restart at each `yield from`.
+            const keys: number[] = [];
+            const yielded: number[] = [];
+
+            Arr.first(
+                (function* () {
+                    yield 10;
+                    yield 20;
+                    yield 30;
+                })(),
+                (_value, key) => {
+                    keys.push(key);
+                    return false;
+                },
+            );
+            Arr.first(
+                (function* () {
+                    yield* ["Laptop", "Monitor"];
+                    yield* ["Keyboard", "Mouse"];
+                })(),
+                (_value, key) => {
+                    yielded.push(key);
+                    return false;
+                },
+            );
+
+            expect(keys).toEqual([0, 1, 2]);
+            expect(yielded).toEqual([0, 1, 2, 3]);
+        });
+
+        it("reads the callback's answer as PHP truthiness while walking an iterable", () => {
+            // docs/php-parity/Arr/first.json, "first-traversable-php-truthiness"
+            const numbers = (function* () {
+                yield 1;
+                yield 2;
+                yield 3;
+            })();
+
+            expect(
+                Arr.first(numbers, (value) => (value === 1 ? "0" : "yes")),
+            ).toBe(2);
+        });
+
+        it("still throws for a string when given a callback", () => {
+            // docs/php-parity/Arr/first.json, "first-scalar-callback"
+            expect(() => Arr.first("abc", () => true)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() => Arr.first("abc", () => true)).toThrow(
+                "Items cannot be represented by a scalar value.",
+            );
+        });
+
+        it("reads a Map as keyed data, as Laravel reads an array", () => {
+            // docs/php-parity/Arr/first.json, "first-out-of-order", "first-out-of-order-callback-order",
+            // "first-collision"
+            const keys: unknown[] = [];
+            const outOfOrder = () =>
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+
+            expect(Arr.first(outOfOrder())).toBe("c");
+            expect(
+                Arr.first(
+                    outOfOrder(),
+                    (_value, key) => {
+                        keys.push(key);
+                        return false;
+                    },
+                    "none",
+                ),
+            ).toBe("none");
+            expect(keys).toEqual([2, 0, 1]);
+            expect(
+                Arr.first(
+                    new Map<number | string, string>([
+                        [1, "a"],
+                        ["1", "b"],
+                    ]),
+                ),
+            ).toBe("b");
+        });
+
+        it("hands the callback a plain object's keys", () => {
+            // docs/php-parity/Arr/first.json, "first-assoc-keys"
+            const keys: unknown[] = [];
+
+            Arr.first(keyed({ a: 1, b: 2 }), (_value: number, key: unknown) => {
+                keys.push(key);
+                return false;
+            });
+            expect(keys).toEqual(["a", "b"]);
+        });
+
+        it("reads a collection through all(), with its keys", () => {
+            // docs/php-parity/Arr/first.json, "first-collection-keys", "first-collection-callback",
+            // "first-collection-no-callback"
+            const keys: unknown[] = [];
+
+            expect(Arr.first(collectionLike({ x: 1, y: 2 }))).toBe(1);
+            expect(
+                Arr.first(
+                    collectionLike({ x: 1, y: 2 }),
+                    (value: number) => value > 1,
+                ),
+            ).toBe(2);
+            Arr.first(
+                collectionLike({ x: 1, y: 2 }),
+                (_value: number, key: unknown) => {
+                    keys.push(key);
+                    return false;
+                },
+            );
+            expect(keys).toEqual(["x", "y"]);
+            expect(
+                Arr.first(
+                    keyed(collectionLike([5, 6])),
+                    (value: number) => value > 5,
+                ),
+            ).toBe(6);
+        });
+
+        it("closes a generator once it finds a match", () => {
+            // docs/php-parity/Arr/first.json, "first-generator-after-a-match",
+            // "first-generator-rewalked-after-a-match"
+            // JS-only: for...of closes the generator; PHP leaves it suspended and a second foreach throws.
+            const numbers = (function* () {
+                yield 1;
+                yield 2;
+                yield 3;
+            })();
+
+            expect(Arr.first(numbers, (value) => value === 2)).toBe(2);
+            expect([...numbers]).toEqual([]);
+        });
+
+        it("stops calling the callback at the first match in an array", () => {
+            // docs/php-parity/Arr/first.json, "first-array-stops-at-the-match"
+            let calls = 0;
+
+            expect(
+                Arr.first([1, 2, 3], (value) => {
+                    calls++;
+                    return value === 2;
+                }),
+            ).toBe(2);
+            expect(calls).toBe(2);
+        });
+
+        it("walks an object literal that has its own iterator, as Laravel walks a Traversable", () => {
+            // docs/php-parity/Arr/first.json, "first-traversable-stops-at-the-match",
+            // "first-traversable-without-callback-reads-one"
+            const read: number[] = [];
+            const range = {
+                from: 1,
+                to: 5,
+                *[Symbol.iterator]() {
+                    for (let i = this.from; i <= this.to; i++) {
+                        read.push(i);
+                        yield i * 10;
+                    }
+                },
+            };
+
+            expect(Arr.first(range)).toBe(10);
+            expect(read).toEqual([1]);
+
+            read.length = 0;
+            expect(Arr.first(range, (value) => value > 20)).toBe(30);
+            expect(read).toEqual([1, 2, 3]);
+        });
+
+        it("stops at the first match in an endless object literal iterator", () => {
+            // docs/php-parity/Arr/first.json, "first-traversable-stops-at-the-match"
+            const naturals = {
+                *[Symbol.iterator]() {
+                    for (let n = 1; ; n++) {
+                        yield n;
+                    }
+                },
+            };
+
+            expect(Arr.first(naturals, (value) => value > 3)).toBe(4);
+        });
     });
 
     describe("last", () => {
@@ -1216,6 +1479,96 @@ describe("Arr", () => {
             expect(Arr.last(keyed({}), null, "default")).toBe("default");
             expect(Arr.last(undefined, null, "default")).toBe("default");
             expect(Arr.last(undefined)).toBeNull();
+        });
+
+        it("reads a Map as keyed data, as Laravel reads an array", () => {
+            // docs/php-parity/Arr/last.json, "last-out-of-order", "last-out-of-order-callback-order",
+            // "last-collision"
+            const keys: unknown[] = [];
+            const outOfOrder = () =>
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+
+            expect(Arr.last(outOfOrder())).toBe("b");
+            expect(
+                Arr.last(
+                    outOfOrder(),
+                    (_value, key) => {
+                        keys.push(key);
+                        return false;
+                    },
+                    "none",
+                ),
+            ).toBe("none");
+            expect(keys).toEqual([1, 0, 2]);
+            expect(
+                Arr.last(
+                    new Map<number | string, string>([
+                        [1, "a"],
+                        [0, "z"],
+                        ["1", "b"],
+                    ]),
+                ),
+            ).toBe("z");
+        });
+
+        it("hands the callback a plain object's keys", () => {
+            // docs/php-parity/Arr/last.json, "last-assoc-keys"
+            const keys: unknown[] = [];
+
+            Arr.last(keyed({ a: 1, b: 2 }), (_value: number, key: unknown) => {
+                keys.push(key);
+                return false;
+            });
+            expect(keys).toEqual(["b", "a"]);
+        });
+
+        it("reads a collection through all(), with its keys", () => {
+            // docs/php-parity/Arr/last.json, "last-collection-keys", "last-collection-callback",
+            // "last-collection-no-callback"
+            const keys: unknown[] = [];
+
+            expect(Arr.last(collectionLike({ x: 1, y: 2 }))).toBe(2);
+            expect(
+                Arr.last(
+                    collectionLike({ x: 1, y: 2 }),
+                    (value: number) => value < 2,
+                ),
+            ).toBe(1);
+            Arr.last(
+                collectionLike({ x: 1, y: 2 }),
+                (_value: number, key: unknown) => {
+                    keys.push(key);
+                    return false;
+                },
+            );
+            expect(keys).toEqual(["y", "x"]);
+            expect(
+                Arr.last(
+                    keyed(collectionLike([5, 6])),
+                    (value: number) => value < 6,
+                ),
+            ).toBe(5);
+        });
+
+        it("walks an object literal that has its own iterator", () => {
+            // JS-only: PHP has no object literal with its own iterator, so last.json has no row; it is walked like a
+            // generator rather than read as a record of its properties.
+            const range = {
+                from: 1,
+                to: 5,
+                *[Symbol.iterator]() {
+                    for (let i = this.from; i <= this.to; i++) {
+                        yield i * 10;
+                    }
+                },
+            };
+
+            expect(Arr.last(range)).toBe(50);
+            expect(Arr.last(range, (value) => value < 40)).toBe(30);
         });
     });
 
@@ -1534,18 +1887,60 @@ describe("Arr", () => {
             expect(res).toEqual(["products", [[100]]]);
             expect(JSON.stringify(subject)).toBe(snapshot);
 
-            // 13) Multi-key path: parent index out-of-range triggers updateAtPath early return
-            // Provide 2+ keys to bypass single-key fast path
+            // 13) A key under a missing row is skipped, even beside another key
             expect(Arr.forget(base, ["5.0", 99])).toEqual(base);
 
-            // 14) Multi-key path: parent exists but child is not an array -> updateAtPath returns clone unchanged
-            // Parent path [0] points to a string 'products', so attempting to delete '0.1' should no-op
+            // 14) A key under a string row ('products') is skipped, even beside another key
             expect(Arr.forget(base, ["0.1", 99])).toEqual(base);
 
-            // 15) Root group with only invalid indices (non-integer/negative) -> sorted becomes empty and is skipped
+            // 15) Fractional and negative keys name no list index, so together they remove nothing
             expect(
                 Arr.forget([10, 20, 30], [1.5 as unknown as number, -2]),
             ).toEqual([10, 20, 30]);
+        });
+
+        it("removes a key from a plain-object row", () => {
+            // docs/php-parity/Arr/forget.json, "forget-list-of-assoc-rows", "forget-nested-assoc-in-a-row"
+            expect(Arr.forget([{ a: 1, b: 2 }], "0.a")).toEqual([{ b: 2 }]);
+            expect(Arr.forget([{ a: { x: 1, y: 2 } }], "0.a.x")).toEqual([
+                { a: { y: 2 } },
+            ]);
+        });
+
+        it("removes several keys at their original positions across rows", () => {
+            // docs/php-parity/Arr/forget.json, "forget-list-of-assoc-rows-many", "forget-list-inside-a-row":
+            // PHP leaves the inner list keyed {1: 2}, which a JS list renumbers to [2].
+            expect(
+                Arr.forget([{ a: 1, b: 2 }, { a: 3 }], ["0.a", "1.a"]),
+            ).toEqual([{ b: 2 }, {}]);
+            expect(Arr.forget([{ l: [1, 2, 3] }], ["0.l.0", "0.l.2"])).toEqual([
+                { l: [2] },
+            ]);
+        });
+
+        it("skips a key whose path meets null", () => {
+            // docs/php-parity/Arr/forget.json, "forget-null-inside-a-row"
+            expect(Arr.forget([{ a: null }], "0.a.b")).toEqual([{ a: null }]);
+        });
+
+        it("leaves the caller's rows untouched", () => {
+            const calls: [unknown[], string | string[]][] = [
+                [[{ a: 1, b: 2 }], "0.a"],
+                [[{ a: { x: 1, y: 2 } }], "0.a.x"],
+                [
+                    [{ a: 1, b: 2 }, { a: 3 }],
+                    ["0.a", "1.a"],
+                ],
+                [[{ l: [1, 2, 3] }], ["0.l.0", "0.l.2"]],
+                [[{ a: null }], "0.a.b"],
+            ];
+
+            for (const [rows, keys] of calls) {
+                const snapshot = structuredClone(rows);
+
+                Arr.forget(rows, keys);
+                expect(rows).toEqual(snapshot);
+            }
         });
     });
 
@@ -2509,6 +2904,56 @@ describe("Arr", () => {
             const nested = Arr.push([], "0.1.2", "deep-value");
             expect(nested).toEqual([[[["deep-value"]]]]);
         });
+
+        it("appends into a list inside a plain-object row", () => {
+            // docs/php-parity/Arr/push.json, "push-list-of-assoc-rows", "push-empty-assoc-row"
+            expect(Arr.push([{ x: [1] }], "0.x", 2)).toEqual([{ x: [1, 2] }]);
+            expect(Arr.push([{}], "0.1", "v")).toEqual([{ 1: ["v"] }]);
+        });
+
+        it("replaces null or a scalar along the path, as Laravel's set does", () => {
+            // docs/php-parity/Arr/push.json, "push-null-row-string-segment", "push-string-row-string-segment",
+            // "push-boolean-row" (PHP's key 1 lands at index 0, the port's clamp), "push-string-row-integer-segment"
+            expect(Arr.push([null], "0.child", "v")).toEqual([
+                { child: ["v"] },
+            ]);
+            expect(Arr.push(["existing"], "0.name", "v")).toEqual([
+                { name: ["v"] },
+            ]);
+            expect(Arr.push([true], "0.1", "v")).toEqual([[["v"]]]);
+            expect(Arr.push(["a"], "0.0", "v")).toEqual([[["v"]]]);
+        });
+
+        it("replaces a class instance or a Date along the path, as Laravel's set replaces an object", () => {
+            // docs/php-parity/Arr/push.json, "push-object-along-the-path"
+            class Point {
+                k = 1;
+            }
+
+            expect(Arr.push([{ d: new Point() }], "0.d.k", "v")).toStrictEqual([
+                { d: { k: ["v"] } },
+            ]);
+            expect(Arr.push([{ d: new Date(0) }], "0.d.k", "v")).toStrictEqual([
+                { d: { k: ["v"] } },
+            ]);
+        });
+
+        it("still rejects a plain object at the key", () => {
+            // JS-only: Laravel appends under the next integer key (docs/php-parity/Arr/push.json,
+            // "push-assoc-leaf-appends"); the port keeps throwing there, a parked decision.
+            const push = (): unknown => Arr.push([{ x: { k: 1 } }], "0.x", "v");
+
+            expect(push).toThrow(InvalidArgumentException);
+            expect(push).toThrow(
+                "Array value for key [0.x] must be an array, object found.",
+            );
+        });
+
+        it("still writes nothing for a string key under a list", () => {
+            // JS-only: PHP turns the inner list into an associative array, which a JS list cannot hold
+            // (docs/php-parity/Arr/push.json, "push-string-segment-under-a-list-row").
+            expect(Arr.push([["a"]], "0.name", "v")).toEqual([["a"]]);
+        });
     });
 
     describe("pull", () => {
@@ -2603,6 +3048,18 @@ describe("Arr", () => {
             const result = Arr.pull(["x", "y"], "01", "d");
             expect(result.value).toBe("d");
             expect(result.data).toEqual(["x", "y"]);
+        });
+
+        it("pulls a key out of a plain-object row", () => {
+            // docs/php-parity/Arr/pull.json, "pull-list-of-assoc-rows", "pull-nested-assoc-in-a-row"
+            expect(Arr.pull([{ a: 1, b: 2 }], "0.a")).toEqual({
+                value: 1,
+                data: [{ b: 2 }],
+            });
+            expect(Arr.pull([{ a: { x: 1, y: 2 } }], "0.a.x")).toEqual({
+                value: 1,
+                data: [{ a: { y: 2 } }],
+            });
         });
     });
 
@@ -7897,6 +8354,46 @@ describe("Arr", () => {
                 ).toEqual(expected);
             },
         );
+    });
+
+    describe("prototype keys in a row", () => {
+        const probed = ["a", "v", "x", "0"];
+
+        afterEach(() => {
+            for (const key of probed) {
+                Reflect.deleteProperty(Object.prototype, key);
+            }
+        });
+
+        it("never writes through a prototype while walking a row", () => {
+            // docs/php-parity/Arr/push.json, "push-proto-key-on-a-row", "push-proto-segment-through-a-row";
+            // docs/php-parity/Arr/forget.json, "forget-proto-segment-in-a-row"
+            const [row] = Arr.push([{}], "0.__proto__", "v") as unknown[];
+            const [deep] = Arr.push([{}], "0.__proto__.x", "v") as unknown[];
+
+            expect(
+                Object.getOwnPropertyDescriptor(row, "__proto__")?.value,
+            ).toEqual(["v"]);
+            expect(Object.getPrototypeOf(row)).toBe(Object.prototype);
+            expect(
+                Object.getOwnPropertyDescriptor(deep, "__proto__")?.value,
+            ).toEqual({ x: ["v"] });
+            expect(Object.getPrototypeOf(deep)).toBe(Object.prototype);
+            expect(Arr.forget([{ a: 1 }], "0.__proto__.a")).toEqual([{ a: 1 }]);
+
+            for (const key of probed) {
+                expect(Object.hasOwn(Object.prototype, key)).toBe(false);
+            }
+        });
+
+        it("skips a key whose path meets a prototype object", () => {
+            // JS-only: PHP has no prototype object, so no row records one; a row holding one keeps it, not a copy.
+            const [objectRow] = Arr.forget([{ p: Object.prototype }], "0.p.a");
+            const [arrayRow] = Arr.forget([{ p: Array.prototype }], "0.p.0");
+
+            expect(objectRow?.p).toBe(Object.prototype);
+            expect(arrayRow?.p).toBe(Array.prototype);
+        });
     });
 
     // Array.prototype passes `isArray` and Object.prototype passes `isObjectAny`,

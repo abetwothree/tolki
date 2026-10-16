@@ -31,7 +31,7 @@ function nums(): array
 
 /**
  * `Arr::push()` takes `$array` by reference AND returns `Arr::set()`'s value,
- * which is the INNERMOST container for a dotted key (Arr.php:1062). The port
+ * which is the INNERMOST container for a dotted key (Arr.php:1072). The port
  * returns the whole array, so `after` is the row the TypeScript pins.
  */
 function pushed(array $array, string|int|null $key, mixed ...$values): array
@@ -113,6 +113,16 @@ function traversable(): Generator
 {
     yield 1;
     yield 2;
+}
+
+/** A generator over 1..$n that records each number it yields in $read, so a probe can count how far a caller read. */
+function countedGenerator(int $n, array &$read): Generator
+{
+    for ($i = 1; $i <= $n; $i++) {
+        $read[] = $i;
+
+        yield $i;
+    }
 }
 
 // ---- 4. An empty dot-path segment.

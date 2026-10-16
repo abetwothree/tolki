@@ -8,8 +8,10 @@ import {
     assembleDocsContent,
     filterPackageVariants,
     githubSlug,
+    parseReadmeArgs,
     rewriteAnchorsForGitHub,
     rewriteRelativeDocLinks,
+    stripVitepressSyntax,
 } from "../readme-build.ts";
 
 const DOCS_DIR = path.resolve(
@@ -250,6 +252,12 @@ describe("filterPackageVariants", () => {
 });
 
 describe("rewriteRelativeDocLinks", () => {
+    it("leaves a link that climbs out of the docs root alone", () => {
+        expect(rewriteRelativeDocLinks("[x](../../a/b.md)", "ts")).toBe(
+            "[x](../../a/b.md)",
+        );
+    });
+
     it("rewrites sibling doc links", () => {
         expect(
             rewriteRelativeDocLinks("[x](./foo.md#bar) [y](./baz.md)", "ts"),
@@ -276,7 +284,29 @@ describe("rewriteRelativeDocLinks", () => {
     });
 });
 
+describe("parseReadmeArgs", () => {
+    it("refuses a filter with no value", () => {
+        expect(parseReadmeArgs(["--filter"])).toBeNull();
+        expect(parseReadmeArgs(["--filter", "@tolki/arr"])).toEqual({
+            filter: "@tolki/arr",
+        });
+    });
+});
+
+describe("stripVitepressSyntax", () => {
+    it("strips CRLF frontmatter", () => {
+        expect(
+            stripVitepressSyntax("---\r\ntitle: X\r\n---\r\n# Hi"),
+        ).not.toContain("title");
+    });
+});
+
 describe("githubSlug", () => {
+    it("hyphenates spaces only, as github-slugger does", () => {
+        expect(githubSlug("a\tb")).toBe("ab");
+        expect(githubSlug("a b")).toBe("a-b");
+    });
+
     it("drops punctuation and hyphenates whitespace", () => {
         expect(githubSlug("Symbol.iterator")).toBe("symboliterator");
         expect(githubSlug("toJSON")).toBe("tojson");
@@ -288,6 +318,12 @@ describe("githubSlug", () => {
 });
 
 describe("rewriteAnchorsForGitHub", () => {
+    it("numbers a repeated slug past one that is already taken", () => {
+        const doc = "# a\n\n# a-1\n\n# a\n\n[1](#a) [2](#a-1) [3](#a-2)";
+
+        expect(rewriteAnchorsForGitHub(doc)).toBe(doc);
+    });
+
     it("keeps duplicate-heading suffixes that already agree", () => {
         const doc =
             "#### toJson\n\n#### toJSON\n\n[toJson](#tojson) [toJSON](#tojson-1)";

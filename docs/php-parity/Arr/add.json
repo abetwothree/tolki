@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.35.0-45-g01ac36d93a"
+        "laravel": "v13.36.0-32-g6d2eefbb14"
     },
     "probes": [
         {
@@ -260,6 +260,16 @@
             "value": {
                 "a": 0
             }
+        },
+        {
+            "label": "add-list-of-assoc-rows",
+            "php": "Arr::add([['a' => 1]], '0.b', 2)",
+            "value": [
+                {
+                    "a": 1,
+                    "b": 2
+                }
+            ]
         }
     ]
 }
