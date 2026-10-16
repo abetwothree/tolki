@@ -904,6 +904,13 @@ describe("arr type tests", () => {
                 expectTypeOf(resultNum).toEqualTypeOf<string[]>();
                 expectTypeOf(resultStr).toEqualTypeOf<string[]>();
             });
+
+            it("reads a Map's list through a dot path, or unknown[] for a key the Map may lack", () => {
+                // docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys": Arr::array reads through Arr::get.
+                const data = [new Map<string, number[]>([["key", [1, 2]]])];
+                const result = Arr.arrayItem(data, "0.key");
+                expectTypeOf(result).toEqualTypeOf<number[] | unknown[]>();
+            });
         });
 
         describe("Infers specific array types even with default value", () => {
@@ -980,14 +987,6 @@ describe("arr type tests", () => {
                 ];
                 const result = Arr.arrayItem(data, 1);
                 expectTypeOf(result).toEqualTypeOf<unknown[] | number[]>();
-            });
-        });
-
-        describe("Falls back to unknown[] for non-resolvable paths", () => {
-            it("returns unknown[] for Map type via dot path (not indexable)", () => {
-                const data = [new Map<string, number[]>([["key", [1, 2]]])];
-                const result = Arr.arrayItem(data, "0.key");
-                expectTypeOf(result).toEqualTypeOf<unknown[]>();
             });
         });
 
@@ -8091,6 +8090,13 @@ describe("arr type tests", () => {
                 const type1 = Arr.get(data, "1.type");
                 expectTypeOf(type1).toEqualTypeOf<"body">();
             });
+
+            it("reads a Map's value through a dot path, or null for a key the Map may lack", () => {
+                // docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys": the Map stands for the nested array.
+                expectTypeOf(
+                    Arr.get([new Map<string, number>()], "0.n"),
+                ).toEqualTypeOf<number | null>();
+            });
         });
 
         describe("literal key with default value", () => {
@@ -8143,6 +8149,13 @@ describe("arr type tests", () => {
             it("returns resolved nested type with null default", () => {
                 const result = Arr.get([{ name: "Alice" }], "0.name", null);
                 expectTypeOf(result).toEqualTypeOf<string>();
+            });
+
+            it("adds the default for a Map key that may be missing", () => {
+                // docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys".
+                expectTypeOf(
+                    Arr.get([new Map<string, number>()], "0.n", "d"),
+                ).toEqualTypeOf<number | string>();
             });
         });
 

@@ -527,29 +527,57 @@ export type DeepMergeObjects<T1, T2, D extends number = 5> = [D] extends [never]
 
 /**
  * The object produced by writing `V` at dot path `P`, creating nested objects
- * for missing or non-object segments the way `Arr::set` creates arrays.
+ * for missing or non-object segments the way `Arr::set` creates arrays. A Map
+ * on the path stays a Map, holding the new key.
  *
  * @example
- * SetObjectPath<Record<never, never>, "a.b", 1> // { a: { b: 1 } }
- * SetObjectPath<{ a: { x: 1 } }, "a.y", 2>      // { a: { x: 1; y: 2 } }
+ * SetObjectPath<Record<never, never>, "a.b", 1>           // { a: { b: 1 } }
+ * SetObjectPath<{ a: { x: 1 } }, "a.y", 2>                // { a: { x: 1; y: 2 } }
+ * SetObjectPath<{ m: Map<string, number> }, "m.n", true>  // { m: Map<string | number, number | true> }
  */
 export type SetObjectPath<T, P extends string, V> = P extends keyof T
     ? Simplify<Omit<T, P> & { [K in P]: V }>
     : P extends `${infer Head}.${infer Rest}`
       ? Simplify<
             Omit<T, Head> & {
-                [K in Head]: SetObjectPath<
-                    Head extends keyof T
-                        ? [PlainObjectOf<T[Head]>] extends [never]
-                            ? Record<never, never>
-                            : PlainObjectOf<T[Head]>
-                        : Record<never, never>,
-                    Rest,
-                    V
-                >;
+                [K in Head]: Head extends keyof T
+                    ? SetPathValue<T[Head], Rest, V>
+                    : SetObjectPath<Record<never, never>, Rest, V>;
             }
         >
       : Simplify<Omit<T, P> & { [K in P]: V }>;
+
+/** What a value on a `SetObjectPath` becomes once `Rest` is written into it: a Map stays a Map, the rest an object. */
+type SetPathValue<X, Rest extends string, V> = [X] extends [
+    Exclude<X, ReadonlyMap<unknown, unknown>>,
+]
+    ? SetObjectPath<
+          [PlainObjectOf<X>] extends [never]
+              ? Record<never, never>
+              : PlainObjectOf<X>,
+          Rest,
+          V
+      >
+    :
+          | SetMapPath<Extract<X, ReadonlyMap<unknown, unknown>>, Rest, V>
+          | ([Exclude<X, ReadonlyMap<unknown, unknown>>] extends [never]
+                ? never
+                : SetPathValue<
+                      Exclude<X, ReadonlyMap<unknown, unknown>>,
+                      Rest,
+                      V
+                  >);
+
+/**
+ * A Map written into at `Rest`. Its keys widen to any PHP key, since a segment like `"0"` is stored as a number;
+ * a deeper path writes inside one entry, which the Map's value type cannot single out.
+ */
+type SetMapPath<M, Rest extends string, V> =
+    M extends ReadonlyMap<infer MK, infer MV>
+        ? Rest extends `${string}.${string}`
+            ? Map<MK | string | number, unknown>
+            : Map<MK | string | number, MV | V>
+        : never;
 
 /**
  * A value `undot` may produce from leaves of type `V`: the leaf itself, or a

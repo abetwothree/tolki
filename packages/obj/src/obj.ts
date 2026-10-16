@@ -129,6 +129,28 @@ type ObjectPullRest<T, P> = P extends keyof T
     ? Simplify<Omit<T, P>>
     : OmitObjectPath<T, `${P & (string | number)}`>;
 type ArrayElementOf<T> = T extends readonly (infer E)[] ? E : never;
+// PushedAt (push): a list at the path grows, while an object or Map there gains the values under integer keys.
+// A missing path is created as a list; a scalar throws, so it keeps the list type it always had. `infer E` keeps
+// `E[]` an eager array type: one written over a type alias is deferred, and a union then holds `number[]` twice.
+type PushedAt<X, V> = [ArrayElementOf<X> | V] extends [infer E]
+    ? 0 extends 1 & X
+        ? E[]
+        : [PushedKeyed<X, V>] extends [never]
+          ? E[]
+          :
+                | PushedKeyed<X, V>
+                | ([Extract<X, readonly unknown[]>] extends [never]
+                      ? never
+                      : E[])
+    : never;
+type PushedKeyed<X, V> =
+    X extends ReadonlyMap<infer MK, infer MV>
+        ? Map<MK | number, MV | V>
+        : X extends NonObjectItems
+          ? never
+          : X extends object
+            ? X & Record<number, V>
+            : never;
 // NonBooleanValue (contains): `unknown` minus `boolean`, which no built-in operator spells.
 // The `strict` row takes a boolean third argument first, so declaring `unknown` here would
 // promise a form this port never runs. `contains`'s docblock names the four shapes it costs.
@@ -501,6 +523,11 @@ export function objectifiable(
  * add({ name: 'John' }, 'name', 'Jane'); -> { name: 'John' } (no change, key exists)
  * add({ m: new Map([[2, 'c']]) }, 'm.0', 'a'); -> { m: new Map([[2, 'c'], [0, 'a']]) } (a Map keeps its key order)
  */
+export function add(
+    data: ReadonlyMap<unknown, unknown>,
+    key: PathKey,
+    value: unknown,
+): Record<string, unknown>;
 export function add(
     data: NonObjectItems,
     key: PathKey,
@@ -2124,6 +2151,10 @@ export function float<
  * forget({ user: { name: 'John', age: 30 } }, 'user.age'); -> { user: { name: 'John' } }
  */
 export function forget(
+    data: ReadonlyMap<unknown, unknown>,
+    keys: PathKeys,
+): Record<string, unknown>;
+export function forget(
     data: NonObjectItems,
     keys: PathKeys,
 ): Record<string, never>;
@@ -2263,6 +2294,19 @@ export function from(items: unknown): Record<string, unknown> {
  * get({ "products.desk": { price: 100 } }, 'products.desk'); -> { price: 100 } (literal key wins over traversal)
  * get({ m: new Map([[2, 'c'], [0, 'a']]) }, 'm.0'); -> 'a' (a Map is read by the key PHP stores)
  */
+export function get<
+    T extends ReadonlyMap<unknown, unknown>,
+    P extends PathKey,
+    TDefault,
+>(
+    data: T,
+    key: P,
+    defaultValue: Default<TDefault>,
+): ObjectResolvePath<T, P, TDefault>;
+export function get<T extends ReadonlyMap<unknown, unknown>, P extends PathKey>(
+    data: T,
+    key: P,
+): ObjectResolvePath<T, P, null>;
 export function get<TDefault = null>(
     data: NonObjectItems,
     key: PathKey,
@@ -3969,6 +4013,11 @@ function unshiftMap(
  * pull({ user: { name: 'John', age: 30 } }, 'user.name'); -> { value: 'John', data: { user: { age: 30 } } }
  * pull({ a: 1, b: 2 }, 'x', 'default'); -> { value: 'default', data: { a: 1, b: 2 } }
  */
+export function pull(
+    data: ReadonlyMap<unknown, unknown>,
+    key: PathKey,
+    defaultValue?: unknown,
+): { value: unknown; data: Record<string, unknown> };
 export function pull<TDefault = null>(
     data: NonObjectItems,
     key: PathKey,
@@ -4468,6 +4517,11 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function set<V>(data: unknown, key: null | undefined, value: V): V;
 export function set<K extends PathKey, V>(
+    data: ReadonlyMap<unknown, unknown>,
+    key: K,
+    value: V,
+): Record<string, unknown> | NullishKeyValue<K, V>;
+export function set<K extends PathKey, V>(
     data: NonObjectItems,
     key: K,
     value: V,
@@ -4523,6 +4577,11 @@ export function set<TValue, TKey extends PropertyKey = PropertyKey>(
  * push({ x: { k: 1 } }, 'x', 'v'); -> { x: { k: 1, 0: 'v' } }
  * push({ a: 1 }, null, 9); -> { a: 1, 0: 9 }
  */
+export function push(
+    data: ReadonlyMap<unknown, unknown>,
+    key: PathKey,
+    ...values: unknown[]
+): Record<string, unknown>;
 export function push<V>(
     data: NonObjectItems,
     key: PathKey,
@@ -4537,11 +4596,7 @@ export function push<T extends object, P extends string | number, V>(
     data: T,
     key: P,
     ...values: V[]
-): ObjectWriteResult<
-    T,
-    P,
-    (ArrayElementOf<ObjectResolvePath<T, P, never>> | V)[]
->;
+): ObjectWriteResult<T, P, PushedAt<ObjectResolvePath<T, P, never>, V>>;
 export function push(
     data: unknown,
     key: PathKey,

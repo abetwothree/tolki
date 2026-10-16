@@ -78,6 +78,20 @@ describe("obj write type tests", () => {
             >();
         });
 
+        it("keeps a Map on the path a Map, adding the new key", () => {
+            // docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order": the Map stands for the nested array.
+            expectTypeOf(
+                Obj.set({ m: new Map<string, number>() }, "m.n", 1),
+            ).toEqualTypeOf<{ m: Map<string | number, number> }>();
+        });
+
+        it("answers a record for a Map given as the data", () => {
+            // JS-only: a Map given as the whole data becomes the record from() builds.
+            expectTypeOf(
+                Obj.set(new Map<string, number>(), "n", 1),
+            ).toEqualTypeOf<Record<string, unknown>>();
+        });
+
         it("adds the value for a nullable key on a list or unknown data too", () => {
             expectTypeOf(Obj.set(numberList, maybeKey, 1)).toEqualTypeOf<
                 Record<string, never> | number
@@ -119,6 +133,27 @@ describe("obj write type tests", () => {
             expectTypeOf(Obj.push({ a: "x" }, null, 1)).toEqualTypeOf<
                 { a: string } & Record<number, number>
             >();
+        });
+
+        it("answers a record for a Map given as the data", () => {
+            // JS-only: a Map given as the whole data becomes the record from() builds.
+            expectTypeOf(
+                Obj.push(new Map<string, number[]>(), "n", 1),
+            ).toEqualTypeOf<Record<string, unknown>>();
+        });
+
+        it("types what is at the path: an object or Map gains integer keys, a list grows", () => {
+            // docs/php-parity/Arr/push.json, "push-assoc-leaf-appends" and
+            // "push-out-of-order-leaf-appends-after-highest", where the Map stands for the array at the key.
+            expectTypeOf(Obj.push({ x: { k: 1 } }, "x", "v").x).toEqualTypeOf<
+                { k: number } & Record<number, string>
+            >();
+            expectTypeOf(
+                Obj.push({ m: new Map<number, string>() }, "m", "x").m,
+            ).toEqualTypeOf<Map<number, string>>();
+            expectTypeOf(
+                Obj.push({ items: ["a"] }, "items", "b").items,
+            ).toEqualTypeOf<string[]>();
         });
     });
 

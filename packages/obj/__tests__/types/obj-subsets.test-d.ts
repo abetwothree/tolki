@@ -86,6 +86,20 @@ describe("obj subset type tests", () => {
             ).toEqualTypeOf<string | null>();
         });
 
+        it("reads a Map's value through a dot path, or null for a key the Map may lack", () => {
+            // docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys": the Map stands for the nested array.
+            expectTypeOf(
+                Obj.get({ m: new Map<string, number>() }, "m.n"),
+            ).toEqualTypeOf<number | null>();
+        });
+
+        it("reads a Map given as the data by its key", () => {
+            // JS-only: PHP has no Map; one given as the whole data is read by the key PHP stores.
+            expectTypeOf(Obj.get(new Map<string, number>(), "n")).toEqualTypeOf<
+                number | null
+            >();
+        });
+
         it("returns the whole object for a null key", () => {
             expectTypeOf(Obj.get(user, null)).toEqualTypeOf<{
                 name: string;
@@ -109,9 +123,12 @@ describe("obj subset type tests", () => {
             >();
         });
 
-        it("returns the default for a list or Map and unknown for unknown data", () => {
+        it("returns the default for a list, reads a Map by its key, and unknown for unknown data", () => {
             expectTypeOf(Obj.get(numberList, 0)).toEqualTypeOf<null>();
-            expectTypeOf(Obj.get(numberMap, "a", "d")).toEqualTypeOf<string>();
+            // JS-only: PHP has no Map; one given as the whole data is read by the key PHP stores.
+            expectTypeOf(Obj.get(numberMap, "a", "d")).toEqualTypeOf<
+                number | string
+            >();
             expectTypeOf(Obj.get(unknownObject, "a")).toEqualTypeOf<unknown>();
         });
     });
@@ -254,15 +271,16 @@ describe("obj subset type tests", () => {
             >();
         });
 
-        it("empty a list or a Map for a readonly keys constant, and still omit typed data's keys", () => {
+        it("empty a list, keep a Map's other entries for a readonly keys constant, and still omit typed data's keys", () => {
             const hidden = ["password", "token"] as const;
             const account = { id: 1, password: "p", token: "t" };
 
             expectTypeOf(Obj.except(numberList, hidden)).toEqualTypeOf<
                 Record<string, never>
             >();
+            // JS-only: a Map given as the whole data becomes the record from() builds.
             expectTypeOf(Obj.forget(numberMap, hidden)).toEqualTypeOf<
-                Record<string, never>
+                Record<string, unknown>
             >();
             expectTypeOf(Obj.except(account, hidden)).toEqualTypeOf<{
                 id: number;
