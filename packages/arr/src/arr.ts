@@ -381,7 +381,9 @@ function copyAlongPath(
     let cursor: Record<string, unknown> | Map<unknown, unknown> =
         root as unknown as Record<string, unknown>;
 
-    for (const segment of throughLeaf ? segments : segments.slice(0, -1)) {
+    const walked = throughLeaf ? segments : segments.slice(0, -1);
+
+    for (const [index, segment] of walked.entries()) {
         // The bail below must stay in step with setMixed's own descend test: it
         // replaces an absent or non-container child wholesale, so nothing of the
         // caller's value survives below this point to be written into.
@@ -400,9 +402,22 @@ function copyAlongPath(
             return root;
         }
 
+        // A prototype is shared by all that inherit from it, so an empty container stands in for it, as set's copy
+        // does; one at push's key that is no list stays, to fail the array check as obj's push does.
+        if (
+            isPrototypeObject(child) &&
+            throughLeaf &&
+            index === walked.length - 1 &&
+            !isArray(child)
+        ) {
+            return root;
+        }
+
         let clone: unknown[] | Record<string, unknown> | Map<unknown, unknown>;
 
-        if (isMap(child)) {
+        if (isPrototypeObject(child)) {
+            clone = isArray(child) ? [] : {};
+        } else if (isMap(child)) {
             clone = new Map(child);
         } else {
             // The spread carries the elements and the length; Arr::set also stores non-index

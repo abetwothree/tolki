@@ -3248,6 +3248,53 @@ describe("Arr", () => {
             ).toBeUndefined();
         });
 
+        it("refuses a prototype object at the key as a non-array, as obj's push does", () => {
+            // JS-only: PHP has no prototype object; one at the key is no data to append to and fails the array check.
+            const mapPrototypeRow = () =>
+                Arr.push([new Map([["a", Map.prototype]])], "0.a", 1);
+
+            expect(() => Arr.push([Object.prototype], "0", 1)).toThrow(
+                "Array value for key [0] must be an array, object found.",
+            );
+            expect(mapPrototypeRow).toThrow(InvalidArgumentException);
+            expect(mapPrototypeRow).toThrow(
+                "Array value for key [0.a] must be an array, object found.",
+            );
+            expect(Object.getOwnPropertyNames(Object.prototype)).not.toContain(
+                "0",
+            );
+        });
+
+        it("replaces a prototype object along the path with an empty one, as set and obj's push do", () => {
+            // JS-only: PHP has no prototype object; none of its keys is data, so nothing of it is copied.
+            const pushed = Arr.push<unknown>(
+                [{ a: Object.prototype }],
+                "0.a.b",
+                1,
+            );
+            const added = Arr.add(
+                [new Map([["a", Map.prototype]])],
+                "0.a.b",
+                1,
+            );
+            const intoList = Arr.push([Array.prototype], "0", 1);
+
+            expect(pushed).toEqual([{ a: { b: [1] } }]);
+            expect(
+                Object.getOwnPropertyNames((pushed[0] as { a: object }).a),
+            ).toEqual(["b"]);
+            expect(added).toEqual([new Map([["a", { b: 1 }]])]);
+            expect(intoList).toEqual([[1]]);
+            expect(Object.getOwnPropertyNames(intoList[0])).toEqual([
+                "0",
+                "length",
+            ]);
+            expect(Object.getOwnPropertyNames(Object.prototype)).not.toContain(
+                "b",
+            );
+            expect(Array.prototype).toHaveLength(0);
+        });
+
         it("still writes nothing for a string key under a list", () => {
             // JS-only: PHP turns the inner list into an associative array, which a JS list cannot hold
             // (docs/php-parity/Arr/push.json, "push-string-segment-under-a-list-row").
