@@ -2106,7 +2106,10 @@ export function forget<TValue extends Record<PropertyKey, unknown>>(
     }
 
     // forgetKeys only reads the key list, so a readonly one is safe to hand it.
-    return forgetKeys(data, keys as PathKeys) as Record<PropertyKey, unknown>;
+    return forgetKeys(
+        rootRecord(data) as Record<PropertyKey, unknown>,
+        keys as PathKeys,
+    ) as Record<PropertyKey, unknown>;
 }
 
 /**
@@ -3954,11 +3957,11 @@ export function pull<
     }
 
     if (isNull(key)) {
-        const original = { ...(data as Record<string, unknown>) };
+        const original = { ...(rootRecord(data) as Record<string, unknown>) };
         return { value: resolveDefault(), data: original };
     }
 
-    const obj = data as Record<string, unknown>;
+    const obj = rootRecord(data) as Record<string, unknown>;
     const value = getObjectValue(obj, key);
 
     if (isNull(value)) {
@@ -4410,7 +4413,7 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
  * @example
  * set({ name: 'John', age: 30 }, 'age', 31); -> { name: 'John', age: 31 }
  * set({ user: { name: 'John' } }, 'user.age', 30); -> { user: { name: 'John', age: 30 } }
- * set({ m: new Map([[2, 'c']]) }, 'm.2', 'C'); -> { m: new Map([[2, 'C']]) } (a Map key keeps its place)
+ * set({ m: new Map([[2, 'c'], [0, 'a']]) }, 'm.2', 'C'); -> { m: new Map([[2, 'C'], [0, 'a']]) } (it keeps its place)
  */
 export function set<V>(data: unknown, key: null | undefined, value: V): V;
 export function set<K extends PathKey, V>(

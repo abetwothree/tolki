@@ -2668,7 +2668,7 @@ describe("Path Functions", () => {
             expect(result).toEqual({ users: [{ id: 1 }] });
         });
 
-        it("leaves class instances and built-ins on the path untouched", () => {
+        it("leaves class instances and built-ins on the path untouched, but walks a Map", () => {
             // PHP's accessible() is false for objects, so the key is skipped
             // entirely instead of replacing the value with a plain object
             const date = new Date(0);
@@ -2676,10 +2676,10 @@ describe("Path Functions", () => {
                 a: date,
             });
 
-            const map = new Map([["b", 1]]);
-            expect(Path.forgetKeysObject({ a: map }, "a.b")).toEqual({
-                a: map,
-            });
+            // docs/php-parity/Arr/forget.json, "forget-nested-keeps-other-keys"
+            expect(
+                Path.forgetKeysObject({ a: new Map([["b", 1]]) }, "a.b"),
+            ).toEqual({ a: new Map() });
 
             class Thing {
                 name = "x";
@@ -2688,6 +2688,47 @@ describe("Path Functions", () => {
             expect(Path.forgetKeysObject({ a: thing }, "a.name")).toEqual({
                 a: thing,
             });
+        });
+
+        it("walks Maps at any depth and skips a path a Map does not hold", () => {
+            // docs/php-parity/Arr/forget.json, "forget-nested-keeps-other-keys"
+            const data = {
+                a: new Map<unknown, unknown>([
+                    [
+                        2,
+                        new Map<unknown, unknown>([
+                            [1, "x"],
+                            [0, "y"],
+                        ]),
+                    ],
+                    [0, { k: 1, j: 2 }],
+                    [3, new Date(0)],
+                ]),
+            };
+            const entriesOf = (value: unknown): unknown[] => [
+                ...(value as Map<unknown, unknown>),
+            ];
+
+            const inner = Path.forgetKeysObject(data, "a.2.1").a;
+            expect(entriesOf((inner as typeof data.a).get(2))).toEqual([
+                [0, "y"],
+            ]);
+            expect(Path.forgetKeysObject(data, "a.0.k")).toEqual({
+                a: new Map<unknown, unknown>([
+                    [
+                        2,
+                        new Map<unknown, unknown>([
+                            [1, "x"],
+                            [0, "y"],
+                        ]),
+                    ],
+                    [0, { j: 2 }],
+                    [3, new Date(0)],
+                ]),
+            });
+            expect(Path.forgetKeysObject(data, "a.9.k")).toEqual(data);
+            expect(Path.forgetKeysObject(data, "a.3.k")).toEqual(data);
+            expect(entriesOf(data.a.get(2))).toHaveLength(2);
         });
 
         it("traverses objects created without a prototype", () => {
@@ -2992,6 +3033,46 @@ describe("Path Functions", () => {
     });
 
     describe("forgetKeysArray", () => {
+        it("walks a Map row and deletes by the key PHP stores", () => {
+            // docs/php-parity/Arr/forget.json, "forget-nested-keeps-other-keys"
+            const result = Path.forgetKeysArray(
+                [
+                    new Map<unknown, string>([
+                        [1, "a"],
+                        ["1", "b"],
+                        [2, "c"],
+                    ]),
+                ],
+                "0.1",
+            );
+
+            expect(result).toEqual([new Map([[2, "c"]])]);
+        });
+
+        it("walks a Map inside a Map and skips a key the Map does not hold", () => {
+            // docs/php-parity/Arr/forget.json, "forget-nested-keeps-other-keys"
+            const rows = () => [
+                new Map<unknown, unknown>([
+                    [
+                        1,
+                        new Map<unknown, unknown>([
+                            [2, "c"],
+                            [3, "d"],
+                        ]),
+                    ],
+                ]),
+            ];
+            const result = Path.forgetKeysArray(rows(), ["0.1.2", "0.1.3"]);
+
+            expect([
+                ...((result[0] as Map<unknown, unknown>).get(1) as Map<
+                    unknown,
+                    unknown
+                >),
+            ]).toEqual([]);
+            expect(Path.forgetKeysArray(rows(), "0.9.2")).toEqual(rows());
+        });
+
         it("groups removals by path correctly", () => {
             const arr = [
                 ["a", "b", "c"],

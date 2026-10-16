@@ -2256,6 +2256,33 @@ describe("Data", () => {
     });
 
     describe("dataForget", () => {
+        it("removes a key inside a Map under either root", () => {
+            // docs/php-parity/Arr/forget.json, "forget-nested-keeps-other-keys"
+            const row = () =>
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+            const list = Data.dataForget([row()], "0.0") as Map<
+                number,
+                string
+            >[];
+            const record = Data.dataForget({ m: row() }, "m.0") as {
+                m: Map<number, string>;
+            };
+
+            expect([...list[0]!]).toEqual([
+                [2, "c"],
+                [1, "b"],
+            ]);
+            expect([...record.m]).toEqual([
+                [2, "c"],
+                [1, "b"],
+            ]);
+            expect(Data.dataForget(row(), "0")).toEqual({ 1: "b", 2: "c" });
+        });
+
         it("is object", () => {
             const result = Data.dataForget(
                 { name: "John", age: 30, city: "NYC" },
@@ -3807,6 +3834,33 @@ describe("Data", () => {
     });
 
     describe("dataPull", () => {
+        it("pulls a key inside a Map under either root", () => {
+            // docs/php-parity/Arr/pull.json, "pull-nested-keeps-other-keys"
+            const row = () =>
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+            const list = Data.dataPull([row()], "0.0");
+            const record = Data.dataPull({ m: row() }, "m.0");
+
+            expect(list.value).toBe("a");
+            expect([...(list.data[0] as Map<number, string>)]).toEqual([
+                [2, "c"],
+                [1, "b"],
+            ]);
+            expect(record.value).toBe("a");
+            expect([...(record.data.m as Map<number, string>)]).toEqual([
+                [2, "c"],
+                [1, "b"],
+            ]);
+            expect(Data.dataPull(row(), "0")).toEqual({
+                value: "a",
+                data: { 1: "b", 2: "c" },
+            });
+        });
+
         it("is object", () => {
             const result2 = Data.dataPull({ a: 1, b: 2 }, "b", "default");
             expect(result2.value).toBe(2);

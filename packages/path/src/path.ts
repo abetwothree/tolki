@@ -12,6 +12,7 @@ import {
     arrayValueMessage,
     castableToArray,
     defineKey,
+    deleteMapKey,
     InvalidArgumentException,
     isArray,
     isFloat,
@@ -286,9 +287,10 @@ export function forgetKeys<TValue, TKey extends PropertyKey = PropertyKey>(
  *   is skipped entirely and nothing is removed for that key.
  * - Traversal descends into both plain objects and arrays, the two shapes
  *   that stand in for a PHP array. Class instances and built-ins such as
- *   Date or Map are not traversable and are left untouched. When the final
- *   container is an array, a valid in-bounds integer leaf removes the item
- *   (via splice); otherwise the key is a no-op.
+ *   Date are not traversable and are left untouched. A Map is traversed as the
+ *   PHP array it stands for and loses the key without renumbering the others.
+ *   When the final container is an array, a valid in-bounds integer leaf
+ *   removes the item (via splice); otherwise the key is a no-op.
  *
  * @param data - The object to remove properties from.
  * @param keys - The key(s) to remove (string or array of strings).
@@ -333,8 +335,8 @@ export function forgetKeysObject<
 
     /**
      * Clone a container that a dot path may descend into, mirroring PHP's
-     * accessible() check. Only arrays and plain objects stand in for PHP
-     * arrays; class instances and built-ins such as Date or Map are not
+     * accessible() check. Arrays, plain objects and Maps stand in for PHP
+     * arrays; class instances and built-ins such as Date are not
      * traversable, so they are left untouched rather than being replaced by
      * a plain object that drops their contents.
      *
@@ -343,9 +345,13 @@ export function forgetKeysObject<
      */
     const cloneTraversable = (
         child: unknown,
-    ): Record<string, unknown> | unknown[] | null => {
+    ): Record<string, unknown> | unknown[] | Map<unknown, unknown> | null => {
         if (isArray(child)) {
             return child.slice();
+        }
+
+        if (isMap(child)) {
+            return new Map(child);
         }
 
         if (isObject(child)) {
@@ -377,10 +383,10 @@ export function forgetKeysObject<
         }
 
         const parts = name.split(".");
-        let current: Record<string, unknown> | unknown[] = result as Record<
-            string,
-            unknown
-        >;
+        let current:
+            | Record<string, unknown>
+            | unknown[]
+            | Map<unknown, unknown> = result as Record<string, unknown>;
 
         // Navigate to the parent of the property to be removed, cloning each
         // container along the way. If the path is broken, skip the key.
@@ -400,6 +406,21 @@ export function forgetKeysObject<
 
                 current[index] = clone;
                 current = clone;
+
+                continue;
+            }
+
+            if (isMap(current)) {
+                const entry = readMapKey(current, part);
+                const mapClone = entry.found
+                    ? cloneTraversable(entry.value)
+                    : null;
+                if (isNull(mapClone)) {
+                    return;
+                }
+
+                writeMapKey(current, part, mapClone);
+                current = mapClone;
 
                 continue;
             }
@@ -425,6 +446,12 @@ export function forgetKeysObject<
             if (!isNull(index)) {
                 current.splice(index, 1);
             }
+
+            return;
+        }
+
+        if (isMap(current)) {
+            deleteMapKey(current, leaf);
 
             return;
         }
@@ -461,7 +488,10 @@ export function forgetKeysArray<TValue>(
     data: ArrayItems<TValue>,
     keys: PathKeys,
 ): TValue[] {
-    type Container = unknown[] | Record<string, unknown>;
+    type Container =
+        | unknown[]
+        | Record<string, unknown>
+        | Map<unknown, unknown>;
 
     const result = data.slice() as unknown[];
 
@@ -487,13 +517,16 @@ export function forgetKeysArray<TValue>(
                     isNumber(segment) && segment >= 0
                         ? cursor[segment]
                         : undefined;
+            } else if (isMap(cursor)) {
+                const entry = readMapKey(cursor, segment);
+                child = entry.found ? entry.value : undefined;
             } else if (Object.hasOwn(cursor, segment)) {
                 // Only an own key counts: an inherited `__proto__` would lead the walk into Object.prototype.
                 child = cursor[segment];
             }
 
             if (
-                (!isArray(child) && !isPlainObject(child)) ||
+                (!isArray(child) && !isPlainObject(child) && !isMap(child)) ||
                 isPrototypeObject(child)
             ) {
                 return null;
@@ -501,9 +534,19 @@ export function forgetKeysArray<TValue>(
 
             const copy: Container = isArray(child)
                 ? child.slice()
-                : { ...child };
+                : isMap(child)
+                  ? new Map(child)
+                  : { ...child };
 
-            defineKey(cursor as Record<PropertyKey, unknown>, segment, copy);
+            if (isMap(cursor)) {
+                writeMapKey(cursor, segment, copy);
+            } else {
+                defineKey(
+                    cursor as Record<PropertyKey, unknown>,
+                    segment,
+                    copy,
+                );
+            }
             cursor = copy;
         }
 
@@ -544,6 +587,10 @@ export function forgetKeysArray<TValue>(
 
             for (const index of indices) {
                 container.splice(index, 1);
+            }
+        } else if (isMap(container)) {
+            for (const leaf of leaves) {
+                deleteMapKey(container, leaf);
             }
         } else if (!isNull(container)) {
             for (const leaf of leaves) {

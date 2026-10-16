@@ -91,6 +91,16 @@ describe("Arr", () => {
     });
 
     describe("add", () => {
+        it("writes a number key mid-path as PHP stores it", () => {
+            // docs/php-parity/Arr/add.json, "add-nested-keeps-key-order"
+            const inner = { a: 1 };
+            const rows = [new Map<number, unknown>([[1, inner]])];
+            const out = Arr.add(rows, "0.1.5", "x") as Map<number, unknown>[];
+
+            expect([...out[0]!]).toEqual([[1, { a: 1, 5: "x" }]]);
+            expect(out[0]!.get(1)).not.toBe(inner);
+        });
+
         it("writes over a key already holding null, as Arr::add does", () => {
             // docs/php-parity/Arr/add.json, "add-over-null-list-value",
             // "add-over-null-nested-list", "add-leaves-false-alone".
@@ -943,6 +953,21 @@ describe("Arr", () => {
     });
 
     describe("except", () => {
+        it("drops a key from a Map row", () => {
+            // docs/php-parity/Arr/forget.json, "forget-nested-keeps-other-keys"
+            const result = Arr.except(
+                [
+                    new Map<number, string>([
+                        [2, "c"],
+                        [0, "a"],
+                    ]),
+                ],
+                "0.2",
+            );
+
+            expect(result).toEqual([new Map([[0, "a"]])]);
+        });
+
         it("except", () => {
             expect(Arr.except(["a", "b", "c", "d"], null)).toEqual([
                 "a",
@@ -1811,6 +1836,37 @@ describe("Arr", () => {
     });
 
     describe("forget", () => {
+        it("removes a key from a Map row and keeps the other keys in order", () => {
+            // docs/php-parity/Arr/forget.json, "forget-nested-keeps-other-keys"
+            const rows = [
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]),
+            ];
+
+            expect([...Arr.forget(rows, "0.0")[0]!]).toEqual([
+                [2, "c"],
+                [1, "b"],
+            ]);
+        });
+
+        it("leaves the caller's Map unchanged", () => {
+            // docs/php-parity/Arr/forget.json, "forget-nested-keeps-other-keys"
+            const row = new Map<number, string>([
+                [2, "c"],
+                [0, "a"],
+            ]);
+
+            Arr.forget([row], "0.0");
+
+            expect([...row]).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
+        });
+
         it("forget", () => {
             const data = ["products", ["desk", [100]]];
             expect(Arr.forget(data, null)).toEqual([
@@ -2525,6 +2581,15 @@ describe("Arr", () => {
     });
 
     describe("set", () => {
+        it("writes a number key mid-path as PHP stores it", () => {
+            // docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order"
+            const result = Arr.set([new Map<number, unknown>()], "0.5.x", 1);
+
+            expect([...(result[0] as Map<number, unknown>)]).toEqual([
+                [5, { x: 1 }],
+            ]);
+        });
+
         it("set", () => {
             const data = ["products", ["desk", ["price", 100]]];
             expect(Arr.set(data, "1.1.1", 200)).toEqual([
@@ -3086,6 +3151,25 @@ describe("Arr", () => {
     });
 
     describe("pull", () => {
+        it("pulls a key out of a Map row", () => {
+            // docs/php-parity/Arr/pull.json, "pull-nested-keeps-other-keys"
+            const rows = [
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]),
+            ];
+            const result = Arr.pull(rows, "0.0");
+
+            expect(result.value).toBe("a");
+            expect([...(result.data[0] as Map<number, string>)]).toEqual([
+                [2, "c"],
+                [1, "b"],
+            ]);
+            expect(rows[0]!.size).toBe(3);
+        });
+
         it("pull", () => {
             const data = ["name", "desk", ["price", 100]];
             const d = Arr.pull(data, "1");

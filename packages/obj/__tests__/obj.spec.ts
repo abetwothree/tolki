@@ -2283,6 +2283,53 @@ describe("Obj", () => {
     });
 
     describe("forget", () => {
+        it("removes a key from a nested Map and keeps the other keys in order", () => {
+            // docs/php-parity/Arr/forget.json, "forget-nested-keeps-other-keys"
+            const result = Obj.forget(
+                {
+                    m: new Map<number, string>([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                },
+                "m.0",
+            ) as { m: unknown };
+
+            expect(mapEntries(result.m)).toEqual([
+                [2, "c"],
+                [1, "b"],
+            ]);
+        });
+
+        it("keeps every entry of a Map passed as the data", () => {
+            // JS-only: a Map given as the whole data becomes the record from() builds.
+            const result = Obj.forget(
+                new Map<unknown, unknown>([
+                    ["a", 1],
+                    [2, "two"],
+                ]),
+                "a",
+            );
+
+            expect(result).toEqual({ 2: "two" });
+        });
+
+        it("leaves the caller's Map unchanged", () => {
+            // docs/php-parity/Arr/forget.json, "forget-nested-keeps-other-keys"
+            const m = new Map<number, string>([
+                [2, "c"],
+                [0, "a"],
+            ]);
+
+            Obj.forget({ m }, "m.0");
+
+            expect([...m]).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
+        });
+
         it("should remove specified keys", () => {
             const obj = { name: "John", age: 30, city: "NYC" };
             expect(Obj.forget(obj, "age")).toEqual({
@@ -3906,6 +3953,17 @@ describe("Obj", () => {
     });
 
     describe("set", () => {
+        it("writes a number key mid-path as PHP stores it", () => {
+            // docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order"
+            const result = Obj.set(
+                { m: new Map<number, unknown>([[1, { a: 1 }]]) },
+                "m.1.b",
+                2,
+            );
+
+            expect(mapEntries(result.m)).toEqual([[1, { a: 1, b: 2 }]]);
+        });
+
         it("writes an empty dot segment as the array key PHP writes", () => {
             // docs/php-parity/Arr/set.json, "set-interior-empty-segment",
             // "set-leading-empty-segment", "set-trailing-empty-segment",
@@ -7690,6 +7748,37 @@ describe("Obj", () => {
     });
 
     describe("pull", () => {
+        it("pulls a key out of a nested Map, or a Map passed as the data", () => {
+            // docs/php-parity/Arr/pull.json, "pull-nested-keeps-other-keys"
+            const nested = Obj.pull(
+                {
+                    m: new Map<number, string>([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                },
+                "m.0",
+            );
+
+            expect(nested.value).toBe("a");
+            expect(mapEntries((nested.data as { m: unknown }).m)).toEqual([
+                [2, "c"],
+                [1, "b"],
+            ]);
+
+            // JS-only: a Map given as the whole data becomes the record from() builds.
+            expect(
+                Obj.pull(
+                    new Map([
+                        ["a", 1],
+                        ["b", 2],
+                    ]),
+                    "a",
+                ),
+            ).toEqual({ value: 1, data: { b: 2 } });
+        });
+
         it("should pull and return value with remaining data", () => {
             const obj = { name: "John", age: 30 };
             const result = Obj.pull(obj, "name");
