@@ -279,6 +279,126 @@ export function keyedEntries<TValue = unknown>(
 }
 
 /**
+ * Read a Map entry by the key PHP stores for the given key.
+ *
+ * Of several Map keys PHP stores as one, the last value wins, as in {@linkcode keyedEntries}.
+ * A stored `null` or `undefined` counts as found.
+ *
+ * @param map - The Map to read.
+ * @param key - The key to look up, cast as PHP casts an array key.
+ * @returns Whether a key matched, and its value when one did.
+ *
+ * @example
+ * readMapKey(new Map([[1, "a"]]), "1"); -> { found: true, value: "a" }
+ * readMapKey(new Map([["01", "a"]]), 1); -> { found: false }
+ */
+export function readMapKey(
+    map: ReadonlyMap<unknown, unknown>,
+    key: string | number,
+): { found: boolean; value?: unknown } {
+    const phpKey = phpArrayKey(key);
+    let result: { found: boolean; value?: unknown } = { found: false };
+
+    for (const [mapKey, value] of map) {
+        if (isPhpStorableKey(mapKey) && phpArrayKey(mapKey) === phpKey) {
+            result = { found: true, value };
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Set a Map entry under the key PHP stores for the given key.
+ *
+ * An existing key keeps its place, and any later key PHP stores as the same one is removed.
+ *
+ * @param map - The Map to write into, changed in place.
+ * @param key - The key to write, cast as PHP casts an array key.
+ * @param value - The value to store.
+ *
+ * @example
+ * const map = new Map([[2, "c"], [0, "a"]]);
+ * writeMapKey(map, "2", "C"); -> map is [[2, "C"], [0, "a"]]
+ * writeMapKey(map, "1", "b"); -> map is [[2, "C"], [0, "a"], [1, "b"]]
+ */
+export function writeMapKey(
+    map: Map<unknown, unknown>,
+    key: string | number,
+    value: unknown,
+): void {
+    const phpKey = phpArrayKey(key);
+    let written = false;
+
+    for (const mapKey of [...map.keys()]) {
+        if (!isPhpStorableKey(mapKey) || phpArrayKey(mapKey) !== phpKey) {
+            continue;
+        }
+
+        if (written) {
+            map.delete(mapKey);
+        } else {
+            map.set(mapKey, value);
+            written = true;
+        }
+    }
+
+    if (!written) {
+        map.set(phpKey, value);
+    }
+}
+
+/**
+ * Delete every Map entry whose key PHP stores as the given key.
+ *
+ * @param map - The Map to remove from, changed in place.
+ * @param key - The key to remove, cast as PHP casts an array key.
+ *
+ * @example
+ * const map = new Map([[1, "a"], ["1", "b"], [2, "c"]]);
+ * deleteMapKey(map, "1"); -> map is [[2, "c"]]
+ */
+export function deleteMapKey(
+    map: Map<unknown, unknown>,
+    key: string | number,
+): void {
+    const phpKey = phpArrayKey(key);
+
+    for (const mapKey of [...map.keys()]) {
+        if (isPhpStorableKey(mapKey) && phpArrayKey(mapKey) === phpKey) {
+            map.delete(mapKey);
+        }
+    }
+}
+
+/**
+ * Get the key PHP gives the next value appended to a plain object or Map.
+ *
+ * That is one past the highest integer key, negative ones included (PHP 8.3+), or 0 with none.
+ *
+ * @param container - The plain object or Map to inspect.
+ * @returns The next integer key.
+ *
+ * @example
+ * nextIntegerKey({ k: 1, 5: "z" }); -> 6
+ * nextIntegerKey(new Map([[2, "c"], [0, "a"]])); -> 3
+ * nextIntegerKey({ "-5": "n" }); -> -4
+ */
+export function nextIntegerKey(container: object): number {
+    let highest: number | undefined;
+
+    for (const [key] of keyedEntries(container)) {
+        const phpKey = phpArrayKey(key);
+
+        if (isNumber(phpKey) && (highest === undefined || phpKey > highest)) {
+            highest = phpKey;
+        }
+    }
+
+    return highest === undefined ? 0 : highest + 1;
+}
+
+/**
  * Determine whether PHP can store the given key as an array key, casting it if need be.
  *
  * @param key - The Map key to test.

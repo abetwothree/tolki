@@ -647,4 +647,180 @@ describe("Utils", () => {
             ]);
         });
     });
+
+    describe("readMapKey", () => {
+        it("reads a key cast as PHP casts an array key", () => {
+            expect(Utils.readMapKey(new Map([[1, "a"]]), "1")).toEqual({
+                found: true,
+                value: "a",
+            });
+            expect(Utils.readMapKey(new Map([["1", "a"]]), 1)).toEqual({
+                found: true,
+                value: "a",
+            });
+            expect(Utils.readMapKey(new Map([[true, "t"]]), 1)).toEqual({
+                found: true,
+                value: "t",
+            });
+            expect(Utils.readMapKey(new Map([["01", "a"]]), 1)).toEqual({
+                found: false,
+            });
+        });
+
+        it("finds a stored null or undefined", () => {
+            expect(Utils.readMapKey(new Map([["k", null]]), "k")).toEqual({
+                found: true,
+                value: null,
+            });
+            expect(Utils.readMapKey(new Map([["k", undefined]]), "k")).toEqual({
+                found: true,
+                value: undefined,
+            });
+        });
+
+        it("gives the last value of keys PHP stores as one", () => {
+            expect(
+                Utils.readMapKey(
+                    new Map<unknown, string>([
+                        [1, "a"],
+                        ["1", "b"],
+                    ]),
+                    1,
+                ),
+            ).toEqual({ found: true, value: "b" });
+        });
+
+        it("never matches an object or a symbol key", () => {
+            expect(
+                Utils.readMapKey(new Map([[{}, "o"]]), "[object Object]"),
+            ).toEqual({ found: false });
+            expect(
+                Utils.readMapKey(new Map([[Symbol("s"), "s"]]), "Symbol(s)"),
+            ).toEqual({ found: false });
+        });
+    });
+
+    describe("writeMapKey", () => {
+        it("overwrites a key in its place", () => {
+            const map = new Map<unknown, string>([
+                [2, "c"],
+                [0, "a"],
+            ]);
+
+            Utils.writeMapKey(map, "2", "C");
+
+            expect([...map]).toEqual([
+                [2, "C"],
+                [0, "a"],
+            ]);
+        });
+
+        it("adds a missing key under the key PHP stores", () => {
+            const map = new Map<unknown, string>([
+                [2, "c"],
+                [0, "a"],
+            ]);
+
+            Utils.writeMapKey(map, "1", "b");
+            Utils.writeMapKey(map, "01", "x");
+
+            expect([...map]).toEqual([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+                ["01", "x"],
+            ]);
+        });
+
+        it("keeps the first of two keys PHP stores as one and drops the other", () => {
+            const map = new Map<unknown, unknown>([
+                [1, "a"],
+                ["x", 0],
+                ["1", "b"],
+            ]);
+
+            Utils.writeMapKey(map, 1, "z");
+
+            expect([...map]).toEqual([
+                [1, "z"],
+                ["x", 0],
+            ]);
+        });
+
+        it("leaves an object key alone", () => {
+            const key = {};
+            const map = new Map<unknown, string>([[key, "o"]]);
+
+            Utils.writeMapKey(map, "[object Object]", "s");
+
+            expect([...map]).toEqual([
+                [key, "o"],
+                ["[object Object]", "s"],
+            ]);
+        });
+    });
+
+    describe("deleteMapKey", () => {
+        it("removes every key PHP stores as the same one", () => {
+            const map = new Map<unknown, string>([
+                [1, "a"],
+                ["1", "b"],
+                [2, "c"],
+            ]);
+
+            Utils.deleteMapKey(map, "1");
+
+            expect([...map]).toEqual([[2, "c"]]);
+        });
+
+        it("leaves the other keys in their order", () => {
+            // docs/php-parity/Arr/forget.json, "forget-nested-keeps-other-keys"
+            const map = new Map<unknown, string>([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            Utils.deleteMapKey(map, 0);
+
+            expect([...map]).toEqual([
+                [2, "c"],
+                [1, "b"],
+            ]);
+        });
+    });
+
+    describe("nextIntegerKey", () => {
+        it("is one past the highest integer key", () => {
+            // docs/php-parity/Arr/push.json, "push-leaf-after-highest-int-key"
+            // docs/php-parity/Arr/push.json, "push-out-of-order-leaf-appends-after-highest"
+            expect(Utils.nextIntegerKey({ k: 1, 5: "z" })).toBe(6);
+            expect(
+                Utils.nextIntegerKey(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                    ]),
+                ),
+            ).toBe(3);
+        });
+
+        it("starts at 0 when no integer key exists", () => {
+            expect(Utils.nextIntegerKey({ a: 1, "01": 2, "1.5": 3 })).toBe(0);
+            expect(Utils.nextIntegerKey(new Map())).toBe(0);
+        });
+
+        it("follows PHP 8.3 past a negative highest key", () => {
+            // docs/php-parity/Arr/push.json, "push-leaf-negative-int-key"
+            // docs/php-parity/Arr/push.json, "push-null-key-negative-int-key"
+            expect(Utils.nextIntegerKey({ "-5": "n" })).toBe(-4);
+            expect(Utils.nextIntegerKey(new Map([[-5, "n"]]))).toBe(-4);
+        });
+
+        it("reads keys above the array-index range", () => {
+            expect(
+                Utils.nextIntegerKey({ "6000000000": "a", "5000000000": "b" }),
+            ).toBe(6000000001);
+        });
+    });
 });

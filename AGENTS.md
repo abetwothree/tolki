@@ -196,6 +196,10 @@ When using generics in parameter types, make sure to use the correct syntax for 
   - `isUnsafeKey(key)` - checks if a key could cause prototype pollution (`__proto__`, `constructor`, `prototype`)
   - `isPhpArrayKey(value)` - checks if a value is one PHP would accept as an array key
   - `phpArrayKey(key)` - casts a key the way PHP casts an array key (`"10"` becomes `10`, `"01"` stays a string, `true` becomes `1`); use it rather than `entriesKeyValue` wherever a key must follow PHP
+  - `readMapKey(map, key)` - reads a `Map` entry the way PHP reads an array key (`1` and `"1"` are one key, the last of two such keys wins), returning `{ found, value }` so a stored `null` is still found
+  - `writeMapKey(map, key, value)` - sets a `Map` entry the way PHP sets an array key: an existing key keeps its place, a missing one is appended as PHP stores it
+  - `deleteMapKey(map, key)` - removes every `Map` key that PHP would store as the given key
+  - `nextIntegerKey(container)` - gives the key PHP assigns to the next appended value of a plain object or `Map`: one past the highest integer key (negative ones included), or `0`
   - `isIllegalOffset(value)` - checks if a value is a key no PHP array can hold (an array, an object or a function), which PHP throws a `TypeError` for wherever it reads or writes one
   - `isEnumCase(value)` - checks if a value is an `@tolki/enum` case: a plain object with its own string `name` and its own string or number `value`
   - `hasOwnToString(value)` - checks if a value is an object with its own `toString`, the JavaScript reading of a PHP `Stringable`; a `Date` never counts
