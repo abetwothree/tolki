@@ -703,6 +703,62 @@
             "value": {
                 "": 9
             }
+        },
+        {
+            "label": "set-nested-append-keeps-key-order",
+            "php": "Arr::set($o, 'm.1', 'b'), Arr::set($l, '0.1', 'b')",
+            "value": {
+                "assoc": {
+                    "m": {
+                        "2": "c",
+                        "0": "a",
+                        "1": "b"
+                    }
+                },
+                "assoc_keys": [
+                    2,
+                    0,
+                    1
+                ],
+                "list": [
+                    {
+                        "2": "c",
+                        "0": "a",
+                        "1": "b"
+                    }
+                ],
+                "list_keys": [
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "set-nested-overwrite-keeps-place",
+            "php": "Arr::set($o, 'm.2', 'C'), Arr::set($l, '0.2', 'C')",
+            "value": {
+                "assoc": {
+                    "m": {
+                        "2": "C",
+                        "0": "a"
+                    }
+                },
+                "assoc_keys": [
+                    2,
+                    0
+                ],
+                "list": [
+                    {
+                        "2": "C",
+                        "0": "a"
+                    }
+                ],
+                "list_keys": [
+                    2,
+                    0
+                ]
+            }
         }
     ]
 }

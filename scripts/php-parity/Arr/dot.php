@@ -53,4 +53,11 @@ probe('dot-mixed-prefixed', "Arr::dot(['x' => 1, 0 => 2, 'y' => 3], 'p')", fn ()
 probe('dot-out-of-order-nested', "Arr::dot([2 => ['z' => 1], 0 => ['y' => 2], 1 => ['x' => 3]])", fn () => arrayablePairs(Arr::dot([2 => ['z' => 1], 0 => ['y' => 2], 1 => ['x' => 3]])));
 probe('dot-mixed-nested', "Arr::dot(['x' => ['k' => 1], 0 => ['k' => 2], 'y' => ['k' => 3]])", fn () => arrayablePairs(Arr::dot(['x' => ['k' => 1], 0 => ['k' => 2], 'y' => ['k' => 3]])));
 
+probe('dot-nested-out-of-order', "array_keys(Arr::dot(['m' => [2 => 'c', 0 => 'a']])), array_keys(Arr::dot([[2 => 'c', 0 => 'a']]))", function () {
+    $o = ['m' => [2 => 'c', 0 => 'a']];
+    $l = [[2 => 'c', 0 => 'a']];
+
+    return ['assoc_keys' => array_keys(Arr::dot($o)), 'list_keys' => array_keys(Arr::dot($l))];
+});
+
 emit();

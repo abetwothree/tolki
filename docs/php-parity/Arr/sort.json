@@ -788,6 +788,14 @@
                     ]
                 ]
             ]
+        },
+        {
+            "label": "sort-by-nested-path",
+            "php": "the n values of Arr::sort([['m' => ['n' => 2]], ['m' => ['n' => 1]]], 'm.n')",
+            "value": [
+                1,
+                2
+            ]
         }
     ]
 }

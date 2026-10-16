@@ -56,4 +56,10 @@ probe('keyBy-out-of-order-rows-callback-order', "Arr::keyBy([2 => ['id' => 'r'],
 probe('keyBy-mixed-callback', "Arr::keyBy(['x' => 1, 0 => 2, 'y' => 3], fn (\$item, \$key) => 'k' . \$item)", fn () => arrayablePairs(Arr::keyBy(MIXED, fn ($item, $key) => 'k' . $item)));
 probe('keyBy-mixed-callback-order', "Arr::keyBy(['x' => 1, 0 => 2, 'y' => 3], fn (\$item, \$key) => 'k' . \$item) => keys seen", fn () => keysSeen(fn ($cb) => Arr::keyBy(MIXED, $cb), fn ($item) => 'k' . $item));
 
+probe('keyBy-nested-path', "array_keys(Arr::keyBy([['m' => ['n' => 2]], ['m' => ['n' => 1]]], 'm.n'))", function () {
+    $rows = [['m' => ['n' => 2]], ['m' => ['n' => 1]]];
+
+    return array_keys(Arr::keyBy($rows, 'm.n'));
+});
+
 emit();

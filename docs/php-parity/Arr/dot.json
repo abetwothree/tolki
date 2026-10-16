@@ -243,6 +243,20 @@
                     3
                 ]
             ]
+        },
+        {
+            "label": "dot-nested-out-of-order",
+            "php": "array_keys(Arr::dot(['m' => [2 => 'c', 0 => 'a']])), array_keys(Arr::dot([[2 => 'c', 0 => 'a']]))",
+            "value": {
+                "assoc_keys": [
+                    "m.2",
+                    "m.0"
+                ],
+                "list_keys": [
+                    "0.2",
+                    "0.0"
+                ]
+            }
         }
     ]
 }

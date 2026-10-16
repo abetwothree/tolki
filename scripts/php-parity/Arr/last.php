@@ -55,4 +55,15 @@ probe('last-collection-callback', "Arr::last(collect(['x' => 1, 'y' => 2]), fn (
 probe('last-collection-no-callback', "Arr::last(collect(['x' => 1, 'y' => 2]))", fn () => Arr::last(new Collection(['x' => 1, 'y' => 2])));
 probe('last-assoc-keys', "keys seen by Arr::last(['a' => 1, 'b' => 2], fn () => false)", fn () => keysSeen(fn ($cb) => Arr::last(['a' => 1, 'b' => 2], $cb), false));
 
+// An IteratorAggregate is read whole, like any Traversable; a fresh one is built per call.
+$traversable = fn (): IteratorAggregate => new class implements IteratorAggregate
+{
+    public function getIterator(): Generator
+    {
+        yield from [10, 20, 30, 40, 50];
+    }
+};
+probe('last-traversable', 'Arr::last(<IteratorAggregate yielding 10, 20, 30, 40, 50>)', fn () => Arr::last($traversable()));
+probe('last-traversable-callback', "Arr::last(<IteratorAggregate yielding 10, 20, 30, 40, 50>, fn (\$v) => \$v < 40)", fn () => Arr::last($traversable(), fn ($v) => $v < 40));
+
 emit();

@@ -54,4 +54,9 @@ probe('has-empty-string-key-null-key', "Arr::has(['' => 'some'], null)", fn () =
 probe('has-out-of-order', "Arr::has([2 => 'c', 0 => 'a', 1 => 'b'], [0, 2])", fn () => Arr::has(OUT_OF_ORDER, [0, 2]));
 probe('has-out-of-order-missing', "Arr::has([2 => 'c', 0 => 'a', 1 => 'b'], [0, 5])", fn () => Arr::has(OUT_OF_ORDER, [0, 5]));
 
+probe('has-nested-stored-null', "Arr::has(['m' => ['k' => null]], 'm.k'), Arr::has([['k' => null]], '0.k')", fn () => [
+    'assoc' => Arr::has(['m' => ['k' => null]], 'm.k'),
+    'list' => Arr::has([['k' => null]], '0.k'),
+]);
+
 emit();

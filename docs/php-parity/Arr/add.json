@@ -270,6 +270,20 @@
                     "b": 2
                 }
             ]
+        },
+        {
+            "label": "add-nested-keeps-key-order",
+            "php": "Arr::add(['m' => [2 => 'c']], 'm.0', 'a'), Arr::add([[2 => 'c']], '0.0', 'a')",
+            "value": {
+                "assoc_keys": [
+                    2,
+                    0
+                ],
+                "list_keys": [
+                    2,
+                    0
+                ]
+            }
         }
     ]
 }

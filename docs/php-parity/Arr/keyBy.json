@@ -206,6 +206,14 @@
                 0,
                 "y"
             ]
+        },
+        {
+            "label": "keyBy-nested-path",
+            "php": "array_keys(Arr::keyBy([['m' => ['n' => 2]], ['m' => ['n' => 1]]], 'm.n'))",
+            "value": [
+                2,
+                1
+            ]
         }
     ]
 }

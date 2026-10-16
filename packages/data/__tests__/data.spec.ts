@@ -8148,8 +8148,8 @@ describe("Data", () => {
         });
 
         it("walks an object literal that has its own iterator", () => {
-            // JS-only: PHP has no object literal with its own iterator, so last.json has no row; it is walked like a
-            // generator rather than read as a record of its properties.
+            // docs/php-parity/Arr/last.json, "last-traversable", "last-traversable-callback": an
+            // IteratorAggregate, which this object literal stands for, is read whole.
             const range = {
                 from: 1,
                 to: 5,

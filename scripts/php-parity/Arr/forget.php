@@ -82,4 +82,13 @@ probe('forget-null-inside-a-row', "\$a = [['a' => null]]; Arr::forget(\$a, '0.a.
 probe('forget-proto-segment-in-a-row', "\$a = [['a' => 1]]; Arr::forget(\$a, '0.__proto__.a')", fn () => $f([['a' => 1]], '0.__proto__.a'));
 probe('forget-assoc-through-a-list-row', "\$a = ['rows' => [['a' => 1, 'b' => 2]]]; Arr::forget(\$a, 'rows.0.a')", fn () => $f(['rows' => [['a' => 1, 'b' => 2]]], 'rows.0.a'));
 
+probe('forget-nested-keeps-other-keys', "Arr::forget(\$a, 'm.0'), Arr::forget(\$l, '0.0') on [2 => 'c', 0 => 'a', 1 => 'b']", function () {
+    $a = ['m' => [2 => 'c', 0 => 'a', 1 => 'b']];
+    $l = [[2 => 'c', 0 => 'a', 1 => 'b']];
+    Arr::forget($a, 'm.0');
+    Arr::forget($l, '0.0');
+
+    return ['assoc' => $a, 'assoc_keys' => array_keys($a['m']), 'list' => $l, 'list_keys' => array_keys($l[0])];
+});
+
 emit();

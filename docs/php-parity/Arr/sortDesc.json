@@ -267,6 +267,14 @@
                     ]
                 ]
             ]
+        },
+        {
+            "label": "sortDesc-by-nested-path",
+            "php": "the n values of Arr::sortDesc([['m' => ['n' => 1]], ['m' => ['n' => 2]]], 'm.n')",
+            "value": [
+                2,
+                1
+            ]
         }
     ]
 }

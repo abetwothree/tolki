@@ -42,4 +42,10 @@ probe('sortDesc-collision-loose-ties', "Arr::sortDesc([1 => '1', 0 => 1, '1' => 
 probe('sortDesc-out-of-order-rows-by-path', "Arr::sortDesc([2 => ['n' => 0], 0 => ['n' => 1]], 'n')", fn () => arrayablePairs(Arr::sortDesc([2 => ['n' => 0], 0 => ['n' => 1]], 'n')));
 probe('sortDesc-out-of-order-rows-by-descriptor', "Arr::sortDesc([2 => ['n' => 0], 0 => ['n' => 1]], [['n', 'asc']])", fn () => arrayablePairs(Arr::sortDesc([2 => ['n' => 0], 0 => ['n' => 1]], [['n', 'asc']])));
 
+probe('sortDesc-by-nested-path', "the n values of Arr::sortDesc([['m' => ['n' => 1]], ['m' => ['n' => 2]]], 'm.n')", function () {
+    $rows = [['m' => ['n' => 1]], ['m' => ['n' => 2]]];
+
+    return array_map(fn ($r) => $r['m']['n'], array_values(Arr::sortDesc($rows, 'm.n')));
+});
+
 emit();
