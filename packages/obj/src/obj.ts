@@ -410,6 +410,25 @@ function entriesOf<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
+ * Get the key/value pairs first and last search, reading a collection's items through `all()`.
+ *
+ * @param data - The object, Map or collection to read.
+ * @returns The pairs in order, a list's keyed by position, or null when there is no array to read.
+ */
+function searchedEntries<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: unknown,
+): [TKey, TValue][] | null {
+    // Arr::first and Arr::last read a Collection's items, not the instance, and its items may be a list.
+    const source = isEnumerable(data) ? data.all() : data;
+
+    if (isEnumerable(data) && isArray(source)) {
+        return [...source.entries()] as [TKey, TValue][];
+    }
+
+    return accessible(source) ? entriesOf<TValue, TKey>(source) : null;
+}
+
+/**
  * Rewrite a mutator's record or Map in place so it holds exactly `entries`, in order.
  *
  * Clearing a Map, rather than deleting from it, also drops a `"1"` that `keyedEntries` folded into a `1`; each key is
@@ -1599,6 +1618,7 @@ export function exists<TValue extends Record<PropertyKey, unknown>>(
  * first({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
  * first(new Map([['a', 1], ['b', 2]])); -> 1
  * first(new Items({ a: 1, b: 2 })); -> 1
+ * first(new Items([10, 20]), x => x > 10); -> 20
  */
 export function first<TValue, TKey, TDefault = null>(
     data: ReadonlyMap<TKey, TValue>,
@@ -1622,6 +1642,11 @@ export function first<TDefault = null>(
     callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): unknown;
+export function first<TValue, TDefault = null>(
+    data: { all(): readonly TValue[] },
+    callback?: ((value: TValue, key: number) => unknown) | null,
+    defaultValue?: Default<TDefault>,
+): TValue | TDefault;
 export function first<TValue, TDefault = null>(
     data: { all(): Readonly<Record<string, TValue>> },
     callback?: ((value: TValue, key: string | number) => unknown) | null,
@@ -1658,14 +1683,11 @@ export function first<
             : (defaultValue as TFirstDefault);
     };
 
-    // Arr::first and Arr::last read a Collection's items, not the instance.
-    const source = isEnumerable(data) ? data.all() : data;
+    const entries = searchedEntries<TValue, TKey>(data);
 
-    if (isNull(source) || isUndefined(source) || !accessible(source)) {
+    if (isNull(entries)) {
         return resolveDefault();
     }
-
-    const entries = entriesOf<TValue, TKey>(source);
 
     // No callback: just return first value if it exists.
     if (!callback) {
@@ -1703,6 +1725,7 @@ export function first<
  * last({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
  * last(new Map([['a', 1], ['b', 2]])); -> 2
  * last(new Items({ a: 1, b: 2 })); -> 2
+ * last(new Items([10, 20]), x => x < 20); -> 10
  */
 export function last<TValue, TKey, TDefault = null>(
     data: ReadonlyMap<TKey, TValue>,
@@ -1726,6 +1749,11 @@ export function last<TDefault = null>(
     callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): unknown;
+export function last<TValue, TDefault = null>(
+    data: { all(): readonly TValue[] },
+    callback?: ((value: TValue, key: number) => unknown) | null,
+    defaultValue?: Default<TDefault>,
+): TValue | TDefault;
 export function last<TValue, TDefault = null>(
     data: { all(): Readonly<Record<string, TValue>> },
     callback?: ((value: TValue, key: string | number) => unknown) | null,
@@ -1760,14 +1788,11 @@ export function last<
             : (defaultValue as TDefault);
     };
 
-    // Arr::first and Arr::last read a Collection's items, not the instance.
-    const source = isEnumerable(data) ? data.all() : data;
+    const entries = searchedEntries<TValue, TKey>(data);
 
-    if (isNull(source) || isUndefined(source) || !accessible(source)) {
+    if (isNull(entries)) {
         return resolveDefault();
     }
-
-    const entries = entriesOf<TValue, TKey>(source);
 
     // No predicate case
     if (!isFunction(callback)) {

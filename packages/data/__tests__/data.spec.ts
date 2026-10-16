@@ -8226,6 +8226,8 @@ describe("Data", () => {
             // docs/php-parity/Arr/first.json, "first-collection-callback",
             // "first-collection-no-callback",
             // "first-collection-keys"
+            const keys: unknown[] = [];
+
             expect(
                 Data.dataFirst(
                     collectionLike({ x: 1, y: 2 }),
@@ -8233,6 +8235,33 @@ describe("Data", () => {
                 ),
             ).toBe(2);
             expect(Data.dataFirst(collectionLike({ x: 1, y: 2 }))).toBe(1);
+
+            Data.dataFirst(collectionLike({ x: 1, y: 2 }), (_value, key) => {
+                keys.push(key);
+
+                return false;
+            });
+
+            expect(keys).toEqual(["x", "y"]);
+        });
+
+        it("reads a collection with no iterator holding a list by its positions, as Arr::first does", () => {
+            // docs/php-parity/Arr/first.json, "first-collection-list", "first-collection-list-callback",
+            // "first-collection-list-keys"
+            const keys: unknown[] = [];
+
+            expect(Data.dataFirst(collectionLike([10, 20]))).toBe(10);
+            expect(
+                Data.dataFirst(collectionLike([10, 20]), (value) => value > 10),
+            ).toBe(20);
+
+            Data.dataFirst(collectionLike([10, 20]), (_value, key) => {
+                keys.push(key);
+
+                return false;
+            });
+
+            expect(keys).toEqual([0, 1]);
         });
     });
 
@@ -8374,6 +8403,8 @@ describe("Data", () => {
             // docs/php-parity/Arr/last.json, "last-collection-callback",
             // "last-collection-no-callback",
             // "last-collection-keys"
+            const keys: unknown[] = [];
+
             expect(Data.dataLast(collectionLike({ x: 1, y: 2 }))).toBe(2);
             expect(
                 Data.dataLast(
@@ -8381,6 +8412,33 @@ describe("Data", () => {
                     (value) => value < 2,
                 ),
             ).toBe(1);
+
+            Data.dataLast(collectionLike({ x: 1, y: 2 }), (_value, key) => {
+                keys.push(key);
+
+                return false;
+            });
+
+            expect(keys).toEqual(["y", "x"]);
+        });
+
+        it("reads a collection with no iterator holding a list by its positions, as Arr::last does", () => {
+            // docs/php-parity/Arr/last.json, "last-collection-list", "last-collection-list-callback",
+            // "last-collection-list-keys"
+            const keys: unknown[] = [];
+
+            expect(Data.dataLast(collectionLike([10, 20]))).toBe(20);
+            expect(
+                Data.dataLast(collectionLike([10, 20]), (value) => value < 20),
+            ).toBe(10);
+
+            Data.dataLast(collectionLike([10, 20]), (_value, key) => {
+                keys.push(key);
+
+                return false;
+            });
+
+            expect(keys).toEqual([1, 0]);
         });
     });
 

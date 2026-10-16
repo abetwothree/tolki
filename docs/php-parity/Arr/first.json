@@ -212,6 +212,24 @@
                 "a",
                 "b"
             ]
+        },
+        {
+            "label": "first-collection-list",
+            "php": "Arr::first(collect([10, 20]))",
+            "value": 10
+        },
+        {
+            "label": "first-collection-list-callback",
+            "php": "Arr::first(collect([10, 20]), fn ($v) => $v > 10)",
+            "value": 20
+        },
+        {
+            "label": "first-collection-list-keys",
+            "php": "keys seen by Arr::first(collect([10, 20]), fn () => false)",
+            "value": [
+                0,
+                1
+            ]
         }
     ]
 }

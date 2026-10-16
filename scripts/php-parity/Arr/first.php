@@ -155,5 +155,8 @@ probe('first-scalar-callback', "Arr::first('abc', fn () => true)", fn () => Arr:
 
 probe('first-collection-no-callback', "Arr::first(collect(['x' => 1, 'y' => 2]))", fn () => Arr::first(new Collection(['x' => 1, 'y' => 2])));
 probe('first-assoc-keys', "keys seen by Arr::first(['a' => 1, 'b' => 2], fn () => false)", fn () => keysSeen(fn ($cb) => Arr::first(['a' => 1, 'b' => 2], $cb), false));
+probe('first-collection-list', 'Arr::first(collect([10, 20]))', fn () => Arr::first(new Collection([10, 20])));
+probe('first-collection-list-callback', "Arr::first(collect([10, 20]), fn (\$v) => \$v > 10)", fn () => Arr::first(new Collection([10, 20]), fn ($v) => $v > 10));
+probe('first-collection-list-keys', 'keys seen by Arr::first(collect([10, 20]), fn () => false)', fn () => keysSeen(fn ($cb) => Arr::first(new Collection([10, 20]), $cb), false));
 
 emit();

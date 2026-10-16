@@ -2869,6 +2869,26 @@ describe("Obj", () => {
             expect(keys).toEqual(["x", "y"]);
         });
 
+        it("reads a collection holding a list by its positions, as Arr::first does", () => {
+            // docs/php-parity/Arr/first.json, "first-collection-list", "first-collection-list-callback",
+            // "first-collection-list-keys"
+            const keys: unknown[] = [];
+
+            expect(Obj.first(collectionLike([10, 20]))).toBe(10);
+            expect(
+                Obj.first(collectionLike([10, 20]), (value) => value > 10),
+            ).toBe(20);
+
+            Obj.first(collectionLike([10, 20]), (_value, key) => {
+                keys.push(key);
+
+                return false;
+            });
+
+            expect(keys).toEqual([0, 1]);
+            expect(Obj.first(collectionLike([]), null, "none")).toBe("none");
+        });
+
         it("still reads a plain object's all member as data", () => {
             expect(Obj.first({ a: 1, all: () => [9] })).toBe(1);
         });
@@ -3014,6 +3034,26 @@ describe("Obj", () => {
             });
 
             expect(keys).toEqual(["y", "x"]);
+        });
+
+        it("reads a collection holding a list by its positions, as Arr::last does", () => {
+            // docs/php-parity/Arr/last.json, "last-collection-list", "last-collection-list-callback",
+            // "last-collection-list-keys"
+            const keys: unknown[] = [];
+
+            expect(Obj.last(collectionLike([10, 20]))).toBe(20);
+            expect(
+                Obj.last(collectionLike([10, 20]), (value) => value < 20),
+            ).toBe(10);
+
+            Obj.last(collectionLike([10, 20]), (_value, key) => {
+                keys.push(key);
+
+                return false;
+            });
+
+            expect(keys).toEqual([1, 0]);
+            expect(Obj.last(collectionLike([]), null, "none")).toBe("none");
         });
 
         it("still reads a plain object's all member as data", () => {

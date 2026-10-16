@@ -20,6 +20,9 @@ declare const maybeCount: number | undefined;
 /** A collection-like operand, read through `all()`. */
 declare const keyed: { all(): { x: number; y: number } };
 
+/** A collection-like operand holding a list, read through `all()` by position. */
+declare const listed: { all(): number[] };
+
 describe("obj slicing type tests", () => {
     describe("take and slice", () => {
         it("keep the per-key types as optional", () => {
@@ -317,6 +320,19 @@ describe("obj slicing type tests", () => {
         it("read a collection's items through all()", () => {
             expectTypeOf(Obj.first(keyed)).toEqualTypeOf<number | null>();
             expectTypeOf(Obj.last(keyed)).toEqualTypeOf<number | null>();
+        });
+
+        it("read a collection's list through all(), handing the callback each position", () => {
+            expectTypeOf(Obj.first(listed)).toEqualTypeOf<number | null>();
+            expectTypeOf(Obj.last(listed, null, "none")).toEqualTypeOf<
+                number | string
+            >();
+            Obj.first(listed, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<number>();
+
+                return true;
+            });
         });
 
         it("replace null with the default's type", () => {
