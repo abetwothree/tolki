@@ -2272,7 +2272,7 @@ describe("Data", () => {
                 m: Map<number, string>;
             };
 
-            expect([...list[0]!]).toEqual([
+            expect([...(list[0] as Map<number, string>)]).toEqual([
                 [2, "c"],
                 [1, "b"],
             ]);
@@ -2280,6 +2280,7 @@ describe("Data", () => {
                 [2, "c"],
                 [1, "b"],
             ]);
+            // JS-only: a Map given as the whole data becomes the record from() builds.
             expect(Data.dataForget(row(), "0")).toEqual({ 1: "b", 2: "c" });
         });
 
@@ -3855,6 +3856,7 @@ describe("Data", () => {
                 [2, "c"],
                 [1, "b"],
             ]);
+            // JS-only: a Map given as the whole data becomes the record from() builds.
             expect(Data.dataPull(row(), "0")).toEqual({
                 value: "a",
                 data: { 1: "b", 2: "c" },

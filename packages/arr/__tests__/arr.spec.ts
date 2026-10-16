@@ -97,8 +97,10 @@ describe("Arr", () => {
             const rows = [new Map<number, unknown>([[1, inner]])];
             const out = Arr.add(rows, "0.1.5", "x") as Map<number, unknown>[];
 
-            expect([...out[0]!]).toEqual([[1, { a: 1, 5: "x" }]]);
-            expect(out[0]!.get(1)).not.toBe(inner);
+            expect([...(out[0] as Map<number, unknown>)]).toEqual([
+                [1, { a: 1, 5: "x" }],
+            ]);
+            expect((out[0] as Map<number, unknown>).get(1)).not.toBe(inner);
         });
 
         it("writes over a key already holding null, as Arr::add does", () => {
@@ -1846,7 +1848,9 @@ describe("Arr", () => {
                 ]),
             ];
 
-            expect([...Arr.forget(rows, "0.0")[0]!]).toEqual([
+            expect([
+                ...(Arr.forget(rows, "0.0")[0] as Map<number, string>),
+            ]).toEqual([
                 [2, "c"],
                 [1, "b"],
             ]);
@@ -3167,7 +3171,7 @@ describe("Arr", () => {
                 [2, "c"],
                 [1, "b"],
             ]);
-            expect(rows[0]!.size).toBe(3);
+            expect((rows[0] as Map<number, string>).size).toBe(3);
         });
 
         it("pull", () => {

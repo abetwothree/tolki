@@ -7748,6 +7748,14 @@ describe("Obj", () => {
     });
 
     describe("pull", () => {
+        it("returns a Map passed as the data whole when the key is null", () => {
+            // JS-only: a Map given as the whole data becomes the record from() builds.
+            expect(Obj.pull(new Map([["a", 1]]), null)).toEqual({
+                value: null,
+                data: { a: 1 },
+            });
+        });
+
         it("pulls a key out of a nested Map, or a Map passed as the data", () => {
             // docs/php-parity/Arr/pull.json, "pull-nested-keeps-other-keys"
             const nested = Obj.pull(
