@@ -296,11 +296,10 @@ export function readMapKey(
     map: ReadonlyMap<unknown, unknown>,
     key: string | number,
 ): { found: boolean; value?: unknown } {
-    const phpKey = phpArrayKey(key);
     let result: { found: boolean; value?: unknown } = { found: false };
 
     for (const [mapKey, value] of map) {
-        if (isPhpStorableKey(mapKey) && phpArrayKey(mapKey) === phpKey) {
+        if (isSamePhpKey(mapKey, key)) {
             result = { found: true, value };
         }
     }
@@ -327,11 +326,10 @@ export function writeMapKey(
     key: string | number,
     value: unknown,
 ): void {
-    const phpKey = phpArrayKey(key);
     let written = false;
 
     for (const mapKey of [...map.keys()]) {
-        if (!isPhpStorableKey(mapKey) || phpArrayKey(mapKey) !== phpKey) {
+        if (!isSamePhpKey(mapKey, key)) {
             continue;
         }
 
@@ -344,7 +342,7 @@ export function writeMapKey(
     }
 
     if (!written) {
-        map.set(phpKey, value);
+        map.set(phpArrayKey(key), value);
     }
 }
 
@@ -362,10 +360,8 @@ export function deleteMapKey(
     map: Map<unknown, unknown>,
     key: string | number,
 ): void {
-    const phpKey = phpArrayKey(key);
-
     for (const mapKey of [...map.keys()]) {
-        if (isPhpStorableKey(mapKey) && phpArrayKey(mapKey) === phpKey) {
+        if (isSamePhpKey(mapKey, key)) {
             map.delete(mapKey);
         }
     }
@@ -396,6 +392,21 @@ export function nextIntegerKey(container: object): number {
     }
 
     return highest === undefined ? 0 : highest + 1;
+}
+
+/**
+ * Determine whether a Map key is one PHP stores under the same array key as the given key.
+ *
+ * @param mapKey - The Map key to test.
+ * @param key - The key being read, written or deleted.
+ * @returns True when both cast to the same PHP array key.
+ */
+function isSamePhpKey(mapKey: unknown, key: string | number): boolean {
+    // Compared as strings, as keyedEntries lists them: a bigint key casts to its digits, never to a number.
+    return (
+        isPhpStorableKey(mapKey) &&
+        String(phpArrayKey(mapKey)) === String(phpArrayKey(key))
+    );
 }
 
 /**

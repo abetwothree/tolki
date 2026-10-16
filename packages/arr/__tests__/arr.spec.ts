@@ -5767,6 +5767,16 @@ describe("Arr", () => {
                 new TypeError("Cannot access offset of type array on array"),
             );
         });
+
+        it("reads a bigint Map key by the integer PHP stores", () => {
+            // JS-only: PHP has no bigint; a Map key 10n is listed as "10" by dot, so a path reads it the same way.
+            expect(
+                Arr.pluck(
+                    [{ m: new Map<unknown, string>([[10n, "x"]]) }],
+                    "m.10",
+                ),
+            ).toEqual(["x"]);
+        });
     });
 
     describe("pop", () => {

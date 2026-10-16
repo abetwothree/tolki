@@ -690,6 +690,18 @@ describe("Utils", () => {
             ).toEqual({ found: true, value: "b" });
         });
 
+        it("reads a bigint key as the integer PHP stores", () => {
+            // JS-only: PHP has no bigint; one is keyed by its digits, as keyedEntries lists it.
+            expect(Utils.readMapKey(new Map([[10n, "x"]]), "10")).toEqual({
+                found: true,
+                value: "x",
+            });
+            expect(Utils.readMapKey(new Map([[10n, "x"]]), 10)).toEqual({
+                found: true,
+                value: "x",
+            });
+        });
+
         it("never matches an object or a symbol key", () => {
             expect(
                 Utils.readMapKey(new Map([[{}, "o"]]), "[object Object]"),
@@ -747,6 +759,49 @@ describe("Utils", () => {
             ]);
         });
 
+        it("overwrites a bigint key in its place", () => {
+            // JS-only: PHP has no bigint; one is keyed by its digits, as keyedEntries lists it.
+            const map = new Map<unknown, string>([
+                [10n, "x"],
+                ["a", "y"],
+            ]);
+
+            Utils.writeMapKey(map, "10", "z");
+
+            expect([...map]).toEqual([
+                [10n, "z"],
+                ["a", "y"],
+            ]);
+        });
+
+        it("overwrites a boolean or null key under the key PHP stores for it", () => {
+            // docs/php-parity/Arr/keyBy.json, "keyBy-scalar-key-cast": PHP stores true as 1 and null as "".
+            const map = new Map<unknown, string>([
+                [true, "t"],
+                [null, "n"],
+            ]);
+
+            Utils.writeMapKey(map, 1, "T");
+            Utils.writeMapKey(map, "", "N");
+
+            expect([...map]).toEqual([
+                [true, "T"],
+                [null, "N"],
+            ]);
+        });
+
+        it("leaves a symbol key alone", () => {
+            const key = Symbol("s");
+            const map = new Map<unknown, string>([[key, "s"]]);
+
+            Utils.writeMapKey(map, "Symbol(s)", "x");
+
+            expect([...map]).toEqual([
+                [key, "s"],
+                ["Symbol(s)", "x"],
+            ]);
+        });
+
         it("leaves an object key alone", () => {
             const key = {};
             const map = new Map<unknown, string>([[key, "o"]]);
@@ -771,6 +826,34 @@ describe("Utils", () => {
             Utils.deleteMapKey(map, "1");
 
             expect([...map]).toEqual([[2, "c"]]);
+        });
+
+        it("removes a bigint key by the integer PHP stores", () => {
+            // JS-only: PHP has no bigint; one is keyed by its digits, as keyedEntries lists it.
+            const map = new Map<unknown, string>([
+                [10n, "x"],
+                ["a", "y"],
+            ]);
+
+            Utils.deleteMapKey(map, 10);
+
+            expect([...map]).toEqual([["a", "y"]]);
+        });
+
+        it("removes a boolean or null key by the key PHP stores for it, and never a symbol key", () => {
+            // docs/php-parity/Arr/keyBy.json, "keyBy-scalar-key-cast": PHP stores true as 1 and null as "".
+            const key = Symbol("s");
+            const map = new Map<unknown, string>([
+                [true, "t"],
+                [null, "n"],
+                [key, "s"],
+            ]);
+
+            Utils.deleteMapKey(map, 1);
+            Utils.deleteMapKey(map, "");
+            Utils.deleteMapKey(map, "Symbol(s)");
+
+            expect([...map]).toEqual([[key, "s"]]);
         });
 
         it("leaves the other keys in their order", () => {
