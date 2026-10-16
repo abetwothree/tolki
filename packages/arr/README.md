@@ -405,7 +405,7 @@ divide(["Desk", 100]);
 
 #### dot
 
-Flatten a multi-dimensional array or object into a single level that uses "dot" notation to show depth. See [Dot Notation](https://tolki.abe.dev/arrays-objects/dot-notation.html). The second argument is a key prefix, usually `""`. The third is a depth: how many levels to join into dotted keys. A depth of `0` or `null` joins none, as in Laravel. <!-- docs/php-parity/Arr/dot.json, "dot-depth-through-list", "dot-null-depth", "dot-zero-depth" -->
+Flatten a multi-dimensional array or object into a single level that uses "dot" notation to show depth. See [Dot Notation](https://tolki.abe.dev/arrays-objects/dot-notation.html). The second argument is a key prefix, usually `""`. The third is a depth: how many levels to join into dotted keys. A depth of `0` or `null` joins none, as in Laravel. <!-- docs/php-parity/Arr/dot.json, "dot-depth-through-list", "dot-null-depth", "dot-zero-depth" --> A `Map` in the data is flattened in its key order. <!-- docs/php-parity/Arr/dot.json, "dot-nested-out-of-order" -->
 
 Exported as `dot` from `@tolki/arr` and `@tolki/obj`, and as `dataDot` from `@tolki/data`.
 
@@ -1141,7 +1141,7 @@ pull(["a"], 5, "none");
 
 #### push
 
-Push one or more items into the array at the given key, using "dot" notation. It returns a new value and leaves the original unchanged. See [Return values instead of references](https://tolki.abe.dev/arrays-objects/differences.html#return-values-instead-of-references).
+Push one or more items into the array at the given key, using "dot" notation. It returns a new value and leaves the original unchanged. See [Return values instead of references](https://tolki.abe.dev/arrays-objects/differences.html#return-values-instead-of-references). When the target is an object or a `Map`, the new item goes under the next whole-number key, as in Laravel. <!-- docs/php-parity/Arr/push.json, "push-assoc-leaf-appends" -->
 
 Exported as `push` from `@tolki/arr` and `@tolki/obj`, and as `dataPush` from `@tolki/data`.
 
@@ -1889,6 +1889,7 @@ dataGet({ "a.b": 1, a: { b: 2 } }, "a.b");
 - **Read:** `get`, `has`, `hasAll`, `hasAny`, and the typed getters `string`, `integer`, `float`, `boolean` and `arrayItem` (`objectItem`, `dataItem`).
 - **Write:** `set`, `add`, `forget`, `pull` and `push`. `set`, `add` and `push` create the missing steps of a path as they go. `forget` leaves the data as it is when the path is missing, and `pull` returns the default, `null` unless you pass one, with the data unchanged.
 - **Pick out of rows:** `pluck` takes a path for the value and for the key, and `except` takes paths among its keys.
+- **Walk:** a path goes into lists, plain objects and `Map`s. A write keeps a `Map` a `Map`. <!-- docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys" -->
 - **Convert:** `dot` turns a nested structure into a flat object of paths, and `undot` turns it back.
 
 ```js [@tolki/arr]
@@ -2407,7 +2408,8 @@ arrayItem([{ tags: ["a"] }], "0.tags");
 - Functions Laravel has on `Collection` rather than on `Arr`. All three packages export `chunk`, `chunkBy`, `chunkWhile`, `combine`, `contains`, `containsStrict`, the `diff` and `intersect` families, `filter`, `flip`, `keys`, `pad`, `pop`, `replace`, `replaceRecursive`, `reverse`, `shift`, `skipUntil`, `skipWhile`, `slice`, `splice`, `takeUntil`, `takeWhile`, `union`, `unshift` and `values`. `@tolki/data` also has `dataCount`, `dataSearch`, `dataBefore` and `dataAfter`. <!-- docs/php-parity/Collection/search.json, "search-callback"; docs/php-parity/Collection/before.json, "before-array-needle"; docs/php-parity/Collection/after.json, "after-array-needle"; docs/php-parity/Collection/count.json, "count-empty" -->
 - `flattenDot` in `@tolki/obj` flattens like `dot` but drops an empty nested object or array, where `dot` keeps it as a value, as Laravel's `Arr::dot()` does. <!-- docs/php-parity/Arr/dot.json, "dot-empty-leaf", "dot-nested-empty-leaf" -->
 - `dataUndot(data, true)` builds a list from paths made of whole numbers such as `"0.1"`, as `undot` from `@tolki/arr` always does. It throws a `TypeError` for any other path.
-- `@tolki/obj` and `@tolki/data` read a `Map`, and `@tolki/data` reads a `Set` and a generator as a list.
+- A `Map` anywhere in the data is read and written as Laravel reads a nested array. A write keeps the `Map` a `Map` and keeps its key order. When the whole data is a `Map`, a function that writes returns a plain object. <!-- docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order" -->
+- `@tolki/data` reads a `Set` and a generator as a list.
 
 ```js
 import {
@@ -2419,7 +2421,7 @@ import {
   dataSearch,
   dataUndot,
 } from "@tolki/data";
-import { dot, flattenDot } from "@tolki/obj";
+import { dot, flattenDot, set } from "@tolki/obj";
 
 dataCount({ a: 1, b: 2 });
 // => 2
@@ -2447,6 +2449,18 @@ dataFrom(new Set([1, 2]));
 
 dataGet(new Map([["a", { b: 1 }]]), "a.b");
 // => 1
+
+set(
+  {
+    m: new Map([
+      [2, "c"],
+      [0, "a"],
+    ]),
+  },
+  "m.1",
+  "b",
+);
+// => { m: new Map([[2, "c"], [0, "a"], [1, "b"]]) }
 ```
 
 <!-- AUTO-GENERATED-DOCS:END -->
