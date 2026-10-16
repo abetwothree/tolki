@@ -96,7 +96,7 @@ Example in Vue template:
 </template>
 ```
 
-`from` and `to` are `number | null`, because Laravel sends `null` for both on a page with no items. Each entry of `links` is a `PaginatorLink`, whose `page` field is optional, because Laravel sends it from 12.23, and never on the `...` separator.
+`from` and `to` are `number | null`, because Laravel sends `null` for both on a page with no items. Each entry of `links` is a `PaginatorLink`. Its `page` field is optional, because Laravel 12.23 and later send it, and never on the `...` separator.
 
 ### SimplePaginator
 
@@ -144,7 +144,7 @@ defineProps<{
 </script>
 ```
 
-`current_page_url` is optional, because Laravel sends it from 12.15. `from` and `to` are `number | null`, as on `LengthAwarePaginator`.
+`current_page_url` is optional, because Laravel 12.15 and later send it. `from` and `to` are `number | null`, as on `LengthAwarePaginator`.
 
 ### CursorPaginator
 
@@ -520,25 +520,25 @@ If needed, you can also use these types individually to define the structure of 
 
 ### Simple and Cursor Paginated Resources
 
-A collection over `simplePaginate()` or `cursorPaginate()` sends a smaller `meta` block. A simple paginator's has no `last_page`, `links`, or `total`, and a cursor paginator's has only `path`, `per_page`, `next_cursor`, and `prev_cursor`. Use the types that match the paginator:
+A collection over `simplePaginate()` or `cursorPaginate()` sends a smaller `meta` block. A simple paginator's `meta` block has no `last_page`, `links`, or `total`, and a cursor paginator's `meta` block has only `path`, `per_page`, `next_cursor`, and `prev_cursor`. Use the types that match the paginator:
 
 - `paginate()`: `JsonResourcePaginator<T>` for the whole response, `ResourcePagination` for the `meta` and `links` blocks, and `JsonResourceMeta` for the `meta` block alone.
 - `simplePaginate()`: `JsonResourceSimplePaginator<T>`, `ResourceSimplePagination`, and `JsonResourceSimpleMeta`.
 - `cursorPaginate()`: `JsonResourceCursorPaginator<T>`, `ResourceCursorPagination`, and `JsonResourceCursorMeta`.
 
-A `meta` and `links` type extends a collection's own interface, as in `UserCollection & ResourceSimplePagination`. `JsonResourceSimpleMeta` has the optional `current_page_url` that `SimplePaginator` has. In `JsonResourceMeta` and `JsonResourceSimpleMeta`, `from` and `to` are `number | null`.
+To type a paginated named collection, join its own interface and the `meta` and `links` type with `&`, as in `UserCollection & ResourceSimplePagination`. `JsonResourceSimpleMeta` has the optional `current_page_url` that `SimplePaginator` has. In `JsonResourceMeta` and `JsonResourceSimpleMeta`, `from` and `to` are `number | null`.
 
 ## JSON:API Utilities Types
 
 Laravel's [JSON:API resources](https://laravel.com/docs/eloquent-resources#jsonapi-resources), from Laravel 12.45, send a [JSON:API](https://jsonapi.org/format/) document. These types describe each document, given the resource object it sends under `data` and the resource objects its `included` member can hold:
 
-| Type                           | What Laravel sends                                                      |
-| ------------------------------ | ----------------------------------------------------------------------- |
-| `JsonApiDocument<R, I>`        | A single resource, as `{ data: R; included?: I[]; jsonapi? }`           |
-| `JsonApiCollection<R, I>`      | `SomeResource::collection()` over items that aren't paginated           |
-| `JsonApiPaginator<R, I>`       | `SomeResource::collection()` over `paginate()`, with `links` and `meta` |
-| `JsonApiSimplePaginator<R, I>` | The same over `simplePaginate()`                                        |
-| `JsonApiCursorPaginator<R, I>` | The same over `cursorPaginate()`                                        |
+| Type                           | What Laravel sends                                                           |
+| ------------------------------ | ---------------------------------------------------------------------------- |
+| `JsonApiDocument<R, I>`        | A single resource, as `{ data: R; included?: I[]; jsonapi?: JsonApiObject }` |
+| `JsonApiCollection<R, I>`      | `SomeResource::collection()` over items that aren't paginated                |
+| `JsonApiPaginator<R, I>`       | `SomeResource::collection()` over `paginate()`, with `links` and `meta`      |
+| `JsonApiSimplePaginator<R, I>` | The same over `simplePaginate()`                                             |
+| `JsonApiCursorPaginator<R, I>` | The same over `cursorPaginate()`                                             |
 
 `I` defaults to `JsonApiResourceObject`, which fits any resource object. The paginator documents take their `meta` block from the matching type above, such as `JsonResourceSimpleMeta`.
 
@@ -578,15 +578,22 @@ The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-pub
 
 ### Sparse Fieldsets
 
-A request with a sparse fieldset, such as `?fields[posts]=title`, sends only the attributes it names. `JsonApiSparse<R>` makes every attribute of a resource object optional:
+A request with a sparse fieldset, such as `?fields[posts]=title`, sends only the attributes it names. `JsonApiSparse<R>` makes a resource object's `attributes` member optional, and every attribute in it:
 
 ```typescript
-import type { JsonApiDocument, JsonApiSparse } from "@tolki/types";
+import type { JsonApiSparse } from "@tolki/types";
 
-const response = await fetch("/api/posts/1?fields[posts]=title");
-const post: JsonApiDocument<JsonApiSparse<Post>> = await response.json();
+interface PostResource {
+  id: string;
+  type: "posts";
+  attributes: { title: string; body: string };
+}
 
-post.data.attributes?.title; // string | undefined
+type SparsePost = JsonApiSparse<PostResource>;
+
+const post: SparsePost = { id: "1", type: "posts", attributes: {} };
+
+post.attributes?.title; // string | undefined
 ```
 
 Over a union of resource objects, `JsonApiSparse` reads each one on its own, so checking `type` still narrows `attributes`.

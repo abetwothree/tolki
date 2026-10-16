@@ -2,7 +2,7 @@
 
 The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) reads the `share()` method of your `HandleInertiaRequests` middleware and writes `inertia-config.d.ts`. That file declares a global `Inertia.SharedData` type and augments `@inertiajs/core`, so every Inertia page gets typed shared props without a type you maintain by hand.
 
-This page covers shared data. A route's own page props, meaning the `component` field and the page-props type on its route helper, are covered in [Inertia Integration](./routing.md#inertia-integration) on the Routing page.
+This page covers shared data, and the API resources that shared data and a route's page props hold. A route's own page props, meaning the `component` field and the page-props type on its route helper, are covered in [Inertia Integration](./routing.md#inertia-integration) on the Routing page.
 
 ## How the Augmentation File Is Generated
 
@@ -167,11 +167,11 @@ Each kind of prop follows its own rule:
 
 The wrap key is the one your app sets by the time `ts:publish` runs, as [The Wrap Key Your App Sets](./api-resources.md#the-wrap-key-your-app-sets) describes. After `JsonResource::withoutWrapping()`, a single resource publishes the bare `PostResource`, and `Resource::collection()` over items that aren't paginated publishes `CommentResource[]`. Over a paginator, Laravel keeps the `data` key. After `JsonResource::wrap('items')`, a single resource publishes `{ items: PostResource }`.
 
-Some props publish less than Inertia sends. The keys that `additional()` or a resource's `with()` method add beside `data` aren't published, and `Resource::collection(...)->additional(...)` publishes `unknown`. Props that another class's method builds, as in `Inertia::render('Posts/Show', $this->props->build())`, publish each API resource inside them bare, though Inertia sends it under `data`. Type such a prop with [`#[TsCasts]`](./routing.md#overriding-props-with-tscasts).
+Some props publish less than Inertia sends. The keys that `additional()` or a resource's `with()` method add beside `data` aren't published, and after `JsonResource::withoutWrapping()` those keys still make Laravel nest the resource under `data`, while the package publishes it bare. `Resource::collection(...)->additional(...)` publishes `unknown`. Props that another class's method builds, as in `Inertia::render('Posts/Show', $this->props->build())`, publish each API resource inside them bare, though Inertia sends it under `data`. Type such a prop with [`#[TsCasts]`](./routing.md#overriding-props-with-tscasts).
 
 ### JSON:API Resources in Props
 
-A [JSON:API resource](./api-resources.md#json-api-resources) prop publishes the document Inertia sends, with the document types from `@tolki/types`:
+A [JSON:API resource](./api-resources.md#json-api-resources) prop publishes the document Inertia sends, with the document types from `@tolki/types`. Here `PostResource` extends `JsonApiResource`, and its one relationship, `author`, is a `UserResource`:
 
 ```php
 return Inertia::render('Posts/Index', [
@@ -185,15 +185,15 @@ The page-props type names each document:
 
 ```typescript
 export type IndexPageProps = Inertia.SharedData & {
-  post: JsonApiDocument<PostResource, UserResource | CommentResource>;
-  posts: JsonApiCollection<PostResource, UserResource | CommentResource>;
-  paged: JsonApiPaginator<PostResource, UserResource | CommentResource>;
+  post: JsonApiDocument<PostResource, UserResource>;
+  posts: JsonApiCollection<PostResource, UserResource>;
+  paged: JsonApiPaginator<PostResource, UserResource>;
 };
 ```
 
-The second type parameter lists every resource object that an `?include=` request can add to `included`, through the relationships of each related resource too. A related model with no JSON:API resource of its own adds Laravel's fallback, such as `JsonApiResourceObject<'reports'>`. Over `simplePaginate()` and `cursorPaginate()`, the prop publishes `JsonApiSimplePaginator` and `JsonApiCursorPaginator`. `toResource()` and `toResourceCollection()` publish the same documents.
+The second type parameter lists every resource object that an `?include=` request can add to `included`, a union when there are several, through the relationships of each related resource too. A related model with no JSON:API resource of its own adds Laravel's fallback, such as `JsonApiResourceObject<"reports">`. Over `simplePaginate()` and `cursorPaginate()`, the prop publishes `JsonApiSimplePaginator` and `JsonApiCursorPaginator`. `toResource()` and `toResourceCollection()` publish the same documents.
 
-After `JsonResource::withoutWrapping()`, `PostResource::collection()` over items that aren't paginated publishes the bare `PostResource[]` Laravel sends. A request with `?include=` still sends that collection under `data`, beside `included`.
+After `JsonResource::withoutWrapping()`, `PostResource::collection()` over items that aren't paginated publishes the bare `PostResource[]`. A request with `?include=`, or any request once `JsonApiResource::configure()` sets the `jsonapi` member, still sends it under `data`, and the published type doesn't cover that.
 
 ## Preserve-Keys Resource Collections in Page Props
 
@@ -242,7 +242,9 @@ export type IndexPageProps = Inertia.SharedData & {
 };
 ```
 
-`paginate()`, `simplePaginate()`, and `cursorPaginate()` are all recognized, in the `new SomeCollection(...)`, `SomeResource::collection(...)`, and `->toResourceCollection()` forms. Each paginator sends its own `meta` block, so each gets its own type from `@tolki/types`. A named collection adds the pagination type to its own interface. An anonymous collection, from `SomeResource::collection(...)`, publishes the paginator's whole response, and so does a collection with `$wrap = null`, because Laravel sends it under `data` over a paginator. In this list, the named form comes first, and `R` is the collected resource:
+`paginate()`, `simplePaginate()`, and `cursorPaginate()` are all recognized, in the `new SomeCollection(...)`, `SomeResource::collection(...)`, and `->toResourceCollection()` forms.
+
+Each paginator sends its own `meta` block, so each gets its own type from `@tolki/types`. A named collection adds the pagination type to its own interface. An anonymous collection, from `SomeResource::collection(...)`, publishes the paginator's whole response, and so does a collection with `$wrap = null`, because Laravel sends it under `data` over a paginator. In this list, the named form comes first, and `R` is the collected resource:
 
 - `paginate()`: `TeamCollection & ResourcePagination`, or `JsonResourcePaginator<R>`.
 - `simplePaginate()`: `TeamCollection & ResourceSimplePagination`, or `JsonResourceSimplePaginator<R>`.

@@ -1876,11 +1876,11 @@ class OrderCollection extends ResourceCollection
 
 On Laravel 12, use the `$collects` property or the naming convention. The `#[Collects]` attribute doesn't exist there, so the package can't find the resource of a collection that relies on it.
 
-The package reads the attribute, the property's declared value, and the class name. A collection that overrides `collects()`, or assigns `$this->collects` in its constructor, publishes an empty interface. Declare `public $collects` instead.
+A collection that names its resource only through an overridden `collects()` method, or by assigning `$this->collects` in its constructor, publishes an empty interface. Declare `public $collects` instead.
 
 When no singular resource matches, such as for a `MiscCollection` with no `MiscResource`, `$this->collection` publishes `unknown[]`.
 
-A collection with no `toArray()` publishes Laravel's default shape, `{ data: R[] }`. So does a `toArray()` that returns the collected list: the `return parent::toArray($request);` stub that `php artisan make:resource` writes, `$this->collection`, or `$this->resource`. With `public static $wrap = null;`, the collection is the list itself, so the package publishes a type alias instead of an interface:
+A collection with no `toArray()` publishes Laravel's default shape, `{ data: R[] }`. So does a `toArray()` that returns the collected list: the `return parent::toArray($request);` stub that `php artisan make:resource` writes, `$this->collection`, or `$this->resource`. Over a paginator, `return $this->resource;` sends more than that, as [Paginated Collections](#paginated-collections) describes. With `public static $wrap = null;`, the collection is the list itself, so the package publishes a type alias instead of an interface:
 
 ```php
 #[Collects(PostResource::class)] // Laravel 13+
@@ -1896,7 +1896,7 @@ The unwrapped collection becomes an alias:
 export type PostFlatCollection = PostResource[];
 ```
 
-A collection with no `toArray()` that extends another collection applies the list above to its own class. It inherits the parent's `$collects` property and `$wrap`, but not a `#[Collects]` or `#[PreserveKeys]` attribute, because PHP attributes aren't inherited. When the child names no resource at all, Laravel sends the plain models. The package then publishes the model behind the parent's resource, such as `data: Supplier[]`, or the parent's resource when it doesn't publish that model. Set `$collects` on the child to name its resource, as `HandoverDigestCollection` does:
+A collection with no `toArray()` that extends another collection applies the list above to its own class, and inherits the parent's `$collects` property and `$wrap`, but no PHP attribute, such as `#[Collects]` or `#[PreserveKeys]`. When the parent names its resource with `#[Collects]` or by its class name, a child that doesn't name one itself makes Laravel send the plain models. The package then publishes the model behind the parent's resource, such as `handovers: Handover[]` for a child of a `HandoverCollection` with `#[Collects(HandoverResource::class)]`, or the parent's resource when it doesn't publish that model. Set `$collects` on the child to name its resource, as `HandoverDigestCollection` does:
 
 ```php
 class HandoverCollection extends ResourceCollection
@@ -2043,7 +2043,7 @@ The package doesn't follow a collection pipeline on `$this->resource`, such as `
 
 A collection's interface covers what its `toArray()` returns. The `links` and `meta` keys Laravel adds to a paginated response, and any data you add with `with()` or `additional()`, aren't part of it. An Inertia page prop that passes a paginator to a resource collection gets its pagination members from the page prop's type instead, with the `meta` block of each paginator kind. See [Paginating Inline in the Render Call](./inertia.md#paginating-inline-in-the-render-call) on the Inertia page.
 
-Over a paginator, Laravel merges a `meta` or `links` key that your `toArray()` returns beside `data` into its own pagination block with `array_merge_recursive()`, and it merges the `with()` and `additional()` data the same way. A key your `toArray()` adds, such as `links.self`, is in the page prop's type. A key that two of these name, such as `meta.total`, is sent as a list of both values, such as `[3, 3]`, while the type still says `number`. Give your key another name, or remove Laravel's from `paginationInformation()`.
+Over a paginator, Laravel merges a `meta` or `links` key that your `toArray()` returns beside `data` into its own pagination block with `array_merge_recursive()`, and it merges the `with()` and `additional()` data the same way. A key your `toArray()` adds, such as `links.self`, is in the page prop's type. A key that two of these name, such as `meta.total`, is sent as a list of both values, such as `[3, 3]`, while the type still says `number`. Give your key another name, or remove from `paginationInformation()` only the key your `toArray()` also sends. The package doesn't read `paginationInformation()`, so any other change there leaves the published pagination type wrong.
 
 Over a paginator, `$this->resource` holds the paginator itself. A `toArray()` that returns it sends the paginator's own array, with `current_page`, `first_page_url`, and its other keys, beside `links` and `meta`, and the page prop's type covers only `data`, `links`, and `meta`. Return `$this->collection` in a collection you paginate.
 
@@ -2094,31 +2094,16 @@ export interface PostResource {
 Each member follows what Laravel sends:
 
 - **`id`**: always `string`, because Laravel sends the model's key as a string, even an integer one.
-- **`type`**: the type Laravel works out for the resource when `ts:publish` runs, such as `'posts'` for `PostResource`, or the string literal your `toType()` returns.
+- **`type`**: the type Laravel works out for the resource when `ts:publish` runs, such as `"posts"` for `PostResource`, or the string literal your `toType()` returns.
 - **`attributes`**: taken from the first source the resource declares, in the order Laravel reads them:
   1. A `toAttributes()` method. A key that `when()` or another conditional method wraps is optional, and an attribute name listed without a key, such as `'title'`, reads that model attribute.
   2. The `$attributes` property, a list of model attribute names.
   3. A `toArray()` method. Its keys become the attributes, not the whole response.
   4. With none of these, every key of the model's own `toArray()`, as [JsonResource Base Delegation](#jsonresource-base-delegation) describes.
-- **`relationships`**: one key per relationship that `$relationships` or `toRelationships()` declares, named after its relation method. The member and each key are optional, because Laravel sends a relationship only when the request asks for it with `?include=`. A to-one relationship publishes `JsonApiToOneRelationship<'users'>`, and a to-many one `JsonApiToManyRelationship<'comments'>`.
+- **`relationships`**: one key per relationship that `$relationships` or `toRelationships()` declares, named after its relation method. The member and each key are optional, because Laravel sends a relationship only when the request asks for it with `?include=`, or when you call `includePreviouslyLoadedRelationships()` on the resource and the relation is already loaded. A to-one relationship publishes `JsonApiToOneRelationship<"users">`, and a to-many one `JsonApiToManyRelationship<"comments">`.
 - **`links` and `meta`**: optional members, published from `toLinks()` and `toMeta()`, or from the `$jsonApiLinks` and `$jsonApiMeta` properties.
 
 `attributes` is required while at least one attribute is always sent. A `#[TsCasts]` entry on the resource or on its model retypes a key inside `attributes`, and never `id` or `type`.
-
-### Sparse Fieldsets
-
-Every attribute the resource always sends is required. A request with a sparse fieldset, such as `?fields[posts]=title`, sends only the attributes it names. Read such a response through `JsonApiSparse` from `@tolki/types`, which makes each attribute optional:
-
-```typescript
-import type { JsonApiDocument, JsonApiSparse } from "@tolki/types";
-import type { PostResource } from "@js/types/data/app/http/resources";
-
-const response = await fetch(`/api/posts/${id}?fields[posts]=title`);
-const post: JsonApiDocument<JsonApiSparse<PostResource>> =
-  await response.json();
-
-post.data.attributes?.title; // string | undefined
-```
 
 ### Fetching a Document
 
@@ -2132,21 +2117,38 @@ import type {
   UserResource,
 } from "@js/types/data/app/http/resources";
 
-const response = await fetch(`/api/posts/${id}?include=author,comments`);
-const post: JsonApiDocument<PostResource, UserResource | CommentResource> =
-  await response.json();
+type Included = UserResource | CommentResource;
 
-post.data.attributes.title; // string
-post.included; // (UserResource | CommentResource)[] | undefined
+const res = await fetch(`/api/posts/${id}?include=author,comments`);
+const doc: JsonApiDocument<PostResource, Included> = await res.json();
+
+doc.data.attributes.title; // string
+doc.included; // Included[] | undefined
 ```
 
 `JsonApiCollection<PostResource>` types what `PostResource::collection()` sends, and `JsonApiPaginator`, `JsonApiSimplePaginator`, and `JsonApiCursorPaginator` type it over each paginator. [JSON:API Utilities Types](../typescript/typescript-utilities-list.md#json-api-utilities-types) lists every type.
 
 As an Inertia prop, a JSON:API resource publishes its whole document for you. See [JSON:API Resources in Props](./inertia.md#json-api-resources-in-props).
 
+### Sparse Fieldsets
+
+Every attribute the resource always sends is required. A request with a sparse fieldset, such as `?fields[posts]=title`, sends only the attributes it names. Read such a response through `JsonApiSparse` from `@tolki/types`, which makes the `attributes` member optional, and every attribute in it:
+
+```typescript
+import type { JsonApiDocument, JsonApiSparse } from "@tolki/types";
+import type { PostResource } from "@js/types/data/app/http/resources";
+
+type SparsePost = JsonApiSparse<PostResource>;
+
+const res = await fetch(`/api/posts/${id}?fields[posts]=title`);
+const doc: JsonApiDocument<SparsePost> = await res.json();
+
+doc.data.attributes?.title; // string | undefined
+```
+
 ### Nesting a JSON:API Resource
 
-Inside a plain API resource, Laravel sends a JSON:API resource without its document:
+Inside a plain API resource, Laravel sends a JSON:API resource without `included` or `jsonapi`:
 
 ```php
 'author' => new UserResource($this->author),
@@ -2165,8 +2167,6 @@ related: { data: PostResource }[];
 - A single resource, from `new`, `make()`, or `toResource()`, sends its resource object under `data`, and adds `| null` where its model can be `null`.
 - `collection()` sends a list of resource objects.
 - A named collection sends each item under its own `data` key.
-
-A nested JSON:API resource never sends `included`.
 
 ### What Isn't Typed
 

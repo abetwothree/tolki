@@ -89,7 +89,7 @@ Every pattern in [API Resources](./api-resources.md) gives the same properties, 
 
 A [JSON:API resource](./api-resources.md#json-api-resources) returns its resource object, the `id`, `type`, `attributes`, and other members a publish writes, even when it declares a `toArray()`.
 
-To read a resource's `with()`, `resolve()`, or `jsonSerialize()`, pass that method's name as the second argument. `analyze($resource, 'with')` starts from the resource's `$with` property, so a `with()` that returns `parent::with($request)`, or builds on it, returns the `$with` keys. A `resolve()` or `jsonSerialize()` that returns its parent's returns the resource's `toArray()` keys, as Laravel sends them, and a `jsonSerialize()` reads the resource's own `resolve()` when it declares one.
+To read a resource's `with()`, `resolve()`, or `jsonSerialize()`, pass that method's name as the second argument. `analyze($resource, 'with')` starts from the resource's `$with` property, so a `with()` that returns `parent::with($request)`, or builds on it, returns the `$with` keys. A `resolve()` or `jsonSerialize()` built on the parent's method returns the resource's `toArray()` keys, as Laravel sends them, and a `jsonSerialize()` reads the resource's own `resolve()` when it declares one.
 
 ### Models
 
