@@ -2848,6 +2848,30 @@ describe("Obj", () => {
             ).toBe(2);
             expect(calls).toBe(2);
         });
+
+        it("reads a collection's items through all(), as Arr::first reads a Collection", () => {
+            // docs/php-parity/Arr/first.json, "first-collection-callback",
+            // "first-collection-no-callback",
+            // "first-collection-keys"
+            const keys: unknown[] = [];
+
+            expect(
+                Obj.first(collectionLike({ x: 1, y: 2 }), (value) => value > 1),
+            ).toBe(2);
+            expect(Obj.first(collectionLike({ x: 1, y: 2 }))).toBe(1);
+
+            Obj.first(collectionLike({ x: 1, y: 2 }), (_value, key) => {
+                keys.push(key);
+
+                return false;
+            });
+
+            expect(keys).toEqual(["x", "y"]);
+        });
+
+        it("still reads a plain object's all member as data", () => {
+            expect(Obj.first({ a: 1, all: () => [9] })).toBe(1);
+        });
     });
 
     describe("last", () => {
@@ -2970,6 +2994,30 @@ describe("Obj", () => {
                     ]),
                 ),
             ).toBe("z");
+        });
+
+        it("reads a collection's items through all(), as Arr::last reads a Collection", () => {
+            // docs/php-parity/Arr/last.json, "last-collection-callback",
+            // "last-collection-no-callback",
+            // "last-collection-keys"
+            const keys: unknown[] = [];
+
+            expect(
+                Obj.last(collectionLike({ x: 1, y: 2 }), (value) => value < 2),
+            ).toBe(1);
+            expect(Obj.last(collectionLike({ x: 1, y: 2 }))).toBe(2);
+
+            Obj.last(collectionLike({ x: 1, y: 2 }), (_value, key) => {
+                keys.push(key);
+
+                return false;
+            });
+
+            expect(keys).toEqual(["y", "x"]);
+        });
+
+        it("still reads a plain object's all member as data", () => {
+            expect(Obj.last({ all: () => [9], a: 1 })).toBe(1);
         });
     });
 

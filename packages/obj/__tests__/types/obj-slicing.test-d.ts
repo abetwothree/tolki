@@ -17,6 +17,9 @@ import {
 
 declare const maybeCount: number | undefined;
 
+/** A collection-like operand, read through `all()`. */
+declare const keyed: { all(): { x: number; y: number } };
+
 describe("obj slicing type tests", () => {
     describe("take and slice", () => {
         it("keep the per-key types as optional", () => {
@@ -309,6 +312,11 @@ describe("obj slicing type tests", () => {
         it("return the value type or null", () => {
             expectTypeOf(Obj.first(abc)).toEqualTypeOf<number | null>();
             expectTypeOf(Obj.last(abc)).toEqualTypeOf<number | null>();
+        });
+
+        it("read a collection's items through all()", () => {
+            expectTypeOf(Obj.first(keyed)).toEqualTypeOf<number | null>();
+            expectTypeOf(Obj.last(keyed)).toEqualTypeOf<number | null>();
         });
 
         it("replace null with the default's type", () => {

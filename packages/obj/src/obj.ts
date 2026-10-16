@@ -1571,6 +1571,7 @@ export function exists<TValue extends Record<PropertyKey, unknown>>(
  * first({ a: 1, b: 2, c: 3 }, x => x > 1); -> 2
  * first({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
  * first(new Map([['a', 1], ['b', 2]])); -> 1
+ * first(new Items({ a: 1, b: 2 })); -> 1
  */
 export function first<TValue, TKey, TDefault = null>(
     data: ReadonlyMap<TKey, TValue>,
@@ -1594,6 +1595,11 @@ export function first<TDefault = null>(
     callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): unknown;
+export function first<TValue, TDefault = null>(
+    data: { all(): Readonly<Record<string, TValue>> },
+    callback?: ((value: TValue, key: string | number) => unknown) | null,
+    defaultValue?: Default<TDefault>,
+): TValue | TDefault;
 export function first<T extends object, TDefault = null>(
     data: T,
     callback?:
@@ -1625,11 +1631,14 @@ export function first<
             : (defaultValue as TFirstDefault);
     };
 
-    if (isNull(data) || isUndefined(data) || !accessible(data)) {
+    // Arr::first and Arr::last read a Collection's items, not the instance.
+    const source = isEnumerable(data) ? data.all() : data;
+
+    if (isNull(source) || isUndefined(source) || !accessible(source)) {
         return resolveDefault();
     }
 
-    const entries = entriesOf<TValue, TKey>(data);
+    const entries = entriesOf<TValue, TKey>(source);
 
     // No callback: just return first value if it exists.
     if (!callback) {
@@ -1666,6 +1675,7 @@ export function first<
  * last({ a: 1, b: 2, c: 3 }, x => x < 3); -> 2
  * last({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
  * last(new Map([['a', 1], ['b', 2]])); -> 2
+ * last(new Items({ a: 1, b: 2 })); -> 2
  */
 export function last<TValue, TKey, TDefault = null>(
     data: ReadonlyMap<TKey, TValue>,
@@ -1689,6 +1699,11 @@ export function last<TDefault = null>(
     callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): unknown;
+export function last<TValue, TDefault = null>(
+    data: { all(): Readonly<Record<string, TValue>> },
+    callback?: ((value: TValue, key: string | number) => unknown) | null,
+    defaultValue?: Default<TDefault>,
+): TValue | TDefault;
 export function last<T extends object, TDefault = null>(
     data: T,
     callback?: ((value: ObjectValue<T>, key: ObjectKey<T>) => unknown) | null,
@@ -1718,11 +1733,14 @@ export function last<
             : (defaultValue as TDefault);
     };
 
-    if (isNull(data) || isUndefined(data) || !accessible(data)) {
+    // Arr::first and Arr::last read a Collection's items, not the instance.
+    const source = isEnumerable(data) ? data.all() : data;
+
+    if (isNull(source) || isUndefined(source) || !accessible(source)) {
         return resolveDefault();
     }
 
-    const entries = entriesOf<TValue, TKey>(data);
+    const entries = entriesOf<TValue, TKey>(source);
 
     // No predicate case
     if (!isFunction(callback)) {

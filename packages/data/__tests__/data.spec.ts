@@ -8221,6 +8221,19 @@ describe("Data", () => {
             expect(Data.dataFirst(range)).toBe(10);
             expect(Data.dataFirst(range, (value) => value > 20)).toBe(30);
         });
+
+        it("reads a collection with no iterator through all(), as Arr::first does", () => {
+            // docs/php-parity/Arr/first.json, "first-collection-callback",
+            // "first-collection-no-callback",
+            // "first-collection-keys"
+            expect(
+                Data.dataFirst(
+                    collectionLike({ x: 1, y: 2 }),
+                    (value) => value > 1,
+                ),
+            ).toBe(2);
+            expect(Data.dataFirst(collectionLike({ x: 1, y: 2 }))).toBe(1);
+        });
     });
 
     describe("dataLast", () => {
@@ -8355,6 +8368,19 @@ describe("Data", () => {
 
             expect(Data.dataLast(range)).toBe(50);
             expect(Data.dataLast(range, (value) => value < 40)).toBe(30);
+        });
+
+        it("reads a collection with no iterator through all(), as Arr::last does", () => {
+            // docs/php-parity/Arr/last.json, "last-collection-callback",
+            // "last-collection-no-callback",
+            // "last-collection-keys"
+            expect(Data.dataLast(collectionLike({ x: 1, y: 2 }))).toBe(2);
+            expect(
+                Data.dataLast(
+                    collectionLike({ x: 1, y: 2 }),
+                    (value) => value < 2,
+                ),
+            ).toBe(1);
         });
     });
 
