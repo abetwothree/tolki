@@ -195,7 +195,7 @@ probe('sort-mixed-callback-order', "Arr::sort(['x' => 1, 0 => 2, 'y' => 3], fn (
 probe('sort-out-of-order-loose-ties', "Arr::sort([2 => '1', 0 => 1, 1 => '01'])", fn () => arrayablePairs(Arr::sort([2 => '1', 0 => 1, 1 => '01'])));
 // '1' lands on key 1's first position with the last value, '01', which ties 1 loosely.
 probe('sort-collision-loose-ties', "Arr::sort([1 => '1', 0 => 1, '1' => '01'])", fn () => arrayablePairs(Arr::sort([1 => '1', 0 => 1, '1' => '01'])));
-// The rows are arrays here; in JS the same rows as Maps cannot be read by path (see the tests).
+// The rows are arrays here; the JS tests write them as Maps, which a path reads as PHP reads these arrays.
 probe('sort-out-of-order-rows-by-path', "Arr::sort([2 => ['n' => 1], 0 => ['n' => 0]], 'n')", fn () => arrayablePairs(Arr::sort([2 => ['n' => 1], 0 => ['n' => 0]], 'n')));
 probe('sort-out-of-order-rows-by-descriptor', "Arr::sort([2 => ['n' => 1], 0 => ['n' => 0]], [['n', 'asc']])", fn () => arrayablePairs(Arr::sort([2 => ['n' => 1], 0 => ['n' => 0]], [['n', 'asc']])));
 

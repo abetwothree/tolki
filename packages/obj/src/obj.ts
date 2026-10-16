@@ -1252,8 +1252,8 @@ export function divide<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Flatten a multi-dimensional object with "dot" notation.
  *
- * A Map is flattened in its insertion order, and a Map nested inside is kept whole as a value. The result is a plain
- * object, so a key that reads as an integer (possible with an empty or all-digit prefix) is listed first, ascending.
+ * A Map, at the root or nested, is flattened in its insertion order. The result is a plain object, so a key that reads
+ * as an integer (possible with an empty or all-digit prefix) is listed first, ascending.
  *
  * @param data - The object or Map to flatten.
  * @param prepend - An optional string to prepend to each key.
@@ -1264,6 +1264,7 @@ export function divide<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * dot({ name: 'John', address: { city: 'NYC', zip: '10001' } }); -> { name: 'John', 'address.city': 'NYC', 'address.zip': '10001' }
  * dot(new Map([[2, { z: 1 }], [0, { y: 2 }]])); -> { '2.z': 1, '0.y': 2 }
+ * dot({ m: new Map([[2, 'c'], [0, 'a']]) }); -> { 'm.2': 'c', 'm.0': 'a' }
  * dot(new Map([[2, 'c'], [0, 'a']]), '1'); -> { 10: 'a', 12: 'c' }, where PHP keeps 12 first
  */
 export function dot<TValue, TKey>(

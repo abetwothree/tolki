@@ -3598,6 +3598,7 @@ describe("Arr", () => {
                 "prefix1.0": ["b"],
             });
         });
+
         it("walks a Map row in its order", () => {
             // docs/php-parity/Arr/dot.json, "dot-nested-out-of-order"
             const out = Arr.dot([

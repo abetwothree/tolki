@@ -1743,10 +1743,17 @@ describe("Obj", () => {
         });
 
         it("stops at the depth limit inside a Map", () => {
-            // docs/php-parity/Arr/dot.json, "dot-nested-out-of-order"
+            // docs/php-parity/Arr/dot.json, "dot-depth-through-list", where each Map stands for an array
             expect(Obj.dot({ m: new Map([["a", { b: 1 }]]) }, "", 1)).toEqual({
                 "m.a": { b: 1 },
             });
+            expect(
+                Obj.dot(
+                    { 0: new Map([["a", new Map([["b", { c: 1 }]])]]) },
+                    "",
+                    2,
+                ),
+            ).toEqual({ "0.a.b": { c: 1 } });
         });
     });
 
@@ -2890,6 +2897,7 @@ describe("Obj", () => {
         });
 
         it("still reads a plain object's all member as data", () => {
+            // JS-only: PHP has no plain object; one stands for an array, so its all member is one of its values.
             expect(Obj.first({ a: 1, all: () => [9] })).toBe(1);
         });
     });
@@ -3057,6 +3065,7 @@ describe("Obj", () => {
         });
 
         it("still reads a plain object's all member as data", () => {
+            // JS-only: PHP has no plain object; one stands for an array, so its all member is one of its values.
             expect(Obj.last({ all: () => [9], a: 1 })).toBe(1);
         });
     });

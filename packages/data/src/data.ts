@@ -590,8 +590,8 @@ export const dataDivide = dispatch(arrDivide, objDivide);
 /**
  * Convert data to dot notation.
  *
- * A Map is flattened in its insertion order, a nested Map kept whole as a value. The result is a plain object, so the
- * integer-like keys an empty or all-digit prefix can leave are listed first, ascending, not in PHP's order.
+ * A Map, at the root or nested, is flattened in its insertion order. The result is a plain object, so the integer-like
+ * keys an empty or all-digit prefix can leave are listed first, ascending, not in PHP's order.
  *
  * @param data - The data to convert
  * @param prepend - String to prepend to keys

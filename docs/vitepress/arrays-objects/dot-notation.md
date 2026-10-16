@@ -72,7 +72,7 @@ dataGet({ "a.b": 1, a: { b: 2 } }, "a.b");
 - **Read:** `get`, `has`, `hasAll`, `hasAny`, and the typed getters `string`, `integer`, `float`, `boolean` and `arrayItem` (`objectItem`, `dataItem`).
 - **Write:** `set`, `add`, `forget`, `pull` and `push`. `set`, `add` and `push` create the missing steps of a path as they go. `forget` leaves the data as it is when the path is missing, and `pull` returns the default, `null` unless you pass one, with the data unchanged.
 - **Pick out of rows:** `pluck` takes a path for the value and for the key, and `except` takes paths among its keys.
-- **Walk:** a path goes into lists, plain objects and `Map`s. A write keeps a `Map` a `Map`. <!-- docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys" -->
+- **Walk:** a path goes into lists, plain objects and `Map`s. A write keeps a `Map` a `Map`. <!-- docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys"; docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order" -->
 - **Convert:** `dot` turns a nested structure into a flat object of paths, and `undot` turns it back.
 
 ::: code-group

@@ -204,9 +204,9 @@ type ArraySetPathResult<
           : ArraySetPathListElement<TValue>
     : TValue[];
 
-// DotLeaf (dot): with no depth, dot() walks every non-empty list, plain object and Map down to its leaves; an empty one,
-// a Date, Set, Promise or function is a leaf. A type can't tell a class instance, which the walk also keeps whole,
-// from a plain object, so it walks one.
+// DotLeaf (dot): with no depth, dot() walks every non-empty list, plain object and Map down to its leaves; an empty
+// one, a Date, Set, Promise or function is a leaf. A type can't tell a class instance, which the walk also keeps
+// whole, from a plain object, so it walks one.
 type DotLeaf<T, D extends number = 5> = [D] extends [never]
     ? unknown
     : T extends readonly (infer E)[]

@@ -3039,7 +3039,7 @@ dataPull(["a", "b", "c"], 1);
 
 ### push
 
-Push one or more items into the array at the given key, using "dot" notation. It returns a new value and leaves the original unchanged. See [Return values instead of references](./differences.md#return-values-instead-of-references). When the target is an object or a `Map`, the new item goes under the next whole-number key, as in Laravel. <!-- docs/php-parity/Arr/push.json, "push-assoc-leaf-appends" -->
+Push one or more items into the array at the given key, using "dot" notation. It returns a new value and leaves the original unchanged. See [Return values instead of references](./differences.md#return-values-instead-of-references). When the target is an object or a `Map`, the new item goes under the next whole-number key, as in Laravel. <!-- docs/php-parity/Arr/push.json, "push-assoc-leaf-appends", "push-out-of-order-leaf-appends-after-highest" -->
 
 Exported as `push` from `@tolki/arr` and `@tolki/obj`, and as `dataPush` from `@tolki/data`.
 
