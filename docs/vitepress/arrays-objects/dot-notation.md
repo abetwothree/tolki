@@ -58,6 +58,15 @@ get({ a: { b: 2 } }, "a.b");
 // => 2
 ```
 
+`dataGet` from `@tolki/data` also tries the literal key first, because it forwards to `get`. Laravel's `data_get()` does not: it always splits the path, so `data_get(['a.b' => 1, 'a' => ['b' => 2]], 'a.b')` is `2`. <!-- docs/php-parity/Helpers/data_get.json, "C32-D-data-get-literal-dotted-key" -->
+
+```js
+import { dataGet } from "@tolki/data";
+
+dataGet({ "a.b": 1, a: { b: 2 } }, "a.b");
+// => 1
+```
+
 ## Functions that take a path
 
 - **Read:** `get`, `has`, `hasAll`, `hasAny`, and the typed getters `string`, `integer`, `float`, `boolean` and `arrayItem` (`objectItem`, `dataItem`).

@@ -736,6 +736,174 @@
                     ]
                 ]
             }
+        },
+        {
+            "label": "push-list-of-assoc-rows",
+            "php": "$a = [['x' => [1]]]; Arr::push($a, '0.x', 2)",
+            "value": [
+                {
+                    "x": [
+                        1,
+                        2
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "push-empty-assoc-row",
+            "php": "$a = [[]]; Arr::push($a, '0.1', 'v')",
+            "value": [
+                {
+                    "1": [
+                        "v"
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "push-null-row-string-segment",
+            "php": "$a = [null]; Arr::push($a, '0.child', 'v')",
+            "value": [
+                {
+                    "child": [
+                        "v"
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "push-string-row-string-segment",
+            "php": "$a = ['existing']; Arr::push($a, '0.name', 'v')",
+            "value": [
+                {
+                    "name": [
+                        "v"
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "push-boolean-row",
+            "php": "$a = [true]; Arr::push($a, '0.1', 'v')",
+            "value": [
+                {
+                    "1": [
+                        "v"
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "push-string-row-integer-segment",
+            "php": "$a = ['a']; Arr::push($a, '0.0', 'v')",
+            "value": [
+                [
+                    [
+                        "v"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "push-missing-path-under-a-new-row",
+            "php": "$a = []; Arr::push($a, '0.name.items', 'v')",
+            "value": [
+                {
+                    "name": {
+                        "items": [
+                            "v"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "label": "push-1-non-array-under-a-new-row",
+            "php": "$a = []; Arr::push($a, '0.1.non-array', 'v')",
+            "value": [
+                {
+                    "1": {
+                        "non-array": [
+                            "v"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "label": "push-proto-key-on-a-row",
+            "php": "$a = [[]]; Arr::push($a, '0.__proto__', 'v')",
+            "value": [
+                {
+                    "__proto__": [
+                        "v"
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "push-proto-segment-through-a-row",
+            "php": "$a = [[]]; Arr::push($a, '0.__proto__.x', 'v')",
+            "value": [
+                {
+                    "__proto__": {
+                        "x": [
+                            "v"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "label": "push-assoc-through-a-list-row",
+            "php": "$a = ['rows' => [['x' => [1]]]]; Arr::push($a, 'rows.0.x', 2)",
+            "value": {
+                "rows": [
+                    {
+                        "x": [
+                            1,
+                            2
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "label": "push-string-segment-under-a-list-row",
+            "php": "$a = [['a']]; Arr::push($a, '0.name', 'v')",
+            "value": [
+                {
+                    "0": "a",
+                    "name": [
+                        "v"
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "push-assoc-leaf-appends",
+            "php": "$a = [['x' => ['k' => 1]]]; Arr::push($a, '0.x', 'v')",
+            "value": [
+                {
+                    "x": {
+                        "k": 1,
+                        "0": "v"
+                    }
+                }
+            ]
+        },
+        {
+            "label": "push-object-along-the-path",
+            "php": "$a = [['d' => (object) ['k' => 1]]]; Arr::push($a, '0.d.k', 'v')",
+            "value": [
+                {
+                    "d": {
+                        "k": [
+                            "v"
+                        ]
+                    }
+                }
+            ]
         }
     ]
 }

@@ -338,6 +338,76 @@
                     "integer:1"
                 ]
             }
+        },
+        {
+            "label": "forget-list-of-assoc-rows",
+            "php": "$a = [['a' => 1, 'b' => 2]]; Arr::forget($a, '0.a')",
+            "value": [
+                {
+                    "b": 2
+                }
+            ]
+        },
+        {
+            "label": "forget-list-of-assoc-rows-many",
+            "php": "$a = [['a' => 1, 'b' => 2], ['a' => 3]]; Arr::forget($a, ['0.a', '1.a'])",
+            "value": [
+                {
+                    "b": 2
+                },
+                []
+            ]
+        },
+        {
+            "label": "forget-nested-assoc-in-a-row",
+            "php": "$a = [['a' => ['x' => 1, 'y' => 2]]]; Arr::forget($a, '0.a.x')",
+            "value": [
+                {
+                    "a": {
+                        "y": 2
+                    }
+                }
+            ]
+        },
+        {
+            "label": "forget-list-inside-a-row",
+            "php": "$a = [['l' => [1, 2, 3]]]; Arr::forget($a, ['0.l.0', '0.l.2'])",
+            "value": [
+                {
+                    "l": {
+                        "1": 2
+                    }
+                }
+            ]
+        },
+        {
+            "label": "forget-null-inside-a-row",
+            "php": "$a = [['a' => null]]; Arr::forget($a, '0.a.b')",
+            "value": [
+                {
+                    "a": null
+                }
+            ]
+        },
+        {
+            "label": "forget-proto-segment-in-a-row",
+            "php": "$a = [['a' => 1]]; Arr::forget($a, '0.__proto__.a')",
+            "value": [
+                {
+                    "a": 1
+                }
+            ]
+        },
+        {
+            "label": "forget-assoc-through-a-list-row",
+            "php": "$a = ['rows' => [['a' => 1, 'b' => 2]]]; Arr::forget($a, 'rows.0.a')",
+            "value": {
+                "rows": [
+                    {
+                        "b": 2
+                    }
+                ]
+            }
         }
     ]
 }

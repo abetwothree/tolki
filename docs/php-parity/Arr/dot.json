@@ -137,6 +137,24 @@
             }
         },
         {
+            "label": "dot-null-depth",
+            "php": "Arr::dot(['a' => ['b' => 1]], '', null)",
+            "value": {
+                "a": {
+                    "b": 1
+                }
+            }
+        },
+        {
+            "label": "dot-zero-depth",
+            "php": "Arr::dot(['a' => ['b' => 1]], '', 0)",
+            "value": {
+                "a": {
+                    "b": 1
+                }
+            }
+        },
+        {
             "label": "dot-out-of-order",
             "php": "Arr::dot([2 => 'c', 0 => 'a', 1 => 'b'])",
             "value": [

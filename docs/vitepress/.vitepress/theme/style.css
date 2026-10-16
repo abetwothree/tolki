@@ -292,10 +292,6 @@ html {
   --shiki-dark: #8b949e !important;
 }
 
-:root {
-  --vp-code-lang-color: #67676c;
-}
-
 /* Language label chip: brand-tinted */
 .vp-doc div[class*="language-"] .lang {
   color: var(--vp-c-brand-1);
@@ -419,4 +415,36 @@ html {
 
 .DocSearch {
   --docsearch-primary-color: var(--vp-c-brand-1);
+}
+
+/* ─────────────────────────────────────────────
+   Site chrome fixes
+   ───────────────────────────────────────────── */
+
+/* Between VitePress's 768px desktop-nav switch and 960px, five items plus search overflow a scrollbar'd window. */
+@media (min-width: 768px) and (max-width: 959px) {
+  .VPNav .VPNavBarMenuLink,
+  .VPNav .VPNavBarMenuGroup .button {
+    padding: 0 8px;
+  }
+}
+
+@media (pointer: coarse) {
+  .collection-method-list a {
+    padding-block: 7px;
+  }
+}
+
+/* The badge sits below its heading, so VitePress's `h3 > .VPBadge` offset does not apply to it. */
+.vp-doc :is(h2, h3, h4) + .VPBadge {
+  margin-left: 0;
+}
+
+/* A "Laravel:" line may link two helpers; its prose is text, so only its links count as children. */
+.vp-doc:is(._collections_methods-list, ._arrays-objects_utilities-list)
+  p:has(> a[href^="https://laravel.com/docs/"]):not(
+    :has(> :not(a[href^="https://laravel.com/docs/"]))
+  ) {
+  font-size: 14px;
+  color: var(--vp-c-text-2);
 }

@@ -84,6 +84,134 @@
             "label": "first-true-key-collision",
             "php": "Arr::first([1 => 'a', true => 'b'])",
             "value": "b"
+        },
+        {
+            "label": "first-traversable-stops-at-the-match",
+            "php": "Arr::first(generator 1..100, fn ($v) => $v === 2) and the items read",
+            "value": [
+                2,
+                2
+            ]
+        },
+        {
+            "label": "first-traversable-no-match-reads-all",
+            "php": "Arr::first(generator 1..100, fn () => false, 'none') and the items read",
+            "value": [
+                "none",
+                100
+            ]
+        },
+        {
+            "label": "first-traversable-without-callback-reads-one",
+            "php": "Arr::first(generator 1..100) and the items read",
+            "value": [
+                1,
+                1
+            ]
+        },
+        {
+            "label": "first-lazy-collection-stops-at-the-match",
+            "php": "Arr::first(LazyCollection::times(100)->tapEach(count), fn ($v) => $v === 2)",
+            "value": [
+                2,
+                2
+            ]
+        },
+        {
+            "label": "first-traversable-empty",
+            "php": "Arr::first(empty generator, fn () => true, 'none')",
+            "value": "none"
+        },
+        {
+            "label": "first-traversable-closure-default",
+            "php": "Arr::first(generator, fn () => false, fn () => 'lazy')",
+            "value": "lazy"
+        },
+        {
+            "label": "first-yield-from",
+            "php": "Arr::first(yield from ['Laptop', 'Monitor'], ['Keyboard', 'Mouse'], fn ($p) => $p === 'Laptop')",
+            "value": "Laptop"
+        },
+        {
+            "label": "first-yield-from-keys",
+            "php": "keys seen by Arr::first(yield from ['Laptop', 'Monitor'], ['Keyboard', 'Mouse'], fn () => false)",
+            "value": [
+                0,
+                1,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "first-traversable-keys",
+            "php": "keys seen by Arr::first(generator yielding 10, 20, 30, fn () => false)",
+            "value": [
+                0,
+                1,
+                2
+            ]
+        },
+        {
+            "label": "first-traversable-php-truthiness",
+            "php": "Arr::first(generator 1, 2, 3, fn ($v) => $v === 1 ? '0' : 'yes')",
+            "value": 2
+        },
+        {
+            "label": "first-collection-keys",
+            "php": "keys seen by Arr::first(collect(['x' => 1, 'y' => 2]), fn () => false)",
+            "value": [
+                "x",
+                "y"
+            ]
+        },
+        {
+            "label": "first-collection-callback",
+            "php": "Arr::first(collect(['x' => 1, 'y' => 2]), fn ($v) => $v > 1)",
+            "value": 2
+        },
+        {
+            "label": "first-generator-after-a-match",
+            "php": "Arr::first($gen, fn ($v) => $v === 2), then $gen->current() and $gen->valid()",
+            "value": [
+                2,
+                2,
+                true
+            ]
+        },
+        {
+            "label": "first-generator-rewalked-after-a-match",
+            "php": "foreach over $gen after Arr::first($gen, fn ($v) => $v === 2)",
+            "threw": "Exception",
+            "message": "Cannot rewind a generator that was already run"
+        },
+        {
+            "label": "first-array-stops-at-the-match",
+            "php": "calls made by Arr::first([1, 2, 3], fn ($v) => $v === 2)",
+            "value": 2
+        },
+        {
+            "label": "first-assoc-stops-at-the-match",
+            "php": "calls made by Arr::first(['a' => 1, 'b' => 2, 'c' => 3], fn ($v) => $v === 2)",
+            "value": 2
+        },
+        {
+            "label": "first-scalar-callback",
+            "php": "Arr::first('abc', fn () => true)",
+            "threw": "InvalidArgumentException",
+            "message": "Items cannot be represented by a scalar value."
+        },
+        {
+            "label": "first-collection-no-callback",
+            "php": "Arr::first(collect(['x' => 1, 'y' => 2]))",
+            "value": 1
+        },
+        {
+            "label": "first-assoc-keys",
+            "php": "keys seen by Arr::first(['a' => 1, 'b' => 2], fn () => false)",
+            "value": [
+                "a",
+                "b"
+            ]
         }
     ]
 }

@@ -260,6 +260,16 @@
             "value": {
                 "a": 0
             }
+        },
+        {
+            "label": "add-list-of-assoc-rows",
+            "php": "Arr::add([['a' => 1]], '0.b', 2)",
+            "value": [
+                {
+                    "a": 1,
+                    "b": 2
+                }
+            ]
         }
     ]
 }

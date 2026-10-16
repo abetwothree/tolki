@@ -535,15 +535,15 @@ describe("Path Functions", () => {
         });
 
         it("handles edge cases in nested removal operations", () => {
-            // Test when head index is out of bounds in forgetPath
+            // A key under a row that does not exist removes nothing
             const data = [["a", "b"]];
             expect(Path.forgetKeys(data, "5.0")).toEqual(data); // Index 5 doesn't exist
 
-            // Test when head index is out of bounds in updateAtPath
+            // A key under a missing row is skipped while the key beside it still applies
             const data2 = [["x", "y"]];
             expect(Path.forgetKeys(data2, ["10.0", "0.1"])).toEqual([["x"]]); // Index 10 doesn't exist
 
-            // Test when child is not an array in updateAtPath
+            // A key under a string row is skipped while the key beside it still applies
             const data3 = ["not-array", ["b", "c"]];
             expect(Path.forgetKeys(data3, ["0.0", "1.0"])).toEqual([
                 "not-array",
@@ -820,10 +820,9 @@ describe("Path Functions", () => {
             expect(Path.pushWithPath([], "0.0", "deep")).toEqual([[["deep"]]]);
         });
 
-        it("handles existing non-array elements", () => {
-            expect(() => Path.pushWithPath(["a"], "0.0", "b")).toThrow(
-                "Array value for key [0.0] must be an array, string found.",
-            );
+        it("replaces a string row along the path with a list", () => {
+            // docs/php-parity/Arr/push.json, "push-string-row-integer-segment"
+            expect(Path.pushWithPath(["a"], "0.0", "b")).toEqual([[["b"]]]);
         });
 
         it("handles boolean elements specifically", () => {
@@ -852,9 +851,10 @@ describe("Path Functions", () => {
         });
 
         it("covers additional pushWithPath edge cases", () => {
-            // Test Complex path traversal with non-accessible data - doesn't throw, returns empty array
+            // docs/php-parity/Arr/push.json, "push-1-non-array-under-a-new-row": PHP keys the new row's
+            // entry 1, which the port clamps to index 0.
             const result1 = Path.pushWithPath(null, "0.1.non-array", "value");
-            expect(result1).toEqual([]);
+            expect(result1).toEqual([[{ "non-array": ["value"] }]]);
 
             // Test When leaf index exists but contains boolean (covered already)
             // Test when invalid path segments in accessible data
@@ -863,11 +863,10 @@ describe("Path Functions", () => {
                 data,
             );
 
-            // Test Navigation through null elements and non-arrays
+            // docs/php-parity/Arr/push.json, "push-null-row-string-segment"
             const data2: unknown[] = [null];
             const result = Path.pushWithPath(data2, "0.child", "value");
-            // When we can't navigate through null, the array remains unchanged
-            expect(result).toEqual([null]);
+            expect(result).toEqual([{ child: ["value"] }]);
 
             // Test empty string key with array data - returns data unchanged
             const data3 = ["a", "b"];
@@ -888,11 +887,11 @@ describe("Path Functions", () => {
             expect(result).toEqual(["existing"]);
         });
 
-        it("pushWithPath returns data for mixed paths when data is array", () => {
-            // pushWithPath mixed paths not supported - returns data when data IS array
+        it("replaces a string row with a plain object for a string segment", () => {
+            // docs/php-parity/Arr/push.json, "push-string-row-string-segment"
             const data = ["existing"];
             const result = Path.pushWithPath(data, "0.name", "value");
-            expect(result).toEqual(["existing"]);
+            expect(result).toEqual([{ name: ["value"] }]);
         });
 
         it("pushWithPath clamps idx to cursor length", () => {
@@ -923,14 +922,11 @@ describe("Path Functions", () => {
                 expect(data).toEqual([["existing", ["new"]]]);
             });
 
-            it("throws for non-array at existing position", () => {
-                // Tests non-array at position
-                const data = ["string"];
-                expect(() => {
-                    Path.pushWithPath(data, "0.0", "value");
-                }).toThrow(
-                    "Array value for key [0.0] must be an array, string found.",
-                );
+            it("replaces a non-array at an existing position", () => {
+                // docs/php-parity/Arr/push.json, "push-string-row-integer-segment"
+                const data: unknown[] = ["string"];
+                Path.pushWithPath(data, "0.0", "value");
+                expect(data).toEqual([[["value"]]]);
             });
 
             it("throws for boolean at leaf position", () => {
@@ -959,16 +955,13 @@ describe("Path Functions", () => {
                 expect(result).toEqual([[[["value"]]]]);
             });
 
-            it("throws for non-array element in non-array data branch", () => {
-                // This tests where next is not array
-                // Need to create a structure and then try to navigate through non-array
+            it("replaces a non-array element along the path", () => {
+                // docs/php-parity/Arr/push.json, "push-string-row-integer-segment"
                 const data: unknown[] = [];
-                data[0] = "string"; // Not an array
-                expect(() => {
-                    Path.pushWithPath(data, "0.0", "value");
-                }).toThrow(
-                    "Array value for key [0.0] must be an array, string found.",
-                );
+                data[0] = "string";
+                expect(Path.pushWithPath(data, "0.0", "value")).toEqual([
+                    [["value"]],
+                ]);
             });
 
             it("pushes a boolean value into the created leaf array", () => {
@@ -1017,7 +1010,7 @@ describe("Path Functions", () => {
             expect(result).toEqual([["a"]]);
         });
 
-        it("specific error conditions", () => {
+        it("walks or replaces each value along the path, appending for an index past the end", () => {
             // Test pushWithPath navigation creating child arrays
             const data: unknown[] = [];
             Path.pushWithPath(data, "0.1.2", "deep-value");
@@ -1025,27 +1018,23 @@ describe("Path Functions", () => {
             // integer key instead (docs/php-parity/Arr/push.json, "push at an out-of-range index").
             expect(data[0]).toEqual([[["deep-value"]]]);
 
-            // Test pushWithPath with non-array existing value
-            const data2 = [{}]; // Object at index 0
-            expect(() => {
-                Path.pushWithPath(data2, "0.1", "value");
-            }).toThrow(
-                "Array value for key [0.1] must be an array, object found.",
-            );
+            // docs/php-parity/Arr/push.json, "push-empty-assoc-row"
+            const data2 = [{}];
+            expect(Path.pushWithPath(data2, "0.1", "value")).toEqual([
+                { 1: ["value"] },
+            ]);
 
-            // Test pushWithPath boolean error
-            const data3 = [true]; // Boolean at index 0
-            expect(() => {
-                Path.pushWithPath(data3, "0.1", "value");
-            }).toThrow(
-                "Array value for key [0.1] must be an array, boolean found.",
-            );
+            // docs/php-parity/Arr/push.json, "push-boolean-row": PHP's key 1 lands at index 0, the port's clamp.
+            const data3 = [true];
+            expect(Path.pushWithPath(data3, "0.1", "value")).toEqual([
+                [["value"]],
+            ]);
         });
 
-        it("handles non-accessible data with mixed path", () => {
-            // Non-array data with mixed (non-numeric) path segments
+        it("builds a plain-object row for string segments over non-accessible data", () => {
+            // docs/php-parity/Arr/push.json, "push-missing-path-under-a-new-row"
             const result = Path.pushWithPath(null, "0.name.items", "value");
-            expect(result).toEqual([]);
+            expect(result).toEqual([{ name: { items: ["value"] } }]);
         });
 
         it("navigates through existing null elements", () => {
@@ -2150,7 +2139,7 @@ describe("Path Functions", () => {
         });
 
         it("resolves a literal key containing dots before traversing it as a path", () => {
-            // Arr::has calls Arr::exists first (Arr.php:534) — the literal key wins
+            // Arr::has calls Arr::exists first (Arr.php:544) — the literal key wins
             // even though it contains dots (PHP-verified:
             // docs/php-parity/Arr/has.json, "Arr::has — literal dotted key").
             expect(
@@ -2243,7 +2232,7 @@ describe("Path Functions", () => {
         });
 
         it("resolves a literal key containing dots before traversing it as a path", () => {
-            // Arr::get calls Arr::exists first (Arr.php:497), so a literal key wins even
+            // Arr::get calls Arr::exists first (Arr.php:507), so a literal key wins even
             // when it contains dots. PHP-verified in docs/php-parity/Arr/get.json.
             expect(
                 Path.getObjectValue(
@@ -2384,7 +2373,7 @@ describe("Path Functions", () => {
         });
 
         it("resolves a literal key containing dots before traversing it as a path", () => {
-            // Arr::exists is a literal array_key_exists check (Arr.php:497, :534) — it
+            // Arr::exists is a literal array_key_exists check (Arr.php:507, :544) — it
             // must win over dot-path traversal (PHP-verified:
             // docs/php-parity/Arr/exists.json, "Arr::exists — literal dotted key").
             expect(
@@ -2798,7 +2787,7 @@ describe("Path Functions", () => {
 
         it("handles invalid indices during grouping", () => {
             const arr = [["a", "b"]];
-            // Invalid index (NaN) should be skipped
+            // A list holds no string key, so "0.invalid" names nothing
             const result = Path.forgetKeysArray(arr, ["0.invalid"]);
             expect(result).toEqual([["a", "b"]]);
         });
@@ -2811,44 +2800,36 @@ describe("Path Functions", () => {
         });
 
         it("handles multiple paths with same parent", () => {
-            // Tests grouping and sorting
+            // Each key names the position it held before either removal, as in PHP
             const arr = [["a", "b", "c", "d"]];
             const result = Path.forgetKeysArray(arr, ["0.1", "0.3"]);
-            // Removes indices 1 and 3, sorted in reverse order
             expect(result).toEqual([["a", "c"]]);
         });
 
         it("handles empty path after filtering", () => {
-            // Tests sorted.length === 0
-            // Need keys.length > 1 to enter the grouping loop
-            // And indices that filter out (like negative or float)
+            // A fractional key names no list index, so several of them remove nothing
             const arr = [["a", "b"]];
-            // Multiple keys, some invalid - enters grouping loop
             const result = Path.forgetKeysArray(arr, [1.5, 2.5]);
             expect(result).toEqual([["a", "b"]]);
         });
 
         it("skips entries with invalid string indices", () => {
-            // Tests continue when parts have NaN
-            // Need keys.length > 1 to enter the grouping loop
+            // A list holds no string key, so only "0.1" removes an item
             const arr = [["a", "b"]];
             const result = Path.forgetKeysArray(arr, ["0.invalid", "0.1"]);
-            // "0.invalid" is skipped due to NaN, "0.1" removes index 1
             expect(result).toEqual([["a"]]);
         });
 
         it("forgetKeysArray handles single non-array key in grouping path", () => {
-            // when keys is NOT an array, wrap it
+            // A single key acts as a list holding that one key
             const arr = ["a", "b", "c"];
-            // Single numeric key (not array) enters grouping path since keyList.length > 1 check fails first
-            // But we need keyList.length > 1 for this path... let's check the logic
             const result = Path.forgetKeysArray(arr, 1);
             expect(result).toEqual(["a", "c"]);
         });
 
         it("forgetKeysArray handles multiple numeric keys at root level", () => {
             const arr = ["a", "b", "c", "d"];
-            // Multiple numeric keys - groupsMap.get("") will return existing entry on second iteration
+            // Root keys share one parent, so each names the position it held before either removal
             const result = Path.forgetKeysArray(arr, [0, 2]);
             expect(result).toEqual(["b", "d"]);
         });

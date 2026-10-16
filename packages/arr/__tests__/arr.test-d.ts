@@ -1,6 +1,6 @@
 import * as Arr from "@tolki/arr";
 import * as Obj from "@tolki/obj";
-import type { UndotValue } from "@tolki/types";
+import type { MapArrayKey, UndotValue } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
 /** A depth the caller may leave out, which flattens every level. */
@@ -5267,6 +5267,27 @@ describe("arr type tests", () => {
                 expectTypeOf(Arr.first).returns.toExtend<unknown | null>();
             });
         });
+
+        it("types a Map's value and keys", () => {
+            expectTypeOf(Arr.first(new Map([["a", 1]]))).toEqualTypeOf<
+                number | null
+            >();
+            Arr.first(new Map([["a", 1]]), (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<MapArrayKey<string>>();
+                return true;
+            });
+        });
+
+        it("types a keyed collection's callback key as a string or a number", () => {
+            const items = null as unknown as { all(): Record<string, number> };
+
+            Arr.first(items, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+                return true;
+            });
+        });
     });
 
     describe("last", () => {
@@ -5695,6 +5716,27 @@ describe("arr type tests", () => {
         describe("function signature", () => {
             it("returns type that extends unknown | null", () => {
                 expectTypeOf(Arr.last).returns.toExtend<unknown | null>();
+            });
+        });
+
+        it("types a Map's value and keys", () => {
+            expectTypeOf(Arr.last(new Map([["a", 1]]))).toEqualTypeOf<
+                number | null
+            >();
+            Arr.last(new Map([["a", 1]]), (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<MapArrayKey<string>>();
+                return true;
+            });
+        });
+
+        it("types a keyed collection's callback key as a string or a number", () => {
+            const items = null as unknown as { all(): Record<string, number> };
+
+            Arr.last(items, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+                return true;
             });
         });
     });

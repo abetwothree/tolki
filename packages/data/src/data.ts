@@ -2371,9 +2371,8 @@ export const dataMap = dispatch(arrMap, objMap);
  * dataFirst(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> 'c'
  * dataFirst(new Map([[1, 'a'], ['1', 'b']])); -> 'b'
  */
-// A Set or generator reaches `arrFirst` UNREAD via `streamPositionalData`, so a callback-less call
-// answers an infinite generator; given a callback `arrFirst` materialises, so that form still
-// needs a finite backing.
+// A Set or generator reaches `arrFirst` UNREAD via `streamPositionalData`, and `arrFirst` stops at the first match,
+// so an endless generator answers with or without a callback.
 export const dataFirst = dispatch(arrFirst, objFirst, streamPositionalData);
 
 /**

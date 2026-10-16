@@ -2,7 +2,12 @@ import { collect } from "@tolki/collection";
 import { InvalidArgumentException } from "@tolki/utils";
 import { describe, expect, it } from "vitest";
 
-import { formatError, formatResult } from "../fn-try-format";
+import {
+    formatError,
+    formatResult,
+    jsonRows,
+    runForDisplay,
+} from "../fn-try-format";
 
 describe("formatResult", () => {
     it.each([
@@ -90,5 +95,42 @@ describe("formatError", () => {
 
     it("stringifies a non-Error", () => {
         expect(formatError("boom")).toBe("boom");
+    });
+});
+
+describe("jsonRows", () => {
+    it("fits the box to the pretty-printed JSON, between 2 and 8 lines", () => {
+        expect(jsonRows("1")).toBe(2);
+        expect(jsonRows(JSON.stringify([1, 2, 3, 4, 5], null, 2))).toBe(7);
+        expect(
+            jsonRows(
+                JSON.stringify(
+                    Array.from({ length: 20 }, (_, i) => i),
+                    null,
+                    2,
+                ),
+            ),
+        ).toBe(8);
+    });
+});
+
+describe("runForDisplay", () => {
+    it("formats a result inside the guard, so an unprintable value reports an error instead of breaking the render", () => {
+        expect(runForDisplay(() => [1, 2])).toEqual({
+            ok: true,
+            value: formatResult([1, 2]),
+        });
+        expect(
+            runForDisplay(() => ({
+                toJSON() {
+                    throw new Error("x");
+                },
+            })),
+        ).toEqual({ ok: false, value: formatError(new Error("x")) });
+        expect(
+            runForDisplay(() => {
+                throw new Error("y");
+            }),
+        ).toEqual({ ok: false, value: formatError(new Error("y")) });
     });
 });

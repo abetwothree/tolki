@@ -753,7 +753,13 @@ Get the values in the collection that are not present in the given array or coll
 
 Laravel: [`diff()`](https://laravel.com/docs/collections#method-diff)
 
-Keys are kept. Values are compared as strings, so `2` matches `"2"`. Array and object items are matched by identity: see [Differences from Laravel](./differences.md#values). The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#diff).
+A keyed collection keeps its keys. Values are compared as strings, so `2` matches `"2"`. Array and object items are matched by identity: see [Differences from Laravel](./differences.md#values). The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#diff).
+
+<!-- docs/php-parity/Collection/diff.json, "diff on array-backed collection" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
 
 ```js
 import { collect } from "@tolki/collection";
@@ -780,6 +786,12 @@ Get the key and value pairs in the collection that are not present in the given 
 Laravel: [`diffAssoc()`](https://laravel.com/docs/collections#method-diffassoc)
 
 A pair is left out only when both its key and its value match. The same operation on plain arrays and objects is in the [utilities list](../arrays-objects/utilities-list.md#diffassoc).
+
+<!-- docs/php-parity/Collection/diffAssoc.json, "diffAssoc on array-backed collection" -->
+
+::: info
+A list stays a list, so the items that remain are renumbered from 0. In Laravel they keep the keys they had. See [Keys and order](./differences.md#keys-and-order).
+:::
 
 ```js
 import { collect } from "@tolki/collection";
@@ -2306,7 +2318,7 @@ collect([1, 2]).last((value) => value > 5, "none");
 
 Get the number of items in the collection, as a property.
 
-It gives the same number as [`count()`](#count), and lets a collection work with APIs that read `length`, such as `Array.from()`.
+It gives the same number as [`count()`](#count), and lets code that reads `length` treat a collection like an array.
 
 ```js
 import { collect } from "@tolki/collection";
@@ -2316,6 +2328,9 @@ collect([1, 2, 3]).length;
 
 collect({ a: 1, b: 2 }).length;
 // => 2
+
+collect([]).length === 0;
+// => true
 ```
 
 <FnTry label="collect(items).length" :fn="(items) => collect(items).length" :args="[
@@ -4552,6 +4567,8 @@ Laravel: [`sum()`](https://laravel.com/docs/collections#method-sum)
 
 Pass a key, which may be a [dot-notation](../arrays-objects/dot-notation.md) path, or a callback to choose the value to add from each item. An empty collection gives `0`. Numeric strings are added as numbers, `null` counts as 0 and `true` as 1. A value that cannot be added, such as a non-numeric string or an array, throws a `TypeError`.
 
+<!-- docs/php-parity/Collection/sum.json, "C32-H-sum-null-and-bools" -->
+
 ```js
 import { collect } from "@tolki/collection";
 
@@ -4573,6 +4590,12 @@ collect([
 
 collect(["1", "2.5", 3]).sum();
 // => 6.5
+
+collect([1, null, 2]).sum();
+// => 3
+
+collect([true, true, false]).sum();
+// => 2
 
 collect([]).sum();
 // => 0
@@ -5168,6 +5191,8 @@ Laravel: [`unless()`](https://laravel.com/docs/collections#method-unless)
 
 The callback receives the collection and the value, and `unless` returns what the callback returns. If that is `null` or `undefined`, it returns the collection. A third argument is a callback to run when the value is truthy. The value may also be a function, which is called with the collection and whose result is tested. Truthiness is PHP's: see [Truthiness](../arrays-objects/php-semantics.md#truthiness). Laravel's one-argument form is not available: see [Not portable](./differences.md#not-portable). The inverse is [when](#when).
 
+<!-- docs/php-parity/Collection/unless.json, "unless-closure-value", "unless-closure-value-false" -->
+
 ```js
 import { collect } from "@tolki/collection";
 
@@ -5194,6 +5219,14 @@ collect([1, 2, 3])
   .unless(false, (collection) => collection.map((item) => item * 2))
   .all();
 // => [2, 4, 6]
+
+collect([1])
+  .unless(
+    (collection) => collection.count() > 2,
+    (collection) => collection.push(4),
+  )
+  .all();
+// => [1, 4]
 ```
 
 <FnTry label="collect(items).unless(value, callback, defaultCallback)" :fn="(items, value) => collect(items).unless(value, (c) => c.push(4), (c) => c.push(5)).all()" :args="[
@@ -5340,6 +5373,8 @@ Laravel: [`value()`](https://laravel.com/docs/collections#method-value)
 
 The key may be a path: see [Dot Notation](../arrays-objects/dot-notation.md). Items that lack the key are skipped. When no item holds it, you get the default, which may be a function that returns it, or `null` if you pass none. A `null` key always gives `null`.
 
+<!-- docs/php-parity/Collection/value.json, "C32-C-value-null-key" -->
+
 ```js
 import { collect } from "@tolki/collection";
 
@@ -5364,6 +5399,9 @@ products.value("weight", () => 25);
 // => 25
 
 collect([]).value("price");
+// => null
+
+collect([{ a: 1 }]).value(null);
 // => null
 ```
 

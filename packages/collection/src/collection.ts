@@ -1587,7 +1587,8 @@ export class Collection<
 
     /**
      * Get the items in the collection whose keys and values are not present in the given items, using the callback.
-     * The callback is used to compare keys (case-insensitively, for example), while values are compared strictly.
+     * The callback compares keys (case-insensitively, for example); values are compared as strings,
+     * so `1` matches `"1"`.
      *
      * @param items - The items to diff against
      * @param callback - A comparator answering 0 for matching keys, as PHP's `strcasecmp` does, or true
@@ -2626,7 +2627,7 @@ export class Collection<
 
     /**
      * Intersect the collection with the given items with additional key check, using the callback.
-     * The callback is used to compare keys, while values are compared strictly.
+     * The callback compares keys; values are compared as strings, so `1` matches `"1"`.
      *
      * @param items - The items to intersect with
      * @param callback - A comparator answering 0 for matching keys, as PHP's `strcasecmp` does, or true
@@ -5653,7 +5654,7 @@ export class Collection<
      *
      * @param value - The value to wrap in a collection
      * @param args - Further arguments for the constructor, which a subclass may take
-     * @returns The value as a collection, or the original collection if already one
+     * @returns A new collection of the value's items, or of the value itself when it is not iterable data
      *
      * @example
      *

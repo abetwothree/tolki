@@ -13,6 +13,7 @@ import {
     listCollectionMembers,
     listPackageExports,
     mismatchedVariantFences,
+    parseCoverageArgs,
 } from "../docs-coverage.ts";
 import { parseFences, parseHeadings } from "../docs-markdown.ts";
 
@@ -250,12 +251,41 @@ describe("coverageReport", () => {
         ).not.toContainEqual(expected);
     });
 
+    it("checks anchors and package tabs on the concept pages too", () => {
+        const issues = coverageReport({ docsRoot, only: [] });
+
+        expect(issues).toContainEqual({
+            kind: "anchor",
+            page: "arrays-objects/concept.md",
+            slug: "nope",
+            line: 3,
+        });
+        expect(
+            issues.some(
+                (issue) =>
+                    issue.kind === "fence" &&
+                    issue.page === "arrays-objects/concept.md",
+            ),
+        ).toBe(true);
+    });
+
     it("reports every collection member for a missing page", () => {
         const found = ids(coverageReport({ docsRoot, page: "collections" }));
 
         expect(found).toEqual(
             listCollectionMembers().map((name) => `collection:${name}`),
         );
+    });
+});
+
+describe("parseCoverageArgs", () => {
+    it("refuses a flag with no value", () => {
+        expect(parseCoverageArgs(["--page"])).toBeNull();
+        expect(parseCoverageArgs(["--only"])).toBeNull();
+        expect(parseCoverageArgs(["--only", "--page", "x"])).toBeNull();
+        expect(parseCoverageArgs(["--only", "a,b"])).toEqual({
+            only: ["a", "b"],
+        });
     });
 });
 
