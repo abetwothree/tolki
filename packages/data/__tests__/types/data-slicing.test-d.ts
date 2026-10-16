@@ -19,6 +19,12 @@ import {
 /** A depth the caller may leave out, which flattens every level. */
 declare const maybeDepth: number | undefined;
 
+/** A collection-like operand, read through `all()`. */
+declare const keyed: { all(): { x: number; y: number } };
+
+/** A collection-like operand holding a list, read through `all()` by position. */
+declare const listed: { all(): number[] };
+
 /** A non-literal default, so `TDefault` infers the same on both sides of a pin. */
 const fallback: string = "fallback";
 
@@ -265,6 +271,17 @@ describe("data slicing type tests", () => {
             expectTypeOf(Data.dataFirst(abc)).toEqualTypeOf(Obj.first(abc));
         });
 
+        it("reads a collection's items through all()", () => {
+            expectTypeOf(Data.dataFirst(keyed)).toEqualTypeOf<number | null>();
+        });
+
+        it("matches obj.first for a collection holding a list", () => {
+            expectTypeOf(Data.dataFirst(listed)).toEqualTypeOf(
+                Obj.first(listed),
+            );
+            expectTypeOf(Data.dataFirst(listed)).toEqualTypeOf<number | null>();
+        });
+
         it("matches each backing given a callback", () => {
             expectTypeOf(
                 Data.dataFirst(numberList, (value) => value > 1),
@@ -314,6 +331,15 @@ describe("data slicing type tests", () => {
 
         it("matches obj.last for a record", () => {
             expectTypeOf(Data.dataLast(abc)).toEqualTypeOf(Obj.last(abc));
+        });
+
+        it("reads a collection's items through all()", () => {
+            expectTypeOf(Data.dataLast(keyed)).toEqualTypeOf<number | null>();
+        });
+
+        it("matches obj.last for a collection holding a list", () => {
+            expectTypeOf(Data.dataLast(listed)).toEqualTypeOf(Obj.last(listed));
+            expectTypeOf(Data.dataLast(listed)).toEqualTypeOf<number | null>();
         });
 
         it("matches each backing given a callback", () => {

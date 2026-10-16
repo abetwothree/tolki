@@ -120,4 +120,9 @@ probe('add-leaves-zero-alone', "Arr::add(['a'=>0], 'a', 9)", fn () => Arr::add([
 // ==== D7: a dot path walks into an associative array inside a list, which the port holds as a plain-object row.
 probe('add-list-of-assoc-rows', "Arr::add([['a' => 1]], '0.b', 2)", fn () => Arr::add([['a' => 1]], '0.b', 2));
 
+probe('add-nested-keeps-key-order', "Arr::add(['m' => [2 => 'c']], 'm.0', 'a'), Arr::add([[2 => 'c']], '0.0', 'a')", fn () => [
+    'assoc_keys' => array_keys(Arr::add(['m' => [2 => 'c']], 'm.0', 'a')['m']),
+    'list_keys' => array_keys(Arr::add([[2 => 'c']], '0.0', 'a')[0]),
+]);
+
 emit();

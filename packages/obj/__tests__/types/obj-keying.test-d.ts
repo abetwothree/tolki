@@ -6,6 +6,8 @@ import {
     abc,
     bareObject,
     integerKeyed,
+    mapOrList,
+    mapUnion,
     numberList,
     numberMap,
     type Row,
@@ -283,6 +285,21 @@ describe("obj keying type tests", () => {
         it("keys every reachable value by its dot path", () => {
             expectTypeOf(Obj.flattenDot(user, 1)).toEqualTypeOf<
                 Record<string, string | number | { city: string; zip: number }>
+            >();
+        });
+
+        it("keys a Map's reachable values by their dot paths", () => {
+            expectTypeOf(
+                Obj.flattenDot(new Map([[2, { city: "NYC" }]])),
+            ).toEqualTypeOf<Record<string, string | { city: string }>>();
+            expectTypeOf(Obj.flattenDot(mapUnion)).toEqualTypeOf<
+                Record<string, string | number>
+            >();
+            expectTypeOf(Obj.flattenDot(numberList)).toEqualTypeOf<
+                Record<string, never>
+            >();
+            expectTypeOf(Obj.flattenDot(mapOrList)).toEqualTypeOf<
+                Record<string, unknown>
             >();
         });
 

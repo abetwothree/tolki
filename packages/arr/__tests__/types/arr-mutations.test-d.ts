@@ -118,6 +118,19 @@ describe("arr mutations type tests", () => {
             >();
         });
 
+        it("keeps a Map element a Map holding the new key, as obj types a Map on its path", () => {
+            expectTypeOf(
+                Arr.set([new Map<string, number>()], "0.k", 2),
+            ).toEqualTypeOf<
+                (Map<string, number> | Map<string | number, number>)[]
+            >();
+            expectTypeOf(
+                Arr.set([new Map<string, number>()], "0.k.j", 2),
+            ).toEqualTypeOf<
+                (Map<string, number> | Map<string | number, unknown>)[]
+            >();
+        });
+
         it("merges the write onto a record element already there", () => {
             expectTypeOf(Arr.set(idObjects, "0.name", "Ada")).toEqualTypeOf<
                 ({ id: number } | { id: number; name: string })[]

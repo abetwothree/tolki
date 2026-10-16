@@ -179,6 +179,25 @@ describe("Data", () => {
             expect(recordInner).toEqual(["q"]);
         });
 
+        it("adds a missing key to a Map inside a list or an object, after its other keys", () => {
+            // docs/php-parity/Arr/add.json, "add-nested-keeps-key-order"
+            const listRow = new Map<number, string>([[2, "c"]]);
+            const recordRow = new Map<number, string>([[2, "c"]]);
+            const fromList = Data.dataAdd([listRow], "0.0", "a");
+            const fromRecord = Data.dataAdd({ m: recordRow }, "m.0", "a");
+
+            for (const result of [fromList, fromRecord]) {
+                expect([
+                    ...(Object.values(result)[0] as Map<number, string>),
+                ]).toEqual([
+                    [2, "c"],
+                    [0, "a"],
+                ]);
+            }
+            expect([...listRow]).toEqual([[2, "c"]]);
+            expect([...recordRow]).toEqual([[2, "c"]]);
+        });
+
         it("materializes a Set backing and answers from arr.add", () => {
             // JS-only: PHP has no Set, and Arr::add takes an array, so no PHP call records
             // this. The type follows obj here; only the runtime follows arr.
@@ -1306,6 +1325,27 @@ describe("Data", () => {
                 ["y.k", 3],
             ]);
         });
+
+        it("walks a Map nested in either root", () => {
+            // docs/php-parity/Arr/dot.json, "dot-nested-out-of-order"
+            const row = new Map<number, string>([
+                [2, "c"],
+                [0, "a"],
+            ]);
+
+            expect(Object.keys(Data.dataDot({ m: row }))).toEqual([
+                "m.2",
+                "m.0",
+            ]);
+            expect(Object.keys(Data.dataDot([row]))).toEqual(["0.2", "0.0"]);
+        });
+
+        it("walks a Map given as the data", () => {
+            // JS-only: a whole-data Map has no PHP twin; its entries read as an array's.
+            expect(Data.dataDot(new Map([["a", { b: 1 }]]))).toEqual({
+                "a.b": 1,
+            });
+        });
     });
 
     describe("dataUndot", () => {
@@ -2237,6 +2277,34 @@ describe("Data", () => {
     });
 
     describe("dataForget", () => {
+        it("removes a key inside a Map under either root", () => {
+            // docs/php-parity/Arr/forget.json, "forget-nested-keeps-other-keys"
+            const row = () =>
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+            const list = Data.dataForget([row()], "0.0") as Map<
+                number,
+                string
+            >[];
+            const record = Data.dataForget({ m: row() }, "m.0") as {
+                m: Map<number, string>;
+            };
+
+            expect([...(list[0] as Map<number, string>)]).toEqual([
+                [2, "c"],
+                [1, "b"],
+            ]);
+            expect([...record.m]).toEqual([
+                [2, "c"],
+                [1, "b"],
+            ]);
+            // JS-only: a Map given as the whole data becomes the record from() builds.
+            expect(Data.dataForget(row(), "0")).toEqual({ 1: "b", 2: "c" });
+        });
+
         it("is object", () => {
             const result = Data.dataForget(
                 { name: "John", age: 30, city: "NYC" },
@@ -2374,6 +2442,32 @@ describe("Data", () => {
             // docs/php-parity/Arr/get.json, "get-list-int-segment-into-map"
             expect(Data.dataGet([{ k: "v", 0: "x" }], "0.0", "d")).toBe("x");
         });
+
+        it("walks a Map inside a list or an object", () => {
+            // docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys"
+            expect(
+                Data.dataGet(
+                    [
+                        new Map([
+                            [2, "c"],
+                            [0, "a"],
+                        ]),
+                    ],
+                    "0.0",
+                ),
+            ).toBe("a");
+            expect(
+                Data.dataGet(
+                    {
+                        m: new Map([
+                            [2, "c"],
+                            [0, "a"],
+                        ]),
+                    },
+                    "m.0",
+                ),
+            ).toBe("a");
+        });
     });
 
     describe("dataHas", () => {
@@ -2413,6 +2507,14 @@ describe("Data", () => {
             // docs/php-parity/Arr/has.json,
             // "has-empty-string-key-null-in-list"
             expect(Data.dataHas({ "": "some" }, [null])).toBe(true);
+        });
+
+        it("finds a key of a Map inside a list or an object, a stored null included", () => {
+            // docs/php-parity/Arr/has.json, "has-nested-stored-null"
+            expect(Data.dataHas([new Map([["k", null]])], "0.k")).toBe(true);
+            expect(Data.dataHas({ m: new Map([["k", null]]) }, "m.k")).toBe(
+                true,
+            );
         });
     });
 
@@ -3754,6 +3856,34 @@ describe("Data", () => {
     });
 
     describe("dataPull", () => {
+        it("pulls a key inside a Map under either root", () => {
+            // docs/php-parity/Arr/pull.json, "pull-nested-keeps-other-keys"
+            const row = () =>
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+            const list = Data.dataPull([row()], "0.0");
+            const record = Data.dataPull({ m: row() }, "m.0");
+
+            expect(list.value).toBe("a");
+            expect([...(list.data[0] as Map<number, string>)]).toEqual([
+                [2, "c"],
+                [1, "b"],
+            ]);
+            expect(record.value).toBe("a");
+            expect([...(record.data.m as Map<number, string>)]).toEqual([
+                [2, "c"],
+                [1, "b"],
+            ]);
+            // JS-only: a Map given as the whole data becomes the record from() builds.
+            expect(Data.dataPull(row(), "0")).toEqual({
+                value: "a",
+                data: { 1: "b", 2: "c" },
+            });
+        });
+
         it("is object", () => {
             const result2 = Data.dataPull({ a: 1, b: 2 }, "b", "default");
             expect(result2.value).toBe(2);
@@ -4720,6 +4850,37 @@ describe("Data", () => {
             expect(recordInner).toEqual(["q"]);
         });
 
+        it("writes into a Map inside a list or an object and keeps its key order", () => {
+            // docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order"
+            const makeRow = () =>
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                ]);
+            const listRow = makeRow();
+            const recordRow = makeRow();
+            const fromList = Data.dataSet([listRow], "0.1", "b");
+            const fromRecord = Data.dataSet({ m: recordRow }, "m.1", "b");
+
+            for (const result of [fromList, fromRecord]) {
+                expect([
+                    ...(Object.values(result)[0] as Map<number, string>),
+                ]).toEqual([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+            }
+            expect([...listRow]).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            expect([...recordRow]).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
+        });
+
         // docs/php-parity/Arr/set.json: "Arr::set writes a
         // \"constructor\" key", "...a \"prototype\" key", "...a \"__proto__\" key"
         describe("unsafe-key write policy", () => {
@@ -4874,6 +5035,40 @@ describe("Data", () => {
             expect(result).toEqual({ 0: ["x", "y"] });
             expect(inner).toEqual(["x"]);
             expect(result[0]).not.toBe(inner);
+        });
+
+        it("appends under the next integer key into a plain object at the key on either backing", () => {
+            // docs/php-parity/Arr/push.json, "push-assoc-leaf-appends"
+            expect(Data.dataPush([{ x: { k: 1 } }], "0.x", "v")).toEqual([
+                { x: { k: 1, 0: "v" } },
+            ]);
+            expect(Data.dataPush({ x: { k: 1 } }, "x", "v")).toEqual({
+                x: { k: 1, 0: "v" },
+            });
+        });
+
+        it("walks a nested Map and keeps its key order on either backing", () => {
+            // docs/php-parity/Arr/push.json, "push-through-a-nested-out-of-order-array"
+            const map = (): Map<number, string[]> =>
+                new Map([
+                    [2, ["c"]],
+                    [0, ["a"]],
+                ]);
+            const [row] = Data.dataPush<unknown>([map()], "0.0", "x");
+            const record: { m: unknown } = Data.dataPush(
+                { m: map() },
+                "m.0",
+                "x",
+            );
+
+            expect([...(row as Map<number, string[]>)]).toEqual([
+                [2, ["c"]],
+                [0, ["a", "x"]],
+            ]);
+            expect([...(record.m as Map<number, string[]>)]).toEqual([
+                [2, ["c"]],
+                [0, ["a", "x"]],
+            ]);
         });
     });
 
@@ -5517,26 +5712,24 @@ describe("Data", () => {
             ).toEqual(["01", 1]);
         });
 
-        it("cannot read a field path or descriptor into a Map item, so its items tie", () => {
+        it("sorts by a field path into a Map item, as Laravel reads a nested array", () => {
             // docs/php-parity/Arr/sort.json, "sort-out-of-order-rows-by-path" and
             // "sort-out-of-order-rows-by-descriptor": PHP reads its array items, so n = 0 comes first.
-            // JS-only: a path cannot address a Map item, so each reads null for "n" and all tie.
+            // PHP keeps the keys 0 and 2; the integer keys are renumbered.
             const items = () =>
                 new Map([
                     [2, new Map([["n", 1]])],
                     [0, new Map([["n", 0]])],
                 ]);
-            const inInsertionOrder = [
-                ["0", new Map([["n", 1]])],
-                ["1", new Map([["n", 0]])],
+            const sorted = [
+                ["0", new Map([["n", 0]])],
+                ["1", new Map([["n", 1]])],
             ];
 
-            expect(Object.entries(Data.dataSort(items(), "n"))).toEqual(
-                inInsertionOrder,
-            );
+            expect(Object.entries(Data.dataSort(items(), "n"))).toEqual(sorted);
             expect(
                 Object.entries(Data.dataSort(items(), [["n", "asc"]])),
-            ).toEqual(inInsertionOrder);
+            ).toEqual(sorted);
         });
     });
 
@@ -5661,26 +5854,26 @@ describe("Data", () => {
             ).toEqual(["01", 1]);
         });
 
-        it("cannot read a field path or descriptor into a Map item, so its items tie", () => {
+        it("sorts by a field path into a Map item, as Laravel reads a nested array", () => {
             // docs/php-parity/Arr/sortDesc.json, "sortDesc-out-of-order-rows-by-path" and
             // "sortDesc-out-of-order-rows-by-descriptor": PHP reads its array items, so n = 1 comes first.
-            // JS-only: a path cannot address a Map item, so each reads null for "n" and all tie.
+            // PHP keeps the keys 0 and 2; the integer keys are renumbered.
             const items = () =>
                 new Map([
                     [2, new Map([["n", 0]])],
                     [0, new Map([["n", 1]])],
                 ]);
-            const inInsertionOrder = [
-                ["0", new Map([["n", 0]])],
-                ["1", new Map([["n", 1]])],
+            const sorted = [
+                ["0", new Map([["n", 1]])],
+                ["1", new Map([["n", 0]])],
             ];
 
             expect(Object.entries(Data.dataSortDesc(items(), "n"))).toEqual(
-                inInsertionOrder,
+                sorted,
             );
             expect(
                 Object.entries(Data.dataSortDesc(items(), [["n", "asc"]])),
-            ).toEqual(inInsertionOrder);
+            ).toEqual(sorted);
         });
     });
 
@@ -8028,6 +8221,48 @@ describe("Data", () => {
             expect(Data.dataFirst(range)).toBe(10);
             expect(Data.dataFirst(range, (value) => value > 20)).toBe(30);
         });
+
+        it("reads a collection with no iterator through all(), as Arr::first does", () => {
+            // docs/php-parity/Arr/first.json, "first-collection-callback",
+            // "first-collection-no-callback",
+            // "first-collection-keys"
+            const keys: unknown[] = [];
+
+            expect(
+                Data.dataFirst(
+                    collectionLike({ x: 1, y: 2 }),
+                    (value) => value > 1,
+                ),
+            ).toBe(2);
+            expect(Data.dataFirst(collectionLike({ x: 1, y: 2 }))).toBe(1);
+
+            Data.dataFirst(collectionLike({ x: 1, y: 2 }), (_value, key) => {
+                keys.push(key);
+
+                return false;
+            });
+
+            expect(keys).toEqual(["x", "y"]);
+        });
+
+        it("reads a collection with no iterator holding a list by its positions, as Arr::first does", () => {
+            // docs/php-parity/Arr/first.json, "first-collection-list", "first-collection-list-callback",
+            // "first-collection-list-keys"
+            const keys: unknown[] = [];
+
+            expect(Data.dataFirst(collectionLike([10, 20]))).toBe(10);
+            expect(
+                Data.dataFirst(collectionLike([10, 20]), (value) => value > 10),
+            ).toBe(20);
+
+            Data.dataFirst(collectionLike([10, 20]), (_value, key) => {
+                keys.push(key);
+
+                return false;
+            });
+
+            expect(keys).toEqual([0, 1]);
+        });
     });
 
     describe("dataLast", () => {
@@ -8148,8 +8383,8 @@ describe("Data", () => {
         });
 
         it("walks an object literal that has its own iterator", () => {
-            // JS-only: PHP has no object literal with its own iterator, so last.json has no row; it is walked like a
-            // generator rather than read as a record of its properties.
+            // docs/php-parity/Arr/last.json, "last-traversable", "last-traversable-callback": an
+            // IteratorAggregate, which this object literal stands for, is read whole.
             const range = {
                 from: 1,
                 to: 5,
@@ -8162,6 +8397,48 @@ describe("Data", () => {
 
             expect(Data.dataLast(range)).toBe(50);
             expect(Data.dataLast(range, (value) => value < 40)).toBe(30);
+        });
+
+        it("reads a collection with no iterator through all(), as Arr::last does", () => {
+            // docs/php-parity/Arr/last.json, "last-collection-callback",
+            // "last-collection-no-callback",
+            // "last-collection-keys"
+            const keys: unknown[] = [];
+
+            expect(Data.dataLast(collectionLike({ x: 1, y: 2 }))).toBe(2);
+            expect(
+                Data.dataLast(
+                    collectionLike({ x: 1, y: 2 }),
+                    (value) => value < 2,
+                ),
+            ).toBe(1);
+
+            Data.dataLast(collectionLike({ x: 1, y: 2 }), (_value, key) => {
+                keys.push(key);
+
+                return false;
+            });
+
+            expect(keys).toEqual(["y", "x"]);
+        });
+
+        it("reads a collection with no iterator holding a list by its positions, as Arr::last does", () => {
+            // docs/php-parity/Arr/last.json, "last-collection-list", "last-collection-list-callback",
+            // "last-collection-list-keys"
+            const keys: unknown[] = [];
+
+            expect(Data.dataLast(collectionLike([10, 20]))).toBe(20);
+            expect(
+                Data.dataLast(collectionLike([10, 20]), (value) => value < 20),
+            ).toBe(10);
+
+            Data.dataLast(collectionLike([10, 20]), (_value, key) => {
+                keys.push(key);
+
+                return false;
+            });
+
+            expect(keys).toEqual([1, 0]);
         });
     });
 

@@ -36,9 +36,9 @@ import type {
     ArrayResolvePathOrNull,
     CaseValue,
     CollapsedObject,
+    DotReach,
     EnsureArray,
     FlattenItemReach,
-    FlattenReach,
     MapArrayKey,
     NonNullableArray,
     NonObjectItems,
@@ -98,12 +98,14 @@ import {
     phpTypeName,
     phpValueMatch,
     phpValueMatcher,
+    readMapKey,
     resolvePadLength,
     resolveSliceRange,
     resolveSpliceRange,
     resolveTakeCount,
     strictEqual,
     toPhpKeyString,
+    writeMapKey,
 } from "@tolki/utils";
 
 /**
@@ -167,11 +169,16 @@ type ArraySetPathTarget<TValue> = [TValue] extends [never]
       : TValue extends object
         ? TValue
         : object;
-type ArraySetPathElement<
-    TValue,
-    TRest extends string,
-    TSetValue,
-> = SetObjectPath<ArraySetPathTarget<TValue>, TRest, TSetValue>;
+// A Map element is written as obj writes a Map on its path, so the same SetObjectPath step types it: it stays a Map.
+type ArraySetPathElement<TValue, TRest extends string, TSetValue> = [
+    Extract<TValue, ReadonlyMap<unknown, unknown>>,
+] extends [never]
+    ? SetObjectPath<ArraySetPathTarget<TValue>, TRest, TSetValue>
+    : SetObjectPath<
+          { element: TValue },
+          `element.${TRest}`,
+          TSetValue
+      >["element"];
 // KNOWN-UNSOUND: an already-list element keeps TValue[], so Arr.set([["a"],["b"]], "1.0", 5)
 // answers string[][] where the runtime makes it (string | number)[][] — a value written under
 // the path reads back at the wrong type. Pinned in arr-mutations.test-d.ts.
@@ -197,22 +204,24 @@ type ArraySetPathResult<
           : ArraySetPathListElement<TValue>
     : TValue[];
 
-// DotLeaf (dot): with no depth, dot() walks every non-empty list and plain object down to its leaves; an empty one, a
-// Date, Map, Set, Promise or function is a leaf. A type can't tell a class instance, which the walk also keeps whole,
-// from a plain object, so it walks one.
+// DotLeaf (dot): with no depth, dot() walks every non-empty list, plain object and Map down to its leaves; an empty
+// one, a Date, Set, Promise or function is a leaf. A type can't tell a class instance, which the walk also keeps
+// whole, from a plain object, so it walks one.
 type DotLeaf<T, D extends number = 5> = [D] extends [never]
     ? unknown
     : T extends readonly (infer E)[]
       ? DotLeaf<E, DotDepth[D]> | (0 extends T["length"] ? T : never)
-      : T extends NonObjectItems | Date | RegExp | Promise<unknown>
-        ? T
-        : T extends object
-          ? [keyof T] extends [never]
-              ? unknown
-              :
-                    | DotLeaf<ObjectValue<T>, DotDepth[D]>
-                    | (Record<never, never> extends T ? T : never)
-          : T;
+      : T extends ReadonlyMap<unknown, infer V>
+        ? DotLeaf<V, DotDepth[D]> | T
+        : T extends NonObjectItems | Date | RegExp | Promise<unknown>
+          ? T
+          : T extends object
+            ? [keyof T] extends [never]
+                ? unknown
+                :
+                      | DotLeaf<ObjectValue<T>, DotDepth[D]>
+                      | (Record<never, never> extends T ? T : never)
+            : T;
 type DotDepth = [never, 0, 1, 2, 3, 4];
 
 // CollapseRead (collapse): an item as collapse reads it, a Collection-like one through all().
@@ -376,49 +385,80 @@ function copyAlongPath(
     }
 
     const segments = isString(key) ? key.split(".") : [String(key)];
-    let cursor = root as unknown as Record<string, unknown>;
+    let cursor: Record<string, unknown> | Map<unknown, unknown> =
+        root as unknown as Record<string, unknown>;
 
-    for (const segment of throughLeaf ? segments : segments.slice(0, -1)) {
+    const walked = throughLeaf ? segments : segments.slice(0, -1);
+
+    for (const [index, segment] of walked.entries()) {
         // The bail below must stay in step with setMixed's own descend test: it
         // replaces an absent or non-container child wholesale, so nothing of the
         // caller's value survives below this point to be written into.
-        if (!Object.hasOwn(cursor, segment)) {
+        const step: { found: boolean; value?: unknown } = isMap(cursor)
+            ? readMapKey(cursor, segment)
+            : Object.hasOwn(cursor, segment)
+              ? { found: true, value: cursor[segment] }
+              : { found: false };
+
+        if (!step.found) {
             return root;
         }
 
-        const child = cursor[segment];
-        if (!isArray(child) && !isPlainObject(child)) {
+        const child = step.value;
+        if (!isArray(child) && !isPlainObject(child) && !isMap(child)) {
             return root;
         }
 
-        // The spread carries the elements and the length; Arr::set also stores non-index
-        // keys on the list itself, so each key it missed is replayed below.
-        const clone: unknown[] | Record<string, unknown> = isArray(child)
-            ? [...child]
-            : {};
-        const source = child as Record<PropertyKey, unknown>;
+        // A prototype is shared by all that inherit from it, so an empty container stands in for it, as set's copy
+        // does; one at push's key that is no list stays, to fail the array check as obj's push does.
+        if (
+            isPrototypeObject(child) &&
+            throughLeaf &&
+            index === walked.length - 1 &&
+            !isArray(child)
+        ) {
+            return root;
+        }
 
-        for (const name of Reflect.ownKeys(child)) {
-            if (Object.hasOwn(clone, name)) {
-                continue;
+        let clone: unknown[] | Record<string, unknown> | Map<unknown, unknown>;
+
+        if (isPrototypeObject(child)) {
+            clone = isArray(child) ? [] : {};
+        } else if (isMap(child)) {
+            clone = new Map(child);
+        } else {
+            // The spread carries the elements and the length; Arr::set also stores non-index
+            // keys on the list itself, so each key it missed is replayed below.
+            clone = isArray(child) ? [...child] : {};
+            const source = child as Record<PropertyKey, unknown>;
+
+            for (const name of Reflect.ownKeys(child)) {
+                if (Object.hasOwn(clone, name)) {
+                    continue;
+                }
+
+                // Normalised data, never the source descriptor: `writable: false` would break
+                // the very write this copy exists for, and a replayed accessor would leave the
+                // copy reading the caller's backing store.
+                Object.defineProperty(clone, name, {
+                    value: source[name],
+                    writable: true,
+                    enumerable: Object.prototype.propertyIsEnumerable.call(
+                        child,
+                        name,
+                    ),
+                    configurable: true,
+                });
             }
-
-            // Normalised data, never the source descriptor: `writable: false` would break
-            // the very write this copy exists for, and a replayed accessor would leave the
-            // copy reading the caller's backing store.
-            Object.defineProperty(clone, name, {
-                value: source[name],
-                writable: true,
-                enumerable: Object.prototype.propertyIsEnumerable.call(
-                    child,
-                    name,
-                ),
-                configurable: true,
-            });
         }
 
-        defineKey(cursor, segment, clone);
-        cursor = clone as Record<string, unknown>;
+        if (isMap(cursor)) {
+            writeMapKey(cursor, segment, clone);
+        } else {
+            defineKey(cursor, segment, clone);
+        }
+
+        cursor = clone as Record<string, unknown> | Map<unknown, unknown>;
     }
 
     return root;
@@ -869,7 +909,7 @@ export function dot<TValue>(
     data: readonly TValue[],
     prepend: string,
     depth?: number,
-): Record<string, FlattenReach<TValue>>;
+): Record<string, DotReach<TValue>>;
 export function dot<TValue>(
     data: readonly unknown[] | null | undefined,
     prepend?: string,
@@ -1756,7 +1796,9 @@ function fromItems(items: unknown): unknown[] | Record<string, unknown> {
 }
 
 /**
- * Get an item from an array using numeric-only dot notation.
+ * Get an item from an array using "dot" notation.
+ *
+ * A path walks into lists, plain objects and Maps, as Laravel walks nested arrays.
  *
  * @param  array - The array to get the item from.
  * @param  key - The key or dot-notated path of the item to get.
@@ -3304,8 +3346,8 @@ export function set(
  * @param data - The array to push items into.
  * @param key - The key or dot-notated path of the array to push into. If null, push into root.
  * @param values - The values to push.
- * @returns The array with the values pushed into the array at the key.
- * @throws InvalidArgumentException if the value at the key is not an array.
+ * @returns The array with the values pushed into the array, object or Map at the key.
+ * @throws InvalidArgumentException if the value at the key is not an array, object or Map.
  */
 // Overload: typed array → element type preserved (including unions)
 export function push<TValue>(
@@ -3325,8 +3367,8 @@ export function push<TValue>(
     key: PathKey,
     ...values: TValue[]
 ): TValue[] {
-    // pushWithPath appends in place, down to the array AT the key, so the list
-    // and every container along the path are copied before it runs.
+    // pushWithPath appends in place, into the array, object or Map AT the key, so
+    // the list and every container along the path are copied before it runs.
     return pushWithPath(
         isArray(data) ? copyAlongPath(data, key, true) : data,
         key,

@@ -39,6 +39,16 @@ class D4Point {
     x = 1;
 }
 
+/**
+ * Read a Map's entries in insertion order, which `toEqual` ignores when it compares two Maps.
+ *
+ * @param value - The Map to read
+ * @returns Its entries, in insertion order
+ */
+const mapEntries = (value: unknown): [unknown, unknown][] => [
+    ...(value as Map<unknown, unknown>),
+];
+
 describe("Obj", () => {
     describe("accessible", () => {
         it("should return true for objects", () => {
@@ -153,8 +163,8 @@ describe("Obj", () => {
             const result = Obj.add({ a: point }, "a.y", 2);
 
             expect(result).toEqual({ a: { y: 2 } });
-            expect(result.a).not.toBe(point);
-            expect(result.a).not.toBeInstanceOf(D4Point);
+            expect(result["a"]).not.toBe(point);
+            expect(result["a"]).not.toBeInstanceOf(D4Point);
             expect(Object.entries(point)).toEqual([["x", 1]]);
         });
 
@@ -166,7 +176,7 @@ describe("Obj", () => {
             const result = Obj.add({ a: inner }, "a.1", "y");
 
             expect(result).toEqual({ a: ["q", "y"] });
-            expect(result.a).not.toBe(inner);
+            expect(result["a"]).not.toBe(inner);
             expect(inner).toEqual(["q"]);
         });
 
@@ -189,6 +199,23 @@ describe("Obj", () => {
             // docs/php-parity/Arr/add.json, "add-int-key", "add-float-key"
             expect(Obj.add({}, 1, "hAz")).toEqual({ 1: "hAz" });
             expect(Obj.add({}, 1.1, "hAz")).toEqual({ 1: { 1: "hAz" } });
+        });
+
+        it("adds into a Map, or a Map passed as the data", () => {
+            // docs/php-parity/Arr/add.json, "add-nested-keeps-key-order"
+            const m = new Map<number, string>([[2, "c"]]);
+            const result = Obj.add({ m }, "m.0", "a");
+
+            expect(mapEntries(result.m)).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            expect([...m]).toEqual([[2, "c"]]);
+            // JS-only: PHP has no Map; a Map given as the whole data comes back as the record from() builds.
+            expect(Obj.add(new Map([["a", 1]]), "b", 2)).toEqual({
+                a: 1,
+                b: 2,
+            });
         });
     });
 
@@ -1689,19 +1716,44 @@ describe("Obj", () => {
             ]);
         });
 
-        it("keeps a Map nested inside a Map whole, as a value", () => {
-            // JS-only: only the Map at the root is walked; a nested Map is a leaf, as a nested
-            // Date or class instance is.
-            const inner = new Map([["x", 1]]);
+        it("walks a Map nested inside a Map, as Laravel walks a nested array", () => {
+            // docs/php-parity/Arr/dot.json, "dot-nested-out-of-order"
+            // JS-only: the outer Map is the whole data.
             const result = Obj.dot(
                 new Map<string, unknown>([
-                    ["a", inner],
+                    ["a", new Map([["x", 1]])],
                     ["b", { y: 2 }],
                 ]),
             );
 
-            expect(Object.keys(result)).toEqual(["a", "b.y"]);
-            expect(result["a"]).toBe(inner);
+            expect(Object.keys(result)).toEqual(["a.x", "b.y"]);
+            expect(result["a.x"]).toBe(1);
+        });
+
+        it("walks a nested Map in its order", () => {
+            // docs/php-parity/Arr/dot.json, "dot-nested-out-of-order"
+            const out = Obj.dot({
+                m: new Map([
+                    [2, "c"],
+                    [0, "a"],
+                ]),
+            });
+
+            expect(Object.keys(out)).toEqual(["m.2", "m.0"]);
+        });
+
+        it("stops at the depth limit inside a Map", () => {
+            // docs/php-parity/Arr/dot.json, "dot-depth-through-list", where each Map stands for an array
+            expect(Obj.dot({ m: new Map([["a", { b: 1 }]]) }, "", 1)).toEqual({
+                "m.a": { b: 1 },
+            });
+            expect(
+                Obj.dot(
+                    { 0: new Map([["a", new Map([["b", { c: 1 }]])]]) },
+                    "",
+                    2,
+                ),
+            ).toEqual({ "0.a.b": { c: 1 } });
         });
     });
 
@@ -1826,6 +1878,19 @@ describe("Obj", () => {
                     ]),
                 ),
             ).toEqual({ 2: "c", 0: "a", 1: "b" });
+        });
+
+        it("merges a later dotted key into a Map value, as Laravel merges into an array", () => {
+            // docs/php-parity/Arr/undot.json, "undot-list-plain-first-collision"
+            const input = new Map([["k", 1]]);
+            const result = Obj.undot({ a: input, "a.j": 2 });
+
+            expect(result["a"]).toBeInstanceOf(Map);
+            expect(mapEntries(result["a"])).toEqual([
+                ["k", 1],
+                ["j", 2],
+            ]);
+            expect([...input]).toEqual([["k", 1]]);
         });
     });
 
@@ -2256,6 +2321,53 @@ describe("Obj", () => {
     });
 
     describe("forget", () => {
+        it("removes a key from a nested Map and keeps the other keys in order", () => {
+            // docs/php-parity/Arr/forget.json, "forget-nested-keeps-other-keys"
+            const result = Obj.forget(
+                {
+                    m: new Map<number, string>([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                },
+                "m.0",
+            ) as { m: unknown };
+
+            expect(mapEntries(result.m)).toEqual([
+                [2, "c"],
+                [1, "b"],
+            ]);
+        });
+
+        it("keeps every entry of a Map passed as the data", () => {
+            // JS-only: a Map given as the whole data becomes the record from() builds.
+            const result = Obj.forget(
+                new Map<unknown, unknown>([
+                    ["a", 1],
+                    [2, "two"],
+                ]),
+                "a",
+            );
+
+            expect(result).toEqual({ 2: "two" });
+        });
+
+        it("leaves the caller's Map unchanged", () => {
+            // docs/php-parity/Arr/forget.json, "forget-nested-keeps-other-keys"
+            const m = new Map<number, string>([
+                [2, "c"],
+                [0, "a"],
+            ]);
+
+            Obj.forget({ m }, "m.0");
+
+            expect([...m]).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
+        });
+
         it("should remove specified keys", () => {
             const obj = { name: "John", age: 30, city: "NYC" };
             expect(Obj.forget(obj, "age")).toEqual({
@@ -2743,6 +2855,51 @@ describe("Obj", () => {
             ).toBe(2);
             expect(calls).toBe(2);
         });
+
+        it("reads a collection's items through all(), as Arr::first reads a Collection", () => {
+            // docs/php-parity/Arr/first.json, "first-collection-callback",
+            // "first-collection-no-callback",
+            // "first-collection-keys"
+            const keys: unknown[] = [];
+
+            expect(
+                Obj.first(collectionLike({ x: 1, y: 2 }), (value) => value > 1),
+            ).toBe(2);
+            expect(Obj.first(collectionLike({ x: 1, y: 2 }))).toBe(1);
+
+            Obj.first(collectionLike({ x: 1, y: 2 }), (_value, key) => {
+                keys.push(key);
+
+                return false;
+            });
+
+            expect(keys).toEqual(["x", "y"]);
+        });
+
+        it("reads a collection holding a list by its positions, as Arr::first does", () => {
+            // docs/php-parity/Arr/first.json, "first-collection-list", "first-collection-list-callback",
+            // "first-collection-list-keys"
+            const keys: unknown[] = [];
+
+            expect(Obj.first(collectionLike([10, 20]))).toBe(10);
+            expect(
+                Obj.first(collectionLike([10, 20]), (value) => value > 10),
+            ).toBe(20);
+
+            Obj.first(collectionLike([10, 20]), (_value, key) => {
+                keys.push(key);
+
+                return false;
+            });
+
+            expect(keys).toEqual([0, 1]);
+            expect(Obj.first(collectionLike([]), null, "none")).toBe("none");
+        });
+
+        it("still reads a plain object's all member as data", () => {
+            // JS-only: PHP has no plain object; one stands for an array, so its all member is one of its values.
+            expect(Obj.first({ a: 1, all: () => [9] })).toBe(1);
+        });
     });
 
     describe("last", () => {
@@ -2865,6 +3022,51 @@ describe("Obj", () => {
                     ]),
                 ),
             ).toBe("z");
+        });
+
+        it("reads a collection's items through all(), as Arr::last reads a Collection", () => {
+            // docs/php-parity/Arr/last.json, "last-collection-callback",
+            // "last-collection-no-callback",
+            // "last-collection-keys"
+            const keys: unknown[] = [];
+
+            expect(
+                Obj.last(collectionLike({ x: 1, y: 2 }), (value) => value < 2),
+            ).toBe(1);
+            expect(Obj.last(collectionLike({ x: 1, y: 2 }))).toBe(2);
+
+            Obj.last(collectionLike({ x: 1, y: 2 }), (_value, key) => {
+                keys.push(key);
+
+                return false;
+            });
+
+            expect(keys).toEqual(["y", "x"]);
+        });
+
+        it("reads a collection holding a list by its positions, as Arr::last does", () => {
+            // docs/php-parity/Arr/last.json, "last-collection-list", "last-collection-list-callback",
+            // "last-collection-list-keys"
+            const keys: unknown[] = [];
+
+            expect(Obj.last(collectionLike([10, 20]))).toBe(20);
+            expect(
+                Obj.last(collectionLike([10, 20]), (value) => value < 20),
+            ).toBe(10);
+
+            Obj.last(collectionLike([10, 20]), (_value, key) => {
+                keys.push(key);
+
+                return false;
+            });
+
+            expect(keys).toEqual([1, 0]);
+            expect(Obj.last(collectionLike([]), null, "none")).toBe("none");
+        });
+
+        it("still reads a plain object's all member as data", () => {
+            // JS-only: PHP has no plain object; one stands for an array, so its all member is one of its values.
+            expect(Obj.last({ all: () => [9], a: 1 })).toBe(1);
         });
     });
 
@@ -3045,6 +3247,33 @@ describe("Obj", () => {
             expect(Obj.get(obj, "products.length", "none")).toBe("none");
             expect(Obj.get(obj, "products.01", "none")).toBe("none");
         });
+
+        it("walks a Map at any depth, as Laravel walks a nested array", () => {
+            // docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys"
+            expect(
+                Obj.get(
+                    {
+                        m: new Map([
+                            [2, "c"],
+                            [0, "a"],
+                        ]),
+                    },
+                    "m.0",
+                ),
+            ).toBe("a");
+            expect(Obj.get({ m: new Map() }, "m.k", "d")).toBe("d");
+            // JS-only: a Map given as the whole data reads as the PHP array it stands for.
+            expect(Obj.get(new Map([["a", { b: 1 }]]), "a.b")).toBe(1);
+            expect(
+                Obj.get(
+                    new Map<string, unknown>([
+                        ["a.b", 1],
+                        ["a", { b: 2 }],
+                    ]),
+                    "a.b",
+                ),
+            ).toBe(1);
+        });
     });
 
     describe("has", () => {
@@ -3181,6 +3410,19 @@ describe("Obj", () => {
             // A literal undefined element casts to "" the same way null does.
             expect(Obj.has({ "": "some" }, [undefined])).toBe(true);
             expect(Obj.has({ a: 1 }, [undefined, "a"])).toBe(false);
+        });
+
+        it("finds a key inside a Map, a stored null included", () => {
+            // docs/php-parity/Arr/has.json, "has-nested-stored-null"
+            expect(Obj.has({ m: new Map([["k", null]]) }, "m.k")).toBe(true);
+            expect(Obj.hasAny({ m: new Map([[2, "c"]]) }, ["m.2", "x"])).toBe(
+                true,
+            );
+            expect(Obj.hasAll({ m: new Map([[2, "c"]]) }, ["m.2", "x"])).toBe(
+                false,
+            );
+            // JS-only: a Map given as the whole data reads as the PHP array it stands for.
+            expect(Obj.has(new Map([["a", 1]]), "a")).toBe(true);
         });
     });
 
@@ -3839,6 +4081,17 @@ describe("Obj", () => {
     });
 
     describe("set", () => {
+        it("writes a number key mid-path as PHP stores it", () => {
+            // docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order"
+            const result = Obj.set(
+                { m: new Map<number, unknown>([[1, { a: 1 }]]) },
+                "m.1.b",
+                2,
+            );
+
+            expect(mapEntries(result.m)).toEqual([[1, { a: 1, b: 2 }]]);
+        });
+
         it("writes an empty dot segment as the array key PHP writes", () => {
             // docs/php-parity/Arr/set.json, "set-interior-empty-segment",
             // "set-leading-empty-segment", "set-trailing-empty-segment",
@@ -3874,8 +4127,8 @@ describe("Obj", () => {
             const result = Obj.set({ a: point }, "a.y", 2);
 
             expect(result).toEqual({ a: { y: 2 } });
-            expect(result.a).not.toBe(point);
-            expect(result.a).not.toBeInstanceOf(D4Point);
+            expect(result["a"]).not.toBe(point);
+            expect(result["a"]).not.toBeInstanceOf(D4Point);
             expect(Object.entries(point)).toEqual([["x", 1]]);
         });
 
@@ -3887,19 +4140,77 @@ describe("Obj", () => {
             const result = Obj.set({ a: inner }, "a.1", "y");
 
             expect(result).toEqual({ a: ["q", "y"] });
-            expect(result.a).not.toBe(inner);
+            expect(result["a"]).not.toBe(inner);
             expect(inner).toEqual(["q"]);
         });
 
-        it("replaces a nested Date or Map, which carry no array entries", () => {
-            // JS-only: PHP has neither, but Arr::set's is_array test replaces every
-            // non-array, and both fail isPlainObject here for the same reason.
+        it("replaces a nested Date, and writes into a nested Map", () => {
+            // JS-only: PHP has no Date, but Arr::set's is_array test replaces every
+            // non-array, and a Date carries no array entries.
             expect(Obj.set({ a: new Date(0) }, "a.y", 2)).toEqual({
                 a: { y: 2 },
             });
+            // docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order"
             expect(Obj.set({ a: new Map() }, "a.y", 2)).toEqual({
-                a: { y: 2 },
+                a: new Map([["y", 2]]),
             });
+        });
+
+        it("writes into a Map and keeps its key order", () => {
+            // docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order", "set-nested-overwrite-keeps-place"
+            const data = () => ({
+                m: new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                ]),
+            });
+
+            expect(mapEntries(Obj.set(data(), "m.1", "b").m)).toEqual([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+            expect(mapEntries(Obj.set(data(), "m.2", "C").m)).toEqual([
+                [2, "C"],
+                [0, "a"],
+            ]);
+        });
+
+        it("leaves the caller's Map unchanged", () => {
+            // docs/php-parity/Arr/add.json, "add-nested-record-leaves-the-caller-value-untouched"
+            const m = new Map<number, string>([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            const result = Obj.set({ m }, "m.1", "b");
+
+            expect([...m]).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            expect(result.m).not.toBe(m);
+        });
+
+        it("keeps every entry of a Map passed as the data", () => {
+            // JS-only: PHP has no Map; a Map given as the whole data comes back as the record from() builds.
+            expect(
+                Obj.set(
+                    new Map<unknown, unknown>([
+                        ["a", 1],
+                        [2, "two"],
+                    ]),
+                    "b",
+                    3,
+                ),
+            ).toEqual({ a: 1, 2: "two", b: 3 });
+        });
+
+        it("never writes through a prototype inside a Map", () => {
+            // docs/php-parity/Arr/set.json, "Arr::set writes a \"__proto__\" key"
+            const result = Obj.set({ m: new Map() }, "m.__proto__.x", 1);
+
+            expect(mapEntries(result.m)).toEqual([["__proto__", { x: 1 }]]);
+            expect(({} as Record<string, unknown>)["x"]).toBeUndefined();
         });
 
         it("should replace entire object when key is null", () => {
@@ -4116,6 +4427,13 @@ describe("Obj", () => {
         it("should return default value if key not found and default is integer", () => {
             const obj = { name: "John" };
             expect(Obj.integer(obj, "missing", 42)).toBe(42);
+        });
+
+        it("reads through a Map, or a Map given as the data", () => {
+            // docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys"
+            expect(Obj.integer({ m: new Map([["n", 5]]) }, "m.n")).toBe(5);
+            // JS-only: a Map given as the whole data reads as the PHP array it stands for.
+            expect(Obj.integer(new Map([["n", 5]]), "n")).toBe(5);
         });
     });
 
@@ -6030,6 +6348,16 @@ describe("Obj", () => {
             expect(result["b.c"]).toBe(date);
             expect(result["l.0"]).toBe(point);
         });
+
+        it("walks a Map given as the data or nested", () => {
+            // JS-only: flattenDot has no Laravel twin; it walks a Map as Obj.dot does and drops an empty one.
+            expect(Obj.flattenDot(new Map([["a", { b: 1 }]]))).toEqual({
+                "a.b": 1,
+            });
+            expect(
+                Obj.flattenDot({ m: new Map([["b", 1]]), e: new Map() }),
+            ).toEqual({ "m.b": 1 });
+        });
     });
 
     describe("flip", () => {
@@ -6662,6 +6990,19 @@ describe("Obj", () => {
                 ["k2", 2],
                 ["k3", 3],
             ]);
+        });
+
+        it("keys by a path through a Map", () => {
+            // docs/php-parity/Arr/keyBy.json, "keyBy-nested-path"
+            const rows = [
+                { m: new Map([["n", 2]]) },
+                { m: new Map([["n", 1]]) },
+            ];
+
+            expect(Obj.keyBy({ a: rows[0], b: rows[1] }, "m.n")).toEqual({
+                2: rows[0],
+                1: rows[1],
+            });
         });
     });
 
@@ -7545,6 +7886,45 @@ describe("Obj", () => {
     });
 
     describe("pull", () => {
+        it("returns a Map passed as the data whole when the key is null", () => {
+            // JS-only: a Map given as the whole data becomes the record from() builds.
+            expect(Obj.pull(new Map([["a", 1]]), null)).toEqual({
+                value: null,
+                data: { a: 1 },
+            });
+        });
+
+        it("pulls a key out of a nested Map, or a Map passed as the data", () => {
+            // docs/php-parity/Arr/pull.json, "pull-nested-keeps-other-keys"
+            const nested = Obj.pull(
+                {
+                    m: new Map<number, string>([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                },
+                "m.0",
+            );
+
+            expect(nested.value).toBe("a");
+            expect(mapEntries((nested.data as { m: unknown }).m)).toEqual([
+                [2, "c"],
+                [1, "b"],
+            ]);
+
+            // JS-only: a Map given as the whole data becomes the record from() builds.
+            expect(
+                Obj.pull(
+                    new Map([
+                        ["a", 1],
+                        ["b", 2],
+                    ]),
+                    "a",
+                ),
+            ).toEqual({ value: 1, data: { b: 2 } });
+        });
+
         it("should pull and return value with remaining data", () => {
             const obj = { name: "John", age: 30 };
             const result = Obj.pull(obj, "name");
@@ -8460,6 +8840,111 @@ describe("Obj", () => {
             ).toThrow(
                 "Array value for key [foo.bar] must be an array, boolean found.",
             );
+        });
+
+        it("appends under the next integer key into an object at the key, as Laravel does", () => {
+            // docs/php-parity/Arr/push.json, "push-assoc-leaf-appends", "push-leaf-negative-int-key"
+            const negative = Obj.push({ x: { k: 1, "-5": "n" } }, "x", "v");
+
+            expect(Obj.push({ x: { k: 1 } }, "x", "v")).toEqual({
+                x: { k: 1, 0: "v" },
+            });
+            expect(negative).toEqual({ x: { k: 1, "-5": "n", "-4": "v" } });
+            expect(Object.keys(negative.x)).toEqual(["k", "-5", "-4"]);
+        });
+
+        it("appends into a Map at the key, keeping its order", () => {
+            // docs/php-parity/Arr/push.json, "push-out-of-order-leaf-appends-after-highest"
+            const result = Obj.push(
+                {
+                    m: new Map([
+                        [2, "c"],
+                        [0, "a"],
+                    ]),
+                },
+                "m",
+                "x",
+            );
+
+            expect(mapEntries(result.m)).toEqual([
+                [2, "c"],
+                [0, "a"],
+                [3, "x"],
+            ]);
+        });
+
+        it("walks a Map along the path", () => {
+            // docs/php-parity/Arr/push.json, "push-through-a-nested-out-of-order-array"
+            const result = Obj.push(
+                {
+                    m: new Map([
+                        [2, ["c"]],
+                        [0, ["a"]],
+                    ]),
+                },
+                "m.0",
+                "x",
+            );
+
+            expect(mapEntries(result.m)).toEqual([
+                [2, ["c"]],
+                [0, ["a", "x"]],
+            ]);
+        });
+
+        it("appends after a negative highest key for a null key, as PHP 8.3 does", () => {
+            // docs/php-parity/Arr/push.json, "push-null-key-negative-int-key"
+            const result = Obj.push({ "-5": "a" }, null, "b");
+
+            expect(result).toEqual({ "-5": "a", "-4": "b" });
+            expect(Object.keys(result)).toEqual(["-5", "-4"]);
+        });
+
+        it("keeps every entry of a Map passed as the data", () => {
+            // JS-only: a Map given as the whole data comes back as the record from() builds, as every obj writer does.
+            expect(
+                Obj.push(
+                    new Map<unknown, unknown>([
+                        ["a", [1]],
+                        [2, "two"],
+                    ]),
+                    "a",
+                    2,
+                ),
+            ).toEqual({ a: [1, 2], 2: "two" });
+        });
+
+        it("leaves the caller's object and Map unchanged", () => {
+            // JS-only: Arr::push takes the array by reference and changes it; this port's push never does.
+            const leaf = { k: 1 };
+            const map = new Map([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            const inner = ["a"];
+            const nested = new Map([
+                [2, ["c"]],
+                [0, inner],
+            ]);
+            const source = new Map<unknown, unknown>([["a", [1]]]);
+
+            Obj.push({ x: leaf }, "x", "v");
+            Obj.push({ m: map }, "m", "x");
+            Obj.push({ m: nested }, "m.0", "x");
+            Obj.push(source, "a", 2);
+            Obj.push(source, null, 3);
+
+            expect(leaf).toEqual({ k: 1 });
+            expect(mapEntries(map)).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            expect(mapEntries(nested)).toEqual([
+                [2, ["c"]],
+                [0, ["a"]],
+            ]);
+            expect(inner).toEqual(["a"]);
+            expect(mapEntries(source)).toEqual([["a", [1]]]);
         });
     });
 
@@ -9494,26 +9979,24 @@ describe("Obj", () => {
                 ).toEqual(["01", 1]);
             });
 
-            it("cannot read a field path or descriptor into a Map item, so its items tie", () => {
+            it("sorts by a field path into a Map item, as Laravel reads a nested array", () => {
                 // docs/php-parity/Arr/sort.json, "sort-out-of-order-rows-by-path" and
                 // "sort-out-of-order-rows-by-descriptor": PHP reads each array item's n and puts n = 0 first.
-                // JS-only: a Map item is a leaf a path cannot address, so every item reads null for "n" and they tie.
+                // PHP keeps the keys 0 and 2; the integer keys are renumbered.
                 const items = () =>
                     new Map([
                         [2, new Map([["n", 1]])],
                         [0, new Map([["n", 0]])],
                     ]);
-                const inInsertionOrder = [
-                    ["0", new Map([["n", 1]])],
-                    ["1", new Map([["n", 0]])],
+                const sorted = [
+                    ["0", new Map([["n", 0]])],
+                    ["1", new Map([["n", 1]])],
                 ];
 
-                expect(Object.entries(Obj.sort(items(), "n"))).toEqual(
-                    inInsertionOrder,
-                );
+                expect(Object.entries(Obj.sort(items(), "n"))).toEqual(sorted);
                 expect(
                     Object.entries(Obj.sort(items(), [["n", "asc"]])),
-                ).toEqual(inInsertionOrder);
+                ).toEqual(sorted);
             });
         });
     });
@@ -9908,26 +10391,26 @@ describe("Obj", () => {
                 ).toEqual(["01", 1]);
             });
 
-            it("cannot read a field path or descriptor into a Map item, so its items tie", () => {
+            it("sorts by a field path into a Map item, as Laravel reads a nested array", () => {
                 // docs/php-parity/Arr/sortDesc.json, "sortDesc-out-of-order-rows-by-path" and
                 // "sortDesc-out-of-order-rows-by-descriptor": PHP reads each array item's n and puts n = 1 first.
-                // JS-only: a Map item is a leaf a path cannot address, so every item reads null for "n" and they tie.
+                // PHP keeps the keys 0 and 2; the integer keys are renumbered.
                 const items = () =>
                     new Map([
                         [2, new Map([["n", 0]])],
                         [0, new Map([["n", 1]])],
                     ]);
-                const inInsertionOrder = [
-                    ["0", new Map([["n", 0]])],
-                    ["1", new Map([["n", 1]])],
+                const sorted = [
+                    ["0", new Map([["n", 1]])],
+                    ["1", new Map([["n", 0]])],
                 ];
 
                 expect(Object.entries(Obj.sortDesc(items(), "n"))).toEqual(
-                    inInsertionOrder,
+                    sorted,
                 );
                 expect(
                     Object.entries(Obj.sortDesc(items(), [["n", "asc"]])),
-                ).toEqual(inInsertionOrder);
+                ).toEqual(sorted);
             });
         });
     });
@@ -13118,6 +13601,15 @@ describe("prototype objects as write targets", () => {
             unpolluted();
         },
     );
+
+    it("push refuses Object.prototype at the key as a non-array", () => {
+        // JS-only: PHP has no prototype object; one at the key is no data to append to and fails the array check.
+        expect(() => Obj.push({ p: Object.prototype }, "p", 1)).toThrow(
+            "Array value for key [p] must be an array, object found.",
+        );
+
+        unpolluted();
+    });
 });
 
 /**
@@ -13165,6 +13657,15 @@ describe("residual limits: what the runtime answers where the type disagrees", (
         expect(
             Obj.replaceRecursive({ a: new Sized() }, { a: { x: 5 } }),
         ).toEqual({ a: { x: 5 } });
+    });
+
+    it("rejects a class instance at push's key", () => {
+        // docs/php-parity/Arr/push.json, "push-object-at-the-key": PHP's object stands for the instance.
+        expect(() => Obj.push({ p: new Sized() }, "p", 1)).toThrow(
+            new InvalidArgumentException(
+                "Array value for key [p] must be an array, object found.",
+            ),
+        );
     });
 
     it("keeps a typed array whole in flatten", () => {

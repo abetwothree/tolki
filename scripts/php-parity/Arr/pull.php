@@ -48,4 +48,18 @@ probe('pull-assoc-through-a-list-row', "\$a = ['rows' => [['a' => 1, 'b' => 2]]]
     return [Arr::pull($a, 'rows.0.a'), $a];
 });
 
+probe('pull-nested-keeps-other-keys', "Arr::pull(\$a, 'm.0'), Arr::pull(\$l, '0.0') on [2 => 'c', 0 => 'a', 1 => 'b']", function () {
+    $a = ['m' => [2 => 'c', 0 => 'a', 1 => 'b']];
+    $l = [[2 => 'c', 0 => 'a', 1 => 'b']];
+    $v = Arr::pull($a, 'm.0');
+    $lv = Arr::pull($l, '0.0');
+
+    return [
+        'assoc' => ['value' => $v, 'data' => $a],
+        'assoc_keys' => array_keys($a['m']),
+        'list' => ['value' => $lv, 'data' => $l],
+        'list_keys' => array_keys($l[0]),
+    ];
+});
+
 emit();

@@ -270,7 +270,8 @@ dataItem({ desk: { price: 100 } }, "desk");
 - Functions Laravel has on `Collection` rather than on `Arr`. All three packages export `chunk`, `chunkBy`, `chunkWhile`, `combine`, `contains`, `containsStrict`, the `diff` and `intersect` families, `filter`, `flip`, `keys`, `pad`, `pop`, `replace`, `replaceRecursive`, `reverse`, `shift`, `skipUntil`, `skipWhile`, `slice`, `splice`, `takeUntil`, `takeWhile`, `union`, `unshift` and `values`. `@tolki/data` also has `dataCount`, `dataSearch`, `dataBefore` and `dataAfter`. <!-- docs/php-parity/Collection/search.json, "search-callback"; docs/php-parity/Collection/before.json, "before-array-needle"; docs/php-parity/Collection/after.json, "after-array-needle"; docs/php-parity/Collection/count.json, "count-empty" -->
 - `flattenDot` in `@tolki/obj` flattens like `dot` but drops an empty nested object or array, where `dot` keeps it as a value, as Laravel's `Arr::dot()` does. <!-- docs/php-parity/Arr/dot.json, "dot-empty-leaf", "dot-nested-empty-leaf" -->
 - `dataUndot(data, true)` builds a list from paths made of whole numbers such as `"0.1"`, as `undot` from `@tolki/arr` always does. It throws a `TypeError` for any other path.
-- `@tolki/obj` and `@tolki/data` read a `Map`, and `@tolki/data` reads a `Set` and a generator as a list.
+- Every function that takes a dot path reads and writes a `Map` at any depth as Laravel reads a nested array, and `dot` and `flattenDot` walk one the same way. A write keeps the `Map` a `Map` and keeps its key order. Helpers that recurse through values, such as `flatten`, `sortRecursive` and `replaceRecursive`, do not walk into a nested `Map`. When the whole data is a `Map`, a path function that writes, such as `set`, `forget` or `push`, returns a plain object. <!-- docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order" -->
+- `@tolki/data` reads a `Set` and a generator as a list.
 
 ```js
 import {
@@ -282,7 +283,7 @@ import {
   dataSearch,
   dataUndot,
 } from "@tolki/data";
-import { dot, flattenDot } from "@tolki/obj";
+import { dot, flatten, flattenDot, set } from "@tolki/obj";
 
 dataCount({ a: 1, b: 2 });
 // => 2
@@ -310,4 +311,19 @@ dataFrom(new Set([1, 2]));
 
 dataGet(new Map([["a", { b: 1 }]]), "a.b");
 // => 1
+
+set(
+  {
+    m: new Map([
+      [2, "c"],
+      [0, "a"],
+    ]),
+  },
+  "m.1",
+  "b",
+);
+// => { m: new Map([[2, "c"], [0, "a"], [1, "b"]]) }
+
+flatten({ m: new Map([["a", 1]]) });
+// => [new Map([["a", 1]])]
 ```

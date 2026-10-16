@@ -167,6 +167,14 @@
             "label": "has-out-of-order-missing",
             "php": "Arr::has([2 => 'c', 0 => 'a', 1 => 'b'], [0, 5])",
             "value": false
+        },
+        {
+            "label": "has-nested-stored-null",
+            "php": "Arr::has(['m' => ['k' => null]], 'm.k'), Arr::has([['k' => null]], '0.k')",
+            "value": {
+                "assoc": true,
+                "list": true
+            }
         }
     ]
 }

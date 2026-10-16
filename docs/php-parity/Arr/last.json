@@ -100,6 +100,34 @@
                 "b",
                 "a"
             ]
+        },
+        {
+            "label": "last-collection-list",
+            "php": "Arr::last(collect([10, 20]))",
+            "value": 20
+        },
+        {
+            "label": "last-collection-list-callback",
+            "php": "Arr::last(collect([10, 20]), fn ($v) => $v < 20)",
+            "value": 10
+        },
+        {
+            "label": "last-collection-list-keys",
+            "php": "keys seen by Arr::last(collect([10, 20]), fn () => false)",
+            "value": [
+                1,
+                0
+            ]
+        },
+        {
+            "label": "last-traversable",
+            "php": "Arr::last(<IteratorAggregate yielding 10, 20, 30, 40, 50>)",
+            "value": 50
+        },
+        {
+            "label": "last-traversable-callback",
+            "php": "Arr::last(<IteratorAggregate yielding 10, 20, 30, 40, 50>, fn ($v) => $v < 40)",
+            "value": 30
         }
     ]
 }

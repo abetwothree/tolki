@@ -10,6 +10,7 @@ import {
     isUndefined,
     keyedEntries,
     phpArrayKey,
+    readMapKey,
 } from "@tolki/utils";
 
 /** What reading a segment answers when the target holds no such key. */
@@ -174,12 +175,9 @@ function readSegment(target: unknown, segment: string): unknown {
 
     // A Map stands in for a PHP array, so its key is cast as PHP casts one, and a stored null still exists.
     if (isMap(target)) {
-        const key = String(phpArrayKey(segment));
-        const entry = keyedEntries(target).find(
-            ([entryKey]) => entryKey === key,
-        );
+        const entry = readMapKey(target, segment);
 
-        return entry ? entry[1] : absent;
+        return entry.found ? entry.value : absent;
     }
 
     // A miss reads no property, unlike data_get: JS cannot tell a public one from state such as a Collection's items.

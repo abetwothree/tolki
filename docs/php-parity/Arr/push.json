@@ -904,6 +904,109 @@
                     }
                 }
             ]
+        },
+        {
+            "label": "push-through-a-nested-out-of-order-array",
+            "php": "Arr::push($a, 'm.0', 'x'), Arr::push($l, '0.0', 'x') on [2 => ['c'], 0 => ['a']]",
+            "value": {
+                "assoc": {
+                    "m": {
+                        "2": [
+                            "c"
+                        ],
+                        "0": [
+                            "a",
+                            "x"
+                        ]
+                    }
+                },
+                "assoc_keys": [
+                    2,
+                    0
+                ],
+                "list_keys": [
+                    2,
+                    0
+                ],
+                "list_0": [
+                    "a",
+                    "x"
+                ]
+            }
+        },
+        {
+            "label": "push-out-of-order-leaf-appends-after-highest",
+            "php": "Arr::push($a, 'm', 'x'), Arr::push($l, '0', 'x') on [2 => 'c', 0 => 'a']",
+            "value": {
+                "assoc_keys": [
+                    2,
+                    0,
+                    3
+                ],
+                "list_keys": [
+                    2,
+                    0,
+                    3
+                ],
+                "value": "x"
+            }
+        },
+        {
+            "label": "push-leaf-after-highest-int-key",
+            "php": "$a = [['x' => ['k' => 1, 5 => 'z']]]; Arr::push($a, '0.x', 'v', 'w')",
+            "value": {
+                "data": [
+                    {
+                        "x": {
+                            "k": 1,
+                            "5": "z",
+                            "6": "v",
+                            "7": "w"
+                        }
+                    }
+                ],
+                "keys": [
+                    "k",
+                    5,
+                    6,
+                    7
+                ]
+            }
+        },
+        {
+            "label": "push-leaf-negative-int-key",
+            "php": "Arr::push($a, '0.x', 'v') on [['x' => [-5 => 'n']]]; Arr::push($b, 'x', 'v') on ['x' => ['k' => 1, -5 => 'n']]",
+            "value": {
+                "list_keys": [
+                    -5,
+                    -4
+                ],
+                "assoc_keys": [
+                    "k",
+                    -5,
+                    -4
+                ]
+            }
+        },
+        {
+            "label": "push-null-key-negative-int-key",
+            "php": "$a = ['-5' => 'a']; Arr::push($a, null, 'b')",
+            "value": {
+                "keys": [
+                    -5,
+                    -4
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "push-object-at-the-key",
+            "php": "$a = ['p' => (object) ['x' => 1]]; Arr::push($a, 'p', 1)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [p] must be an array, object found."
         }
     ]
 }

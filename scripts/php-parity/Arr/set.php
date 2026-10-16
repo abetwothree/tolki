@@ -249,4 +249,22 @@ setOn('set-trailing-empty-segment', "Arr::set(\$a, 'a.', 9)", 'a.');
 setOn('set-only-empty-segments', "Arr::set(\$a, '..', 9)", '..');
 setOn('set-empty-key', "Arr::set(\$a, '', 9)", '');
 
+// The JSON reader re-sorts integer keys, so the key order is returned beside the data.
+probe('set-nested-append-keeps-key-order', "Arr::set(\$o, 'm.1', 'b'), Arr::set(\$l, '0.1', 'b')", function () {
+    $a = ['m' => [2 => 'c', 0 => 'a']];
+    $l = [[2 => 'c', 0 => 'a']];
+    Arr::set($a, 'm.1', 'b');
+    Arr::set($l, '0.1', 'b');
+
+    return ['assoc' => $a, 'assoc_keys' => array_keys($a['m']), 'list' => $l, 'list_keys' => array_keys($l[0])];
+});
+probe('set-nested-overwrite-keeps-place', "Arr::set(\$o, 'm.2', 'C'), Arr::set(\$l, '0.2', 'C')", function () {
+    $a = ['m' => [2 => 'c', 0 => 'a']];
+    $l = [[2 => 'c', 0 => 'a']];
+    Arr::set($a, 'm.2', 'C');
+    Arr::set($l, '0.2', 'C');
+
+    return ['assoc' => $a, 'assoc_keys' => array_keys($a['m']), 'list' => $l, 'list_keys' => array_keys($l[0])];
+});
+
 emit();

@@ -45,6 +45,13 @@ describe("obj residual type-soundness limits", () => {
             >();
         });
 
+        it("push types an append into the instance", () => {
+            // Runtime: throws InvalidArgumentException — push appends only into a list, plain object or Map.
+            expectTypeOf(Obj.push({ p: new Point() }, "p", 1).p).toEqualTypeOf<
+                Point & Record<number, number>
+            >();
+        });
+
         it("replaceRecursive merges onto the instance", () => {
             // Runtime: { a: { x: 5 } } — PHP recurses into two arrays only, so the
             // instance is replaced whole.

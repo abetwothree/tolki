@@ -15216,6 +15216,20 @@ describe("Collection", () => {
             expectShape(collect(["a", "b"]).dot(), "keyed");
             expectShape(collect({ a: { b: 1 } }).dot(), "keyed");
         });
+
+        it("walks a nested Map in its order", () => {
+            // docs/php-parity/Arr/dot.json, "dot-nested-out-of-order"
+            const out = Collection.make({
+                m: new Map([
+                    [2, "c"],
+                    [0, "a"],
+                ]),
+            })
+                .dot()
+                .all();
+
+            expect(Object.keys(out)).toEqual(["m.2", "m.0"]);
+        });
     });
 
     describe("undot", () => {

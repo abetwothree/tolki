@@ -408,6 +408,32 @@
                     }
                 ]
             }
+        },
+        {
+            "label": "forget-nested-keeps-other-keys",
+            "php": "Arr::forget($a, 'm.0'), Arr::forget($l, '0.0') on [2 => 'c', 0 => 'a', 1 => 'b']",
+            "value": {
+                "assoc": {
+                    "m": {
+                        "2": "c",
+                        "1": "b"
+                    }
+                },
+                "assoc_keys": [
+                    2,
+                    1
+                ],
+                "list": [
+                    {
+                        "2": "c",
+                        "1": "b"
+                    }
+                ],
+                "list_keys": [
+                    2,
+                    1
+                ]
+            }
         }
     ]
 }

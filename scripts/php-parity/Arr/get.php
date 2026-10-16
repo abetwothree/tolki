@@ -81,4 +81,12 @@ probe('get-through-empty-segment', "Arr::get(['a'=>[''=>['b'=>7]]], 'a..b')", fn
 probe('get-out-of-order-int-key', "Arr::get([2 => 'c', 0 => 'a', 1 => 'b'], 2)", fn () => Arr::get(OUT_OF_ORDER, 2));
 probe('get-mixed-string-key', "Arr::get(['x' => 1, 0 => 2, 'y' => 3], 'y')", fn () => Arr::get(MIXED, 'y'));
 
+// A Map stands for a PHP array at any depth, so out-of-order integer keys below the first segment must read by key.
+probe('get-nested-out-of-order-keys', "Arr::get(['m' => [2 => 'c', 0 => 'a']], 'm.0'), Arr::get([[2 => 'c', 0 => 'a']], '0.0')", function () {
+    $o = ['m' => [2 => 'c', 0 => 'a']];
+    $l = [[2 => 'c', 0 => 'a']];
+
+    return ['assoc' => Arr::get($o, 'm.0'), 'list' => Arr::get($l, '0.0')];
+});
+
 emit();

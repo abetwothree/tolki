@@ -74,6 +74,18 @@ describe("data subsets type tests", () => {
                 Arr.get(readonlyNumberList, 0),
             );
         });
+
+        it("matches obj.get for a dot path through a Map", () => {
+            // docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys": the Map stands for the nested array.
+            const nested = { m: new Map<string, number>() };
+
+            expectTypeOf(Data.dataGet(nested, "m.n")).toEqualTypeOf(
+                Obj.get(nested, "m.n"),
+            );
+            expectTypeOf(Data.dataGet(nested, "m.n")).toEqualTypeOf<
+                number | null
+            >();
+        });
     });
 
     describe("dataOnly", () => {
@@ -119,6 +131,15 @@ describe("data subsets type tests", () => {
             expectTypeOf(
                 Data.dataExcept(readonlyNumberList, [1]),
             ).toEqualTypeOf(Arr.except(readonlyNumberList, [1]));
+        });
+
+        it("matches obj.except for a Map given as the data", () => {
+            expectTypeOf(Data.dataExcept(numberMap, "a")).toEqualTypeOf(
+                Obj.except(numberMap, "a"),
+            );
+            expectTypeOf(Data.dataExcept(numberMap, "a")).toEqualTypeOf<
+                Record<string, unknown>
+            >();
         });
     });
 

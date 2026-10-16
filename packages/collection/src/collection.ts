@@ -66,8 +66,8 @@ import type {
     CaseValue,
     DataItems,
     DataIterableItems,
+    DotReach,
     FlattenItemReach,
-    FlattenReach,
     Jsonable,
     JsonSerializable,
     MapArrayKey,
@@ -5063,9 +5063,7 @@ export class Collection<
      * new Collection({a: {b: 1}, c: 2}).dot(); -> new Collection({'a.b': 1, c: 2})
      * new Collection([{a: 1}, {b: {c: 2}}]).dot(); -> new Collection({'0.a': 1, '1.b.c': 2})
      */
-    dot(
-        depth?: number,
-    ): Collection<FlattenReach<TValue>, string | number, "keyed">;
+    dot(depth?: number): Collection<DotReach<TValue>, string | number, "keyed">;
     dot(depth: number = Infinity): unknown {
         return this.newInstance(handOver(dataDot(this.items, "", depth)));
     }

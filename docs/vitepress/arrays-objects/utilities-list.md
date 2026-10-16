@@ -1124,7 +1124,7 @@ dataDivide({ name: "Desk", price: 100 });
 
 ### dot
 
-Flatten a multi-dimensional array or object into a single level that uses "dot" notation to show depth. See [Dot Notation](./dot-notation.md). The second argument is a key prefix, usually `""`. The third is a depth: how many levels to join into dotted keys. A depth of `0` or `null` joins none, as in Laravel. <!-- docs/php-parity/Arr/dot.json, "dot-depth-through-list", "dot-null-depth", "dot-zero-depth" -->
+Flatten a multi-dimensional array or object into a single level that uses "dot" notation to show depth. See [Dot Notation](./dot-notation.md). The second argument is a key prefix, usually `""`. The third is a depth: how many levels to join into dotted keys. A depth of `0` or `null` joins none, as in Laravel. <!-- docs/php-parity/Arr/dot.json, "dot-depth-through-list", "dot-null-depth", "dot-zero-depth" --> A `Map` in the data is flattened in its key order. <!-- docs/php-parity/Arr/dot.json, "dot-nested-out-of-order" -->
 
 Exported as `dot` from `@tolki/arr` and `@tolki/obj`, and as `dataDot` from `@tolki/data`.
 
@@ -1141,6 +1141,14 @@ dot(["a", ["b", "c"]]);
 
 ```js [@tolki/obj]
 import { dot } from "@tolki/obj";
+
+dot({
+  m: new Map([
+    [2, "c"],
+    [0, "a"],
+  ]),
+});
+// => { "m.2": "c", "m.0": "a" }
 
 dot({ products: { desk: { price: 100 } } });
 // => { "products.desk.price": 100 }
@@ -3031,7 +3039,7 @@ dataPull(["a", "b", "c"], 1);
 
 ### push
 
-Push one or more items into the array at the given key, using "dot" notation. It returns a new value and leaves the original unchanged. See [Return values instead of references](./differences.md#return-values-instead-of-references).
+Push one or more items into the array at the given key, using "dot" notation. It returns a new value and leaves the original unchanged. See [Return values instead of references](./differences.md#return-values-instead-of-references). When the target is an object or a `Map`, the new item goes under the next whole-number key, as in Laravel. <!-- docs/php-parity/Arr/push.json, "push-assoc-leaf-appends", "push-out-of-order-leaf-appends-after-highest" -->
 
 Exported as `push` from `@tolki/arr` and `@tolki/obj`, and as `dataPush` from `@tolki/data`.
 
@@ -3067,6 +3075,9 @@ cart;
 
 push({}, "items", "a");
 // => { items: ["a"] }
+
+push({ tags: { a: "x" } }, "tags", "y");
+// => { tags: { a: "x", 0: "y" } }
 
 push({ a: 1 }, "a", 2);
 // => throws InvalidArgumentException

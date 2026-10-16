@@ -159,6 +159,14 @@
             "label": "get-mixed-string-key",
             "php": "Arr::get(['x' => 1, 0 => 2, 'y' => 3], 'y')",
             "value": 3
+        },
+        {
+            "label": "get-nested-out-of-order-keys",
+            "php": "Arr::get(['m' => [2 => 'c', 0 => 'a']], 'm.0'), Arr::get([[2 => 'c', 0 => 'a']], '0.0')",
+            "value": {
+                "assoc": "a",
+                "list": "a"
+            }
         }
     ]
 }

@@ -267,4 +267,48 @@ probe('push-object-along-the-path', "\$a = [['d' => (object) ['k' => 1]]]; Arr::
     return $a;
 });
 
+// Key order is returned beside the data because the JSON reader re-sorts integer keys.
+probe('push-through-a-nested-out-of-order-array', "Arr::push(\$a, 'm.0', 'x'), Arr::push(\$l, '0.0', 'x') on [2 => ['c'], 0 => ['a']]", function () {
+    $a = ['m' => [2 => ['c'], 0 => ['a']]];
+    $l = [[2 => ['c'], 0 => ['a']]];
+    Arr::push($a, 'm.0', 'x');
+    Arr::push($l, '0.0', 'x');
+
+    return ['assoc' => $a, 'assoc_keys' => array_keys($a['m']), 'list_keys' => array_keys($l[0]), 'list_0' => $l[0][0]];
+});
+probe('push-out-of-order-leaf-appends-after-highest', "Arr::push(\$a, 'm', 'x'), Arr::push(\$l, '0', 'x') on [2 => 'c', 0 => 'a']", function () {
+    $a = ['m' => [2 => 'c', 0 => 'a']];
+    $l = [[2 => 'c', 0 => 'a']];
+    Arr::push($a, 'm', 'x');
+    Arr::push($l, '0', 'x');
+
+    return ['assoc_keys' => array_keys($a['m']), 'list_keys' => array_keys($l[0]), 'value' => $a['m'][3]];
+});
+probe('push-leaf-after-highest-int-key', "\$a = [['x' => ['k' => 1, 5 => 'z']]]; Arr::push(\$a, '0.x', 'v', 'w')", function () {
+    $a = [['x' => ['k' => 1, 5 => 'z']]];
+    Arr::push($a, '0.x', 'v', 'w');
+
+    return ['data' => $a, 'keys' => array_keys($a[0]['x'])];
+});
+probe('push-leaf-negative-int-key', "Arr::push(\$a, '0.x', 'v') on [['x' => [-5 => 'n']]]; Arr::push(\$b, 'x', 'v') on ['x' => ['k' => 1, -5 => 'n']]", function () {
+    $a = [['x' => [-5 => 'n']]];
+    $b = ['x' => ['k' => 1, -5 => 'n']];
+    Arr::push($a, '0.x', 'v');
+    Arr::push($b, 'x', 'v');
+
+    return ['list_keys' => array_keys($a[0]['x']), 'assoc_keys' => array_keys($b['x'])];
+});
+probe('push-null-key-negative-int-key', "\$a = ['-5' => 'a']; Arr::push(\$a, null, 'b')", function () {
+    $a = ['-5' => 'a'];
+    Arr::push($a, null, 'b');
+
+    return ['keys' => array_keys($a), 'values' => array_values($a)];
+});
+probe('push-object-at-the-key', "\$a = ['p' => (object) ['x' => 1]]; Arr::push(\$a, 'p', 1)", function () {
+    $a = ['p' => (object) ['x' => 1]];
+    Arr::push($a, 'p', 1);
+
+    return ['unreachable' => $a];
+});
+
 emit();

@@ -279,6 +279,137 @@ export function keyedEntries<TValue = unknown>(
 }
 
 /**
+ * Read a Map entry by the key PHP stores for the given key.
+ *
+ * Of several Map keys PHP stores as one, the last value wins, as in {@linkcode keyedEntries}.
+ * A stored `null` or `undefined` counts as found.
+ *
+ * @param map - The Map to read.
+ * @param key - The key to look up, cast as PHP casts an array key.
+ * @returns Whether a key matched, and its value when one did.
+ *
+ * @example
+ * readMapKey(new Map([[1, "a"]]), "1"); -> { found: true, value: "a" }
+ * readMapKey(new Map([["01", "a"]]), 1); -> { found: false }
+ */
+export function readMapKey(
+    map: ReadonlyMap<unknown, unknown>,
+    key: string | number,
+): { found: boolean; value?: unknown } {
+    let result: { found: boolean; value?: unknown } = { found: false };
+
+    for (const [mapKey, value] of map) {
+        if (isSamePhpKey(mapKey, key)) {
+            result = { found: true, value };
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Set a Map entry under the key PHP stores for the given key.
+ *
+ * An existing key keeps its place, and any later key PHP stores as the same one is removed.
+ *
+ * @param map - The Map to write into, changed in place.
+ * @param key - The key to write, cast as PHP casts an array key.
+ * @param value - The value to store.
+ *
+ * @example
+ * const map = new Map([[2, "c"], [0, "a"]]);
+ * writeMapKey(map, "2", "C"); -> map is [[2, "C"], [0, "a"]]
+ * writeMapKey(map, "1", "b"); -> map is [[2, "C"], [0, "a"], [1, "b"]]
+ */
+export function writeMapKey(
+    map: Map<unknown, unknown>,
+    key: string | number,
+    value: unknown,
+): void {
+    let written = false;
+
+    for (const mapKey of [...map.keys()]) {
+        if (!isSamePhpKey(mapKey, key)) {
+            continue;
+        }
+
+        if (written) {
+            map.delete(mapKey);
+        } else {
+            map.set(mapKey, value);
+            written = true;
+        }
+    }
+
+    if (!written) {
+        map.set(phpArrayKey(key), value);
+    }
+}
+
+/**
+ * Delete every Map entry whose key PHP stores as the given key.
+ *
+ * @param map - The Map to remove from, changed in place.
+ * @param key - The key to remove, cast as PHP casts an array key.
+ *
+ * @example
+ * const map = new Map([[1, "a"], ["1", "b"], [2, "c"]]);
+ * deleteMapKey(map, "1"); -> map is [[2, "c"]]
+ */
+export function deleteMapKey(
+    map: Map<unknown, unknown>,
+    key: string | number,
+): void {
+    for (const mapKey of [...map.keys()]) {
+        if (isSamePhpKey(mapKey, key)) {
+            map.delete(mapKey);
+        }
+    }
+}
+
+/**
+ * Get the key PHP gives the next value appended to a plain object or Map.
+ *
+ * That is one past the highest integer key, negative ones included (PHP 8.3+), or 0 with none.
+ *
+ * @param container - The plain object or Map to inspect.
+ * @returns The next integer key.
+ *
+ * @example
+ * nextIntegerKey({ k: 1, 5: "z" }); -> 6
+ * nextIntegerKey(new Map([[2, "c"], [0, "a"]])); -> 3
+ * nextIntegerKey({ "-5": "n" }); -> -4
+ */
+export function nextIntegerKey(container: object): number {
+    let highest: number | undefined;
+
+    for (const [key] of keyedEntries(container)) {
+        const phpKey = phpArrayKey(key);
+
+        if (isNumber(phpKey) && (highest === undefined || phpKey > highest)) {
+            highest = phpKey;
+        }
+    }
+
+    return highest === undefined ? 0 : highest + 1;
+}
+
+/**
+ * Determine whether a Map key is one PHP stores under the same array key as the given key.
+ *
+ * @param mapKey - The Map key to test.
+ * @param key - The key being read, written or deleted.
+ * @returns True when both cast to the same PHP array key.
+ */
+function isSamePhpKey(mapKey: unknown, key: string | number): boolean {
+    // Compared as strings, as keyedEntries lists them: a bigint key casts to its digits, never to a number.
+    return (
+        isPhpStorableKey(mapKey) &&
+        String(phpArrayKey(mapKey)) === String(phpArrayKey(key))
+    );
+}
+
+/**
  * Determine whether PHP can store the given key as an array key, casting it if need be.
  *
  * @param key - The Map key to test.

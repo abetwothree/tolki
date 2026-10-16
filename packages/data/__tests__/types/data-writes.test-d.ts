@@ -47,6 +47,18 @@ describe("data writes type tests", () => {
             );
         });
 
+        it("matches obj.set for a dot path through a Map", () => {
+            // docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order": the Map stands for the nested array.
+            const nested = { m: new Map<string, number>() };
+
+            expectTypeOf(Data.dataSet(nested, "m.n", 1)).toEqualTypeOf(
+                Obj.set(nested, "m.n", 1),
+            );
+            expectTypeOf(Data.dataSet(nested, "m.n", 1)).toEqualTypeOf<{
+                m: Map<string | number, number>;
+            }>();
+        });
+
         it("matches obj.set for a null key", () => {
             // The old hand-written row typed this as DataItems; obj answers the value
             // itself, because PHP's `$data[null] = $v` replaces the whole array.
