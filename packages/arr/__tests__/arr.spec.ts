@@ -2137,6 +2137,23 @@ describe("Arr", () => {
             expect(Arr.get([{ 1: "z" }], "0.0", "d")).toBe("d");
             expect(Arr.has([{ 0: "x" }], "0.0")).toBe(true);
         });
+
+        it("reads a Map row as Laravel reads a nested array", () => {
+            // docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys"
+            expect(
+                Arr.get(
+                    [
+                        new Map([
+                            [2, "c"],
+                            [0, "a"],
+                        ]),
+                    ],
+                    "0.0",
+                ),
+            ).toBe("a");
+            expect(Arr.get([new Map([["n", 5]])], "0.n")).toBe(5);
+            expect(Arr.get([new Map([[2, "c"]])], "0.1", "d")).toBe("d");
+        });
     });
 
     describe("has", () => {
@@ -2210,6 +2227,15 @@ describe("Arr", () => {
             // "toString" — keys no PHP array could ever have.
             expect(Arr.has([1, 2], "length")).toBe(false);
             expect(Arr.has([1, 2], "toString")).toBe(false);
+        });
+
+        it("finds a key of a Map row, a stored null included", () => {
+            // docs/php-parity/Arr/has.json, "has-nested-stored-null"
+            expect(Arr.has([new Map([["k", null]])], "0.k")).toBe(true);
+            expect(Arr.has([new Map()], "0.k")).toBe(false);
+            expect(Arr.hasAny([new Map([[2, "c"]])], ["0.2", "0.9"])).toBe(
+                true,
+            );
         });
     });
 
@@ -2457,6 +2483,11 @@ describe("Arr", () => {
             expect(() => Arr.integer([null], 0)).toThrow(
                 "Array value for key [0] must be an integer, NULL found.",
             );
+        });
+
+        it("reads through a Map row", () => {
+            // docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys"
+            expect(Arr.integer([new Map([["n", 5]])], "0.n")).toBe(5);
         });
     });
 
@@ -5606,6 +5637,16 @@ describe("Arr", () => {
             expect(keyOf(NaN)).toEqual(["0"]);
             expect(keyOf(1e20)).toEqual(["7766279631452241920"]);
         });
+
+        it("keys by a path through a Map, as Laravel reads a nested array", () => {
+            // docs/php-parity/Arr/keyBy.json, "keyBy-nested-path"
+            const rows = [
+                { m: new Map([["n", 2]]) },
+                { m: new Map([["n", 1]]) },
+            ];
+
+            expect(Arr.keyBy(rows, "m.n")).toEqual({ 2: rows[0], 1: rows[1] });
+        });
     });
 
     describe("mapWithKeys", () => {
@@ -6757,6 +6798,18 @@ describe("Arr", () => {
                 { n: "10" },
             ]);
         });
+
+        it("sorts by a path through a Map", () => {
+            // docs/php-parity/Arr/sort.json, "sort-by-nested-path"
+            const rows = [
+                { m: new Map([["n", 2]]) },
+                { m: new Map([["n", 1]]) },
+            ];
+
+            expect(Arr.sort(rows, "m.n").map((row) => row.m.get("n"))).toEqual([
+                1, 2,
+            ]);
+        });
     });
 
     describe("sort by many", () => {
@@ -7073,6 +7126,18 @@ describe("Arr", () => {
             // every non-zero one (docs/php-parity/Php/spaceship.json, "spaceship on null
             // and a positive int") and descending order puts it last.
             expect(Arr.sortDesc([null, 3, 1])).toEqual([3, 1, null]);
+        });
+
+        it("sorts by a path through a Map", () => {
+            // docs/php-parity/Arr/sortDesc.json, "sortDesc-by-nested-path"
+            const rows = [
+                { m: new Map([["n", 1]]) },
+                { m: new Map([["n", 2]]) },
+            ];
+
+            expect(
+                Arr.sortDesc(rows, "m.n").map((row) => row.m.get("n")),
+            ).toEqual([2, 1]);
         });
     });
 

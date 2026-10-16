@@ -2374,6 +2374,32 @@ describe("Data", () => {
             // docs/php-parity/Arr/get.json, "get-list-int-segment-into-map"
             expect(Data.dataGet([{ k: "v", 0: "x" }], "0.0", "d")).toBe("x");
         });
+
+        it("walks a Map inside a list or an object", () => {
+            // docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys"
+            expect(
+                Data.dataGet(
+                    [
+                        new Map([
+                            [2, "c"],
+                            [0, "a"],
+                        ]),
+                    ],
+                    "0.0",
+                ),
+            ).toBe("a");
+            expect(
+                Data.dataGet(
+                    {
+                        m: new Map([
+                            [2, "c"],
+                            [0, "a"],
+                        ]),
+                    },
+                    "m.0",
+                ),
+            ).toBe("a");
+        });
     });
 
     describe("dataHas", () => {
@@ -2413,6 +2439,14 @@ describe("Data", () => {
             // docs/php-parity/Arr/has.json,
             // "has-empty-string-key-null-in-list"
             expect(Data.dataHas({ "": "some" }, [null])).toBe(true);
+        });
+
+        it("finds a key of a Map inside a list or an object, a stored null included", () => {
+            // docs/php-parity/Arr/has.json, "has-nested-stored-null"
+            expect(Data.dataHas([new Map([["k", null]])], "0.k")).toBe(true);
+            expect(Data.dataHas({ m: new Map([["k", null]]) }, "m.k")).toBe(
+                true,
+            );
         });
     });
 
@@ -5517,26 +5551,24 @@ describe("Data", () => {
             ).toEqual(["01", 1]);
         });
 
-        it("cannot read a field path or descriptor into a Map item, so its items tie", () => {
+        it("sorts by a field path into a Map item, as Laravel reads a nested array", () => {
             // docs/php-parity/Arr/sort.json, "sort-out-of-order-rows-by-path" and
             // "sort-out-of-order-rows-by-descriptor": PHP reads its array items, so n = 0 comes first.
-            // JS-only: a path cannot address a Map item, so each reads null for "n" and all tie.
+            // PHP keeps the keys 0 and 2; the integer keys are renumbered.
             const items = () =>
                 new Map([
                     [2, new Map([["n", 1]])],
                     [0, new Map([["n", 0]])],
                 ]);
-            const inInsertionOrder = [
-                ["0", new Map([["n", 1]])],
-                ["1", new Map([["n", 0]])],
+            const sorted = [
+                ["0", new Map([["n", 0]])],
+                ["1", new Map([["n", 1]])],
             ];
 
-            expect(Object.entries(Data.dataSort(items(), "n"))).toEqual(
-                inInsertionOrder,
-            );
+            expect(Object.entries(Data.dataSort(items(), "n"))).toEqual(sorted);
             expect(
                 Object.entries(Data.dataSort(items(), [["n", "asc"]])),
-            ).toEqual(inInsertionOrder);
+            ).toEqual(sorted);
         });
     });
 
@@ -5661,26 +5693,26 @@ describe("Data", () => {
             ).toEqual(["01", 1]);
         });
 
-        it("cannot read a field path or descriptor into a Map item, so its items tie", () => {
+        it("sorts by a field path into a Map item, as Laravel reads a nested array", () => {
             // docs/php-parity/Arr/sortDesc.json, "sortDesc-out-of-order-rows-by-path" and
             // "sortDesc-out-of-order-rows-by-descriptor": PHP reads its array items, so n = 1 comes first.
-            // JS-only: a path cannot address a Map item, so each reads null for "n" and all tie.
+            // PHP keeps the keys 0 and 2; the integer keys are renumbered.
             const items = () =>
                 new Map([
                     [2, new Map([["n", 0]])],
                     [0, new Map([["n", 1]])],
                 ]);
-            const inInsertionOrder = [
-                ["0", new Map([["n", 0]])],
-                ["1", new Map([["n", 1]])],
+            const sorted = [
+                ["0", new Map([["n", 1]])],
+                ["1", new Map([["n", 0]])],
             ];
 
             expect(Object.entries(Data.dataSortDesc(items(), "n"))).toEqual(
-                inInsertionOrder,
+                sorted,
             );
             expect(
                 Object.entries(Data.dataSortDesc(items(), [["n", "asc"]])),
-            ).toEqual(inInsertionOrder);
+            ).toEqual(sorted);
         });
     });
 

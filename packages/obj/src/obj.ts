@@ -99,6 +99,7 @@ import {
     phpTypeName,
     phpValueMatch,
     phpValueMatcher,
+    readMapKey,
     reindexIntegerKeys,
     renumberPhpIntegerKeys,
     resolvePadLength,
@@ -2195,6 +2196,7 @@ export function from(items: unknown): Record<string, unknown> {
  *
  * get({ user: { name: 'John' } }, 'user.name'); -> 'John'
  * get({ "products.desk": { price: 100 } }, 'products.desk'); -> { price: 100 } (literal key wins over traversal)
+ * get({ m: new Map([[2, 'c'], [0, 'a']]) }, 'm.0'); -> 'a' (a Map is read by the key PHP stores)
  */
 export function get<TDefault = null>(
     data: NonObjectItems,
@@ -2254,10 +2256,19 @@ export function get<
     // definedness, decides: a literal key whose value is `undefined` is
     // still "found" and does not fall through to dot-path traversal.
     const keyStr = String(key);
-    if (Object.hasOwn(object as object, keyStr)) {
-        const literalValue = (object as Record<string, unknown>)[keyStr];
-        return !isUndefined(literalValue)
-            ? (literalValue as TDefault)
+    // A Map stands for a PHP array, so it is read by the key PHP stores and its `size` is never a key.
+    const literal = isMap(object)
+        ? readMapKey(object, keyStr)
+        : Object.hasOwn(object as object, keyStr)
+          ? {
+                found: true,
+                value: (object as Record<string, unknown>)[keyStr],
+            }
+          : { found: false };
+
+    if (literal.found) {
+        return !isUndefined(literal.value)
+            ? (literal.value as TDefault)
             : isFunction(defaultValue)
               ? (defaultValue as () => TDefault)()
               : defaultValue;
@@ -2276,6 +2287,13 @@ export function get<
     let current: unknown = object;
 
     for (const segment of segments) {
+        if (isMap(current)) {
+            // A key the Map lacks reads undefined, which the walk answers with the default as it answers any miss.
+            current = readMapKey(current, segment).value;
+
+            continue;
+        }
+
         if (!isObject(current) && !isArray(current)) {
             return isFunction(defaultValue)
                 ? (defaultValue as () => TDefault)()

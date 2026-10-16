@@ -3045,6 +3045,33 @@ describe("Obj", () => {
             expect(Obj.get(obj, "products.length", "none")).toBe("none");
             expect(Obj.get(obj, "products.01", "none")).toBe("none");
         });
+
+        it("walks a Map at any depth, as Laravel walks a nested array", () => {
+            // docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys"
+            expect(
+                Obj.get(
+                    {
+                        m: new Map([
+                            [2, "c"],
+                            [0, "a"],
+                        ]),
+                    },
+                    "m.0",
+                ),
+            ).toBe("a");
+            expect(Obj.get({ m: new Map() }, "m.k", "d")).toBe("d");
+            // JS-only: a Map given as the whole data reads as the PHP array it stands for.
+            expect(Obj.get(new Map([["a", { b: 1 }]]), "a.b")).toBe(1);
+            expect(
+                Obj.get(
+                    new Map<string, unknown>([
+                        ["a.b", 1],
+                        ["a", { b: 2 }],
+                    ]),
+                    "a.b",
+                ),
+            ).toBe(1);
+        });
     });
 
     describe("has", () => {
@@ -3181,6 +3208,19 @@ describe("Obj", () => {
             // A literal undefined element casts to "" the same way null does.
             expect(Obj.has({ "": "some" }, [undefined])).toBe(true);
             expect(Obj.has({ a: 1 }, [undefined, "a"])).toBe(false);
+        });
+
+        it("finds a key inside a Map, a stored null included", () => {
+            // docs/php-parity/Arr/has.json, "has-nested-stored-null"
+            expect(Obj.has({ m: new Map([["k", null]]) }, "m.k")).toBe(true);
+            expect(Obj.hasAny({ m: new Map([[2, "c"]]) }, ["m.2", "x"])).toBe(
+                true,
+            );
+            expect(Obj.hasAll({ m: new Map([[2, "c"]]) }, ["m.2", "x"])).toBe(
+                false,
+            );
+            // JS-only: a Map given as the whole data reads as the PHP array it stands for.
+            expect(Obj.has(new Map([["a", 1]]), "a")).toBe(true);
         });
     });
 
@@ -4116,6 +4156,13 @@ describe("Obj", () => {
         it("should return default value if key not found and default is integer", () => {
             const obj = { name: "John" };
             expect(Obj.integer(obj, "missing", 42)).toBe(42);
+        });
+
+        it("reads through a Map, or a Map given as the data", () => {
+            // docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys"
+            expect(Obj.integer({ m: new Map([["n", 5]]) }, "m.n")).toBe(5);
+            // JS-only: a Map given as the whole data reads as the PHP array it stands for.
+            expect(Obj.integer(new Map([["n", 5]]), "n")).toBe(5);
         });
     });
 
@@ -6662,6 +6709,19 @@ describe("Obj", () => {
                 ["k2", 2],
                 ["k3", 3],
             ]);
+        });
+
+        it("keys by a path through a Map", () => {
+            // docs/php-parity/Arr/keyBy.json, "keyBy-nested-path"
+            const rows = [
+                { m: new Map([["n", 2]]) },
+                { m: new Map([["n", 1]]) },
+            ];
+
+            expect(Obj.keyBy({ a: rows[0], b: rows[1] }, "m.n")).toEqual({
+                2: rows[0],
+                1: rows[1],
+            });
         });
     });
 
@@ -9494,26 +9554,24 @@ describe("Obj", () => {
                 ).toEqual(["01", 1]);
             });
 
-            it("cannot read a field path or descriptor into a Map item, so its items tie", () => {
+            it("sorts by a field path into a Map item, as Laravel reads a nested array", () => {
                 // docs/php-parity/Arr/sort.json, "sort-out-of-order-rows-by-path" and
                 // "sort-out-of-order-rows-by-descriptor": PHP reads each array item's n and puts n = 0 first.
-                // JS-only: a Map item is a leaf a path cannot address, so every item reads null for "n" and they tie.
+                // PHP keeps the keys 0 and 2; the integer keys are renumbered.
                 const items = () =>
                     new Map([
                         [2, new Map([["n", 1]])],
                         [0, new Map([["n", 0]])],
                     ]);
-                const inInsertionOrder = [
-                    ["0", new Map([["n", 1]])],
-                    ["1", new Map([["n", 0]])],
+                const sorted = [
+                    ["0", new Map([["n", 0]])],
+                    ["1", new Map([["n", 1]])],
                 ];
 
-                expect(Object.entries(Obj.sort(items(), "n"))).toEqual(
-                    inInsertionOrder,
-                );
+                expect(Object.entries(Obj.sort(items(), "n"))).toEqual(sorted);
                 expect(
                     Object.entries(Obj.sort(items(), [["n", "asc"]])),
-                ).toEqual(inInsertionOrder);
+                ).toEqual(sorted);
             });
         });
     });
@@ -9908,26 +9966,26 @@ describe("Obj", () => {
                 ).toEqual(["01", 1]);
             });
 
-            it("cannot read a field path or descriptor into a Map item, so its items tie", () => {
+            it("sorts by a field path into a Map item, as Laravel reads a nested array", () => {
                 // docs/php-parity/Arr/sortDesc.json, "sortDesc-out-of-order-rows-by-path" and
                 // "sortDesc-out-of-order-rows-by-descriptor": PHP reads each array item's n and puts n = 1 first.
-                // JS-only: a Map item is a leaf a path cannot address, so every item reads null for "n" and they tie.
+                // PHP keeps the keys 0 and 2; the integer keys are renumbered.
                 const items = () =>
                     new Map([
                         [2, new Map([["n", 0]])],
                         [0, new Map([["n", 1]])],
                     ]);
-                const inInsertionOrder = [
-                    ["0", new Map([["n", 0]])],
-                    ["1", new Map([["n", 1]])],
+                const sorted = [
+                    ["0", new Map([["n", 1]])],
+                    ["1", new Map([["n", 0]])],
                 ];
 
                 expect(Object.entries(Obj.sortDesc(items(), "n"))).toEqual(
-                    inInsertionOrder,
+                    sorted,
                 );
                 expect(
                     Object.entries(Obj.sortDesc(items(), [["n", "asc"]])),
-                ).toEqual(inInsertionOrder);
+                ).toEqual(sorted);
             });
         });
     });

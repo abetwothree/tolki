@@ -1756,7 +1756,9 @@ function fromItems(items: unknown): unknown[] | Record<string, unknown> {
 }
 
 /**
- * Get an item from an array using numeric-only dot notation.
+ * Get an item from an array using "dot" notation.
+ *
+ * A path walks into lists, plain objects and Maps, as Laravel walks nested arrays.
  *
  * @param  array - The array to get the item from.
  * @param  key - The key or dot-notated path of the item to get.

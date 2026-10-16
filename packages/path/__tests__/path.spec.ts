@@ -260,6 +260,14 @@ describe("Path Functions", () => {
             expect(Path.hasPath(["x", "y"], "01")).toBe(false);
             expect(Path.hasPath([["x", "y"]], "0.1e0")).toBe(false);
         });
+
+        it("walks a Map at any depth", () => {
+            // docs/php-parity/Arr/has.json, "has-nested-stored-null"
+            expect(Path.hasPath([new Map([["k", null]])], "0.k")).toBe(true);
+            expect(Path.hasPath({ m: new Map() }, "m.k")).toBe(false);
+            // JS-only: a Map given as the whole data reads as the PHP array it stands for.
+            expect(Path.hasPath(new Map([[2, "c"]]), 2)).toBe(true);
+        });
     });
 
     describe("getRaw", () => {
@@ -401,6 +409,32 @@ describe("Path Functions", () => {
             // `in` climbs the prototype chain; {} has no own "constructor".
             expect(Path.getRaw({ a: {} }, "a.constructor")).toEqual({
                 found: false,
+            });
+        });
+
+        it("walks a Map row for an all-numeric path", () => {
+            // docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys"
+            expect(
+                Path.getRaw(
+                    [
+                        new Map([
+                            [2, "c"],
+                            [0, "a"],
+                        ]),
+                    ],
+                    "0.0",
+                ),
+            ).toEqual({
+                found: true,
+                value: "a",
+            });
+            expect(Path.getRaw([new Map([[2, "c"]])], "0.1")).toEqual({
+                found: false,
+            });
+            // JS-only: a Map given as the whole data reads as the PHP array it stands for.
+            expect(Path.getRaw(new Map([[2, "c"]]), 2)).toEqual({
+                found: true,
+                value: "c",
             });
         });
     });
@@ -1279,6 +1313,32 @@ describe("Path Functions", () => {
             // `in` climbs the prototype chain; {} has no own "constructor".
             expect(
                 Path.getNestedValue({ a: {} }, "a.constructor"),
+            ).toBeUndefined();
+        });
+
+        it("walks a Map at any depth by the key PHP stores", () => {
+            // docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys"
+            expect(
+                Path.getNestedValue(
+                    {
+                        m: new Map([
+                            [2, "c"],
+                            [0, "a"],
+                        ]),
+                    },
+                    "m.0",
+                ),
+            ).toBe("a");
+            expect(
+                Path.getNestedValue([new Map([["1", { x: 1 }]])], "0.1.x"),
+            ).toBe(1);
+            // JS-only: a Map given as the whole data reads as the PHP array it stands for.
+            expect(Path.getNestedValue(new Map([["a", { b: 1 }]]), "a.b")).toBe(
+                1,
+            );
+            // JS-only: a PHP array has no members, so a Map's own `size` is never one of its keys.
+            expect(
+                Path.getNestedValue({ m: new Map([["k", 1]]) }, "m.size"),
             ).toBeUndefined();
         });
     });
@@ -2183,6 +2243,19 @@ describe("Path Functions", () => {
             expect(Path.hasMixed({ a: 1 }, "toString")).toBe(false);
             expect(Path.hasMixed({ toString: "x" }, "toString")).toBe(true);
         });
+
+        it("finds a key of a Map given as the data or nested in it", () => {
+            // docs/php-parity/Arr/has.json, "has-nested-stored-null"
+            expect(Path.hasMixed({ m: new Map([["k", null]]) }, "m.k")).toBe(
+                true,
+            );
+            expect(Path.hasMixed({ m: new Map([["k", null]]) }, "m.x")).toBe(
+                false,
+            );
+            // JS-only: a Map given as the whole data reads as the PHP array it stands for.
+            expect(Path.hasMixed(new Map([["a", 1]]), "a")).toBe(true);
+            expect(Path.hasMixed(new Map([[2, "c"]]), 2)).toBe(true);
+        });
     });
 
     describe("getObjectValue", () => {
@@ -2249,6 +2322,26 @@ describe("Path Functions", () => {
             const data = { "a.b": undefined, a: { b: 2 } };
             expect(Path.getObjectValue(data, "a.b", "default")).toBe("default");
             expect(Path.hasObjectKey(data, "a.b")).toBe(true);
+        });
+
+        it("reads a Map given as the data, a literal dotted key first", () => {
+            // JS-only: a Map given as the whole data reads as the PHP array it stands for.
+            expect(
+                Path.getObjectValue(
+                    new Map<string, unknown>([
+                        ["a.b", 1],
+                        ["a", new Map([["b", 2]])],
+                    ]),
+                    "a.b",
+                ),
+            ).toBe(1);
+            expect(
+                Path.getObjectValue(
+                    new Map([["a", new Map([["b", 2]])]]),
+                    "a.b",
+                ),
+            ).toBe(2);
+            expect(Path.getObjectValue(new Map(), "a", "d")).toBe("d");
         });
     });
 
@@ -2379,6 +2472,18 @@ describe("Path Functions", () => {
             expect(
                 Path.hasObjectKey({ "products.desk": {} }, "products.desk"),
             ).toBe(true);
+        });
+
+        it("finds a key of a Map given as the data or nested in it", () => {
+            // docs/php-parity/Arr/has.json, "has-nested-stored-null"
+            expect(
+                Path.hasObjectKey({ m: new Map([["k", null]]) }, "m.k"),
+            ).toBe(true);
+            expect(
+                Path.hasObjectKey({ m: new Map([["k", null]]) }, "m.x"),
+            ).toBe(false);
+            // JS-only: a Map given as the whole data reads as the PHP array it stands for.
+            expect(Path.hasObjectKey(new Map([["a", 1]]), "a")).toBe(true);
         });
     });
 

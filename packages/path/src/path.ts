@@ -19,6 +19,7 @@ import {
     isIllegalOffset,
     isInteger,
     isIntegerLikeKey,
+    isMap,
     isNull,
     isNumber,
     isObject,
@@ -30,6 +31,7 @@ import {
     isUnsafeKey,
     keyedEntries,
     phpArrayKey,
+    readMapKey,
     toPhpKeyString,
 } from "@tolki/utils";
 
@@ -126,7 +128,7 @@ export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
         return (
             !isNull(root) &&
             isObject(root) &&
-            Object.hasOwn(root as object, String(key))
+            readLiteralKey(root, String(key)).found
         );
     }
 
@@ -144,6 +146,14 @@ export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
             }
 
             cursor = cursor[s];
+        } else if (isMap(cursor)) {
+            const entry = readMapKey(cursor, s);
+
+            if (!entry.found) {
+                return false;
+            }
+
+            cursor = entry.value;
         } else if (isObject(cursor) && Object.hasOwn(cursor, String(s))) {
             // An object stores an integer key as a string, so an index segment finds it as Arr::has does.
             cursor = cursor[String(s)];
@@ -193,13 +203,7 @@ export function getRaw<TValue, TKey extends PropertyKey = PropertyKey>(
             return { found: true, value: root[key] };
         } else if (!isNull(root) && isObject(root)) {
             // For objects, numeric keys are treated as string keys
-            const stringKey = String(key);
-            return Object.hasOwn(root as object, stringKey)
-                ? {
-                      found: true,
-                      value: (root as Record<string, unknown>)[stringKey],
-                  }
-                : { found: false };
+            return readLiteralKey(root, String(key));
         }
         return { found: false };
     }
@@ -218,6 +222,14 @@ export function getRaw<TValue, TKey extends PropertyKey = PropertyKey>(
             }
 
             cursor = cursor[s];
+        } else if (isMap(cursor)) {
+            const entry = readMapKey(cursor, s);
+
+            if (!entry.found) {
+                return { found: false };
+            }
+
+            cursor = entry.value;
         } else if (isObject(cursor) && Object.hasOwn(cursor, String(s))) {
             // An object stores an integer key as a string, so an index segment finds it as Arr::get does.
             cursor = cursor[String(s)];
@@ -1203,6 +1215,11 @@ export function undotExpandArray<
  *
  * @example
  *
+ * A Map, read by the key PHP stores
+ * getNestedValue({m: new Map([[2, 'c'], [0, 'a']])}, 'm.0'); -> 'a'
+ *
+ * @example
+ *
  * Path not found
  * getNestedValue([{items: ['x']}], '0.items.5'); -> undefined
  */
@@ -1241,6 +1258,14 @@ export function getNestedValue<TReturn>(
                 return undefined;
             }
             current = current[index];
+        } else if (isMap(current)) {
+            const entry = readMapKey(current, segment);
+
+            if (!entry.found) {
+                return undefined;
+            }
+
+            current = entry.value;
         } else {
             // Handle object property access
             if (!Object.hasOwn(current as object, segment)) {
@@ -1721,7 +1746,7 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
             return key >= 0 && key < data.length;
         }
 
-        return isObject(data) && Object.hasOwn(data as object, String(key));
+        return isObject(data) && readLiteralKey(data, String(key)).found;
     }
 
     if (!isArray(data) && !isObject(data)) {
@@ -1734,7 +1759,7 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
     // through to bounds-checked traversal below, since a JS array's `in` climbs
     // `Array.prototype` and would wrongly report existence for keys no PHP array has.
     if (isObject(data)) {
-        if (Object.hasOwn(data as object, keyStr)) {
+        if (readLiteralKey(data, keyStr).found) {
             return true;
         }
 
@@ -1790,11 +1815,11 @@ export function getObjectValue<
     // The literal key wins even when it contains dots. Presence, not
     // definedness, decides: a literal key whose value is `undefined` is
     // still "found" and resolves to the default, not dot-path traversal.
-    if (Object.hasOwn(obj as object, keyStr)) {
-        const literalValue = (obj as Record<string, unknown>)[keyStr];
+    const literal = readLiteralKey(obj, keyStr);
 
-        return !isUndefined(literalValue)
-            ? (literalValue as TReturn)
+    if (literal.found) {
+        return !isUndefined(literal.value)
+            ? (literal.value as TReturn)
             : resolveDefault();
     }
 
@@ -1903,7 +1928,7 @@ export function hasObjectKey<TValue, TKey extends PropertyKey = PropertyKey>(
     const keyStr = String(key);
 
     // The literal key wins even when it contains dots.
-    if (Object.hasOwn(obj as object, keyStr)) {
+    if (readLiteralKey(obj, keyStr).found) {
         return true;
     }
 
@@ -1927,4 +1952,30 @@ function forgetName(key: unknown): string {
     return isNull(key) || isUndefined(key) || isFloat(key)
         ? toPhpKeyString(key)
         : String(key);
+}
+
+/**
+ * Read one literal key of an object, telling a key that holds `undefined` from a missing one.
+ *
+ * A Map stands for a PHP array, so it is read by the key PHP stores and its own members such as `size` are never keys.
+ *
+ * @param data - The object or Map to read.
+ * @param key - The key, read whole even when it contains dots.
+ * @returns Whether the key exists, and its value when it does.
+ *
+ * @example
+ * readLiteralKey({ "a.b": 1 }, "a.b"); -> { found: true, value: 1 }
+ * readLiteralKey(new Map([[2, "c"]]), "2"); -> { found: true, value: "c" }
+ */
+function readLiteralKey(
+    data: object,
+    key: string,
+): { found: boolean; value?: unknown } {
+    if (isMap(data)) {
+        return readMapKey(data, key);
+    }
+
+    return Object.hasOwn(data, key)
+        ? { found: true, value: (data as Record<string, unknown>)[key] }
+        : { found: false };
 }
