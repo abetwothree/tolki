@@ -377,7 +377,7 @@ A named collection nests the same way, with `new` or `::make()`. Inside another 
 'staff' => new UserCollection($this->staff),
 ```
 
-With the `UserCollection` from [Resource Collections](#resource-collections), whose `toArray()` returns `data` and `has_admin`, `staff` publishes `staff: UserCollection;`. A collection with no `toArray()`, or one whose `toArray()` returns the collected list, sends the bare list, so it publishes `UserResource[]`. An argument-less `toResourceCollection()` that finds a collection by name follows the same rule.
+With the `UserCollection` from [Resource Collections](#resource-collections), whose `toArray()` returns `data` and `has_admin`, `staff` publishes `staff: UserCollection;`. A collection with no `toArray()`, or one whose `toArray()` returns the collected list, sends the bare list, so it publishes `UserResource[]`. An argument-less `toResourceCollection()` that finds a collection by name follows the same rule. Over an empty collection, Laravel skips the guess and sends `[]`, so when the guess would find `UserCollection`, the property publishes `UserCollection | never[]`.
 
 A [JSON:API resource](#json-api-resources) nests differently. See [Nesting a JSON:API Resource](#nesting-a-json-api-resource).
 
