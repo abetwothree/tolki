@@ -36,9 +36,9 @@ import type {
     ArrayResolvePathOrNull,
     CaseValue,
     CollapsedObject,
+    DotReach,
     EnsureArray,
     FlattenItemReach,
-    FlattenReach,
     MapArrayKey,
     NonNullableArray,
     NonObjectItems,
@@ -169,11 +169,16 @@ type ArraySetPathTarget<TValue> = [TValue] extends [never]
       : TValue extends object
         ? TValue
         : object;
-type ArraySetPathElement<
-    TValue,
-    TRest extends string,
-    TSetValue,
-> = SetObjectPath<ArraySetPathTarget<TValue>, TRest, TSetValue>;
+// A Map element is written as obj writes a Map on its path, so the same SetObjectPath step types it: it stays a Map.
+type ArraySetPathElement<TValue, TRest extends string, TSetValue> = [
+    Extract<TValue, ReadonlyMap<unknown, unknown>>,
+] extends [never]
+    ? SetObjectPath<ArraySetPathTarget<TValue>, TRest, TSetValue>
+    : SetObjectPath<
+          { element: TValue },
+          `element.${TRest}`,
+          TSetValue
+      >["element"];
 // KNOWN-UNSOUND: an already-list element keeps TValue[], so Arr.set([["a"],["b"]], "1.0", 5)
 // answers string[][] where the runtime makes it (string | number)[][] — a value written under
 // the path reads back at the wrong type. Pinned in arr-mutations.test-d.ts.
@@ -199,22 +204,24 @@ type ArraySetPathResult<
           : ArraySetPathListElement<TValue>
     : TValue[];
 
-// DotLeaf (dot): with no depth, dot() walks every non-empty list and plain object down to its leaves; an empty one, a
-// Date, Map, Set, Promise or function is a leaf. A type can't tell a class instance, which the walk also keeps whole,
+// DotLeaf (dot): with no depth, dot() walks every non-empty list, plain object and Map down to its leaves; an empty one,
+// a Date, Set, Promise or function is a leaf. A type can't tell a class instance, which the walk also keeps whole,
 // from a plain object, so it walks one.
 type DotLeaf<T, D extends number = 5> = [D] extends [never]
     ? unknown
     : T extends readonly (infer E)[]
       ? DotLeaf<E, DotDepth[D]> | (0 extends T["length"] ? T : never)
-      : T extends NonObjectItems | Date | RegExp | Promise<unknown>
-        ? T
-        : T extends object
-          ? [keyof T] extends [never]
-              ? unknown
-              :
-                    | DotLeaf<ObjectValue<T>, DotDepth[D]>
-                    | (Record<never, never> extends T ? T : never)
-          : T;
+      : T extends ReadonlyMap<unknown, infer V>
+        ? DotLeaf<V, DotDepth[D]> | T
+        : T extends NonObjectItems | Date | RegExp | Promise<unknown>
+          ? T
+          : T extends object
+            ? [keyof T] extends [never]
+                ? unknown
+                :
+                      | DotLeaf<ObjectValue<T>, DotDepth[D]>
+                      | (Record<never, never> extends T ? T : never)
+            : T;
 type DotDepth = [never, 0, 1, 2, 3, 4];
 
 // CollapseRead (collapse): an item as collapse reads it, a Collection-like one through all().
@@ -902,7 +909,7 @@ export function dot<TValue>(
     data: readonly TValue[],
     prepend: string,
     depth?: number,
-): Record<string, FlattenReach<TValue>>;
+): Record<string, DotReach<TValue>>;
 export function dot<TValue>(
     data: readonly unknown[] | null | undefined,
     prepend?: string,

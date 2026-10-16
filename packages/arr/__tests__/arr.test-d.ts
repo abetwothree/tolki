@@ -2859,6 +2859,19 @@ describe("arr type tests", () => {
                 >();
             });
 
+            it("walks a Map at any depth, as the walk does", () => {
+                expectTypeOf(
+                    Arr.dot([{ m: new Map([["a", 1]]) }], "", 2),
+                ).toEqualTypeOf<
+                    Record<
+                        string,
+                        | { m: Map<string, number> }
+                        | Map<string, number>
+                        | number
+                    >
+                >();
+            });
+
             it("answers every level for a depth that may be missing", () => {
                 expectTypeOf(Arr.dot([1, [2]], "", maybeDepth)).toEqualTypeOf<
                     Record<string, number | number[]>
@@ -2973,10 +2986,17 @@ describe("arr type tests", () => {
                 ).toEqualTypeOf<Record<string, number>>();
             });
 
-            it("keeps a Date or a Map inside an object as a leaf, as the walk does", () => {
+            it("keeps a Date inside an object as a leaf and walks a Map, which may be empty, as the walk does", () => {
                 expectTypeOf(
                     Arr.dot([{ d: new Date(), m: new Map<string, number>() }]),
-                ).toEqualTypeOf<Record<string, Date | Map<string, number>>>();
+                ).toEqualTypeOf<
+                    Record<string, Date | number | Map<string, number>>
+                >();
+                expectTypeOf(
+                    Arr.dot([{ m: new Map([["a", [1, 2]]]) }]),
+                ).toEqualTypeOf<
+                    Record<string, number | number[] | Map<string, number[]>>
+                >();
             });
         });
 
@@ -3092,7 +3112,7 @@ describe("arr type tests", () => {
                     new Set<string>(),
                 ]);
                 expectTypeOf(result).toEqualTypeOf<
-                    Record<string, Map<string, number> | Set<string>>
+                    Record<string, number | Map<string, number> | Set<string>>
                 >();
             });
 

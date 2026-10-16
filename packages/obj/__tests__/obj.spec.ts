@@ -13650,6 +13650,15 @@ describe("residual limits: what the runtime answers where the type disagrees", (
         ).toEqual({ a: { x: 5 } });
     });
 
+    it("rejects a class instance at push's key", () => {
+        // docs/php-parity/Arr/push.json, "push-object-at-the-key": PHP's object stands for the instance.
+        expect(() => Obj.push({ p: new Sized() }, "p", 1)).toThrow(
+            new InvalidArgumentException(
+                "Array value for key [p] must be an array, object found.",
+            ),
+        );
+    });
+
     it("keeps a typed array whole in flatten", () => {
         // JS-only: PHP has no typed array. It is not a plain object, so the same
         // leaf rule that keeps a Date keeps this.

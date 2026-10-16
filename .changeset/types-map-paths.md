@@ -8,3 +8,4 @@ Dot-path types now see through a `Map`, the way the `@tolki` helpers read one. A
 - `ObjectResolvePath` reads through a `Map` at any step: `ObjectResolvePath<{ m: Map<string, number> }, "m.n">` is `number | null`.
 - `ObjectPathValue` reaches a `Map`'s values and what they hold, instead of the Map's methods.
 - `SetObjectPath` keeps a `Map` on the path a `Map` that holds the new key: `SetObjectPath<{ m: Map<string, number> }, "m.n", true>` is `{ m: Map<string | number, number | true> }`.
+- New `DotReach` types every value `dot()` may keep at some depth, walking into a `Map` as `dot()` does. `FlattenReach` still keeps a `Map` whole, as `flatten()` does.

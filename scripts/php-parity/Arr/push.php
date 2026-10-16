@@ -304,5 +304,11 @@ probe('push-null-key-negative-int-key', "\$a = ['-5' => 'a']; Arr::push(\$a, nul
 
     return ['keys' => array_keys($a), 'values' => array_values($a)];
 });
+probe('push-object-at-the-key', "\$a = ['p' => (object) ['x' => 1]]; Arr::push(\$a, 'p', 1)", function () {
+    $a = ['p' => (object) ['x' => 1]];
+    Arr::push($a, 'p', 1);
+
+    return ['unreachable' => $a];
+});
 
 emit();

@@ -1001,6 +1001,12 @@
                     "b"
                 ]
             }
+        },
+        {
+            "label": "push-object-at-the-key",
+            "php": "$a = ['p' => (object) ['x' => 1]]; Arr::push($a, 'p', 1)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [p] must be an array, object found."
         }
     ]
 }

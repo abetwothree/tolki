@@ -1487,7 +1487,12 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * except({ name: 'John', age: 30, city: 'NYC' }, 'age'); -> { name: 'John', city: 'NYC' }
  * except({ name: 'John', age: 30, city: 'NYC' }, ['age', 'city']); -> { name: 'John' }
+ * except(new Map([['a', 1], ['b', 2]]), 'a'); -> { b: 2 }
  */
+export function except(
+    data: ReadonlyMap<unknown, unknown>,
+    keys: PathKeys,
+): Record<string, unknown>;
 export function except(
     data: NonObjectItems,
     keys: PathKeys,
@@ -1995,18 +2000,39 @@ export function flatten<TValue>(
  * here, where PHP keeps it as a leaf value.
  * @see docs/php-parity/Arr/dot.json, "dot-empty-leaf" and "dot-nested-empty-leaf".
  *
- * @param data - The object to flatten.
+ * @param data - The object or Map to flatten.
  * @param depth - Maximum depth for dot-notation keys.
  * @returns A flat object with dot-notated keys.
  *
  * @example
  *
  * flattenDot({ users: { john: { name: 'John' } } }, 1); -> { 'users.john': { name: 'John' } }
+ * flattenDot(new Map([['a', 1], ['b', { c: 2 }]])); -> { a: 1, 'b.c': 2 }
  */
+export function flattenDot<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    depth?: number,
+): Record<
+    string,
+    | ObjectPathValue<Record<string, TValue>>
+    | DotUndefined<Record<string, TValue>>
+>;
+export function flattenDot<TMap>(
+    data: MapData<TMap>,
+    depth?: number,
+): Record<
+    string,
+    | ObjectPathValue<Record<string, MapEntryValue<TMap>>>
+    | DotUndefined<Record<string, MapEntryValue<TMap>>>
+>;
+export function flattenDot(
+    data: NonKeyedItems,
+    depth?: number,
+): Record<string, never>;
 export function flattenDot(
     data: NonObjectItems,
     depth?: number,
-): Record<string, never>;
+): Record<string, unknown>;
 export function flattenDot<T extends object>(
     data: T,
     depth?: number,

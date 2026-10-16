@@ -651,6 +651,31 @@ type FlattenReachOf<T, D extends number> = T extends readonly (infer E)[]
             : FlattenReach<ObjectValue<T>, ObjectDepth[D]>
         : T;
 
+/**
+ * Every value `dot()` may keep for `T` at some depth: `T` itself, or any value below it. A list, plain object or `Map`
+ * is walked, while a `Date`, `RegExp`, `Set`, `Promise` or function is kept whole. Unlike `FlattenReach`, it walks a
+ * `Map`, as `dot()` does where `flatten()` keeps one whole, and never reads through `all()`.
+ *
+ * @example
+ * DotReach<{ m: Map<string, number> }> // { m: Map<string, number> } | Map<string, number> | number
+ */
+export type DotReach<T, D extends number = 5> = [D] extends [never]
+    ? unknown
+    : T | DotReachOf<T, D>;
+
+/** What lies below a value `dot()` walks: a list's, plain object's or Map's values, each reached in turn. */
+type DotReachOf<T, D extends number> = T extends readonly (infer E)[]
+    ? DotReach<E, ObjectDepth[D]>
+    : T extends ReadonlyMap<unknown, infer V>
+      ? DotReach<V, ObjectDepth[D]>
+      : T extends NonObjectItems | Date | RegExp | Promise<unknown>
+        ? T
+        : T extends object
+          ? [keyof T] extends [never]
+              ? unknown
+              : DotReach<ObjectValue<T>, ObjectDepth[D]>
+          : T;
+
 /** collapse reads a Collection-like item through all(), as Arr::collapse unwraps a Collection. */
 type CollapseItem<V> = V extends { all: (...args: never[]) => infer R } ? R : V;
 

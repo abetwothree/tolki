@@ -132,6 +132,15 @@ describe("data subsets type tests", () => {
                 Data.dataExcept(readonlyNumberList, [1]),
             ).toEqualTypeOf(Arr.except(readonlyNumberList, [1]));
         });
+
+        it("matches obj.except for a Map given as the data", () => {
+            expectTypeOf(Data.dataExcept(numberMap, "a")).toEqualTypeOf(
+                Obj.except(numberMap, "a"),
+            );
+            expectTypeOf(Data.dataExcept(numberMap, "a")).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+        });
     });
 
     describe("dataForget", () => {

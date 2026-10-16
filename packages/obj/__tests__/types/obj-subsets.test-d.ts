@@ -290,6 +290,16 @@ describe("obj subset type tests", () => {
             }>();
         });
 
+        it("keep a Map's other entries in the record from() builds", () => {
+            // JS-only: a Map given as the whole data becomes the record from() builds.
+            expectTypeOf(Obj.except(numberMap, "a")).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+            expectTypeOf(Obj.except(numberMap, ["a"])).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+        });
+
         it("accept a readonly key list for nullable or unknown data", () => {
             const hidden: readonly (string | number)[] = ["name", 0];
 
