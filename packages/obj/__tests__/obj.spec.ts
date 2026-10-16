@@ -8703,6 +8703,111 @@ describe("Obj", () => {
                 "Array value for key [foo.bar] must be an array, boolean found.",
             );
         });
+
+        it("appends under the next integer key into an object at the key, as Laravel does", () => {
+            // docs/php-parity/Arr/push.json, "push-assoc-leaf-appends", "push-leaf-negative-int-key"
+            const negative = Obj.push({ x: { k: 1, "-5": "n" } }, "x", "v");
+
+            expect(Obj.push({ x: { k: 1 } }, "x", "v")).toEqual({
+                x: { k: 1, 0: "v" },
+            });
+            expect(negative).toEqual({ x: { k: 1, "-5": "n", "-4": "v" } });
+            expect(Object.keys(negative.x)).toEqual(["k", "-5", "-4"]);
+        });
+
+        it("appends into a Map at the key, keeping its order", () => {
+            // docs/php-parity/Arr/push.json, "push-out-of-order-leaf-appends-after-highest"
+            const result = Obj.push(
+                {
+                    m: new Map([
+                        [2, "c"],
+                        [0, "a"],
+                    ]),
+                },
+                "m",
+                "x",
+            );
+
+            expect(mapEntries(result.m)).toEqual([
+                [2, "c"],
+                [0, "a"],
+                [3, "x"],
+            ]);
+        });
+
+        it("walks a Map along the path", () => {
+            // docs/php-parity/Arr/push.json, "push-through-a-nested-out-of-order-array"
+            const result = Obj.push(
+                {
+                    m: new Map([
+                        [2, ["c"]],
+                        [0, ["a"]],
+                    ]),
+                },
+                "m.0",
+                "x",
+            );
+
+            expect(mapEntries(result.m)).toEqual([
+                [2, ["c"]],
+                [0, ["a", "x"]],
+            ]);
+        });
+
+        it("appends after a negative highest key for a null key, as PHP 8.3 does", () => {
+            // docs/php-parity/Arr/push.json, "push-null-key-negative-int-key"
+            const result = Obj.push({ "-5": "a" }, null, "b");
+
+            expect(result).toEqual({ "-5": "a", "-4": "b" });
+            expect(Object.keys(result)).toEqual(["-5", "-4"]);
+        });
+
+        it("keeps every entry of a Map passed as the data", () => {
+            // JS-only: a Map given as the whole data comes back as the record from() builds, as every obj writer does.
+            expect(
+                Obj.push(
+                    new Map<unknown, unknown>([
+                        ["a", [1]],
+                        [2, "two"],
+                    ]),
+                    "a",
+                    2,
+                ),
+            ).toEqual({ a: [1, 2], 2: "two" });
+        });
+
+        it("leaves the caller's object and Map unchanged", () => {
+            // JS-only: Arr::push takes the array by reference and changes it; this port's push never does.
+            const leaf = { k: 1 };
+            const map = new Map([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            const inner = ["a"];
+            const nested = new Map([
+                [2, ["c"]],
+                [0, inner],
+            ]);
+            const source = new Map<unknown, unknown>([["a", [1]]]);
+
+            Obj.push({ x: leaf }, "x", "v");
+            Obj.push({ m: map }, "m", "x");
+            Obj.push({ m: nested }, "m.0", "x");
+            Obj.push(source, "a", 2);
+            Obj.push(source, null, 3);
+
+            expect(leaf).toEqual({ k: 1 });
+            expect(mapEntries(map)).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            expect(mapEntries(nested)).toEqual([
+                [2, ["c"]],
+                [0, ["a"]],
+            ]);
+            expect(inner).toEqual(["a"]);
+            expect(mapEntries(source)).toEqual([["a", [1]]]);
+        });
     });
 
     describe("shuffle", () => {
@@ -13358,6 +13463,15 @@ describe("prototype objects as write targets", () => {
             unpolluted();
         },
     );
+
+    it("push refuses Object.prototype at the key as a non-array", () => {
+        // JS-only: PHP has no prototype object; one at the key is no data to append to and fails the array check.
+        expect(() => Obj.push({ p: Object.prototype }, "p", 1)).toThrow(
+            "Array value for key [p] must be an array, object found.",
+        );
+
+        unpolluted();
+    });
 });
 
 /**

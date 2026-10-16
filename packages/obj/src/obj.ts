@@ -70,7 +70,6 @@ import {
     isFunction,
     isIllegalOffset,
     isInteger,
-    isIntegerLikeKey,
     isIterable,
     isMap,
     isNull,
@@ -91,6 +90,7 @@ import {
     keyedEntries,
     looseEqual,
     MultipleItemsFoundException,
+    nextIntegerKey,
     operatorMatch,
     phpArrayKey,
     phpComputedKey,
@@ -429,6 +429,38 @@ function rewriteEntries<TValue>(
  */
 function rootRecord(data: unknown): unknown {
     return isMap(data) ? from(data) : data;
+}
+
+/**
+ * Copy a plain object or Map with the values appended after its highest integer key, as array_push keys them.
+ *
+ * @param container - The plain object or Map to copy.
+ * @param values - The values to append.
+ * @returns The copy, holding the values under the next integer keys.
+ */
+function appendAfterIntegerKeys(
+    container: Record<PropertyKey, unknown> | Map<unknown, unknown>,
+    values: readonly unknown[],
+): Record<PropertyKey, unknown> | Map<unknown, unknown> {
+    let next = nextIntegerKey(container);
+
+    if (isMap(container)) {
+        const copy = new Map(container);
+
+        for (const value of values) {
+            copy.set(next++, value);
+        }
+
+        return copy;
+    }
+
+    const copy = { ...container };
+
+    for (const value of values) {
+        defineKey(copy, String(next++), value);
+    }
+
+    return copy;
 }
 
 /**
@@ -4456,17 +4488,20 @@ export function set<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Push one or more items into an object at a nested path using dot notation.
  *
+ * An object or Map at the key is appended to under its next integer key, as Arr::push does.
+ *
  * @param data - The object to push items into.
  * @param key - The key or dot-notated path of the array to push into. A null key appends
- * to the object itself under the next integer-like key, mirroring Arr::push.
+ * to the object itself under the next integer key, mirroring Arr::push.
  * @param values - The values to push.
  * @returns A new object with the values pushed in.
- * @throws InvalidArgumentException if the value at the key is not an array.
+ * @throws InvalidArgumentException if the value at the key is not an array, object or Map.
  *
  * @example
  *
  * push({ items: ['a', 'b'] }, 'items', 'c', 'd'); -> { items: ['a', 'b', 'c', 'd'] }
  * push({ user: { tags: ['js'] } }, 'user.tags', 'ts', 'php'); -> { user: { tags: ['js', 'ts', 'php'] } }
+ * push({ x: { k: 1 } }, 'x', 'v'); -> { x: { k: 1, 0: 'v' } }
  * push({ a: 1 }, null, 9); -> { a: 1, 0: 9 }
  */
 export function push<V>(
@@ -4508,29 +4543,13 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
         return setObjectValue({} as Record<TKey, TValue>, key, values);
     }
 
-    const obj = data as Record<TKey, TValue>;
+    const obj = rootRecord(data) as Record<TKey, TValue>;
 
     // Arr::push with a null key is Arr::get(null) (whole array) then array_push, so it
-    // appends after the highest existing integer-like key instead of throwing; an
+    // appends after the highest existing integer key instead of throwing; an
     // undefined key is treated the same way, JS-only (no PHP analogue for undefined).
     if (isNull(key) || isUndefined(key)) {
-        let nextIndex = 0;
-        // Ascending key order only holds inside the array-index range (0 to 2**32-2);
-        // isIntegerLikeKey has no such ceiling, so a PHP-scale key above it keeps
-        // insertion order instead - the >= comparison is load-bearing, not redundant.
-        for (const existing of Object.keys(obj)) {
-            if (isIntegerLikeKey(existing) && Number(existing) >= nextIndex) {
-                nextIndex = Number(existing) + 1;
-            }
-        }
-
-        const result = { ...obj } as Record<PropertyKey, TValue>;
-        for (const value of values) {
-            result[nextIndex] = value;
-            nextIndex++;
-        }
-
-        return result as Record<TKey, TValue>;
+        return appendAfterIntegerKeys(obj, values) as Record<TKey, TValue>;
     }
 
     const existingValue = getObjectValue(obj, key);
@@ -4538,6 +4557,17 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isArray(existingValue)) {
         const newArray = [...existingValue, ...values];
         return setObjectValue(obj, key, newArray) as Record<TKey, TValue>;
+    }
+
+    if (
+        isMap(existingValue) ||
+        (isPlainObject(existingValue) && !isPrototypeObject(existingValue))
+    ) {
+        return setObjectValue(
+            obj,
+            key,
+            appendAfterIntegerKeys(existingValue, values),
+        ) as Record<TKey, TValue>;
     }
 
     // A missing path defaults to [] like PHP's Arr::array(); an explicit null is a

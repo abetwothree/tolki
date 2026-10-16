@@ -5015,6 +5015,40 @@ describe("Data", () => {
             expect(inner).toEqual(["x"]);
             expect(result[0]).not.toBe(inner);
         });
+
+        it("appends under the next integer key into a plain object at the key on either backing", () => {
+            // docs/php-parity/Arr/push.json, "push-assoc-leaf-appends"
+            expect(Data.dataPush([{ x: { k: 1 } }], "0.x", "v")).toEqual([
+                { x: { k: 1, 0: "v" } },
+            ]);
+            expect(Data.dataPush({ x: { k: 1 } }, "x", "v")).toEqual({
+                x: { k: 1, 0: "v" },
+            });
+        });
+
+        it("walks a nested Map and keeps its key order on either backing", () => {
+            // docs/php-parity/Arr/push.json, "push-through-a-nested-out-of-order-array"
+            const map = (): Map<number, string[]> =>
+                new Map([
+                    [2, ["c"]],
+                    [0, ["a"]],
+                ]);
+            const [row] = Data.dataPush<unknown>([map()], "0.0", "x");
+            const record: { m: unknown } = Data.dataPush(
+                { m: map() },
+                "m.0",
+                "x",
+            );
+
+            expect([...(row as Map<number, string[]>)]).toEqual([
+                [2, ["c"]],
+                [0, ["a", "x"]],
+            ]);
+            expect([...(record.m as Map<number, string[]>)]).toEqual([
+                [2, ["c"]],
+                [0, ["a", "x"]],
+            ]);
+        });
     });
 
     describe("dataUnshift", () => {

@@ -1104,6 +1104,53 @@ describe("Path Functions", () => {
             Path.pushWithPath(data, "0.0", "value");
             expect(data).toEqual([[["value"]]]);
         });
+
+        it("appends into a plain object or a Map at the key", () => {
+            // docs/php-parity/Arr/push.json, "push-assoc-leaf-appends", "push-leaf-after-highest-int-key",
+            // "push-leaf-negative-int-key"
+            expect(Path.pushWithPath([{ x: { k: 1 } }], "0.x", "v")).toEqual([
+                { x: { k: 1, 0: "v" } },
+            ]);
+            expect(
+                Path.pushWithPath([{ x: { k: 1, 5: "z" } }], "0.x", "v", "w"),
+            ).toEqual([{ x: { k: 1, 5: "z", 6: "v", 7: "w" } }]);
+            expect(
+                Path.pushWithPath([{ x: { "-5": "n" } }], "0.x", "v"),
+            ).toEqual([{ x: { "-5": "n", "-4": "v" } }]);
+
+            // docs/php-parity/Arr/push.json, "push-out-of-order-leaf-appends-after-highest"
+            const [leaf] = Path.pushWithPath<unknown>(
+                [
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                    ]),
+                ],
+                "0",
+                "x",
+            );
+            expect([...(leaf as Map<number, string>)]).toEqual([
+                [2, "c"],
+                [0, "a"],
+                [3, "x"],
+            ]);
+
+            // docs/php-parity/Arr/push.json, "push-through-a-nested-out-of-order-array"
+            const [walked] = Path.pushWithPath<unknown>(
+                [
+                    new Map([
+                        [2, ["c"]],
+                        [0, ["a"]],
+                    ]),
+                ],
+                "0.0",
+                "x",
+            );
+            expect([...(walked as Map<number, string[]>)]).toEqual([
+                [2, ["c"]],
+                [0, ["a", "x"]],
+            ]);
+        });
     });
 
     describe("dotFlatten", () => {
@@ -3212,6 +3259,14 @@ describe("Path Functions", () => {
             expect(Object.getOwnPropertyNames(Array.prototype)).not.toContain(
                 "0",
             );
+        });
+
+        it("pushWithPath refuses a prototype object at the leaf as a non-array", () => {
+            // JS-only: PHP has no prototype object; one at the key is no data to append to and fails the array check.
+            expect(() => Path.pushWithPath([Object.prototype], "0", 1)).toThrow(
+                "Array value for key [0] must be an array, object found.",
+            );
+            expect(ownNames(Object.prototype)).not.toContain("0");
         });
     });
 

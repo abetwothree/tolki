@@ -3136,15 +3136,116 @@ describe("Arr", () => {
             ]);
         });
 
-        it("still rejects a plain object at the key", () => {
-            // JS-only: Laravel appends under the next integer key (docs/php-parity/Arr/push.json,
-            // "push-assoc-leaf-appends"); the port keeps throwing there, a parked decision.
-            const push = (): unknown => Arr.push([{ x: { k: 1 } }], "0.x", "v");
+        it("appends under the next integer key into a plain object at the key, as Laravel does", () => {
+            // docs/php-parity/Arr/push.json, "push-assoc-leaf-appends", "push-leaf-after-highest-int-key"
+            expect(Arr.push([{ x: { k: 1 } }], "0.x", "v")).toEqual([
+                { x: { k: 1, 0: "v" } },
+            ]);
+            expect(
+                Arr.push([{ x: { k: 1, 5: "z" } }], "0.x", "v", "w"),
+            ).toEqual([{ x: { k: 1, 5: "z", 6: "v", 7: "w" } }]);
+        });
 
-            expect(push).toThrow(InvalidArgumentException);
-            expect(push).toThrow(
-                "Array value for key [0.x] must be an array, object found.",
+        it("appends after a negative highest key, as PHP 8.3 does", () => {
+            // docs/php-parity/Arr/push.json, "push-leaf-negative-int-key"
+            const result = Arr.push<unknown>(
+                [{ x: { "-5": "n" } }],
+                "0.x",
+                "v",
             );
+
+            expect(result).toEqual([{ x: { "-5": "n", "-4": "v" } }]);
+            expect(Object.keys((result[0] as { x: object }).x)).toEqual([
+                "-5",
+                "-4",
+            ]);
+        });
+
+        it("walks a Map row and keeps its key order", () => {
+            // docs/php-parity/Arr/push.json, "push-through-a-nested-out-of-order-array"
+            const rows = [
+                new Map<number, string[]>([
+                    [2, ["c"]],
+                    [0, ["a"]],
+                ]),
+            ];
+
+            expect([
+                ...(Arr.push<unknown>(rows, "0.0", "x")[0] as Map<
+                    number,
+                    string[]
+                >),
+            ]).toEqual([
+                [2, ["c"]],
+                [0, ["a", "x"]],
+            ]);
+        });
+
+        it("appends into a Map at the key after its highest integer key", () => {
+            // docs/php-parity/Arr/push.json, "push-out-of-order-leaf-appends-after-highest"
+            const rows = [
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                ]),
+            ];
+
+            expect([
+                ...(Arr.push<unknown>(rows, "0", "x")[0] as Map<
+                    number,
+                    string
+                >),
+            ]).toEqual([
+                [2, "c"],
+                [0, "a"],
+                [3, "x"],
+            ]);
+        });
+
+        it("leaves the caller's plain object and Map unchanged", () => {
+            // JS-only: Arr::push takes the array by reference and changes it; this port's push never does.
+            const leaf = { k: 1 };
+            const map = new Map<number, string>([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            const inner = ["a"];
+            const row = new Map<number, string[]>([
+                [2, ["c"]],
+                [0, inner],
+            ]);
+
+            Arr.push([{ x: leaf }], "0.x", "v");
+            Arr.push([map], "0", "x");
+            Arr.push([row], "0.0", "x");
+
+            expect(leaf).toEqual({ k: 1 });
+            expect([...map]).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            expect([...row]).toEqual([
+                [2, ["c"]],
+                [0, ["a"]],
+            ]);
+            expect(inner).toEqual(["a"]);
+        });
+
+        it("never writes through a prototype for __proto__, constructor or prototype segments", () => {
+            // JS-only: PHP has no prototype chain; each segment must land as an own key or a Map key.
+            expect(Arr.push([{}], "0.constructor.x", "v")).toEqual([
+                { constructor: { x: ["v"] } },
+            ]);
+            expect(Arr.push([{}], "0.prototype", "v")).toEqual([
+                { prototype: ["v"] },
+            ]);
+            expect(Arr.push([new Map()], "0.__proto__", "v")).toEqual([
+                new Map([["__proto__", ["v"]]]),
+            ]);
+            expect(Object.hasOwn(Object.prototype, "x")).toBe(false);
+            expect(
+                ({} as Record<string, unknown>)["prototype"],
+            ).toBeUndefined();
         });
 
         it("still writes nothing for a string key under a list", () => {

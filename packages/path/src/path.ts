@@ -31,6 +31,7 @@ import {
     isUndefined,
     isUnsafeKey,
     keyedEntries,
+    nextIntegerKey,
     phpArrayKey,
     readMapKey,
     toPhpKeyString,
@@ -716,13 +717,14 @@ export function setImmutable<TValue>(
 }
 
 /**
- * Push an item into an array using "dot" notation, walking lists and plain objects and creating what is missing.
+ * Push an item into an array using "dot" notation, walking lists, plain objects and Maps and replacing anything else
+ * along the path, as Arr::set does.
  *
  * @param data - The array to push values into.
  * @param key - The path where to push values (number, string, null, or undefined).
  * @param values - The values to push.
  * @returns The modified array with values pushed at the specified path.
- * @throws InvalidArgumentException if the value at the key is not an array.
+ * @throws InvalidArgumentException if the value at the key is not an array, a plain object or a Map.
  *
  * @example
  *
@@ -731,6 +733,7 @@ export function setImmutable<TValue>(
  * pushWithPath([['x']], "0", 'y'); -> [['x', 'y']]
  * pushWithPath([], "0", 'first'); -> [['first']]
  * pushWithPath([{x: [1]}], "0.x", 2); -> [{x: [1, 2]}]
+ * pushWithPath([{x: {k: 1}}], "0.x", 2); -> [{x: {k: 1, 0: 2}}]
  * pushWithPath([null], "0.child", 'v'); -> [{child: ['v']}]
  */
 export function pushWithPath<TValue>(
@@ -755,19 +758,22 @@ export function pushWithPath<TValue>(
         return root as TValue[];
     }
 
-    type Container = unknown[] | Record<PropertyKey, unknown>;
+    type Container =
+        | unknown[]
+        | Record<PropertyKey, unknown>
+        | Map<unknown, unknown>;
 
     /**
-     * Find where a segment lands in a container: a list's index or a plain object's own key.
+     * Find what a segment names in a container: a list's index, a Map's key or a plain object's own key.
      *
-     * @param container - The list or plain object the path has reached.
+     * @param container - The list, plain object or Map the path has reached.
      * @param segment - The path segment to look up.
-     * @returns The slot and whether the container holds it, or null for a string segment under a list.
+     * @returns The slot, whether the container holds it and its value, or null for a string segment under a list.
      */
     const locate = (
         container: Container,
         segment: number | string,
-    ): { slot: PropertyKey; present: boolean } | null => {
+    ): { slot: number | string; found: boolean; value?: unknown } | null => {
         if (isArray(container)) {
             // A list holds no string key; an index past its end appends, where PHP would leave a gapped key.
             if (!isNumber(segment)) {
@@ -776,31 +782,58 @@ export function pushWithPath<TValue>(
 
             const slot = Math.min(segment, container.length);
 
-            return { slot, present: slot < container.length };
+            return slot < container.length
+                ? { slot, found: true, value: container[slot] }
+                : { slot, found: false };
+        }
+
+        if (isMap(container)) {
+            return { slot: segment, ...readMapKey(container, segment) };
         }
 
         const slot = String(segment);
 
-        return { slot, present: Object.hasOwn(container, slot) };
+        return Object.hasOwn(container, slot)
+            ? { slot, found: true, value: container[slot] }
+            : { slot, found: false };
+    };
+
+    /**
+     * Store a value in a container under a slot `locate` found.
+     *
+     * @param container - The list, plain object or Map to write into.
+     * @param slot - The slot to write.
+     * @param value - The value to store.
+     */
+    const place = (
+        container: Container,
+        slot: number | string,
+        value: unknown,
+    ): void => {
+        if (isMap(container)) {
+            writeMapKey(container, slot, value);
+
+            return;
+        }
+
+        defineKey(container as Record<PropertyKey, unknown>, slot, value);
     };
 
     let cursor: Container = root;
 
     for (const [depth, segment] of segs.slice(0, -1).entries()) {
-        const place = locate(cursor, segment);
-        if (isNull(place)) {
+        const step = locate(cursor, segment);
+        if (isNull(step)) {
             return root as TValue[];
         }
 
-        const next = place.present
-            ? (cursor as Record<PropertyKey, unknown>)[place.slot]
-            : undefined;
+        const next = step.value;
 
         if (isPrototypeObject(next)) {
             return root as TValue[];
         }
 
-        if (isArray(next) || isPlainObject(next)) {
+        if (isArray(next) || isPlainObject(next) || isMap(next)) {
             cursor = next;
 
             continue;
@@ -809,7 +842,7 @@ export function pushWithPath<TValue>(
         // Arr::set swaps anything that is no array for a fresh one, shaped by the segment it holds next.
         const fresh: Container = isNumber(segs[depth + 1]) ? [] : {};
 
-        defineKey(cursor as Record<PropertyKey, unknown>, place.slot, fresh);
+        place(cursor, step.slot, fresh);
         cursor = fresh;
     }
 
@@ -818,26 +851,42 @@ export function pushWithPath<TValue>(
         return root as TValue[];
     }
 
-    const target = cursor as Record<PropertyKey, unknown>;
-
     // `Arr::push` appends into the array AT the key, never beside it; an existing
     // value there must itself be an array (PHP's `Arr::array()` rule), and an
     // absent one becomes a fresh array first.
-    if (!leaf.present) {
-        defineKey(target, leaf.slot, []);
+    const target = leaf.found ? leaf.value : [];
+
+    if (!leaf.found) {
+        place(cursor, leaf.slot, target);
     }
 
-    const list = target[leaf.slot];
+    if (isArray(target)) {
+        if (!isPrototypeObject(target)) {
+            target.push(...(values as unknown[]));
+        }
 
-    if (!isArray(list)) {
-        throw new InvalidArgumentException(arrayValueMessage(list, key));
+        return root as TValue[];
     }
 
-    if (!isPrototypeObject(list)) {
-        list.push(...(values as unknown[]));
+    // A plain object or a Map stands for a keyed PHP array, which array_push extends after its highest integer key.
+    if (
+        isMap(target) ||
+        (isPlainObject(target) && !isPrototypeObject(target))
+    ) {
+        let next = nextIntegerKey(target);
+
+        for (const value of values) {
+            if (isMap(target)) {
+                target.set(next++, value);
+            } else {
+                defineKey(target, String(next++), value);
+            }
+        }
+
+        return root as TValue[];
     }
 
-    return root as TValue[];
+    throw new InvalidArgumentException(arrayValueMessage(target, key));
 }
 
 /**

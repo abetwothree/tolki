@@ -3324,8 +3324,8 @@ export function set(
  * @param data - The array to push items into.
  * @param key - The key or dot-notated path of the array to push into. If null, push into root.
  * @param values - The values to push.
- * @returns The array with the values pushed into the array at the key.
- * @throws InvalidArgumentException if the value at the key is not an array.
+ * @returns The array with the values pushed into the array, object or Map at the key.
+ * @throws InvalidArgumentException if the value at the key is not an array, object or Map.
  */
 // Overload: typed array → element type preserved (including unions)
 export function push<TValue>(
@@ -3345,8 +3345,8 @@ export function push<TValue>(
     key: PathKey,
     ...values: TValue[]
 ): TValue[] {
-    // pushWithPath appends in place, down to the array AT the key, so the list
-    // and every container along the path are copied before it runs.
+    // pushWithPath appends in place, into the array, object or Map AT the key, so
+    // the list and every container along the path are copied before it runs.
     return pushWithPath(
         isArray(data) ? copyAlongPath(data, key, true) : data,
         key,
