@@ -18,7 +18,13 @@
         "build": "vite build",
         "prepack": "pnpm run build"
     },
-    "keywords": [],
+    "keywords": [
+        "path",
+        "array",
+        "object",
+        "utilities",
+        "dot-notation"
+    ],
     "dependencies": {
         "@tolki/utils": "workspace:^",
         "@tolki/types": "workspace:^"
