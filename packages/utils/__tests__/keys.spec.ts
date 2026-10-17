@@ -174,6 +174,20 @@ describe("Utils", () => {
             expect(Object.hasOwn(target, "__proto__")).toBe(true);
             expect(Object.getPrototypeOf(target)).toBe(Object.prototype);
         });
+
+        it("never assigns __proto__, even as a non-configurable own key", () => {
+            const target: Record<string, unknown> = {};
+            Object.defineProperty(target, "__proto__", {
+                value: 1,
+                writable: true,
+            });
+
+            expect(() => Utils.defineKey(target, "__proto__", 2)).toThrow(
+                TypeError,
+            );
+            expect(target["__proto__"]).toBe(1);
+            expect(Object.getPrototypeOf(target)).toBe(Object.prototype);
+        });
     });
 
     describe("phpArrayKey", () => {
