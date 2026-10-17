@@ -313,7 +313,7 @@ describe("githubSlug", () => {
         expect(githubSlug("Loose and strict comparison")).toBe(
             "loose-and-strict-comparison",
         );
-        expect(githubSlug("`a_b` <b>c</b>")).toBe("a_b-c");
+        expect(githubSlug("a_b c")).toBe("a_b-c");
     });
 });
 
@@ -337,6 +337,14 @@ describe("rewriteAnchorsForGitHub", () => {
 
         expect(rewriteAnchorsForGitHub(doc)).toBe(
             "#### Symbol.iterator\n\n[Symbol.iterator](#symboliterator)",
+        );
+    });
+
+    it("slugs a heading's text without its backticks and HTML tags", () => {
+        const heading = '## `get` <Badge text="x" /> value';
+
+        expect(rewriteAnchorsForGitHub(`${heading}\n\n[v](#get-value)`)).toBe(
+            `${heading}\n\n[v](#get--value)`,
         );
     });
 

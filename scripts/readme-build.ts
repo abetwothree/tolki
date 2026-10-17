@@ -387,13 +387,11 @@ export function discoverPackages(filterName?: string): PackageInfo[] {
 /**
  * Turns heading text into the anchor GitHub and npm give it, which drops punctuation instead of hyphenating it.
  *
- * @param text - The heading text.
+ * @param text - The heading text, without Markdown or HTML.
  * @returns The anchor slug, before any `-N` duplicate suffix.
  */
 export function githubSlug(text: string): string {
     return text
-        .replace(/`/g, "")
-        .replace(/<[A-Za-z/!][^>]*>/g, "")
         .toLowerCase()
         .trim()
         .replace(/[^\p{L}\p{N}\p{M} _-]/gu, "")
