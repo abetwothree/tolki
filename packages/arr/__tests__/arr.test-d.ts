@@ -1,6 +1,6 @@
 import * as Arr from "@tolki/arr";
 import * as Obj from "@tolki/obj";
-import type { UndotValue } from "@tolki/types";
+import type { MapArrayKey, UndotValue } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
 /** A depth the caller may leave out, which flattens every level. */
@@ -904,6 +904,13 @@ describe("arr type tests", () => {
                 expectTypeOf(resultNum).toEqualTypeOf<string[]>();
                 expectTypeOf(resultStr).toEqualTypeOf<string[]>();
             });
+
+            it("reads a Map's list through a dot path, or unknown[] for a key the Map may lack", () => {
+                // docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys": Arr::array reads through Arr::get.
+                const data = [new Map<string, number[]>([["key", [1, 2]]])];
+                const result = Arr.arrayItem(data, "0.key");
+                expectTypeOf(result).toEqualTypeOf<number[] | unknown[]>();
+            });
         });
 
         describe("Infers specific array types even with default value", () => {
@@ -980,14 +987,6 @@ describe("arr type tests", () => {
                 ];
                 const result = Arr.arrayItem(data, 1);
                 expectTypeOf(result).toEqualTypeOf<unknown[] | number[]>();
-            });
-        });
-
-        describe("Falls back to unknown[] for non-resolvable paths", () => {
-            it("returns unknown[] for Map type via dot path (not indexable)", () => {
-                const data = [new Map<string, number[]>([["key", [1, 2]]])];
-                const result = Arr.arrayItem(data, "0.key");
-                expectTypeOf(result).toEqualTypeOf<unknown[]>();
             });
         });
 
@@ -2860,6 +2859,19 @@ describe("arr type tests", () => {
                 >();
             });
 
+            it("walks a Map at any depth, as the walk does", () => {
+                expectTypeOf(
+                    Arr.dot([{ m: new Map([["a", 1]]) }], "", 2),
+                ).toEqualTypeOf<
+                    Record<
+                        string,
+                        | { m: Map<string, number> }
+                        | Map<string, number>
+                        | number
+                    >
+                >();
+            });
+
             it("answers every level for a depth that may be missing", () => {
                 expectTypeOf(Arr.dot([1, [2]], "", maybeDepth)).toEqualTypeOf<
                     Record<string, number | number[]>
@@ -2974,10 +2986,17 @@ describe("arr type tests", () => {
                 ).toEqualTypeOf<Record<string, number>>();
             });
 
-            it("keeps a Date or a Map inside an object as a leaf, as the walk does", () => {
+            it("keeps a Date inside an object as a leaf and walks a Map, which may be empty, as the walk does", () => {
                 expectTypeOf(
                     Arr.dot([{ d: new Date(), m: new Map<string, number>() }]),
-                ).toEqualTypeOf<Record<string, Date | Map<string, number>>>();
+                ).toEqualTypeOf<
+                    Record<string, Date | number | Map<string, number>>
+                >();
+                expectTypeOf(
+                    Arr.dot([{ m: new Map([["a", [1, 2]]]) }]),
+                ).toEqualTypeOf<
+                    Record<string, number | number[] | Map<string, number[]>>
+                >();
             });
         });
 
@@ -3093,7 +3112,7 @@ describe("arr type tests", () => {
                     new Set<string>(),
                 ]);
                 expectTypeOf(result).toEqualTypeOf<
-                    Record<string, Map<string, number> | Set<string>>
+                    Record<string, number | Map<string, number> | Set<string>>
                 >();
             });
 
@@ -5267,6 +5286,27 @@ describe("arr type tests", () => {
                 expectTypeOf(Arr.first).returns.toExtend<unknown | null>();
             });
         });
+
+        it("types a Map's value and keys", () => {
+            expectTypeOf(Arr.first(new Map([["a", 1]]))).toEqualTypeOf<
+                number | null
+            >();
+            Arr.first(new Map([["a", 1]]), (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<MapArrayKey<string>>();
+                return true;
+            });
+        });
+
+        it("types a keyed collection's callback key as a string or a number", () => {
+            const items = null as unknown as { all(): Record<string, number> };
+
+            Arr.first(items, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+                return true;
+            });
+        });
     });
 
     describe("last", () => {
@@ -5695,6 +5735,27 @@ describe("arr type tests", () => {
         describe("function signature", () => {
             it("returns type that extends unknown | null", () => {
                 expectTypeOf(Arr.last).returns.toExtend<unknown | null>();
+            });
+        });
+
+        it("types a Map's value and keys", () => {
+            expectTypeOf(Arr.last(new Map([["a", 1]]))).toEqualTypeOf<
+                number | null
+            >();
+            Arr.last(new Map([["a", 1]]), (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<MapArrayKey<string>>();
+                return true;
+            });
+        });
+
+        it("types a keyed collection's callback key as a string or a number", () => {
+            const items = null as unknown as { all(): Record<string, number> };
+
+            Arr.last(items, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+                return true;
             });
         });
     });
@@ -8049,6 +8110,13 @@ describe("arr type tests", () => {
                 const type1 = Arr.get(data, "1.type");
                 expectTypeOf(type1).toEqualTypeOf<"body">();
             });
+
+            it("reads a Map's value through a dot path, or null for a key the Map may lack", () => {
+                // docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys": the Map stands for the nested array.
+                expectTypeOf(
+                    Arr.get([new Map<string, number>()], "0.n"),
+                ).toEqualTypeOf<number | null>();
+            });
         });
 
         describe("literal key with default value", () => {
@@ -8101,6 +8169,13 @@ describe("arr type tests", () => {
             it("returns resolved nested type with null default", () => {
                 const result = Arr.get([{ name: "Alice" }], "0.name", null);
                 expectTypeOf(result).toEqualTypeOf<string>();
+            });
+
+            it("adds the default for a Map key that may be missing", () => {
+                // docs/php-parity/Arr/get.json, "get-nested-out-of-order-keys".
+                expectTypeOf(
+                    Arr.get([new Map<string, number>()], "0.n", "d"),
+                ).toEqualTypeOf<number | string>();
             });
         });
 

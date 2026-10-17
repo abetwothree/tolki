@@ -1,0 +1,21 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "C32-A-all-returns-a-copy",
+            "php": "$a = collect([1, 2]); $x = $a->all(); $x[] = 3; $a->all()",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "all-integer-keys-in-order-is-a-list",
+            "php": "array_is_list(collect([0 => 'a', 1 => 'b'])->all())",
+            "value": true
+        }
+    ]
+}

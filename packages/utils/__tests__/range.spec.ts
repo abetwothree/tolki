@@ -4,21 +4,21 @@ import { describe, expect, it } from "vitest";
 describe("Utils", () => {
     describe("resolveTakeCount", () => {
         it("drops a fraction, as the loop over range(1, $count) does", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
+            // docs/php-parity/Collection/shift-and-pop-counts.json, "C32-B-shift-fractional-and-non-finite-counts"
             expect(Utils.resolveTakeCount(2.5, 4)).toBe(2);
             expect(Utils.resolveTakeCount(2, 4)).toBe(2);
             expect(Utils.resolveTakeCount(1, 4)).toBe(1);
         });
 
         it("takes every item for a NAN or an infinite count, and never more than there are", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
+            // docs/php-parity/Collection/shift-and-pop-counts.json, "C32-B-shift-fractional-and-non-finite-counts"
             expect(Utils.resolveTakeCount(NaN, 4)).toBe(4);
             expect(Utils.resolveTakeCount(Infinity, 4)).toBe(4);
             expect(Utils.resolveTakeCount(1e19, 4)).toBe(4);
         });
 
         it("throws range()'s ValueError for a fraction below 2, unless fewer items cap it", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
+            // docs/php-parity/Collection/shift-and-pop-counts.json, "C32-B-shift-fractional-and-non-finite-counts"
             // and "C32-B-pop-fractional-and-non-finite-counts"
             const failure = new Error(
                 "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
@@ -38,14 +38,14 @@ describe("Utils", () => {
 
     describe("resolvePadLength", () => {
         it("drops a fraction toward zero, as array_pad()'s int parameter does", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-and-non-int-sizes"
+            // docs/php-parity/Collection/pad.json, "C32-B-pad-fractional-and-non-int-sizes"
             expect(Utils.resolvePadLength(7.5)).toBe(7);
             expect(Utils.resolvePadLength(-7.5)).toBe(-7);
             expect(Utils.resolvePadLength(0.5)).toBe(0);
         });
 
         it("throws array_pad()'s TypeError for NAN, an infinity or a length past PHP's int range", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-and-non-int-sizes"
+            // docs/php-parity/Collection/pad.json, "C32-B-pad-fractional-and-non-int-sizes"
             for (const size of [NaN, Infinity, -Infinity, 1e19, -1e19]) {
                 expect(() => Utils.resolvePadLength(size)).toThrow(
                     new TypeError(
@@ -56,7 +56,7 @@ describe("Utils", () => {
         });
 
         it("throws array_pad()'s ValueError for a length past the maximum array size, either way round", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-past-maximum-array-size"
+            // docs/php-parity/Collection/pad.json, "C32-B-pad-past-maximum-array-size"
             for (const size of [1073741825, -1073741825, 1e18]) {
                 expect(() => Utils.resolvePadLength(size)).toThrow(
                     new Error(
@@ -72,7 +72,7 @@ describe("Utils", () => {
 
     describe("resolveSpliceRange", () => {
         it("runs a null length to the end, as PHP's ?int length reads null", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-splice-null-length-to-the-end"
+            // docs/php-parity/Collection/splice.json, "C32-B-splice-null-length-to-the-end"
             expect(Utils.resolveSpliceRange(4, 1, null)).toEqual({
                 start: 1,
                 count: 3,
@@ -84,7 +84,7 @@ describe("Utils", () => {
         });
 
         it("drops the offset's fraction before counting a negative one back from the end", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json,
+            // docs/php-parity/Collection/splice.json,
             // "C32-B-splice-fractional-and-non-finite-offsets"
             expect(Utils.resolveSpliceRange(4, 1.5, undefined)).toEqual({
                 start: 1,
@@ -97,7 +97,7 @@ describe("Utils", () => {
         });
 
         it("drops the length's fraction before counting a negative one back from the end", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json,
+            // docs/php-parity/Collection/splice.json,
             // "C32-B-splice-fractional-and-non-finite-lengths"
             expect(Utils.resolveSpliceRange(4, 1, 1.5)).toEqual({
                 start: 1,
@@ -110,7 +110,7 @@ describe("Utils", () => {
         });
 
         it("throws array_splice()'s TypeError for an offset or a length no int holds, the offset's first", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json,
+            // docs/php-parity/Collection/splice.json,
             // "C32-B-splice-fractional-and-non-finite-offsets" and "C32-B-splice-fractional-and-non-finite-lengths"
             for (const value of [NaN, Infinity, -Infinity, 1e19]) {
                 expect(() => Utils.resolveSpliceRange(4, value, value)).toThrow(
@@ -131,16 +131,16 @@ describe("Utils", () => {
         it("counts an integer range's whole steps and rounds a float range's size half up", () => {
             // CollectionTest::testRangeMethod
             expect(Utils.resolveRangeSize(1, 5, 1)).toBe(5);
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-descending-step"
+            // docs/php-parity/Collection/range.json, "C32-A-range-descending-step"
             expect(Utils.resolveRangeSize(10, 1, 3)).toBe(4);
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-float-size-rounds-half-up"
+            // docs/php-parity/Collection/range.json, "C32-A-range-float-size-rounds-half-up"
             expect(Utils.resolveRangeSize(0.2, 0.5, 0.1)).toBe(4);
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-single"
+            // docs/php-parity/Collection/range.json, "C32-A-range-single"
             expect(Utils.resolveRangeSize(3, 3, 1)).toBe(1);
         });
 
         it("throws range()'s ValueError for an argument it refuses, the step's first", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-non-finite-arguments-throw",
+            // docs/php-parity/Collection/range.json, "C32-A-range-non-finite-arguments-throw",
             // "C32-A-range-checks-the-step-first", "C32-A-range-step-zero-throws",
             // "C32-A-range-negative-step-increasing-throws" and "C32-A-range-step-exceeds-span-throws"
             expect(() => Utils.resolveRangeSize(NaN, NaN, NaN)).toThrow(
@@ -174,7 +174,7 @@ describe("Utils", () => {
         });
 
         it("throws range()'s ValueError past the maximum array size, printing an integer range's bounds or a float range's", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-past-maximum-array-size"
+            // docs/php-parity/Collection/range.json, "C32-A-range-past-maximum-array-size"
             for (const [[start, end, step], message] of [
                 [
                     [1, 1073741824, 1],
@@ -220,7 +220,7 @@ describe("Utils", () => {
         });
 
         it("prints a float range's figures as %.1f does, an exact half to even and its sign from the value", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-size-message-rounding" and
+            // docs/php-parity/Collection/range.json, "C32-A-range-size-message-rounding" and
             // "C32-A-range-size-message-signs-and-carries"
             for (const [[start, end, step], message] of [
                 [
@@ -263,7 +263,7 @@ describe("Utils", () => {
         });
 
         it("prints a size that overflows as inf", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-size-message-infinite"
+            // docs/php-parity/Collection/range.json, "C32-A-range-size-message-infinite"
             for (const [[start, end, step], message] of [
                 [
                     [0, 1, 5e-324],
@@ -285,7 +285,7 @@ describe("Utils", () => {
         });
 
         it("throws range()'s ValueError for a count past the maximum array size, as times() hands range() one", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-times-past-maximum-array-size"
+            // docs/php-parity/Collection/times.json, "C32-A-times-past-maximum-array-size"
             for (const [[start, end, step], message] of [
                 [
                     [1, 1e19, 1],

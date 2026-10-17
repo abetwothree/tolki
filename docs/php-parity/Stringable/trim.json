@@ -1,0 +1,17 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "stringable-trim-empty-charlist",
+            "php": "(string) Str::of('  hello  ')->trim(''), ->ltrim('') and ->rtrim('')",
+            "value": [
+                "  hello  ",
+                "  hello  ",
+                "  hello  "
+            ]
+        }
+    ]
+}

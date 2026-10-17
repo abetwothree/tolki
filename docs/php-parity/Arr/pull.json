@@ -1,0 +1,114 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "Arr::pull \u2014 first-level key containing dots",
+            "php": "Arr::pull($a, \"joe@example.com\")",
+            "value": {
+                "pulled": "Joe",
+                "remaining": {
+                    "jane@localhost": "Jane"
+                }
+            }
+        },
+        {
+            "label": "pull-nested-dotted-key",
+            "php": "Arr::pull($a=['emails'=>['joe@example.com'=>'Joe','jane@localhost'=>'Jane']], 'emails.joe@example.com')",
+            "value": {
+                "value": null,
+                "array": {
+                    "emails": {
+                        "joe@example.com": "Joe",
+                        "jane@localhost": "Jane"
+                    }
+                }
+            }
+        },
+        {
+            "label": "pull-list-non-canonical-index",
+            "php": "$a = ['x', 'y']; Arr::pull($a, '01', 'd')",
+            "value": {
+                "value": "d",
+                "array": [
+                    "x",
+                    "y"
+                ]
+            }
+        },
+        {
+            "label": "pull-list-of-assoc-rows",
+            "php": "$a = [['a' => 1, 'b' => 2]]; [Arr::pull($a, '0.a'), $a]",
+            "value": [
+                1,
+                [
+                    {
+                        "b": 2
+                    }
+                ]
+            ]
+        },
+        {
+            "label": "pull-nested-assoc-in-a-row",
+            "php": "$a = [['a' => ['x' => 1, 'y' => 2]]]; [Arr::pull($a, '0.a.x'), $a]",
+            "value": [
+                1,
+                [
+                    {
+                        "a": {
+                            "y": 2
+                        }
+                    }
+                ]
+            ]
+        },
+        {
+            "label": "pull-assoc-through-a-list-row",
+            "php": "$a = ['rows' => [['a' => 1, 'b' => 2]]]; [Arr::pull($a, 'rows.0.a'), $a]",
+            "value": [
+                1,
+                {
+                    "rows": [
+                        {
+                            "b": 2
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "pull-nested-keeps-other-keys",
+            "php": "Arr::pull($a, 'm.0'), Arr::pull($l, '0.0') on [2 => 'c', 0 => 'a', 1 => 'b']",
+            "value": {
+                "assoc": {
+                    "value": "a",
+                    "data": {
+                        "m": {
+                            "2": "c",
+                            "1": "b"
+                        }
+                    }
+                },
+                "assoc_keys": [
+                    2,
+                    1
+                ],
+                "list": {
+                    "value": "a",
+                    "data": [
+                        {
+                            "2": "c",
+                            "1": "b"
+                        }
+                    ]
+                },
+                "list_keys": [
+                    2,
+                    1
+                ]
+            }
+        }
+    ]
+}

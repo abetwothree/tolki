@@ -1,29 +1,14 @@
 /**
- * Assembles package README files from VitePress documentation.
- *
- * For each package with a `tolki.docs` field in its package.json, this script:
- * 1. Reads the package's README.md
- * 2. Finds the `<!-- AUTO-GENERATED-DOCS:START -->` sentinel
- * 3. Reads and strips VitePress-specific syntax from the listed doc files
- * 4. Replaces everything between the sentinels with the assembled content
- *
- * Usage:
- *   ts-node scripts/readme-build.ts                    # all packages
- *   ts-node scripts/readme-build.ts --filter @tolki/enum  # single package
- *
- * Configuration:
- *   In each package's package.json, add:
- *   {
- *     "tolki": {
- *       "docs": ["enums/index.md", "enums/enum-utilities-list.md"]
- *     }
- *   }
- *   Paths are relative to docs/vitepress/
+ * Builds each package README from the VitePress pages listed in its `tolki.docs` field.
+ * Usage: `ts-node scripts/readme-build.ts [--filter @tolki/<pkg>]`
  */
 
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
+
+import { parseHeadings } from "./docs-markdown.ts";
 
 /** Absolute path to the monorepo root (one level above scripts/). */
 const MONOREPO_ROOT = path.resolve(
@@ -46,11 +31,7 @@ interface PackageInfo {
 }
 
 /**
- * Increase markdown heading levels by one while preserving fenced code blocks.
- *
- * Headings from `#` through `#####` are shifted down one level. Existing
- * `######` headings are clamped at level 6 so the output stays valid markdown.
- * Triple-backtick fenced code blocks are left untouched.
+ * Increase markdown heading levels by one, leaving fenced code blocks untouched.
  *
  * @param content - Markdown content to adjust.
  * @returns Markdown content with headings shifted down one level.
@@ -84,58 +65,243 @@ export function increaseHeadingLevels(content: string): string {
         .join("\n");
 }
 
+interface GroupFence {
+    title: string | null;
+    start: number;
+    end: number;
+}
+
+interface CodeGroup {
+    start: number;
+    end: number;
+    fences: GroupFence[];
+}
+
 /**
- * Rewrite relative markdown doc links (`./foo.md`, `./foo.md#frag`) to
- * absolute docs-site URLs.
+ * Locate each `::: code-group` and the fenced blocks inside it.
  *
- * Within docs/vitepress, a link like `./analyzer-api.md` resolves fine
- * because VitePress renders it alongside its sibling files. Once the same
- * text is spliced into a package README (npm, GitHub), that relative path
- * points at a `.md` file that doesn't exist there, so the link dangles.
- * Rewriting it to the published site URL (matching the `.html`-suffixed
- * canonical links already hand-written elsewhere in this repo, e.g.
- * `packages/str/src/str.ts`'s `@see` comments) keeps the link resolvable.
+ * @param lines - The page split into lines.
+ * @returns Groups with zero-based, inclusive line ranges in document order,
+ *   and the indexes of every line that belongs to a fence.
+ */
+function scanCodeGroups(lines: string[]): {
+    groups: CodeGroup[];
+    fencedLines: Set<number>;
+} {
+    const groups: CodeGroup[] = [];
+    const fencedLines = new Set<number>();
+    let current: CodeGroup | null = null;
+    let open: { marker: string; start: number; title: string | null } | null =
+        null;
+
+    for (const [index, raw] of lines.entries()) {
+        const line = raw.endsWith("\r") ? raw.slice(0, -1) : raw;
+        const trimmed = line.trim();
+
+        if (open !== null) {
+            fencedLines.add(index);
+
+            if (
+                trimmed.length >= open.marker.length &&
+                trimmed === open.marker[0]?.repeat(trimmed.length)
+            ) {
+                current?.fences.push({
+                    title: open.title,
+                    start: open.start,
+                    end: index,
+                });
+                open = null;
+            }
+
+            continue;
+        }
+
+        const fence = /^ {0,3}(`{3,}|~{3,})\s*(.*)$/.exec(line);
+
+        if (fence !== null) {
+            fencedLines.add(index);
+            open = {
+                marker: fence[1] as string,
+                start: index,
+                title: /\[([^\]]*)\]/.exec(fence[2] as string)?.[1] ?? null,
+            };
+        } else if (/^:::\s*code-group\b/.test(trimmed)) {
+            current = { start: index, end: lines.length - 1, fences: [] };
+            groups.push(current);
+        } else if (trimmed === ":::" && current !== null) {
+            current.end = index;
+            current = null;
+        }
+    }
+
+    return { groups, fencedLines };
+}
+
+/**
+ * Narrow a shared docs page to one package's own code-group tabs.
+ *
+ * @param content - Raw VitePress markdown content.
+ * @param packageName - The package whose tab to keep, e.g. "@tolki/arr".
+ * @returns The content for that package, or `content` itself when the page has no variant group.
+ */
+export function filterPackageVariants(
+    content: string,
+    packageName: string,
+): string {
+    const lines = content.split("\n");
+    const { groups, fencedLines } = scanCodeGroups(lines);
+    // A variant group titles every fence `@tolki/<pkg>`; other groups stay as written.
+    const variantGroups = groups.filter((candidate) => {
+        const titles = candidate.fences.flatMap((fence) =>
+            fence.title === null ? [] : [fence.title],
+        );
+
+        return (
+            titles.length > 0 &&
+            titles.every((title) => title.startsWith("@tolki/"))
+        );
+    });
+
+    if (variantGroups.length === 0) {
+        return content;
+    }
+
+    // Slugs and section ends come from the unfiltered page so `-1` suffixes stay right.
+    const headings = parseHeadings(content);
+    const removed = new Set<number>();
+    const droppedSlugs = new Set<string>();
+
+    for (const variantGroup of variantGroups) {
+        const keeps = variantGroup.fences.some(
+            (fence) => fence.title === packageName,
+        );
+
+        if (keeps) {
+            for (const fence of variantGroup.fences) {
+                if (fence.title !== null && fence.title !== packageName) {
+                    for (let at = fence.start; at <= fence.end; at++) {
+                        removed.add(at);
+                    }
+                }
+            }
+
+            continue;
+        }
+
+        // No matching tab: drop the whole section, and the in-page links to it.
+        const heading = headings
+            .filter((candidate) => candidate.line - 1 < variantGroup.start)
+            .at(-1);
+
+        if (heading === undefined) {
+            for (let at = variantGroup.start; at <= variantGroup.end; at++) {
+                removed.add(at);
+            }
+
+            continue;
+        }
+
+        const next = headings.find(
+            (candidate) =>
+                candidate.line - 1 > variantGroup.start &&
+                candidate.level <= heading.level,
+        );
+        const sectionEnd = next === undefined ? lines.length : next.line - 1;
+
+        for (let at = heading.line - 1; at < sectionEnd; at++) {
+            removed.add(at);
+        }
+
+        droppedSlugs.add(heading.slug);
+    }
+
+    const kept: string[] = [];
+
+    for (const [index, line] of lines.entries()) {
+        if (removed.has(index)) {
+            continue;
+        }
+
+        kept.push(
+            fencedLines.has(index) || droppedSlugs.size === 0
+                ? line
+                : removeDroppedLinks(line, droppedSlugs),
+        );
+    }
+
+    return kept.join("\n");
+}
+
+/**
+ * Remove `[text](#slug)` links to dropped sections, plus one adjacent space.
+ *
+ * @param line - A line outside any fence.
+ * @param slugs - Anchors of the removed sections.
+ * @returns The line without those links.
+ */
+function removeDroppedLinks(line: string, slugs: Set<string>): string {
+    let result = "";
+    let cursor = 0;
+
+    for (const link of line.matchAll(/\[[^\]]*\]\(#([^)\s]*)\)/g)) {
+        const slug = link[1] as string;
+        const start = link.index;
+        let end = start + link[0].length;
+
+        if (!slugs.has(slug) || start < cursor) {
+            continue;
+        }
+
+        let from = start;
+
+        if (line[end] === " ") {
+            end++;
+        } else if (from > cursor && line[from - 1] === " ") {
+            from--;
+        }
+
+        result += line.slice(cursor, from);
+        cursor = end;
+    }
+
+    return result + line.slice(cursor);
+}
+
+/**
+ * Rewrite relative markdown doc links to absolute docs-site URLs.
  *
  * @param content - Markdown content to rewrite.
- * @param docDir - Directory of the source doc file, relative to
- *   docs/vitepress/ (e.g. "ts"), used as the URL's section segment.
- * @returns Markdown content with relative `./*.md` links rewritten to
- *   absolute docs-site URLs.
+ * @param docDir - Directory of the source doc file, relative to docs/vitepress/.
+ * @returns Markdown content with `./*.md` and `../<dir>/*.md` links rewritten.
  */
 export function rewriteRelativeDocLinks(
     content: string,
     docDir: string,
 ): string {
-    return content.replace(
-        /\]\(\.\/([^)#]+)\.md(#[^)]*)?\)/g,
-        (_match, slug: string, fragment: string | undefined) =>
-            `](${SITE_BASE}/${docDir}/${slug}.html${fragment ?? ""})`,
-    );
+    return content
+        .replace(
+            /\]\(\.\/([^)#]+)\.md(#[^)]*)?\)/g,
+            (_match, slug: string, fragment: string | undefined) =>
+                `](${SITE_BASE}/${docDir}/${slug}.html${fragment ?? ""})`,
+        )
+        .replace(
+            /\]\(\.\.\/((?!\.\.\/)[^)#/]+)\/((?:(?!\.\.\/)[^)#])+)\.md(#[^)]*)?\)/g,
+            (_match, dir: string, slug: string, fragment: string | undefined) =>
+                `](${SITE_BASE}/${dir}/${slug}.html${fragment ?? ""})`,
+        );
 }
 
 /**
  * Strip VitePress-specific syntax from markdown content.
  *
- * Removes:
- * - YAML frontmatter (--- ... ---)
- * - ::: code-group / ::: containers (keeps inner content)
- * - Raw HTML wrappers (<div>, </div>, <script setup>, etc.)
- * - Increases markdown headings by one level for README nesting
- * - Collapses 3+ consecutive blank lines into 2
- * - Rewrites relative `./*.md` doc links to absolute docs-site URLs
- *   (when `docDir` is given)
- *
  * @param content - Raw VitePress markdown content.
- * @param docDir - Directory of the source doc file, relative to
- *   docs/vitepress/, used to resolve relative doc links. Omit to leave
- *   relative doc links untouched.
+ * @param docDir - Directory of the source doc file; omit to leave relative doc links untouched.
  * @returns Cleaned markdown suitable for GitHub/npm README rendering.
  */
 export function stripVitepressSyntax(content: string, docDir?: string): string {
     let result = content;
 
-    // Remove YAML frontmatter
-    result = result.replace(/^---\n[\s\S]*?\n---\n?/, "");
+    result = result.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
 
     // Rewrite relative doc links before anything else touches the text.
     if (docDir) {
@@ -219,13 +385,93 @@ export function discoverPackages(filterName?: string): PackageInfo[] {
 }
 
 /**
+ * Turns heading text into the anchor GitHub and npm give it, which drops punctuation instead of hyphenating it.
+ *
+ * @param text - The heading text, without Markdown or HTML.
+ * @returns The anchor slug, before any `-N` duplicate suffix.
+ */
+export function githubSlug(text: string): string {
+    return text
+        .toLowerCase()
+        .trim()
+        .replace(/[^\p{L}\p{N}\p{M} _-]/gu, "")
+        .replace(/ /g, "-");
+}
+
+/**
+ * Rewrite in-page `](#slug)` links from VitePress slugs to GitHub's, so they scroll on GitHub and npm.
+ *
+ * @param content - Markdown with VitePress anchors.
+ * @returns The content with each matching in-page link pointing at the GitHub slug.
+ */
+export function rewriteAnchorsForGitHub(content: string): string {
+    const slugs = new Map<string, string>();
+    const used = new Set<string>();
+
+    for (const heading of parseHeadings(content)) {
+        const base = githubSlug(heading.text);
+        let slug = base;
+
+        for (let count = 1; used.has(slug); count++) {
+            slug = `${base}-${count}`;
+        }
+
+        used.add(slug);
+        slugs.set(heading.slug, slug);
+    }
+
+    let marker: string | null = null;
+
+    return content
+        .split("\n")
+        .map((line) => {
+            const fence = /^ {0,3}(`{3,}|~{3,})/.exec(line);
+
+            if (marker !== null) {
+                const trimmed = line.trim();
+
+                if (
+                    fence !== null &&
+                    trimmed === marker[0]?.repeat(trimmed.length) &&
+                    trimmed.length >= marker.length
+                ) {
+                    marker = null;
+                }
+
+                return line;
+            }
+
+            if (fence !== null) {
+                marker = fence[1] as string;
+
+                return line;
+            }
+
+            return line.replace(/\]\(#([^)\s]+)\)/g, (match, slug: string) => {
+                const target = slugs.get(slug);
+
+                return target === undefined ? match : `](#${target})`;
+            });
+        })
+        .join("\n");
+}
+
+/**
  * Assemble documentation content from VitePress files.
  *
  * @param docFiles - Array of doc file paths relative to docs/vitepress/.
+ * @param packageName - Package whose code-group tabs to keep. Omit to keep
+ *   every tab.
+ * @param docsRoot - Directory the doc files resolve against. Defaults to
+ *   docs/vitepress/.
  * @returns Assembled and cleaned markdown content.
  */
-export function assembleDocsContent(docFiles: string[]): string {
-    const docsDir = path.join(MONOREPO_ROOT, "docs", "vitepress");
+export function assembleDocsContent(
+    docFiles: string[],
+    packageName?: string,
+    docsRoot?: string,
+): string {
+    const docsDir = docsRoot ?? path.join(MONOREPO_ROOT, "docs", "vitepress");
     const sections: string[] = [];
 
     for (const docFile of docFiles) {
@@ -236,11 +482,18 @@ export function assembleDocsContent(docFiles: string[]): string {
             continue;
         }
 
-        const raw = fs.readFileSync(filePath, "utf-8");
+        const source = fs.readFileSync(filePath, "utf-8");
+        // Must run before stripping, while the `:::` lines still mark groups.
+        const raw = packageName
+            ? filterPackageVariants(source, packageName)
+            : source;
         const docDir = docFile.includes("/")
             ? docFile.slice(0, docFile.lastIndexOf("/"))
             : "";
-        const cleaned = stripVitepressSyntax(raw, docDir);
+        const cleaned = stripVitepressSyntax(
+            rewriteAnchorsForGitHub(raw),
+            docDir,
+        );
 
         if (cleaned.length > 0) {
             sections.push(cleaned);
@@ -268,7 +521,7 @@ export function buildReadme(pkg: PackageInfo): boolean {
     }
 
     const readme = fs.readFileSync(pkg.readmePath, "utf-8");
-    const docsContent = assembleDocsContent(pkg.docFiles);
+    const docsContent = assembleDocsContent(pkg.docFiles, pkg.name);
 
     if (docsContent.length === 0) {
         console.error(`  ❌ No documentation content assembled`);
@@ -307,15 +560,45 @@ export function buildReadme(pkg: PackageInfo): boolean {
 }
 
 /**
+ * Parses the CLI flags.
+ *
+ * @param argv - The arguments after the script path.
+ * @returns The flags, or `null` for an unknown flag or one with no value.
+ */
+export function parseReadmeArgs(
+    argv: readonly string[],
+): { filter?: string } | null {
+    try {
+        const { values } = parseArgs({
+            args: [...argv],
+            options: { filter: { type: "string" } },
+            strict: true,
+        });
+
+        if (values.filter?.startsWith("--")) {
+            return null;
+        }
+
+        return values.filter === undefined ? {} : { filter: values.filter };
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Main entry point for the README build script.
  */
 export function main(): void {
     console.log("📝 Building package READMEs from VitePress docs...");
 
-    // Parse --filter argument
-    const filterIndex = process.argv.indexOf("--filter");
-    const filterName =
-        filterIndex !== -1 ? process.argv[filterIndex + 1] : undefined;
+    const args = parseReadmeArgs(process.argv.slice(2));
+
+    if (args === null) {
+        console.error("usage: readme-build [--filter <package name>]");
+        process.exit(1);
+    }
+
+    const filterName = args.filter;
 
     if (filterName) {
         console.log(`  Filtering to: ${filterName}`);

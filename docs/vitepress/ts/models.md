@@ -375,7 +375,9 @@ export interface Product {
 }
 ```
 
-`#[TsType]` also takes a plain string, such as `#[TsType('{width: number, height: number}')]`, when the type needs no import. Without `#[TsType]`, a custom cast publishes the return type of its `get()` method, or `unknown` when `get()` declares none.
+`#[TsType]` also takes a plain string, such as `#[TsType('{width: number, height: number}')]`, when the type needs no import. Without `#[TsType]`, a custom cast publishes the return type of its `get()` method. A cast class that implements `SerializesCastableAttributes`, including one a `Castable` value object names, publishes the return type of its `serialize()` method instead, because that's what Laravel sends when it converts the model to JSON.
+
+When `get()`'s native type is missing or vague, such as a bare `array`, the `@return` docblock sets the type, so `@return list<LegDto>` publishes a list of `LegDto`'s public properties, the shape `json_encode()` writes. A `@return` that names a model, such as `list<User>`, or another class that doesn't publish as an inline shape keeps `unknown[]`. A `get()` that declares neither publishes `unknown`.
 
 ## Laravel 13 Model Attributes
 
@@ -474,6 +476,10 @@ class Message extends Model { ... }
 
 `$to` and `$headers` publish as `string[] | null` and `Record<string, string> | null` instead of `unknown[] | null`, and PHPStan and Larastan type the same properties.
 
+A tag can also spell a tuple, an object shape, quoted or string literal keys, or a nullable shape inside another. `list{int, string}` publishes the tuple `[number, string]`, `object{a: int}` publishes `{ a: number }`, `array<'a'|'b', int>` publishes `{ a?: number; b?: number }`, and `array{a: ?array{b: int}}` publishes `{ a: { b: number } | null }`. A `callable` inside a shape publishes `unknown`.
+
+On a nullable column, the tag's type gains `| null` unless it already holds `null` at its top level. A `null` inside a shape doesn't count, so `@property array{a: ?int} $meta` publishes `{ a: number | null } | null`.
+
 A tag applies only when the column's own type is vague. It never overrides a specific type, such as an accessor's return type, an enum cast or a custom `CastsAttributes` class. A subclass's tag wins over its parent's. `@property-write` tags are ignored, because they describe the setter.
 
 A tag that is still partly vague is used when it's more specific than the type it replaces. `@property array<string, mixed>|null $settings` turns a plain `'array'` cast into `Record<string, unknown> | null`: the type still names `unknown`, but it beats `unknown[] | null`. A tag that is exactly as vague as the original is ignored: `unknown`, `unknown[]`, `object`, or the `unknown[] | Record<string, unknown>` of a bare collection.
@@ -495,7 +501,7 @@ final readonly class PresetDto { ... }
 class Preset extends Model { ... }
 ```
 
-`$config` publishes as `{ filters?: Record<string, unknown>; sorts?: string[] } | null`. The alias expands inline, so `PresetDto` isn't imported, optional keys keep their `?`, and PHPStan checks the same alias. The package also reads `@phpstan-import-type ... as Alias`, `@psalm-type` and `@psalm-import-type`. An alias can use another imported alias, and an import cycle publishes `unknown` instead of stalling the run. For a shape that's already worth documenting for static analysis, prefer an alias over `#[TsCasts]`.
+`$config` publishes as `{ filters?: Record<string, unknown>; sorts?: string[] } | null`. The alias expands inline, so `PresetDto` isn't imported, optional keys keep their `?`, and PHPStan checks the same alias. The package also reads `@phpstan-import-type ... as Alias`, `@psalm-type` and `@psalm-import-type`. An alias also expands inside a list or a shape, as in `list<PresetConfig>|null` or `array{preset: PresetConfig}`, and in a promoted constructor property's `@var`. An alias can use another imported alias, and an import cycle publishes `unknown` instead of stalling the run. For a shape that's already worth documenting for static analysis, prefer an alias over `#[TsCasts]`.
 
 ### Nullable and Intersection Docblock Types
 
@@ -702,7 +708,9 @@ An accessor or cast that returns this DTO publishes as `{ carrier: string; insur
 
 Optional is separate from nullable. A property that is neither promoted nor given a default value publishes as an optional key. Add `public string $summary;` to the class body above, assigned in the constructor, and it publishes as `summary?: string`. PHP leaves an unassigned typed property out of `(array) $this`, and the package can't tell whether the constructor always assigns it. To keep the key required, promote the property, or give it a default value on a DTO that isn't `readonly`. A `@return array{...}` docblock on `toArray()` always wins, so add one when the properties don't tell the whole story.
 
-This only applies to `Arrayable`. A `JsonSerializable` DTO is typed from a `@return array{...}` docblock on `jsonSerialize()` and never from its properties, because `jsonSerialize()` can return anything. Without the docblock, the DTO isn't inlined, and the property publishes by other rules, such as the DTO's class name.
+This only applies to `Arrayable`. A `JsonSerializable` DTO is typed from a `@return array{...}` docblock on `jsonSerialize()` and never from its properties, because `jsonSerialize()` can return anything. A `jsonSerialize()` that declares `string` or `?string`, in its signature or its `@return`, publishes `string` or `string | null`. One whose `@return` is `\DateTime` publishes `{ date: string; timezone_type: number; timezone: string }`, the date object `json_encode()` writes. Without any of these, the DTO isn't inlined, and the property publishes by other rules, such as the DTO's class name.
+
+`json_encode()` ignores `__toString()`, so a class with only `__toString()` doesn't publish `string`. It publishes what `json_encode()` writes: its public properties as a shape, with `unknown` for one that has no type, or `Record<string, never>`, the `{}`, when it has no public properties. A class that allows dynamic properties, or extends `ArrayObject`, publishes `Record<string, unknown>`, and one whose `jsonSerialize()` returns an `array` with no `@return array{...}` shape publishes `unknown[] | Record<string, unknown>`. An accessor whose getter returns a first-class callable, such as `Attribute::get(fn () => strlen(...))`, publishes `Record<string, never>` too, because Laravel sends the `Closure` as `{}`. Call the function in the getter instead.
 
 ### Annotation Checklist
 
@@ -799,18 +807,22 @@ The setting changes every date column:
 | `false` (default) | `created_at: string` |
 | `true`            | `created_at: Date`   |
 
+A `timestamp` cast is the exception. It publishes `number` under either setting, as [Dates & Times](#dates-times) explains.
+
 ## Custom TypeScript Type Mappings
 
-To change how a type publishes everywhere, add it to `custom_ts_mappings`. Keys are matched case-insensitively, and your entries take precedence over the built-in map:
+To change how a type publishes everywhere, add it to `custom_ts_mappings`. Keys are matched case-insensitively, and your entries take precedence over the built-in map, including the cast and database driver rules below:
 
 ```php
 // config/ts-publish.php
 'custom_ts_mappings' => [
     'binary' => 'Blob',
     'json' => 'Record<string, unknown>', // overrides the default 'object' mapping
-    'money' => 'number',                  // adds a new mapping
+    'money' => 'number',                  // keeps money columns a number on every driver
 ],
 ```
+
+To see which entry a cast, a column or a date follows, read [`custom_ts_mappings`](./configuration-reference.md#custom-ts-mappings) in the Configuration Reference.
 
 ::: tip
 To change one property instead of every column of a type, use [`#[TsCasts]`](#tscasts) or [`#[TsType]`](#tstype).
@@ -828,9 +840,15 @@ The package maps database column types and casts to these TypeScript types by de
 
 ### Numbers
 
-`bigint`, `decimal`, `double`, `double precision`, `float`, `integer`, `int`, `numeric`, `number`, `mediumint`, `smallint`, `year`, `real`, `money`, `smallmoney`, `serial`, `bigserial`, `smallserial` → **`number`**
+`bigint`, `decimal`, `double`, `double precision`, `float`, `integer`, `int`, `numeric`, `number`, `mediumint`, `smallint`, `year`, `real`, `money`, `smallmoney`, `serial`, `bigserial`, `smallserial` → **`number`**. An uncast `decimal`, `numeric` or PostgreSQL `money` column can publish `string` instead, as described below.
 
 A bare `tinyint`, as created by `tinyInteger()` on MySQL and SQL Server, is also **`number`**. Only `tinyint(1)`, the type Laravel's `boolean()` column has on MySQL and SQLite, means boolean. See [Booleans](#booleans).
+
+A `decimal:N` cast, such as `decimal:2`, publishes **`string`**, because Laravel returns a decimal cast as a string on every database.
+
+A `decimal`, `numeric` or PostgreSQL `money` column with no cast follows the driver of the connection you publish on. It publishes **`string`** on MySQL, MariaDB and PostgreSQL, and **`number`** on SQLite and SQL Server. Publish against the database driver your app runs in production, or cast the column `decimal:N` to publish `string` on every driver. To keep another type on every driver, map the column type in [`custom_ts_mappings`](./configuration-reference.md#custom-ts-mappings), such as `'decimal' => 'number'` on MySQL (this also covers `decimal:N` casts) or `'numeric' => 'number'` on PostgreSQL.
+
+On SQL Server, cast the column `decimal:N`, because the `pdo_sqlsrv` driver returns a decimal as a string while the package publishes `number`.
 
 ### Booleans
 
@@ -872,7 +890,11 @@ A collection chain on a relation, such as `->sortBy()`, `->pluck($value, $key)` 
 
 ### Dates & Times
 
-`date`, `immutable_date`, `datetime`, `immutable_datetime`, `immutable_custom_datetime`, `timestamp`, `datetime2`, `smalldatetime`, and `Carbon`, `CarbonImmutable` or `Illuminate\Support\Carbon` casts all follow [`timestamps_as_date`](#timestamps-as-date-objects) → **`string`** (default) or **`Date`**. `datetime2` is what SQL Server's `dateTime($precision)` and `timestamp($precision)` create when you give a precision. It's the same kind of column as a bare `datetime`, so it follows the same setting, and `smalldatetime` does too.
+`date`, `immutable_date`, `datetime`, `immutable_datetime`, `immutable_custom_datetime`, a `timestamp` column, `datetime2`, `smalldatetime`, and `Carbon`, `CarbonImmutable` or `Illuminate\Support\Carbon` casts all follow [`timestamps_as_date`](#timestamps-as-date-objects) → **`string`** (default) or **`Date`**. `datetime2` is what SQL Server's `dateTime($precision)` and `timestamp($precision)` create when you give a precision. It's the same kind of column as a bare `datetime`, so it follows the same setting, and `smalldatetime` does too.
+
+A `timestamp` cast publishes **`number`** under either setting, because Laravel serializes it as a Unix timestamp, such as `1767225600`. A `timestamp` column without that cast, such as `created_at`, keeps the date type.
+
+An old-style accessor, `get{Name}Attribute()`, that returns a plain PHP `DateTime` or `DateTimeImmutable` publishes `{ date: string; timezone_type: number; timezone: string }`. Laravel sends that object as it is, and those fields are what `json_encode()` writes for it. A new-style `Attribute` accessor or a cast that returns one keeps the date type, because Laravel formats it as a date string first. A Carbon date keeps the date type from either kind of accessor.
 
 ### Other
 

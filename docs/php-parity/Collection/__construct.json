@@ -1,0 +1,272 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "plain-object-toArray-member-keeps-its-keys",
+            "php": "collect((object) ['toArray' => fn () => [9], 'b' => 2])->keys()->all()",
+            "value": [
+                "toArray",
+                "b"
+            ]
+        },
+        {
+            "label": "real-arrayable-unwraps-through-toArray",
+            "php": "collect(new D8Arrayable)->all()",
+            "value": [
+                4,
+                5,
+                6
+            ]
+        },
+        {
+            "label": "order-initial",
+            "php": "collect([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "C32-A-construct-false",
+            "php": "new Collection(false)",
+            "value": [
+                false
+            ]
+        },
+        {
+            "label": "C32-A-construct-zero",
+            "php": "new Collection(0)",
+            "value": [
+                0
+            ]
+        },
+        {
+            "label": "C32-A-construct-empty-string",
+            "php": "new Collection('')",
+            "value": [
+                ""
+            ]
+        },
+        {
+            "label": "C32-A-construct-traversable-list",
+            "php": "new Collection(new ArrayObject([1, 2, 3]))",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "C32-A-construct-traversable-keyed",
+            "php": "new Collection(new ArrayObject(['foo' => 1, 'bar' => 2, 'baz' => 3]))",
+            "value": {
+                "foo": 1,
+                "bar": 2,
+                "baz": 3
+            }
+        },
+        {
+            "label": "C32-A-construct-generator-list",
+            "php": "new Collection((function () { yield 1; yield 2; })())",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-A-construct-stdclass",
+            "php": "new Collection((object) ['foo' => 'bar'])",
+            "value": {
+                "foo": "bar"
+            }
+        },
+        {
+            "label": "C32-A-construct-jsonable",
+            "php": "new Collection(new TestJsonableObject)",
+            "value": {
+                "foo": "bar"
+            }
+        },
+        {
+            "label": "C32-A-construct-jsonable-toJson-throws",
+            "php": "new Collection(new C32AThrowingJsonable)",
+            "threw": "RuntimeException",
+            "message": "toJson failed"
+        },
+        {
+            "label": "C32-A-construct-jsonserializable",
+            "php": "new Collection(new TestJsonSerializeObject)",
+            "value": {
+                "foo": "bar"
+            }
+        },
+        {
+            "label": "C32-A-construct-jsonserializable-scalar",
+            "php": "new Collection(new TestJsonSerializeWithScalarValueObject)",
+            "value": [
+                "foo"
+            ]
+        },
+        {
+            "label": "C32-A-construct-arrayable-keyed",
+            "php": "new Collection(new TestArrayableObject)",
+            "value": {
+                "foo": "bar"
+            }
+        },
+        {
+            "label": "C32-A-construct-traversable-beats-jsonserializable",
+            "php": "new Collection(new TestTraversableAndJsonSerializableObject(['a' => 1, 'b' => 2]))",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "C32-A-construct-colliding-keys",
+            "php": "keys, values and count of new Collection([true => 'a', 1 => 'b', 0 => 'z']), [null => 'n', '' => 'e'] and [1.5 => 'f', 1 => 'i']",
+            "value": {
+                "bool": {
+                    "keys": [
+                        1,
+                        0
+                    ],
+                    "values": [
+                        "b",
+                        "z"
+                    ],
+                    "count": 2
+                },
+                "null": {
+                    "keys": [
+                        ""
+                    ],
+                    "values": [
+                        "e"
+                    ],
+                    "count": 1
+                },
+                "float": {
+                    "keys": [
+                        1
+                    ],
+                    "values": [
+                        "i"
+                    ],
+                    "count": 1
+                }
+            }
+        },
+        {
+            "label": "C32-A-construct-from-collection-copies",
+            "php": "$a = collect([1, 2]); $b = new Collection($a); $b->push(3); [$a->all(), $b->all()]",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-construct-from-array-copies",
+            "php": "$arr = [1, 2]; $c = new Collection($arr); $c->push(3); [$arr, $c->all()]",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-construct-from-record-put-copies",
+            "php": "$arr = ['a' => 1]; $c = new Collection($arr); $c->put('b', 2); caller/all/keys/values",
+            "value": {
+                "caller": {
+                    "a": 1
+                },
+                "all": {
+                    "a": 1,
+                    "b": 2
+                },
+                "keys": [
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-A-construct-from-record-unshift-copies",
+            "php": "$arr = ['b' => 2]; $c = new Collection($arr); $c->unshift(1); caller/all/keys/values",
+            "value": {
+                "caller": {
+                    "b": 2
+                },
+                "all": {
+                    "0": 1,
+                    "b": 2
+                },
+                "keys": [
+                    0,
+                    "b"
+                ],
+                "values": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-A-construct-from-array-unshift-copies",
+            "php": "$arr = [2, 3]; $c = new Collection($arr); $c->unshift(1); [$arr, $c->all()]",
+            "value": [
+                [
+                    2,
+                    3
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "construct-enum-case-is-one-item",
+            "php": "new Collection(C32E_Staff::Joe): count and the item is the case",
+            "value": [
+                1,
+                true
+            ]
+        }
+    ]
+}

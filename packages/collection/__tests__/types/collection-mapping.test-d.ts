@@ -1928,6 +1928,18 @@ describe("collection mapping, keying and grouping type tests", () => {
             >();
         });
 
+        it("walks a Map among the items, as dataDot does", () => {
+            expectTypeOf(
+                collect([{ m: new Map([["a", 1]]) }]).dot(),
+            ).toEqualTypeOf<
+                Collection<
+                    { m: Map<string, number> } | Map<string, number> | number,
+                    string | number,
+                    "keyed"
+                >
+            >();
+        });
+
         it("types a depth's result as any level below the items", () => {
             expectTypeOf(collect(nestedLists).dot(1)).toEqualTypeOf<
                 Collection<number | number[], string | number, "keyed">

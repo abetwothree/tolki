@@ -2,6 +2,7 @@ export type * from "./arrays";
 export type * from "./collections";
 export type * from "./data";
 export type * from "./enums";
+export type * from "./json-api";
 export type * from "./models";
 export type * from "./objects";
 export type * from "./pagination";

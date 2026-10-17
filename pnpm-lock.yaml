@@ -248,6 +248,9 @@ importers:
       "@tolki/types":
         specifier: workspace:^
         version: link:../types
+      "@tolki/utils":
+        specifier: workspace:^
+        version: link:../utils
       vite:
         specifier: ^8.0.0||^7.0.0
         version: 7.3.2(@types/node@25.9.4)(jiti@2.7.0)
@@ -333,6 +336,9 @@ importers:
 
   packages/ts:
     dependencies:
+      "@tolki/enum":
+        specifier: workspace:^
+        version: link:../enum
       "@tolki/types":
         specifier: workspace:^
         version: link:../types

@@ -5,7 +5,7 @@ describe("Str/Trimmer", () => {
     describe("trim", () => {
         it("Laravel tests trim", () => {
             // StrTest::testTrim. The empty charlist and the two multi-line inputs are also rows of
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-cases"
+            // docs/php-parity/Str/trim.json, "trim-cases"
             expect(trim("   foo bar   ")).toBe("foo bar");
             expect(trim("foo bar   ")).toBe("foo bar");
             expect(trim("   foo bar")).toBe("foo bar");
@@ -43,7 +43,7 @@ describe("Str/Trimmer", () => {
 
         it("Laravel tests: handles long interior whitespace runs", () => {
             // StrTest::testTrimAndRtrimHandleLongInteriorWhitespaceRuns
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-long-interior-run"
+            // docs/php-parity/Str/trim.json, "trim-long-interior-run"
             const run = " \u200B\t".repeat(20000);
 
             expect(trim(`${run}[${run}x${run}`)).toBe(`[${run}x`);
@@ -52,20 +52,20 @@ describe("Str/Trimmer", () => {
         }, 2000);
 
         it("stays fast over a long interior run of the charlist's characters", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-charlist-long-interior-run"
+            // docs/php-parity/Str/trim.json, "trim-charlist-long-interior-run"
             const run = "x".repeat(120000);
 
             expect(trim(`${run}[${run}y${run}`, "x")).toBe(`[${run}y`);
         }, 2000);
 
         it("trims a character of two UTF-16 units at either end", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-cases"
+            // docs/php-parity/Str/trim.json, "trim-cases"
             expect(trim("\u{1D159}a\u{E0020}\u{1D173}")).toBe("a");
             expect(trim("😀a😀", "😀")).toBe("a");
         });
 
         it("reads a charlist of regex characters literally", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-cases"
+            // docs/php-parity/Str/trim.json, "trim-cases"
             expect(trim("-^a^-", "^-")).toBe("a");
             expect(trim("\\a\\", "\\")).toBe("a");
         });
@@ -101,7 +101,7 @@ describe("Str/Trimmer", () => {
         });
 
         it("leaves the lines between the ends exactly as they were", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-cases"
+            // docs/php-parity/Str/trim.json, "trim-cases"
             expect(trim("\n    hello\n    world\n")).toBe("hello\n    world");
             expect(trim("    line1\nline2\n")).toBe("line1\nline2");
             expect(trim("  first\n  second\n  third\n")).toBe(
@@ -112,12 +112,12 @@ describe("Str/Trimmer", () => {
         });
 
         it("trims the next-line character, which PHP counts as whitespace", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-cases" and "trim-default-characters"
+            // docs/php-parity/Str/trim.json, "trim-cases" and "trim-default-characters"
             expect(trim("\u0085a\u0085")).toBe("a");
         });
 
         it("trims exactly the characters Laravel's default trim removes", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-default-characters"
+            // docs/php-parity/Str/trim.json, "trim-default-characters"
             const ranges = [
                 [0x0000, 0x0000],
                 [0x0009, 0x000d],
@@ -188,7 +188,7 @@ describe("Str/Trimmer", () => {
         });
 
         it("trims nothing for an empty charlist, as PHP's trim() does", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-cases"
+            // docs/php-parity/Str/trim.json, "trim-cases"
             expect(trim("  hello  ", "")).toBe("  hello  ");
         });
 
@@ -205,7 +205,7 @@ describe("Str/Trimmer", () => {
     describe("ltrim", () => {
         it("Laravel tests ltrim", () => {
             // StrTest::testLtrim. The `foo bar` inputs for newline and NUL in the last loop are also rows of
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "ltrim-cases"
+            // docs/php-parity/Str/ltrim.json, "ltrim-cases"
             expect(ltrim(" foo    bar ")).toBe("foo    bar ");
 
             expect(ltrim("   123    ")).toBe("123    ");
@@ -246,7 +246,7 @@ describe("Str/Trimmer", () => {
         });
 
         it("leaves the end of the string exactly as it was", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "ltrim-cases"
+            // docs/php-parity/Str/ltrim.json, "ltrim-cases"
             expect(ltrim("  hello ")).toBe("hello ");
             expect(ltrim("  hello  ")).toBe("hello  ");
             expect(ltrim("  hello   ")).toBe("hello   ");
@@ -282,7 +282,7 @@ describe("Str/Trimmer", () => {
         });
 
         it("trims nothing for an empty charlist, as PHP's ltrim() does", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "ltrim-cases"
+            // docs/php-parity/Str/ltrim.json, "ltrim-cases"
             expect(ltrim("  hello", "")).toBe("  hello");
         });
 
@@ -328,7 +328,7 @@ describe("Str/Trimmer", () => {
 
         it("Laravel tests: handles long interior whitespace runs", () => {
             // StrTest::testTrimAndRtrimHandleLongInteriorWhitespaceRuns
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-long-interior-run"
+            // docs/php-parity/Str/trim.json, "trim-long-interior-run"
             const run = " \u200B\t".repeat(20000);
 
             expect(rtrim(`${run}[${run}x${run}`)).toBe(`${run}[${run}x`);
@@ -337,14 +337,14 @@ describe("Str/Trimmer", () => {
         }, 2000);
 
         it("stays fast over a long interior run of the charlist's characters", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "rtrim-charlist-long-interior-run"
+            // docs/php-parity/Str/rtrim.json, "rtrim-charlist-long-interior-run"
             const run = "x".repeat(120000);
 
             expect(rtrim(`${run}[${run}y${run}`, "x")).toBe(`${run}[${run}y`);
         }, 2000);
 
         it("trims a character of two UTF-16 units from the end", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "rtrim-cases"
+            // docs/php-parity/Str/rtrim.json, "rtrim-cases"
             expect(rtrim("a\u{1D159}\u{E0020}")).toBe("a");
             expect(rtrim("a😀😀b😀", "😀")).toBe("a😀😀b");
             expect(rtrim("a]]", "]")).toBe("a");
@@ -389,7 +389,7 @@ describe("Str/Trimmer", () => {
         });
 
         it("trims nothing for an empty charlist, as PHP's rtrim() does", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "rtrim-cases"
+            // docs/php-parity/Str/rtrim.json, "rtrim-cases"
             expect(rtrim("hello  ", "")).toBe("hello  ");
         });
 
@@ -398,7 +398,7 @@ describe("Str/Trimmer", () => {
         });
 
         it("leaves the lines before the end exactly as they were", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "rtrim-cases"
+            // docs/php-parity/Str/rtrim.json, "rtrim-cases"
             expect(rtrim("line1\nline2   ")).toBe("line1\nline2");
             expect(rtrim("line1\n    line2\n        ")).toBe(
                 "line1\n    line2",

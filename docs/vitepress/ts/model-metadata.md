@@ -110,7 +110,7 @@ Each returned key's TypeScript type comes from the first of these that applies:
 3. **The method body**: the package reads the returned array literal, with `$model` typed as its declared class. These need no annotation:
    - Scalars, casts such as `(string) …`, and nested inline arrays
    - Calls on `$model` whose Laravel signature or docblock declares a return type, such as `getTable()`, `getKeyName()`, `getRouteKeyName()` and `getMorphClass()`, which all publish as `string`
-   - Enum values, which import their `{Name}Type` alias from the generated enums, the same as a `#[TsCasts]` import would
+   - Enum values, including a case written inline such as `'status' => Status::Active`, which import their `{Name}Type` alias from the generated enums, the same as a `#[TsCasts]` import would
 
    When the body's type for a key still contains `unknown`, the package ignores it, and the key needs a docblock or `#[TsCasts]` type. A helper with no declared return type, such as `private function tableFor($model)`, is that case.
 

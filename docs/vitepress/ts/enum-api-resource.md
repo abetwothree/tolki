@@ -73,6 +73,8 @@ The response for `Status::Published`, with two instance methods, looks like this
 
 Each instance method, marked with `#[TsEnumMethod]` or included by `enums.auto_include_methods`, adds a top-level key that holds the method's value for this case. Each static method, marked with `#[TsEnumStaticMethod]` or included by `enums.auto_include_static_methods`, adds a top-level key that holds its return value.
 
+Each method key holds the same value as the published enum, as `json_encode()` writes it. A method that throws for the case, or returns a value `json_encode()` can't write, sends `null`. [Object and Array Values](./enums.md#object-and-array-values) shows how an object becomes JSON, and the one kind of array that the response sends as a list while the published enum holds an object.
+
 The response therefore has the same keys as the object you get when you call `.from()` on the published enum with the same value.
 
 ## Unit Enums

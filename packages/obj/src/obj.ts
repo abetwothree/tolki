@@ -70,7 +70,6 @@ import {
     isFunction,
     isIllegalOffset,
     isInteger,
-    isIntegerLikeKey,
     isIterable,
     isMap,
     isNull,
@@ -91,6 +90,7 @@ import {
     keyedEntries,
     looseEqual,
     MultipleItemsFoundException,
+    nextIntegerKey,
     operatorMatch,
     phpArrayKey,
     phpComputedKey,
@@ -99,6 +99,7 @@ import {
     phpTypeName,
     phpValueMatch,
     phpValueMatcher,
+    readMapKey,
     reindexIntegerKeys,
     renumberPhpIntegerKeys,
     resolvePadLength,
@@ -128,6 +129,28 @@ type ObjectPullRest<T, P> = P extends keyof T
     ? Simplify<Omit<T, P>>
     : OmitObjectPath<T, `${P & (string | number)}`>;
 type ArrayElementOf<T> = T extends readonly (infer E)[] ? E : never;
+// PushedAt (push): a list at the path grows, while an object or Map there gains the values under integer keys.
+// A path that may be missing reads as `[]` and adds the list it is created as; a scalar or built-in throws, so it
+// keeps the old list type. `infer E` keeps `E[]` eager: a deferred one leaves a union holding `number[]` twice.
+type PushedAt<X, V> = [ArrayElementOf<X> | V] extends [infer E]
+    ? 0 extends 1 & X
+        ? E[]
+        : [PushedKeyed<X, V>] extends [never]
+          ? E[]
+          :
+                | PushedKeyed<X, V>
+                | ([Extract<X, readonly unknown[]>] extends [never]
+                      ? never
+                      : E[])
+    : never;
+type PushedKeyed<X, V> =
+    X extends ReadonlyMap<infer MK, infer MV>
+        ? Map<MK | number, MV | V>
+        : X extends NonObjectItems | Date | RegExp | Promise<unknown>
+          ? never
+          : X extends object
+            ? X & Record<number, V>
+            : never;
 // NonBooleanValue (contains): `unknown` minus `boolean`, which no built-in operator spells.
 // The `strict` row takes a boolean third argument first, so declaring `unknown` here would
 // promise a form this port never runs. `contains`'s docblock names the four shapes it costs.
@@ -387,6 +410,25 @@ function entriesOf<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
+ * Get the key/value pairs first and last search, reading a collection's items through `all()`.
+ *
+ * @param data - The object, Map or collection to read.
+ * @returns The pairs in order, a list's keyed by position, or null when there is no array to read.
+ */
+function searchedEntries<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: unknown,
+): [TKey, TValue][] | null {
+    // Arr::first and Arr::last read a Collection's items, not the instance, and its items may be a list.
+    const source = isEnumerable(data) ? data.all() : data;
+
+    if (isEnumerable(data) && isArray(source)) {
+        return [...source.entries()] as [TKey, TValue][];
+    }
+
+    return accessible(source) ? entriesOf<TValue, TKey>(source) : null;
+}
+
+/**
  * Rewrite a mutator's record or Map in place so it holds exactly `entries`, in order.
  *
  * Clearing a Map, rather than deleting from it, also drops a `"1"` that `keyedEntries` folded into a `1`; each key is
@@ -418,6 +460,48 @@ function rewriteEntries<TValue>(
     for (const [key, value] of entries) {
         defineKey(target, key, value);
     }
+}
+
+/**
+ * Get the record a path writer works on: a Map given as the whole data becomes the record `from()` builds.
+ *
+ * @param data - The data the writer was given.
+ * @returns The record built from a Map, otherwise the data itself.
+ */
+function rootRecord(data: unknown): unknown {
+    return isMap(data) ? from(data) : data;
+}
+
+/**
+ * Copy a plain object or Map with the values appended after its highest integer key, as array_push keys them.
+ *
+ * @param container - The plain object or Map to copy.
+ * @param values - The values to append.
+ * @returns The copy, holding the values under the next integer keys.
+ */
+function appendAfterIntegerKeys(
+    container: Record<PropertyKey, unknown> | Map<unknown, unknown>,
+    values: readonly unknown[],
+): Record<PropertyKey, unknown> | Map<unknown, unknown> {
+    let next = nextIntegerKey(container);
+
+    if (isMap(container)) {
+        const copy = new Map(container);
+
+        for (const value of values) {
+            copy.set(next++, value);
+        }
+
+        return copy;
+    }
+
+    const copy = { ...container };
+
+    for (const value of values) {
+        defineKey(copy, String(next++), value);
+    }
+
+    return copy;
 }
 
 /**
@@ -456,7 +540,13 @@ export function objectifiable(
  * add({ name: 'John' }, 'age', 30); -> { name: 'John', age: 30 }
  * add({ user: { name: 'John' } }, 'user.age', 30); -> { user: { name: 'John', age: 30 } }
  * add({ name: 'John' }, 'name', 'Jane'); -> { name: 'John' } (no change, key exists)
+ * add({ m: new Map([[2, 'c']]) }, 'm.0', 'a'); -> { m: new Map([[2, 'c'], [0, 'a']]) } (a Map keeps its key order)
  */
+export function add(
+    data: ReadonlyMap<unknown, unknown>,
+    key: PathKey,
+    value: unknown,
+): Record<string, unknown>;
 export function add(
     data: NonObjectItems,
     key: PathKey,
@@ -477,7 +567,7 @@ export function add<TValue, TKey extends PropertyKey = PropertyKey>(
     key: PathKey,
     value: unknown,
 ): Record<TKey, TValue> {
-    const mutableData = { ...(data as Record<TKey, TValue>) };
+    const mutableData = { ...(rootRecord(data) as Record<TKey, TValue>) };
 
     if (isNull(getObjectValue(mutableData, key))) {
         return setObjectValue(mutableData, key, value);
@@ -1162,8 +1252,8 @@ export function divide<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Flatten a multi-dimensional object with "dot" notation.
  *
- * A Map is flattened in its insertion order, and a Map nested inside is kept whole as a value. The result is a plain
- * object, so a key that reads as an integer (possible with an empty or all-digit prefix) is listed first, ascending.
+ * A Map, at the root or nested, is flattened in its insertion order. The result is a plain object, so a key that reads
+ * as an integer (possible with an empty or all-digit prefix) is listed first, ascending.
  *
  * @param data - The object or Map to flatten.
  * @param prepend - An optional string to prepend to each key.
@@ -1174,6 +1264,7 @@ export function divide<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * dot({ name: 'John', address: { city: 'NYC', zip: '10001' } }); -> { name: 'John', 'address.city': 'NYC', 'address.zip': '10001' }
  * dot(new Map([[2, { z: 1 }], [0, { y: 2 }]])); -> { '2.z': 1, '0.y': 2 }
+ * dot({ m: new Map([[2, 'c'], [0, 'a']]) }); -> { 'm.2': 'c', 'm.0': 'a' }
  * dot(new Map([[2, 'c'], [0, 'a']]), '1'); -> { 10: 'a', 12: 'c' }, where PHP keeps 12 first
  */
 export function dot<TValue, TKey>(
@@ -1397,7 +1488,12 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * except({ name: 'John', age: 30, city: 'NYC' }, 'age'); -> { name: 'John', city: 'NYC' }
  * except({ name: 'John', age: 30, city: 'NYC' }, ['age', 'city']); -> { name: 'John' }
+ * except(new Map([['a', 1], ['b', 2]]), 'a'); -> { b: 2 }
  */
+export function except(
+    data: ReadonlyMap<unknown, unknown>,
+    keys: PathKeys,
+): Record<string, unknown>;
 export function except(
     data: NonObjectItems,
     keys: PathKeys,
@@ -1527,6 +1623,8 @@ export function exists<TValue extends Record<PropertyKey, unknown>>(
  * first({ a: 1, b: 2, c: 3 }, x => x > 1); -> 2
  * first({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
  * first(new Map([['a', 1], ['b', 2]])); -> 1
+ * first(new Items({ a: 1, b: 2 })); -> 1
+ * first(new Items([10, 20]), x => x > 10); -> 20
  */
 export function first<TValue, TKey, TDefault = null>(
     data: ReadonlyMap<TKey, TValue>,
@@ -1550,6 +1648,16 @@ export function first<TDefault = null>(
     callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): unknown;
+export function first<TValue, TDefault = null>(
+    data: { all(): readonly TValue[] },
+    callback?: ((value: TValue, key: number) => unknown) | null,
+    defaultValue?: Default<TDefault>,
+): TValue | TDefault;
+export function first<TValue, TDefault = null>(
+    data: { all(): Readonly<Record<string, TValue>> },
+    callback?: ((value: TValue, key: string | number) => unknown) | null,
+    defaultValue?: Default<TDefault>,
+): TValue | TDefault;
 export function first<T extends object, TDefault = null>(
     data: T,
     callback?:
@@ -1581,11 +1689,11 @@ export function first<
             : (defaultValue as TFirstDefault);
     };
 
-    if (isNull(data) || isUndefined(data) || !accessible(data)) {
+    const entries = searchedEntries<TValue, TKey>(data);
+
+    if (isNull(entries)) {
         return resolveDefault();
     }
-
-    const entries = entriesOf<TValue, TKey>(data);
 
     // No callback: just return first value if it exists.
     if (!callback) {
@@ -1622,6 +1730,8 @@ export function first<
  * last({ a: 1, b: 2, c: 3 }, x => x < 3); -> 2
  * last({ a: 1, b: 2, c: 3 }, x => x > 5, 'none'); -> 'none'
  * last(new Map([['a', 1], ['b', 2]])); -> 2
+ * last(new Items({ a: 1, b: 2 })); -> 2
+ * last(new Items([10, 20]), x => x < 20); -> 10
  */
 export function last<TValue, TKey, TDefault = null>(
     data: ReadonlyMap<TKey, TValue>,
@@ -1645,6 +1755,16 @@ export function last<TDefault = null>(
     callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): unknown;
+export function last<TValue, TDefault = null>(
+    data: { all(): readonly TValue[] },
+    callback?: ((value: TValue, key: number) => unknown) | null,
+    defaultValue?: Default<TDefault>,
+): TValue | TDefault;
+export function last<TValue, TDefault = null>(
+    data: { all(): Readonly<Record<string, TValue>> },
+    callback?: ((value: TValue, key: string | number) => unknown) | null,
+    defaultValue?: Default<TDefault>,
+): TValue | TDefault;
 export function last<T extends object, TDefault = null>(
     data: T,
     callback?: ((value: ObjectValue<T>, key: ObjectKey<T>) => unknown) | null,
@@ -1674,11 +1794,11 @@ export function last<
             : (defaultValue as TDefault);
     };
 
-    if (isNull(data) || isUndefined(data) || !accessible(data)) {
+    const entries = searchedEntries<TValue, TKey>(data);
+
+    if (isNull(entries)) {
         return resolveDefault();
     }
-
-    const entries = entriesOf<TValue, TKey>(data);
 
     // No predicate case
     if (!isFunction(callback)) {
@@ -1790,7 +1910,7 @@ export function take<TValue extends Record<PropertyKey, unknown>>(
  * Declared types, pinned in `obj-residuals.test-d.ts`, walk a class instance or typed array and do not unwrap an
  * OPTIONAL `all?()`.
  *
- * @see Arr::flatten — `packages/arr/stubs/Arr.php:368`.
+ * @see Arr::flatten — `packages/arr/stubs/Arr.php:378`.
  *
  * @param data - The object, Map (or value) to flatten.
  * @param depth - Maximum depth to flatten, Infinity by default; depth 1 stops after one level.
@@ -1855,7 +1975,7 @@ export function flatten<TValue>(
             if (!isArray(item) && !isPlainObject(item)) {
                 result.push(item);
             } else if (currentDepth === 1) {
-                // Arr.php:378 spends the last level of depth on the
+                // Arr.php:388 spends the last level of depth on the
                 // container's own values, so depth 1 still unwraps once.
                 const nested = isArray(item) ? item : Object.values(item);
 
@@ -1875,24 +1995,45 @@ export function flatten<TValue>(
 
 /**
  * Flatten a multi-dimensional object into dot-notation with depth control.
- * Like `dot`, it walks only arrays and plain objects below the root; any other object is a leaf.
+ * Like `dot`, it walks only arrays, plain objects and Maps below the root; any other object is a leaf.
  *
  * One divergence from `Arr::dot`/`Obj.dot`: an empty nested container is dropped
  * here, where PHP keeps it as a leaf value.
- * @see docs/php-parity/task-23-obj-release-readiness.json, "dot-empty-leaf" and "dot-nested-empty-leaf".
+ * @see docs/php-parity/Arr/dot.json, "dot-empty-leaf" and "dot-nested-empty-leaf".
  *
- * @param data - The object to flatten.
+ * @param data - The object or Map to flatten.
  * @param depth - Maximum depth for dot-notation keys.
  * @returns A flat object with dot-notated keys.
  *
  * @example
  *
  * flattenDot({ users: { john: { name: 'John' } } }, 1); -> { 'users.john': { name: 'John' } }
+ * flattenDot(new Map([['a', 1], ['b', { c: 2 }]])); -> { a: 1, 'b.c': 2 }
  */
+export function flattenDot<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    depth?: number,
+): Record<
+    string,
+    | ObjectPathValue<Record<string, TValue>>
+    | DotUndefined<Record<string, TValue>>
+>;
+export function flattenDot<TMap>(
+    data: MapData<TMap>,
+    depth?: number,
+): Record<
+    string,
+    | ObjectPathValue<Record<string, MapEntryValue<TMap>>>
+    | DotUndefined<Record<string, MapEntryValue<TMap>>>
+>;
+export function flattenDot(
+    data: NonKeyedItems,
+    depth?: number,
+): Record<string, never>;
 export function flattenDot(
     data: NonObjectItems,
     depth?: number,
-): Record<string, never>;
+): Record<string, unknown>;
 export function flattenDot<T extends object>(
     data: T,
     depth?: number,
@@ -1917,7 +2058,8 @@ export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
         maxSegments: number,
     ): void => {
         const pathLen = pathParts.length;
-        const isObj = pathLen === 0 ? isObject(node) : isPlainObject(node);
+        const isObj =
+            pathLen === 0 ? isObject(node) : isPlainObject(node) || isMap(node);
         const isArr = isArray(node);
 
         // Stop if node is scalar or we've reached the target segment length
@@ -1939,7 +2081,7 @@ export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
             return;
         }
 
-        for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+        for (const [k, v] of keyedEntries(node as object)) {
             walk(v, [...pathParts, String(k)], maxSegments);
         }
     };
@@ -2006,7 +2148,7 @@ export function flip<TValue, TKey extends PropertyKey = PropertyKey>(
  * Throws an error if the value is not a number.
  *
  * Known divergence: PHP's `is_float()` rejects a whole-number int (`Arr::float`
- * throws on `1`, see docs/php-parity/task-17-second-review.json, "Arr::float
+ * throws on `1`, see docs/php-parity/Arr/float.json, "Arr::float
  * rejects a whole-number int"). JS has one number type, so `isNumber` accepts
  * it — narrowing to reject whole numbers would also reject `1.0`.
  *
@@ -2061,6 +2203,10 @@ export function float<
  * forget({ user: { name: 'John', age: 30 } }, 'user.age'); -> { user: { name: 'John' } }
  */
 export function forget(
+    data: ReadonlyMap<unknown, unknown>,
+    keys: PathKeys,
+): Record<string, unknown>;
+export function forget(
     data: NonObjectItems,
     keys: PathKeys,
 ): Record<string, never>;
@@ -2094,7 +2240,10 @@ export function forget<TValue extends Record<PropertyKey, unknown>>(
     }
 
     // forgetKeys only reads the key list, so a readonly one is safe to hand it.
-    return forgetKeys(data, keys as PathKeys) as Record<PropertyKey, unknown>;
+    return forgetKeys(
+        rootRecord(data) as Record<PropertyKey, unknown>,
+        keys as PathKeys,
+    ) as Record<PropertyKey, unknown>;
 }
 
 /**
@@ -2195,7 +2344,21 @@ export function from(items: unknown): Record<string, unknown> {
  *
  * get({ user: { name: 'John' } }, 'user.name'); -> 'John'
  * get({ "products.desk": { price: 100 } }, 'products.desk'); -> { price: 100 } (literal key wins over traversal)
+ * get({ m: new Map([[2, 'c'], [0, 'a']]) }, 'm.0'); -> 'a' (a Map is read by the key PHP stores)
  */
+export function get<
+    T extends ReadonlyMap<unknown, unknown>,
+    P extends PathKey,
+    TDefault,
+>(
+    data: T,
+    key: P,
+    defaultValue: Default<TDefault>,
+): ObjectResolvePath<T, P, TDefault>;
+export function get<T extends ReadonlyMap<unknown, unknown>, P extends PathKey>(
+    data: T,
+    key: P,
+): ObjectResolvePath<T, P, null>;
 export function get<TDefault = null>(
     data: NonObjectItems,
     key: PathKey,
@@ -2254,10 +2417,19 @@ export function get<
     // definedness, decides: a literal key whose value is `undefined` is
     // still "found" and does not fall through to dot-path traversal.
     const keyStr = String(key);
-    if (Object.hasOwn(object as object, keyStr)) {
-        const literalValue = (object as Record<string, unknown>)[keyStr];
-        return !isUndefined(literalValue)
-            ? (literalValue as TDefault)
+    // A Map stands for a PHP array, so it is read by the key PHP stores and its `size` is never a key.
+    const literal = isMap(object)
+        ? readMapKey(object, keyStr)
+        : Object.hasOwn(object as object, keyStr)
+          ? {
+                found: true,
+                value: (object as Record<string, unknown>)[keyStr],
+            }
+          : { found: false };
+
+    if (literal.found) {
+        return !isUndefined(literal.value)
+            ? (literal.value as TDefault)
             : isFunction(defaultValue)
               ? (defaultValue as () => TDefault)()
               : defaultValue;
@@ -2276,6 +2448,13 @@ export function get<
     let current: unknown = object;
 
     for (const segment of segments) {
+        if (isMap(current)) {
+            // A key the Map lacks reads undefined, which the walk answers with the default as it answers any miss.
+            current = readMapKey(current, segment).value;
+
+            continue;
+        }
+
         if (!isObject(current) && !isArray(current)) {
             return isFunction(defaultValue)
                 ? (defaultValue as () => TDefault)()
@@ -2812,7 +2991,7 @@ export function prependKeysWith<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get a subset of the items from the given object.
  *
- * Mirrors PHP's `(array) $keys` cast in `Arr::only` (Arr.php:744): `null` becomes
+ * Mirrors PHP's `(array) $keys` cast in `Arr::only` (Arr.php:754): `null` becomes
  * no keys, a bare string becomes a single-key selection.
  *
  * Items keep the data's order, not the order of `keys`, as with `array_intersect_key`; a Map's is its insertion order.
@@ -3534,7 +3713,7 @@ export function map<
  * Run an associative map over each of the items; the callback should return an object with key/value pairs.
  *
  * Always returns a plain object, even when every mapped key is numeric-like —
- * there's no PHP `Map` concept to preserve here (Arr.php:880).
+ * there's no PHP `Map` concept to preserve here (Arr.php:890).
  *
  * A Map is walked in its insertion order, which orders the string keys returned and decides which item wins a key.
  *
@@ -3886,6 +4065,11 @@ function unshiftMap(
  * pull({ user: { name: 'John', age: 30 } }, 'user.name'); -> { value: 'John', data: { user: { age: 30 } } }
  * pull({ a: 1, b: 2 }, 'x', 'default'); -> { value: 'default', data: { a: 1, b: 2 } }
  */
+export function pull(
+    data: ReadonlyMap<unknown, unknown>,
+    key: PathKey,
+    defaultValue?: unknown,
+): { value: unknown; data: Record<string, unknown> };
 export function pull<TDefault = null>(
     data: NonObjectItems,
     key: PathKey,
@@ -3925,11 +4109,11 @@ export function pull<
     }
 
     if (isNull(key)) {
-        const original = { ...(data as Record<string, unknown>) };
+        const original = { ...(rootRecord(data) as Record<string, unknown>) };
         return { value: resolveDefault(), data: original };
     }
 
-    const obj = data as Record<string, unknown>;
+    const obj = rootRecord(data) as Record<string, unknown>;
     const value = getObjectValue(obj, key);
 
     if (isNull(value)) {
@@ -4044,7 +4228,7 @@ export function query(data: unknown): string {
  *
  * @param data - The object or Map to get random values from.
  * @param number - The number of items to return, a fraction truncated. If null, returns a single item.
- * @param preserveKeys - Preserve original keys when returning multiple items. Defaults to `false` (Arr.php:971).
+ * @param preserveKeys - Preserve original keys when returning multiple items. Defaults to `false` (Arr.php:981).
  * @returns A single random item, an object of random items, or null if object is empty.
  * @throws InvalidArgumentException if more items are requested than available, even against an empty object.
  * @throws TypeError for a NAN count or a string that is not numeric, which PHP's Randomizer rejects too.
@@ -4381,8 +4565,14 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
  * @example
  * set({ name: 'John', age: 30 }, 'age', 31); -> { name: 'John', age: 31 }
  * set({ user: { name: 'John' } }, 'user.age', 30); -> { user: { name: 'John', age: 30 } }
+ * set({ m: new Map([[2, 'c'], [0, 'a']]) }, 'm.2', 'C'); -> { m: new Map([[2, 'C'], [0, 'a']]) } (it keeps its place)
  */
 export function set<V>(data: unknown, key: null | undefined, value: V): V;
+export function set<K extends PathKey, V>(
+    data: ReadonlyMap<unknown, unknown>,
+    key: K,
+    value: V,
+): Record<string, unknown> | NullishKeyValue<K, V>;
 export function set<K extends PathKey, V>(
     data: NonObjectItems,
     key: K,
@@ -4413,28 +4603,37 @@ export function set<TValue, TKey extends PropertyKey = PropertyKey>(
         return {} as Record<TKey, TValue>;
     }
 
-    return setObjectValue(object as Record<TKey, TValue>, key, value) as Record<
-        TKey,
-        TValue
-    >;
+    return setObjectValue(
+        rootRecord(object) as Record<TKey, TValue>,
+        key,
+        value,
+    ) as Record<TKey, TValue>;
 }
 
 /**
  * Push one or more items into an object at a nested path using dot notation.
  *
+ * An object or Map at the key is appended to under its next integer key, as Arr::push does.
+ *
  * @param data - The object to push items into.
  * @param key - The key or dot-notated path of the array to push into. A null key appends
- * to the object itself under the next integer-like key, mirroring Arr::push.
+ * to the object itself under the next integer key, mirroring Arr::push.
  * @param values - The values to push.
  * @returns A new object with the values pushed in.
- * @throws InvalidArgumentException if the value at the key is not an array.
+ * @throws InvalidArgumentException if the value at the key is not an array, object or Map.
  *
  * @example
  *
  * push({ items: ['a', 'b'] }, 'items', 'c', 'd'); -> { items: ['a', 'b', 'c', 'd'] }
  * push({ user: { tags: ['js'] } }, 'user.tags', 'ts', 'php'); -> { user: { tags: ['js', 'ts', 'php'] } }
+ * push({ x: { k: 1 } }, 'x', 'v'); -> { x: { k: 1, 0: 'v' } }
  * push({ a: 1 }, null, 9); -> { a: 1, 0: 9 }
  */
+export function push(
+    data: ReadonlyMap<unknown, unknown>,
+    key: PathKey,
+    ...values: unknown[]
+): Record<string, unknown>;
 export function push<V>(
     data: NonObjectItems,
     key: PathKey,
@@ -4449,11 +4648,7 @@ export function push<T extends object, P extends string | number, V>(
     data: T,
     key: P,
     ...values: V[]
-): ObjectWriteResult<
-    T,
-    P,
-    (ArrayElementOf<ObjectResolvePath<T, P, never>> | V)[]
->;
+): ObjectWriteResult<T, P, PushedAt<ObjectResolvePath<T, P, []>, V>>;
 export function push(
     data: unknown,
     key: PathKey,
@@ -4474,29 +4669,13 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
         return setObjectValue({} as Record<TKey, TValue>, key, values);
     }
 
-    const obj = data as Record<TKey, TValue>;
+    const obj = rootRecord(data) as Record<TKey, TValue>;
 
     // Arr::push with a null key is Arr::get(null) (whole array) then array_push, so it
-    // appends after the highest existing integer-like key instead of throwing; an
+    // appends after the highest existing integer key instead of throwing; an
     // undefined key is treated the same way, JS-only (no PHP analogue for undefined).
     if (isNull(key) || isUndefined(key)) {
-        let nextIndex = 0;
-        // Ascending key order only holds inside the array-index range (0 to 2**32-2);
-        // isIntegerLikeKey has no such ceiling, so a PHP-scale key above it keeps
-        // insertion order instead - the >= comparison is load-bearing, not redundant.
-        for (const existing of Object.keys(obj)) {
-            if (isIntegerLikeKey(existing) && Number(existing) >= nextIndex) {
-                nextIndex = Number(existing) + 1;
-            }
-        }
-
-        const result = { ...obj } as Record<PropertyKey, TValue>;
-        for (const value of values) {
-            result[nextIndex] = value;
-            nextIndex++;
-        }
-
-        return result as Record<TKey, TValue>;
+        return appendAfterIntegerKeys(obj, values) as Record<TKey, TValue>;
     }
 
     const existingValue = getObjectValue(obj, key);
@@ -4504,6 +4683,17 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
     if (isArray(existingValue)) {
         const newArray = [...existingValue, ...values];
         return setObjectValue(obj, key, newArray) as Record<TKey, TValue>;
+    }
+
+    if (
+        isMap(existingValue) ||
+        (isPlainObject(existingValue) && !isPrototypeObject(existingValue))
+    ) {
+        return setObjectValue(
+            obj,
+            key,
+            appendAfterIntegerKeys(existingValue, values),
+        ) as Record<TKey, TValue>;
     }
 
     // A missing path defaults to [] like PHP's Arr::array(); an explicit null is a
@@ -4849,7 +5039,7 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * A Map's ties keep its insertion order, and keys PHP stores as one (`1` and `"1"`) are one item, with the last value.
  *
- * @see Arr::sort — `packages/arr/stubs/Arr.php:1114`. Delegates to `Collection::sortBy`.
+ * @see Arr::sort — `packages/arr/stubs/Arr.php:1124`. Delegates to `Collection::sortBy`.
  *
  * @param data - The object or Map to sort.
  * @param callback - The sorting callback, field name, an array of sort descriptors, or null for natural sorting.
@@ -4983,7 +5173,7 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * A Map's ties keep its insertion order, and keys PHP stores as one (`1` and `"1"`) are one item, with the last value.
  *
- * @see Arr::sortDesc — `packages/arr/stubs/Arr.php:1129`. Delegates to `Collection::sortByDesc`.
+ * @see Arr::sortDesc — `packages/arr/stubs/Arr.php:1139`. Delegates to `Collection::sortByDesc`.
  *
  * @param data - The object or Map to sort.
  * @param callback - The value extractor callback, field name, sort descriptors, or null for natural sorting.
@@ -5541,7 +5731,7 @@ export function toCssClasses(data: unknown): string {
     const classes: string[] = [];
 
     for (const [key, value] of keyedEntries(data)) {
-        // Numeric-like keys (Arr.php:1214's is_numeric($class)) push the value as
+        // Numeric-like keys (Arr.php:1224's is_numeric($class)) push the value as
         // the class name; other keys push the key when truthy. isPhpNumeric, not
         // Number()/isNaN: hex, "", " ", and "Infinity" parse under Number() but aren't PHP-numeric.
         if (isPhpNumeric(key)) {
@@ -5582,7 +5772,7 @@ export function toCssStyles(data: unknown): string {
     const styles: string[] = [];
 
     for (const [key, value] of keyedEntries(data)) {
-        // Numeric-like keys (Arr.php:1237's is_numeric($class)) push the value as
+        // Numeric-like keys (Arr.php:1247's is_numeric($class)) push the value as
         // the style; other keys push the key when truthy. isPhpNumeric, not
         // Number()/isNaN: hex, "", " ", and "Infinity" parse under Number() but aren't PHP-numeric.
         if (isPhpNumeric(key)) {

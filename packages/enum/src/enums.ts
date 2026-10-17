@@ -5,6 +5,7 @@ import type {
     EnumConst,
     FromResult,
 } from "@tolki/types";
+import { isArray } from "@tolki/utils";
 
 export type { AsEnum, CaseValue, DefineEnumResult, EnumConst, FromResult };
 
@@ -50,7 +51,7 @@ export function from<
     const methodKeys = new Set<string>(enumObj._methods ?? []);
     const rawHelpers = enumObj["_helpers"];
     const helperKeys = new Set<string>(
-        Array.isArray(rawHelpers) ? (rawHelpers as string[]) : [],
+        isArray(rawHelpers) ? (rawHelpers as string[]) : [],
     );
     const ignoredKeys = new Set<string>([
         "_cases",

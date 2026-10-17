@@ -1,0 +1,43 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "order-sortKeys",
+            "php": "collect(base)->sortKeys()",
+            "value": {
+                "all": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "values": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "sortKeys-keeps-every-key",
+            "php": "pairs(collect([5 => 'a', 2 => 'b'])->sortKeys())",
+            "value": [
+                [
+                    2,
+                    "b"
+                ],
+                [
+                    5,
+                    "a"
+                ]
+            ]
+        }
+    ]
+}

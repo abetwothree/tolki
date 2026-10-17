@@ -4,19 +4,19 @@ import { describe, expect, it } from "vitest";
 describe("Utils", () => {
     describe("phpTypeName", () => {
         it("names every value the way PHP's gettype() does", () => {
-            // docs/php-parity/task-17-second-review.json, "gettype of an integer"
+            // docs/php-parity/Php/gettype.json, "gettype of an integer"
             expect(Utils.phpTypeName(1)).toBe("integer");
-            // docs/php-parity/task-17-second-review.json, "gettype of a float"
+            // docs/php-parity/Php/gettype.json, "gettype of a float"
             expect(Utils.phpTypeName(1.5)).toBe("double");
-            // docs/php-parity/task-17-second-review.json, "gettype of a string"
+            // docs/php-parity/Php/gettype.json, "gettype of a string"
             expect(Utils.phpTypeName("s")).toBe("string");
-            // docs/php-parity/task-17-second-review.json, "gettype of a boolean"
+            // docs/php-parity/Php/gettype.json, "gettype of a boolean"
             expect(Utils.phpTypeName(true)).toBe("boolean");
-            // docs/php-parity/task-17-second-review.json, "gettype of null"
+            // docs/php-parity/Php/gettype.json, "gettype of null"
             expect(Utils.phpTypeName(null)).toBe("NULL");
-            // docs/php-parity/task-17-second-review.json, "gettype of an array"
+            // docs/php-parity/Php/gettype.json, "gettype of an array"
             expect(Utils.phpTypeName([1])).toBe("array");
-            // docs/php-parity/task-17-second-review.json, "gettype of an object"
+            // docs/php-parity/Php/gettype.json, "gettype of an object"
             expect(Utils.phpTypeName({})).toBe("object");
         });
 
@@ -41,7 +41,7 @@ describe("Utils", () => {
 
     describe("phpDebugType", () => {
         it("names a number past PHP's int range, or -0, float, as PHP holds each", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-debug-type-float-past-int-range"
+            // docs/php-parity/Php/get_debug_type.json, "C32-A-debug-type-float-past-int-range"
             expect(
                 [1e19, -1e19, -0, 2 ** 63, 2 ** 62].map((value) =>
                     Utils.phpDebugType(value),
@@ -50,7 +50,7 @@ describe("Utils", () => {
         });
 
         it("names a scalar, null or an array as get_debug_type() does", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-debug-type-names",
+            // docs/php-parity/Collection/ensure.json, "C32-A-ensure-debug-type-names",
             // "C32-A-ensure-scalar-message" and "C32-A-ensure-array-rejects-null"
             expect(
                 [1, 1.5, NaN, true, { a: 1 }, [1], "foo", null].map((value) =>
@@ -73,7 +73,7 @@ describe("Utils", () => {
         it("names a function Closure, an object its class, and an anonymous class class@anonymous", () => {
             class Point {}
 
-            // docs/php-parity/task-32-collection-release-readiness.json,
+            // docs/php-parity/Collection/ensure.json,
             // "C32-A-ensure-closure-and-anonymous-class-names" and "C32-A-ensure-inheritance-message"
             expect(Utils.phpDebugType(() => 1)).toBe("Closure");
             expect(Utils.phpDebugType(new (class {})())).toBe(
@@ -86,7 +86,7 @@ describe("Utils", () => {
             class Parent {}
             class Child extends Parent {}
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-anonymous-subclass-name"
+            // docs/php-parity/Collection/ensure.json, "C32-A-ensure-anonymous-subclass-name"
             expect(Utils.phpDebugType(new (class extends Parent {})())).toBe(
                 "Parent@anonymous",
             );

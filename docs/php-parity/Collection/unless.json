@@ -1,0 +1,39 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "C32-H-unless-php-falsy-values",
+            "php": "[unless('0', fn () => 'called'), unless([], fn () => 'called')]",
+            "value": [
+                "called",
+                "called"
+            ]
+        },
+        {
+            "label": "C32-H-unless-null-callback-throws",
+            "php": "(new Collection([1]))->unless(false, null)",
+            "threw": "Error",
+            "message": "Value of type null is not callable"
+        },
+        {
+            "label": "unless-closure-value",
+            "php": "(new Collection([1, 2, 3]))->unless(fn ($c) => $c->count() > 2, fn ($c) => $c->push(4))",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "unless-closure-value-false",
+            "php": "(new Collection([1]))->unless(fn ($c) => $c->count() > 2, fn ($c) => $c->push(4))",
+            "value": [
+                1,
+                4
+            ]
+        }
+    ]
+}

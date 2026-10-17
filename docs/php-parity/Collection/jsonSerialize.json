@@ -1,0 +1,78 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "C32-A-jsonSerialize-php-fixtures",
+            "php": "testJsonSerialize fixtures",
+            "value": [
+                {
+                    "foo": "bar"
+                },
+                {
+                    "foo": "bar"
+                },
+                {
+                    "foo": "bar"
+                },
+                "foobar",
+                "baz"
+            ]
+        },
+        {
+            "label": "C32-A-jsonSerialize-prefers-jsonSerialize-over-toArray",
+            "php": "collect([new C32AArrayableAndJsonSerializable])->jsonSerialize()",
+            "value": [
+                {
+                    "from": "jsonSerialize"
+                }
+            ]
+        },
+        {
+            "label": "C32-A-jsonSerialize-prefers-toJson-over-toArray",
+            "php": "collect([new C32AArrayableAndJsonable])->jsonSerialize()",
+            "value": [
+                {
+                    "from": "toJson"
+                }
+            ]
+        },
+        {
+            "label": "C32-A-jsonSerialize-invalid-jsonable-is-null",
+            "php": "collect([new C32ABadJsonable])->jsonSerialize()",
+            "value": [
+                null
+            ]
+        },
+        {
+            "label": "C32-A-jsonSerialize-other-object-is-kept",
+            "php": "$o = new C32AParent; collect([$o])->jsonSerialize()[0] === $o",
+            "value": true
+        },
+        {
+            "label": "C32-A-jsonSerialize-keyed",
+            "php": "collect(['a' => new TestArrayableObject, 'b' => 1])->jsonSerialize()",
+            "value": {
+                "a": {
+                    "foo": "bar"
+                },
+                "b": 1
+            }
+        },
+        {
+            "label": "C32-A-jsonSerialize-plain-item-members-are-data",
+            "php": "$item = collect([['toArray' => fn () => [9], 'toJson' => fn () => '[1]', 'jsonSerialize' => fn () => 1, 'b' => 2]])->jsonSerialize()[0]; [array_keys($item), $item['b']]",
+            "value": [
+                [
+                    "toArray",
+                    "toJson",
+                    "jsonSerialize",
+                    "b"
+                ],
+                2
+            ]
+        }
+    ]
+}

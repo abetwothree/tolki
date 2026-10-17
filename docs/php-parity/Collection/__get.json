@@ -1,0 +1,14 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "__get-unknown-property-throws",
+            "php": "collect([1])->a",
+            "threw": "Exception",
+            "message": "Property [a] does not exist on this collection instance."
+        }
+    ]
+}

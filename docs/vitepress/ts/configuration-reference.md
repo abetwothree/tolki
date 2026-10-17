@@ -16,13 +16,29 @@ The `*_class` keys swap a class in the publishing pipeline. See [Abstract Base C
 | `output_to_files`             | `bool`   | `true`                    | Setting it to `false` turns off the post-migration republish. `ts:publish` writes files on every run unless you pass `--preview=true`                                                   |
 | `output_directory`            | `string` | `resources/js/types/data` | Directory where TypeScript files are written                                                                                                                                            |
 | `namespace_strip_prefix`      | `string` | `''`                      | Prefix removed from class namespaces before they become output paths, such as `'Modules\\'`                                                                                             |
-| `timestamps_as_date`          | `bool`   | `false`                   | Map date, datetime, and timestamp values, including Carbon instances, to `Date` instead of `string`                                                                                     |
-| `custom_ts_mappings`          | `array`  | `[]`                      | Override or extend PHP-to-TypeScript type mappings                                                                                                                                      |
+| `timestamps_as_date`          | `bool`   | `false`                   | Map date, datetime, and timestamp values, including Carbon instances, to `Date` instead of `string`, except a `timestamp` cast, which is a number                                       |
+| `custom_ts_mappings`          | `array`  | `[]`                      | Override or extend PHP-to-TypeScript type mappings. See [`custom_ts_mappings`](#custom-ts-mappings)                                                                                     |
 | `ts_extends.models`           | `array`  | `[]`                      | Global `extends` clauses for all models                                                                                                                                                 |
 | `ts_extends.resources`        | `array`  | `[]`                      | Global `extends` clauses for all resources                                                                                                                                              |
 | `ts_extends.form_requests`    | `array`  | `[]`                      | Global `extends` clauses for all form requests                                                                                                                                          |
 | `ts_extends.broadcast_events` | `array`  | `[]`                      | Global `extends` clauses for all broadcast events                                                                                                                                       |
 | `barrel_writer_class`         | `string` | `BarrelWriter`            | Class that writes barrel `index.ts` files                                                                                                                                               |
+
+### `custom_ts_mappings`
+
+Each entry maps a type name to the TypeScript type it publishes, and it wins over the package's own rule for that name:
+
+- An entry for a cast, such as `'decimal:2'`, overrides that cast's rule. An entry named like both a cast and a column type, such as `'timestamp'` or `'decimal'`, applies to both, and a `'decimal'` entry covers every `decimal:N` cast.
+- An entry for a column type, such as `'decimal'` or `'numeric'`, publishes that type on every database driver, for the column and for its `MIN()` and `MAX()` aggregates. `SUM()` and `AVG()` still follow the driver.
+- A `DateTime` entry is read as the `datetime` column and cast type, because keys are matched case-insensitively. PHP's `DateTime` class keeps the object `json_encode()` writes for it, but a `DateTime` that a cast class or a new-style accessor returns takes the entry, because Laravel serializes that date as it does a `datetime` column. An entry for `DateTimeImmutable` does retype that class.
+- A `Carbon\Carbon` entry retypes `Carbon\Carbon`, `CarbonInterface` and a subclass with no entry of its own, and a date a cast class or a new-style accessor returns whose class has no entry of its own. `CarbonImmutable` and `Illuminate\Support\Carbon`, which `now()` and `today()` return, follow their own entries, and so do date columns and date casts, such as `'datetime'`. A date type with no entry follows `timestamps_as_date`.
+
+```php
+'custom_ts_mappings' => [
+    'decimal:2' => 'number', // the decimal:2 cast only
+    'numeric' => 'number',   // numeric columns, on every driver
+],
+```
 
 ## Models (`models.*`)
 

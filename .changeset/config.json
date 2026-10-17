@@ -7,12 +7,5 @@
     "access": "public",
     "baseBranch": "master",
     "updateInternalDependencies": "patch",
-    "ignore": [
-        "@tolki/all",
-        "@tolki/arr",
-        "@tolki/collection",
-        "@tolki/data",
-        "@tolki/obj",
-        "@tolki/path"
-    ]
+    "ignore": ["@tolki/all"]
 }

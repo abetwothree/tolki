@@ -1,0 +1,107 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "sortByMany forced descending over the same mixed items",
+            "php": "collect($mixed)->sortByDesc([\"item\"])->values()->pluck(\"item\")",
+            "value": [
+                20,
+                "10",
+                5,
+                "1"
+            ]
+        },
+        {
+            "label": "Collection::sortByDesc(null) orders numeric strings numerically",
+            "php": "collect([\"9\",\"10\",\"1\",5])->sortByDesc(null)->values()",
+            "value": [
+                "10",
+                "9",
+                5,
+                "1"
+            ]
+        },
+        {
+            "label": "C32-G-sortByDesc-descriptor-mixed-directions",
+            "php": "sortByDesc([['name', 'asc'], ['age', 'desc']]) over four people",
+            "value": [
+                {
+                    "name": "b",
+                    "age": 2
+                },
+                {
+                    "name": "b",
+                    "age": 1
+                },
+                {
+                    "name": "a",
+                    "age": 3
+                },
+                {
+                    "name": "a",
+                    "age": 1
+                }
+            ]
+        },
+        {
+            "label": "C32-G-sortByDesc-id-then-name",
+            "php": "sortByDesc(['id'])->sortByDesc(['id', 'name']) (testSortByCallableStringDesc)",
+            "value": [
+                {
+                    "id": 2,
+                    "name": "baz"
+                },
+                {
+                    "id": 2,
+                    "name": "bar"
+                },
+                {
+                    "id": 1,
+                    "name": "foo"
+                }
+            ]
+        },
+        {
+            "label": "C32-G-sortByDesc-bool-comparator",
+            "php": "sortByDesc() and Arr::sortDesc() with a comparator answering a bool, which the descending direction never reverses",
+            "value": {
+                "sortByDesc": [
+                    1,
+                    2,
+                    3
+                ],
+                "Arr::sortDesc list": {
+                    "1": 1,
+                    "2": 2,
+                    "0": 3
+                },
+                "Arr::sortDesc keyed": {
+                    "a": 1,
+                    "b": 2,
+                    "c": 3
+                }
+            }
+        },
+        {
+            "label": "sortByDesc-keeps-every-key",
+            "php": "pairs(collect([3, 1, 2])->sortByDesc(fn (\\$v) => \\$v))",
+            "value": [
+                [
+                    0,
+                    3
+                ],
+                [
+                    2,
+                    2
+                ],
+                [
+                    1,
+                    1
+                ]
+            ]
+        }
+    ]
+}

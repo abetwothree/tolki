@@ -1,0 +1,144 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "Collection::filter() falsy set",
+            "php": "(new Collection([...]))->filter()",
+            "value": {
+                "g": "x",
+                "h": "00",
+                "i": "0.0"
+            }
+        },
+        {
+            "label": "X16 filter drops PHP-falsy \"0\" but keeps \"00\" and \"0.0\"",
+            "php": "collect([...])->filter()",
+            "value": {
+                "1": "00",
+                "2": "0.0",
+                "8": "a"
+            }
+        },
+        {
+            "label": "C14 filter by key",
+            "php": "(new Collection(['id' => 1, 'first' => 'Hello', 'second' => 'World']))->filter(fn ($item, $key) => $key !== 'id')->all()",
+            "value": {
+                "first": "Hello",
+                "second": "World"
+            }
+        },
+        {
+            "label": "F1 filter callback key type for int key",
+            "php": "['result' => (new Collection([1 => 'a', 'x' => 'b']))->filter(fn ($v, $k) => $k === 1)->all(), 'seen' => [gettype($k), $k] per call]",
+            "value": {
+                "result": {
+                    "1": "a"
+                },
+                "seen": [
+                    [
+                        "integer",
+                        1
+                    ],
+                    [
+                        "string",
+                        "x"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "filter-out-of-order-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->filter(fn ($v, $k) => true) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "filter-mixed-callback-order",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->filter(fn ($v, $k) => true) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "filter-out-of-order-first-two-visits",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->filter(a callback true for its first two calls)",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "filter-mixed-first-visit",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->filter(a callback true for its first call)",
+            "value": [
+                [
+                    "x",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "filter-mixed-no-callback",
+            "php": "(new Collection(['x' => 0, 2 => 'c', 'y' => 'y', 0 => '', 1 => 'b']))->filter()",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    "y",
+                    "y"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "filter-collision",
+            "php": "(new Collection([1 => 'a', 0 => 'z', '1' => 'b']))->filter(fn ($v) => $v === 'a')",
+            "value": []
+        },
+        {
+            "label": "C32-D-filter-keeps-empty-objects",
+            "php": "(new Collection([new DateTime('@0'), new stdClass, new ArrayObject, new SplObjectStorage, 'x']))->filter()->count()",
+            "value": 5
+        },
+        {
+            "label": "C32-D-filter-callback-string-zero",
+            "php": "(new Collection([1, 2]))->filter(fn ($v) => $v > 1 ? '0' : 'x')",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "filter-list-gap-keys",
+            "php": "(new Collection([1, 2, 3]))->filter(fn ($v) => $v !== 2)",
+            "value": [
+                [
+                    0,
+                    1
+                ],
+                [
+                    2,
+                    3
+                ]
+            ]
+        }
+    ]
+}

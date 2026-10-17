@@ -78,6 +78,20 @@ describe("obj write type tests", () => {
             >();
         });
 
+        it("keeps a Map on the path a Map, adding the new key", () => {
+            // docs/php-parity/Arr/set.json, "set-nested-append-keeps-key-order": the Map stands for the nested array.
+            expectTypeOf(
+                Obj.set({ m: new Map<string, number>() }, "m.n", 1),
+            ).toEqualTypeOf<{ m: Map<string | number, number> }>();
+        });
+
+        it("answers a record for a Map given as the data", () => {
+            // JS-only: a Map given as the whole data becomes the record from() builds.
+            expectTypeOf(
+                Obj.set(new Map<string, number>(), "n", 1),
+            ).toEqualTypeOf<Record<string, unknown>>();
+        });
+
         it("adds the value for a nullable key on a list or unknown data too", () => {
             expectTypeOf(Obj.set(numberList, maybeKey, 1)).toEqualTypeOf<
                 Record<string, never> | number
@@ -120,6 +134,49 @@ describe("obj write type tests", () => {
                 { a: string } & Record<number, number>
             >();
         });
+
+        it("answers a record for a Map given as the data", () => {
+            // JS-only: a Map given as the whole data becomes the record from() builds.
+            expectTypeOf(
+                Obj.push(new Map<string, number[]>(), "n", 1),
+            ).toEqualTypeOf<Record<string, unknown>>();
+        });
+
+        it("types what is at the path: an object or Map gains integer keys, a list grows", () => {
+            // docs/php-parity/Arr/push.json, "push-assoc-leaf-appends" and
+            // "push-out-of-order-leaf-appends-after-highest", where the Map stands for the array at the key.
+            expectTypeOf(Obj.push({ x: { k: 1 } }, "x", "v").x).toEqualTypeOf<
+                { k: number } & Record<number, string>
+            >();
+            expectTypeOf(
+                Obj.push({ m: new Map<number, string>() }, "m", "x").m,
+            ).toEqualTypeOf<Map<number, string>>();
+            expectTypeOf(
+                Obj.push({ m: new Map<string, number>() }, "m", "x").m,
+            ).toEqualTypeOf<Map<string | number, number | string>>();
+            expectTypeOf(
+                Obj.push({ items: ["a"] }, "items", "b").items,
+            ).toEqualTypeOf<string[]>();
+        });
+
+        it("adds the list a missing key is created as, where the path may be missing", () => {
+            // docs/php-parity/Arr/push.json, "push at a missing key creates the array" and "push-assoc-leaf-appends".
+            expectTypeOf(
+                Obj.push({} as { x?: { k: number } }, "x", "v").x,
+            ).toEqualTypeOf<
+                ({ k: number } & Record<number, string>) | string[]
+            >();
+            expectTypeOf(
+                Obj.push({} as { m?: Map<number, string> }, "m", "v").m,
+            ).toEqualTypeOf<Map<number, string> | string[]>();
+        });
+
+        it("keeps the list type for a Date at the key, which push rejects", () => {
+            // JS-only: a Date is not a plain object, so push throws for it, and the type keeps the list it always had.
+            expectTypeOf(Obj.push({ d: new Date() }, "d", 1).d).toEqualTypeOf<
+                number[]
+            >();
+        });
     });
 
     describe("prepend", () => {
@@ -139,7 +196,7 @@ describe("obj write type tests", () => {
         });
 
         it("replaces an existing integer key without collapsing the record", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Arr/prepend.json,
             // "d6-prepend-existing-integer-key" (key 1) and "r3-prepend-extra-keys",
             // "existing-integer-key-2" (key 2). PHP lists the prepended key first; JS
             // enumerates an integer-like key in ascending order, so only the values move.
@@ -153,7 +210,7 @@ describe("obj write type tests", () => {
         });
 
         it("types a float key as the integer key PHP truncates it to", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-key-cast":
+            // docs/php-parity/Arr/prepend.json, "prepend-key-cast":
             // @Arr::prepend(['a' => 1, 1 => 'x'], 'v', 1.5) -> {"1": "v", "a": 1}.
             expectTypeOf(
                 Obj.prepend({ a: 1, 1: "x" }, "v", 1.5),
@@ -167,7 +224,7 @@ describe("obj write type tests", () => {
         });
 
         it("keeps a float that truncates to minus zero on the wide-number row", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Arr/prepend.json,
             // "r3-prepend-extra-keys", "negative-float-above-minus-one": PHP stores key
             // int:0 for -0.5. JS-only from there on: "-0" names no TypeScript literal
             // type, so the row stays as wide as it was before truncation was modelled.
@@ -231,6 +288,16 @@ describe("obj write type tests", () => {
             expectTypeOf(Obj.pull(profile, "nick").value).toEqualTypeOf<
                 string | null
             >();
+        });
+
+        it("answers an untyped value and a record for a Map given as the data", () => {
+            // JS-only: a Map given as the whole data becomes the record from() builds.
+            expectTypeOf(
+                Obj.pull(new Map<string, number>(), "n"),
+            ).toEqualTypeOf<{
+                value: unknown;
+                data: Record<string, unknown>;
+            }>();
         });
     });
 });

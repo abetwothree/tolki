@@ -41,6 +41,14 @@ export default defineConfig({
     lastUpdated: true,
     head: [
         [
+            "link",
+            {
+                rel: "icon",
+                type: "image/svg+xml",
+                href: "/tolki-logo-mark.svg",
+            },
+        ],
+        [
             "script",
             {
                 async: "",
@@ -72,14 +80,18 @@ export default defineConfig({
         nav: [
             { text: "Home", link: "/" },
             { text: "Packages", link: "/packages" },
-            { text: "TS & Laravel", link: "/ts/" },
-            { text: "Numbers", link: "/numbers/" },
-            { text: "Strings", link: "/strings/" },
+            {
+                text: "Utilities",
+                activeMatch: "^/(strings|numbers|arrays-objects|collections)/",
+                items: [
+                    { text: "Strings", link: "/strings/" },
+                    { text: "Numbers", link: "/numbers/" },
+                    { text: "Arrays & Objects", link: "/arrays-objects/" },
+                    { text: "Collections", link: "/collections/" },
+                ],
+            },
             { text: "TS Types", link: "/typescript/" },
-            // { text: "Arrays", link: "/arrays/" },
-            // { text: "Objects", link: "/objects/" },
-            // { text: "Collections", link: "/collections/" },
-            // { text: "Examples", link: "/markdown-examples" },
+            { text: "TS & Laravel", link: "/ts/" },
         ],
 
         sidebar: [
@@ -89,6 +101,91 @@ export default defineConfig({
                     { text: "Why Tolki JS?", link: "/why-tolki-js" },
                     { text: "Packages", link: "/packages" },
                     { text: "What is Tolki?", link: "/what-is-tolki" },
+                ],
+            },
+            {
+                text: "Numbers",
+                items: [
+                    {
+                        text: "Installation & Usage",
+                        link: "/numbers/",
+                    },
+                    {
+                        text: "Number Utilities List",
+                        link: "/numbers/number-utilities-list",
+                    },
+                ],
+            },
+            {
+                text: "Strings",
+                items: [
+                    {
+                        text: "Installation & Usage",
+                        link: "/strings/",
+                    },
+                    {
+                        text: "String Utilities List",
+                        link: "/strings/string-utilities-list",
+                    },
+                    {
+                        text: "Stringable Utilities List",
+                        link: "/strings/stringable-utilities-list",
+                    },
+                ],
+            },
+            {
+                text: "Arrays & Objects",
+                items: [
+                    {
+                        text: "Installation & Usage",
+                        link: "/arrays-objects/",
+                    },
+                    {
+                        text: "Utilities List",
+                        link: "/arrays-objects/utilities-list",
+                    },
+                    {
+                        text: "Dot Notation",
+                        link: "/arrays-objects/dot-notation",
+                    },
+                    {
+                        text: "PHP Semantics",
+                        link: "/arrays-objects/php-semantics",
+                    },
+                    {
+                        text: "Differences from Laravel",
+                        link: "/arrays-objects/differences",
+                    },
+                ],
+            },
+            {
+                text: "Collections",
+                items: [
+                    {
+                        text: "Installation & Usage",
+                        link: "/collections/",
+                    },
+                    {
+                        text: "Methods List",
+                        link: "/collections/methods-list",
+                    },
+                    {
+                        text: "Differences from Laravel",
+                        link: "/collections/differences",
+                    },
+                ],
+            },
+            {
+                text: "TypeScript Type Utilities",
+                items: [
+                    {
+                        text: "Installation & Usage",
+                        link: "/typescript/",
+                    },
+                    {
+                        text: "TypeScript Type Utilities List",
+                        link: "/typescript/typescript-utilities-list",
+                    },
                 ],
             },
             {
@@ -196,75 +293,6 @@ export default defineConfig({
                     },
                 ],
             },
-            {
-                text: "Numbers",
-                items: [
-                    {
-                        text: "Installation & Usage",
-                        link: "/numbers/",
-                    },
-                    {
-                        text: "Number Utilities List",
-                        link: "/numbers/number-utilities-list",
-                    },
-                ],
-            },
-            {
-                text: "Strings",
-                items: [
-                    {
-                        text: "Installation & Usage",
-                        link: "/strings/",
-                    },
-                    {
-                        text: "String Utilities List",
-                        link: "/strings/string-utilities-list",
-                    },
-                    {
-                        text: "Stringable Utilities List",
-                        link: "/strings/stringable-utilities-list",
-                    },
-                ],
-            },
-            {
-                text: "TypeScript Type Utilities",
-                items: [
-                    {
-                        text: "Installation & Usage",
-                        link: "/typescript/",
-                    },
-                    {
-                        text: "TypeScript Type Utilities List",
-                        link: "/typescript/typescript-utilities-list",
-                    },
-                ],
-            },
-            // {
-            //     text: "Array Utilities",
-            //     items: [
-            //         {
-            //             text: "Installation & Usage",
-            //             link: "/array-utilities/",
-            //         },
-            //         {
-            //             text: "Documentation",
-            //             link: "/arrays/documentation",
-            //         },
-            //     ],
-            // },
-            // {
-            //     text: "Collection Utilities",
-            //     items: [
-            //         {
-            //             text: "Installation & Usage",
-            //             link: "/collections/",
-            //         },
-            //         {
-            //             text: "Documentation",
-            //             link: "/collections/documentation",
-            //         },
-            //     ],
-            // },
             // {
             //     text: "Examples",
             //     items: [

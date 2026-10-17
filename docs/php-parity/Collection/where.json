@@ -1,0 +1,79 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "C32-D-where-one-arg-truthiness",
+            "php": "(new Collection([['v' => 1], ['v' => 'a'], ['v' => 0], ['v' => '0'], ['v' => ''], ['v' => null], ['v' => []], ['v' => true], ['v' => false]]))->where('v')->keys()",
+            "value": [
+                0,
+                1,
+                7
+            ]
+        },
+        {
+            "label": "C32-D-where-null-key-items",
+            "php": "(new Collection([1, 2, 3, 4]))->where(null, '>', 2)",
+            "value": [
+                [
+                    2,
+                    3
+                ],
+                [
+                    3,
+                    4
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-where-dot-path",
+            "php": "(new Collection([['a' => ['b' => 1]], ['a' => ['b' => 2]], ['a.b' => 2]]))->where('a.b', 2)->keys()",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "C32-D-where-eq-null-loose",
+            "php": "(new Collection([['v' => 0], ['v' => ''], ['v' => false], ['v' => null], ['v' => '0'], ['v' => []], ['v' => 'a']]))->where('v', '=', null)->keys()",
+            "value": [
+                0,
+                1,
+                2,
+                3,
+                5
+            ]
+        },
+        {
+            "label": "C32-D-where-missing-key-null",
+            "php": "(new Collection([['a' => 1], ['b' => 2]]))->where('missing', null)->keys()",
+            "value": [
+                0,
+                1
+            ]
+        },
+        {
+            "label": "C32-D-where-one-arg-empty-object",
+            "php": "(new Collection([['v' => new DateTime('@0')], ['v' => new stdClass]]))->where('v')->count()",
+            "value": 0
+        },
+        {
+            "label": "C32-D-where-wildcard-path",
+            "php": "(new Collection([['a' => [['b' => 1], ['b' => 2]]], ['a' => [['b' => 3]]]]))->where('a.*.b', [1, 2])->keys()",
+            "value": [
+                0
+            ]
+        },
+        {
+            "label": "where-arrayaccess-item-offsetexists-answers",
+            "php": "collect([new C32D_AnsweringAccess(['a' => 5], X)])->where('a', 5)->count() for X = '1', true, '0', []",
+            "value": [
+                1,
+                1,
+                0,
+                0
+            ]
+        }
+    ]
+}

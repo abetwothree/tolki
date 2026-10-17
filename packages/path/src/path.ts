@@ -12,6 +12,7 @@ import {
     arrayValueMessage,
     castableToArray,
     defineKey,
+    deleteMapKey,
     InvalidArgumentException,
     isArray,
     isFloat,
@@ -19,6 +20,7 @@ import {
     isIllegalOffset,
     isInteger,
     isIntegerLikeKey,
+    isMap,
     isNull,
     isNumber,
     isObject,
@@ -29,8 +31,11 @@ import {
     isUndefined,
     isUnsafeKey,
     keyedEntries,
+    nextIntegerKey,
     phpArrayKey,
+    readMapKey,
     toPhpKeyString,
+    writeMapKey,
 } from "@tolki/utils";
 
 /**
@@ -126,7 +131,7 @@ export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
         return (
             !isNull(root) &&
             isObject(root) &&
-            Object.hasOwn(root as object, String(key))
+            readLiteralKey(root, String(key)).found
         );
     }
 
@@ -144,6 +149,14 @@ export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
             }
 
             cursor = cursor[s];
+        } else if (isMap(cursor)) {
+            const entry = readMapKey(cursor, s);
+
+            if (!entry.found) {
+                return false;
+            }
+
+            cursor = entry.value;
         } else if (isObject(cursor) && Object.hasOwn(cursor, String(s))) {
             // An object stores an integer key as a string, so an index segment finds it as Arr::has does.
             cursor = cursor[String(s)];
@@ -193,13 +206,7 @@ export function getRaw<TValue, TKey extends PropertyKey = PropertyKey>(
             return { found: true, value: root[key] };
         } else if (!isNull(root) && isObject(root)) {
             // For objects, numeric keys are treated as string keys
-            const stringKey = String(key);
-            return Object.hasOwn(root as object, stringKey)
-                ? {
-                      found: true,
-                      value: (root as Record<string, unknown>)[stringKey],
-                  }
-                : { found: false };
+            return readLiteralKey(root, String(key));
         }
         return { found: false };
     }
@@ -218,6 +225,14 @@ export function getRaw<TValue, TKey extends PropertyKey = PropertyKey>(
             }
 
             cursor = cursor[s];
+        } else if (isMap(cursor)) {
+            const entry = readMapKey(cursor, s);
+
+            if (!entry.found) {
+                return { found: false };
+            }
+
+            cursor = entry.value;
         } else if (isObject(cursor) && Object.hasOwn(cursor, String(s))) {
             // An object stores an integer key as a string, so an index segment finds it as Arr::get does.
             cursor = cursor[String(s)];
@@ -273,9 +288,10 @@ export function forgetKeys<TValue, TKey extends PropertyKey = PropertyKey>(
  *   is skipped entirely and nothing is removed for that key.
  * - Traversal descends into both plain objects and arrays, the two shapes
  *   that stand in for a PHP array. Class instances and built-ins such as
- *   Date or Map are not traversable and are left untouched. When the final
- *   container is an array, a valid in-bounds integer leaf removes the item
- *   (via splice); otherwise the key is a no-op.
+ *   Date are not traversable and are left untouched. A Map is traversed as the
+ *   PHP array it stands for and loses the key without renumbering the others.
+ *   When the final container is an array, a valid in-bounds integer leaf
+ *   removes the item (via splice); otherwise the key is a no-op.
  *
  * @param data - The object to remove properties from.
  * @param keys - The key(s) to remove (string or array of strings).
@@ -320,8 +336,8 @@ export function forgetKeysObject<
 
     /**
      * Clone a container that a dot path may descend into, mirroring PHP's
-     * accessible() check. Only arrays and plain objects stand in for PHP
-     * arrays; class instances and built-ins such as Date or Map are not
+     * accessible() check. Arrays, plain objects and Maps stand in for PHP
+     * arrays; class instances and built-ins such as Date are not
      * traversable, so they are left untouched rather than being replaced by
      * a plain object that drops their contents.
      *
@@ -330,9 +346,13 @@ export function forgetKeysObject<
      */
     const cloneTraversable = (
         child: unknown,
-    ): Record<string, unknown> | unknown[] | null => {
+    ): Record<string, unknown> | unknown[] | Map<unknown, unknown> | null => {
         if (isArray(child)) {
             return child.slice();
+        }
+
+        if (isMap(child)) {
+            return new Map(child);
         }
 
         if (isObject(child)) {
@@ -364,10 +384,10 @@ export function forgetKeysObject<
         }
 
         const parts = name.split(".");
-        let current: Record<string, unknown> | unknown[] = result as Record<
-            string,
-            unknown
-        >;
+        let current:
+            | Record<string, unknown>
+            | unknown[]
+            | Map<unknown, unknown> = result as Record<string, unknown>;
 
         // Navigate to the parent of the property to be removed, cloning each
         // container along the way. If the path is broken, skip the key.
@@ -387,6 +407,21 @@ export function forgetKeysObject<
 
                 current[index] = clone;
                 current = clone;
+
+                continue;
+            }
+
+            if (isMap(current)) {
+                const entry = readMapKey(current, part);
+                const mapClone = entry.found
+                    ? cloneTraversable(entry.value)
+                    : null;
+                if (isNull(mapClone)) {
+                    return;
+                }
+
+                writeMapKey(current, part, mapClone);
+                current = mapClone;
 
                 continue;
             }
@@ -416,6 +451,12 @@ export function forgetKeysObject<
             return;
         }
 
+        if (isMap(current)) {
+            deleteMapKey(current, leaf);
+
+            return;
+        }
+
         delete current[leaf];
     };
 
@@ -430,8 +471,7 @@ export function forgetKeysObject<
 }
 
 /**
- * Remove items from an array using dot notation keys (immutable).
- * Creates a new array with specified items removed, supporting nested paths.
+ * Remove one or many array items from a copy of the given array using "dot" notation, walking lists and plain objects.
  *
  * @param data - The array to remove items from.
  * @param keys - The key(s) to remove (number, string, or array of keys).
@@ -440,165 +480,127 @@ export function forgetKeysObject<
  * @example
  *
  * Remove items by keys
- * forgetKeys(['a', 'b', 'c'], 1); -> ['a', 'c']
- * forgetKeys([['x', 'y'], ['z']], "0.1"); -> [['x'], ['z']]
- * forgetKeys(['a', 'b', 'c'], [0, 2]); -> ['b']
+ * forgetKeysArray(['a', 'b', 'c'], 1); -> ['a', 'c']
+ * forgetKeysArray([['x', 'y'], ['z']], "0.1"); -> [['x'], ['z']]
+ * forgetKeysArray(['a', 'b', 'c'], [0, 2]); -> ['b']
+ * forgetKeysArray([{a: 1, b: 2}, {a: 3}], ['0.a', '1.a']); -> [{b: 2}, {}]
  */
 export function forgetKeysArray<TValue>(
     data: ArrayItems<TValue>,
     keys: PathKeys,
 ): TValue[] {
-    // This mirrors Arr.forget implementation (immutable). A string index is a key
-    // PHP kept a string ("01", ""), which no JS list holds, so it removes nothing.
-    const removeAt = <U>(arr: ArrayItems<U>, index: string | number): U[] => {
-        if (!isInteger(index) || index < 0 || index >= arr.length) {
-            return arr.slice();
-        }
+    type Container =
+        | unknown[]
+        | Record<string, unknown>
+        | Map<unknown, unknown>;
 
-        const clone = arr.slice();
-        clone.splice(index, 1);
-
-        return clone;
-    };
-
-    const forgetPath = <U>(arr: ArrayItems<U>, path: number[]): U[] => {
-        const head = path[0];
-        const rest = path.slice(1);
-        const clone = arr.slice();
-
-        if (rest.length === 0) {
-            return removeAt(clone, head!);
-        }
-
-        if (!isInteger(head) || head! < 0 || head! >= clone.length) {
-            return clone;
-        }
-
-        const child = clone[head!] as unknown;
-
-        if (isArray(child)) {
-            clone[head!] = forgetPath(child as unknown[], rest) as unknown as U;
-        }
-
-        return clone;
-    };
-
-    // Helper to immutably update a nested array at a given parent path
-    const updateAtPath = <U>(
-        arr: ArrayItems<U>,
-        parentPath: number[],
-        updater: (child: U[]) => U[],
-    ): U[] => {
-        if (parentPath.length === 0) {
-            return updater(arr.slice() as unknown as U[]) as unknown as U[];
-        }
-
-        const [head, ...rest] = parentPath;
-
-        if (!isInteger(head) || head! < 0 || head! >= arr.length) {
-            return arr.slice();
-        }
-
-        const clone = arr.slice();
-        const child = clone[head!] as unknown;
-
-        if (!isArray(child)) {
-            return clone;
-        }
-
-        clone[head!] = updateAtPath(
-            child as unknown[],
-            rest,
-            updater as unknown as (child: unknown[]) => unknown[],
-        ) as unknown as U;
-
-        return clone;
-    };
+    const result = data.slice() as unknown[];
 
     if (isNull(keys)) {
-        return data.slice();
+        return result as TValue[];
     }
 
-    const keyList = isArray(keys) ? keys : [keys];
-    if (keyList.length === 0) {
-        return data.slice();
-    }
+    /**
+     * Copy each container a parent path enters, descending only as PHP's `isset() && accessible()` lets Arr::forget.
+     *
+     * @param parent - The segments leading to the container a key's leaf is removed from.
+     * @returns The copied container the path ends at, or null when the path meets anything else.
+     */
+    const copyParent = (parent: (number | string)[]): Container | null => {
+        let cursor: Container = result;
 
-    if (keyList.length === 1) {
-        const k = keyList[0]!;
-        if (isInteger(k)) {
-            return removeAt(data, k);
-        }
+        for (const segment of parent) {
+            let child: unknown;
 
-        // PHP's array-key cast, so "01" is a string key no list holds, not index 1.
-        const parts = forgetName(k).split(".").map(phpArrayKey);
-
-        if (parts.length === 1) {
-            return removeAt(data, parts[0]!);
-        }
-
-        if (parts.some((n) => !isNumber(n))) {
-            return data.slice();
-        }
-
-        return forgetPath(data, parts as number[]);
-    }
-
-    type Group = { path: number[]; indices: Set<number> };
-    const groupsMap = new Map<string, Group>();
-
-    // At this point, keyList.length > 1, so we iterate over keyList directly
-    for (const k of keyList) {
-        if (isInteger(k)) {
-            const key = "";
-            const entry = groupsMap.get(key) ?? {
-                path: [],
-                indices: new Set(),
-            };
-            entry.indices.add(k);
-            groupsMap.set(key, entry);
-            continue;
-        }
-        const parts = forgetName(k).split(".").map(phpArrayKey);
-        if (parts.length === 0 || parts.some((n) => !isNumber(n))) {
-            continue;
-        }
-        const parent = parts.slice(0, -1) as number[];
-        const leaf = parts[parts.length - 1]! as number;
-        const key = parent.join(".");
-        const entry = groupsMap.get(key) ?? {
-            path: parent,
-            indices: new Set(),
-        };
-        entry.indices.add(leaf);
-        groupsMap.set(key, entry);
-    }
-
-    const groups = Array.from(groupsMap.values()).sort(
-        (a, b) => b.path.length - a.path.length,
-    );
-
-    let out = data.slice() as unknown[];
-    for (const { path, indices } of groups) {
-        const sorted = Array.from(indices)
-            .filter((i) => isInteger(i) && i >= 0)
-            .sort((a, b) => b - a);
-
-        if (sorted.length === 0) {
-            continue;
-        }
-
-        out = updateAtPath(out, path, (child) => {
-            const clone = child.slice();
-            for (const idx of sorted) {
-                if (idx >= 0 && idx < clone.length) clone.splice(idx, 1);
+            if (isArray(cursor)) {
+                // A list holds only its indices, so a string segment never names one of its items.
+                child =
+                    isNumber(segment) && segment >= 0
+                        ? cursor[segment]
+                        : undefined;
+            } else if (isMap(cursor)) {
+                const entry = readMapKey(cursor, segment);
+                child = entry.found ? entry.value : undefined;
+            } else if (Object.hasOwn(cursor, segment)) {
+                // Only an own key counts: an inherited `__proto__` would lead the walk into Object.prototype.
+                child = cursor[segment];
             }
 
-            return clone as unknown as TValue[];
-        }) as unknown[];
+            if (
+                (!isArray(child) && !isPlainObject(child) && !isMap(child)) ||
+                isPrototypeObject(child)
+            ) {
+                return null;
+            }
+
+            const copy: Container = isArray(child)
+                ? child.slice()
+                : isMap(child)
+                  ? new Map(child)
+                  : { ...child };
+
+            if (isMap(cursor)) {
+                writeMapKey(cursor, segment, copy);
+            } else {
+                defineKey(
+                    cursor as Record<PropertyKey, unknown>,
+                    segment,
+                    copy,
+                );
+            }
+            cursor = copy;
+        }
+
+        return cursor;
+    };
+
+    // Keys sharing a parent act together, so each one names the position it held before any removal, as in PHP.
+    const groups = new Map<
+        string,
+        { parent: (number | string)[]; leaves: Set<number | string> }
+    >();
+
+    for (const key of isArray(keys) ? keys : [keys]) {
+        // PHP's array-key cast, so "01" is a string key no list holds, not index 1.
+        const segments = isInteger(key)
+            ? [key]
+            : forgetName(key).split(".").map(phpArrayKey);
+        const parent = segments.slice(0, -1);
+        const id = JSON.stringify(parent);
+        const group = groups.get(id) ?? { parent, leaves: new Set() };
+
+        group.leaves.add(segments[parent.length] as number | string);
+        groups.set(id, group);
     }
 
-    return out as TValue[];
+    // Deeper parents go first, so splicing a list never shifts a path still to be walked.
+    const ordered = [...groups.values()].sort(
+        (a, b) => b.parent.length - a.parent.length,
+    );
+
+    for (const { parent, leaves } of ordered) {
+        const container = copyParent(parent);
+
+        if (isArray(container)) {
+            const indices = [...leaves]
+                .filter((leaf): leaf is number => isNumber(leaf) && leaf >= 0)
+                .sort((a, b) => b - a);
+
+            for (const index of indices) {
+                container.splice(index, 1);
+            }
+        } else if (isMap(container)) {
+            for (const leaf of leaves) {
+                deleteMapKey(container, leaf);
+            }
+        } else if (!isNull(container)) {
+            for (const leaf of leaves) {
+                delete container[leaf];
+            }
+        }
+    }
+
+    return result as TValue[];
 }
 
 /**
@@ -715,14 +717,14 @@ export function setImmutable<TValue>(
 }
 
 /**
- * Push values to an array at a specific path using dot notation.
- * Creates nested arrays as needed and pushes values into the array at the target key.
+ * Push an item into an array using "dot" notation, walking lists, plain objects and Maps and replacing anything else
+ * along the path, as Arr::set does.
  *
  * @param data - The array to push values into.
  * @param key - The path where to push values (number, string, null, or undefined).
  * @param values - The values to push.
  * @returns The modified array with values pushed at the specified path.
- * @throws InvalidArgumentException if a value along the path is not an array.
+ * @throws InvalidArgumentException if the value at the key is not an array, a plain object or a Map.
  *
  * @example
  *
@@ -730,6 +732,9 @@ export function setImmutable<TValue>(
  * pushWithPath(['a'], null, 'b', 'c'); -> ['a', 'b', 'c']
  * pushWithPath([['x']], "0", 'y'); -> [['x', 'y']]
  * pushWithPath([], "0", 'first'); -> [['first']]
+ * pushWithPath([{x: [1]}], "0.x", 2); -> [{x: [1, 2]}]
+ * pushWithPath([{x: {k: 1}}], "0.x", 2); -> [{x: {k: 1, 0: 2}}]
+ * pushWithPath([null], "0.child", 'v'); -> [{child: ['v']}]
  */
 export function pushWithPath<TValue>(
     data: TValue[] | unknown,
@@ -753,78 +758,142 @@ export function pushWithPath<TValue>(
         return root as TValue[];
     }
 
-    // Filter to only numeric segments for array operations
-    const numericSegs = segs.filter((s): s is number => isNumber(s));
-    if (numericSegs.length !== segs.length) {
-        // Mixed paths not supported in this array-only function
-        return root as TValue[];
-    }
+    type Container =
+        | unknown[]
+        | Record<PropertyKey, unknown>
+        | Map<unknown, unknown>;
 
-    const clamp = (idx: number, length: number): number => {
-        return idx > length ? length : idx;
-    };
+    /**
+     * Find what a segment names in a container: a list's index, a Map's key or a plain object's own key.
+     *
+     * @param container - The list, plain object or Map the path has reached.
+     * @param segment - The path segment to look up.
+     * @returns The slot, whether the container holds it and its value, or null for a string segment under a list.
+     */
+    const locate = (
+        container: Container,
+        segment: number | string,
+    ): { slot: number | string; found: boolean; value?: unknown } | null => {
+        if (isArray(container)) {
+            // A list holds no string key; an index past its end appends, where PHP would leave a gapped key.
+            if (!isNumber(segment)) {
+                return null;
+            }
 
-    let cursor: unknown[] = root;
-    for (let i = 0; i < numericSegs.length - 1; i++) {
-        const desired = numericSegs[i]!;
-        const idx = clamp(desired, cursor.length);
+            const slot = Math.min(segment, container.length);
 
-        if (idx === cursor.length) {
-            const child: unknown[] = [];
-            cursor.push(child);
-            cursor = child;
-            continue;
+            return slot < container.length
+                ? { slot, found: true, value: container[slot] }
+                : { slot, found: false };
         }
 
-        const next = cursor[idx];
+        if (isMap(container)) {
+            return { slot: segment, ...readMapKey(container, segment) };
+        }
+
+        const slot = String(segment);
+
+        return Object.hasOwn(container, slot)
+            ? { slot, found: true, value: container[slot] }
+            : { slot, found: false };
+    };
+
+    /**
+     * Store a value in a container under a slot `locate` found.
+     *
+     * @param container - The list, plain object or Map to write into.
+     * @param slot - The slot to write.
+     * @param value - The value to store.
+     */
+    const place = (
+        container: Container,
+        slot: number | string,
+        value: unknown,
+    ): void => {
+        if (isMap(container)) {
+            writeMapKey(container, slot, value);
+
+            return;
+        }
+
+        defineKey(container as Record<PropertyKey, unknown>, slot, value);
+    };
+
+    let cursor: Container = root;
+
+    for (const [depth, segment] of segs.slice(0, -1).entries()) {
+        const step = locate(cursor, segment);
+        if (isNull(step)) {
+            return root as TValue[];
+        }
+
+        const next = step.value;
+
         if (isPrototypeObject(next)) {
             return root as TValue[];
         }
 
-        if (isNull(next)) {
-            const child: unknown[] = [];
-            cursor[idx] = child;
-            cursor = child;
+        if (isArray(next) || isPlainObject(next) || isMap(next)) {
+            cursor = next;
+
             continue;
         }
 
-        if (isArray(next)) {
-            cursor = next as unknown[];
-            continue;
-        }
+        // Arr::set swaps anything that is no array for a fresh one, shaped by the segment it holds next.
+        const fresh: Container = isNumber(segs[depth + 1]) ? [] : {};
 
-        throw new InvalidArgumentException(arrayValueMessage(next, key));
+        place(cursor, step.slot, fresh);
+        cursor = fresh;
+    }
+
+    const leaf = locate(cursor, segs[segs.length - 1] as number | string);
+    if (isNull(leaf)) {
+        return root as TValue[];
     }
 
     // `Arr::push` appends into the array AT the key, never beside it; an existing
     // value there must itself be an array (PHP's `Arr::array()` rule), and an
     // absent one becomes a fresh array first.
-    const leaf = clamp(numericSegs[numericSegs.length - 1]!, cursor.length);
+    const target = leaf.found ? leaf.value : [];
 
-    if (leaf < cursor.length && !isArray(cursor[leaf])) {
-        throw new InvalidArgumentException(
-            arrayValueMessage(cursor[leaf], key),
-        );
+    if (!leaf.found) {
+        place(cursor, leaf.slot, target);
     }
 
-    if (leaf === cursor.length) {
-        cursor.push([]);
+    if (isArray(target)) {
+        if (!isPrototypeObject(target)) {
+            target.push(...(values as unknown[]));
+        }
+
+        return root as TValue[];
     }
 
-    const target = cursor[leaf];
+    // A plain object or a Map stands for a keyed PHP array, which array_push extends after its highest integer key.
+    if (
+        isMap(target) ||
+        (isPlainObject(target) && !isPrototypeObject(target))
+    ) {
+        let next = nextIntegerKey(target);
 
-    if (!isPrototypeObject(target)) {
-        (target as unknown[]).push(...(values as unknown[]));
+        for (const value of values) {
+            if (isMap(target)) {
+                target.set(next++, value);
+            } else {
+                defineKey(target, String(next++), value);
+            }
+        }
+
+        return root as TValue[];
     }
 
-    return root as TValue[];
+    throw new InvalidArgumentException(arrayValueMessage(target, key));
 }
 
 /**
  * Flatten a nested structure into a flat object with dot notation keys.
  * Converts nested arrays and plain objects into a single-level object with path-based keys;
- * any other object (a class instance, Date or Map) is kept whole as a value. The root itself
- * may be a Map, whose entries are flattened in its insertion order.
+ * a non-empty Map is walked in its insertion order; any other object (a class instance or Date)
+ * is kept whole as a value.
  *
  * @param data - The data to flatten.
  * @param prepend - Optional string to prepend to all keys.
@@ -862,8 +931,8 @@ export function dotFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Flatten a nested object structure into a flat object with dot notation keys.
- * Converts nested objects into a single-level object with path-based keys. A Map root is
- * read in its insertion order; a Map nested inside is kept whole as a value.
+ * Converts nested objects into a single-level object with path-based keys. A Map, at the root
+ * or nested, is read in its insertion order.
  *
  * @param data - The object or Map to flatten.
  * @param prepend - Optional string to prepend to all keys.
@@ -910,8 +979,8 @@ export function dotFlattenObject<
                 );
             } else if (
                 currentDepth < depth &&
-                isPlainObject(value) &&
-                Object.keys(value).length > 0
+                ((isPlainObject(value) && Object.keys(value).length > 0) ||
+                    (isMap(value) && keyedEntries(value).length > 0))
             ) {
                 walk(
                     value as Record<TKey, TValue>,
@@ -964,10 +1033,11 @@ export function dotFlattenArray<TValue>(
                 walk(item, `${nextPath}.`, currentDepth + 1);
             } else if (
                 currentDepth < depth &&
-                isPlainObject(item) &&
-                Object.keys(item).length > 0
+                ((isPlainObject(item) && Object.keys(item).length > 0) ||
+                    (isMap(item) && keyedEntries(item).length > 0))
             ) {
-                // PHP's is_array covers assoc arrays, which a plain object models; a class instance stays a leaf.
+                // PHP's is_array covers assoc arrays, which a plain object or Map models; a class instance
+                // stays a leaf.
                 for (const [key, value] of Object.entries(
                     dotFlattenObject(
                         item,
@@ -1243,6 +1313,11 @@ export function undotExpandArray<
  *
  * @example
  *
+ * A Map, read by the key PHP stores
+ * getNestedValue({m: new Map([[2, 'c'], [0, 'a']])}, 'm.0'); -> 'a'
+ *
+ * @example
+ *
  * Path not found
  * getNestedValue([{items: ['x']}], '0.items.5'); -> undefined
  */
@@ -1281,6 +1356,14 @@ export function getNestedValue<TReturn>(
                 return undefined;
             }
             current = current[index];
+        } else if (isMap(current)) {
+            const entry = readMapKey(current, segment);
+
+            if (!entry.found) {
+                return undefined;
+            }
+
+            current = entry.value;
         } else {
             // Handle object property access
             if (!Object.hasOwn(current as object, segment)) {
@@ -1380,14 +1463,14 @@ export function getMixedValue<TValue, TDefault = null>(
 /**
  * Determine whether a path segment's value is a container a write descends into.
  *
- * `Arr::set` tests `is_array`, so a class instance, `Date` or `Map` is not a
- * container: the write replaces it wholesale rather than merging onto it.
+ * `Arr::set` tests `is_array`, so a class instance or `Date` is not a container: the write replaces it wholesale
+ * rather than merging onto it. A `Map` stands for a PHP array, so the write descends into it.
  *
  * @param value - The value found at a path segment.
- * @returns True when the value is a list or a plain object.
+ * @returns True when the value is a list, a plain object or a Map.
  */
 function isWritableContainer(value: unknown): boolean {
-    return isArray(value) || isPlainObject(value);
+    return isArray(value) || isPlainObject(value) || isMap(value);
 }
 
 /**
@@ -1476,6 +1559,16 @@ export function setMixed<TValue>(
             }
 
             current = current[segment];
+        } else if (isMap(current)) {
+            const mapKey = String(segment);
+            let child = readMapKey(current, mapKey).value;
+
+            if (!isWritableContainer(child)) {
+                child = isNumber(nextSegment) ? [] : {};
+                writeMapKey(current, mapKey, child);
+            }
+
+            current = child;
         } else {
             // Handle non-numeric keys (object properties)
             // At this point, current is guaranteed to be an object (or array treated as object)
@@ -1504,9 +1597,11 @@ export function setMixed<TValue>(
                     property,
                     (isArray(nextValue)
                         ? [...(nextValue as unknown[])]
-                        : {
-                              ...(nextValue as Record<string, unknown>),
-                          }) as TValue,
+                        : isMap(nextValue)
+                          ? new Map(nextValue)
+                          : {
+                                ...(nextValue as Record<string, unknown>),
+                            }) as TValue,
                 );
             }
             current = obj[property];
@@ -1521,7 +1616,7 @@ export function setMixed<TValue>(
 
     // JS-only: the else branch stores a non-index key as the list's OWN property, which is no
     // element — get misses it, has too EXCEPT for a negative index, and except, add and set drop
-    // it, all PHP keeps (task-24-data-release-readiness.json, "own-key-channel-*"). only, forget agree.
+    // it, all PHP keeps (docs/php-parity/Arr/set.json, "own-key-channel-*"). only, forget agree.
     const lastSegment = segments[segments.length - 1];
 
     if (isNumber(lastSegment) && lastSegment >= 0 && isArray(current)) {
@@ -1529,6 +1624,8 @@ export function setMixed<TValue>(
             current.push(undefined as TValue);
         }
         current[lastSegment] = value as TValue;
+    } else if (isMap(current)) {
+        writeMapKey(current, String(lastSegment), value);
     } else if (!isNull(current) && isObjectAny(current)) {
         // The traversal above builds structure as it goes, so `current` is
         // an array or plain object here for any array-shaped root — this
@@ -1656,9 +1753,9 @@ export function pushMixed<TValue>(
  * Set a value in an array using mixed array/object dot notation (immutable version).
  * Supports both numeric array indices and object property names in paths.
  *
- * The copy is deep through arrays and plain objects only. A class instance, a `Date` or a
- * `Map` is aliased into the result rather than copied, because PHP holds an object by handle
- * where it copies an array by value — copying one's entries flattened it into a plain object.
+ * The copy is deep through arrays, plain objects and Maps, which stand for PHP arrays; a Map stays a Map in its key
+ * order. A class instance or a `Date` is aliased into the result rather than copied, because PHP holds an object by
+ * handle where it copies an array by value — copying one's entries flattened it into a plain object.
  * Such a value is shared with the caller's input; the write path itself is never shared.
  *
  * @param data - The data to set the value in.
@@ -1686,8 +1783,8 @@ export function setMixedImmutable<TValue>(
         return [] as TValue[];
     }
 
-    // Copy every array and plain object along the way, so the caller's value is never written
-    // through. A class instance, Date or Map is ALIASED into the result instead — deliberately:
+    // Copy every array, plain object and Map along the way, so the caller's value is never written
+    // through. A class instance or Date is ALIASED into the result instead — deliberately:
     // PHP holds an object by handle, and copying its entries flattened it into a plain object.
     const deepCopy = (obj: unknown): unknown => {
         // Return primitives and null/undefined as-is
@@ -1699,7 +1796,16 @@ export function setMixedImmutable<TValue>(
             return obj.map(deepCopy);
         }
 
-        // A class instance, a Date or a Map is no PHP array: copying its entries flattened it
+        if (isMap(obj)) {
+            return new Map(
+                [...obj].map(([mapKey, mapValue]): [unknown, unknown] => [
+                    mapKey,
+                    deepCopy(mapValue),
+                ]),
+            );
+        }
+
+        // A class instance or a Date is no PHP array: copying its entries flattened it
         // into a plain object, and setMixed then MERGED onto it where `is_array` replaces it
         // wholesale. PHP holds an object by handle, so sharing the reference is the copy.
         if (!isPlainObject(obj)) {
@@ -1761,7 +1867,7 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
             return key >= 0 && key < data.length;
         }
 
-        return isObject(data) && Object.hasOwn(data as object, String(key));
+        return isObject(data) && readLiteralKey(data, String(key)).found;
     }
 
     if (!isArray(data) && !isObject(data)) {
@@ -1774,7 +1880,7 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
     // through to bounds-checked traversal below, since a JS array's `in` climbs
     // `Array.prototype` and would wrongly report existence for keys no PHP array has.
     if (isObject(data)) {
-        if (Object.hasOwn(data as object, keyStr)) {
+        if (readLiteralKey(data, keyStr).found) {
             return true;
         }
 
@@ -1830,11 +1936,11 @@ export function getObjectValue<
     // The literal key wins even when it contains dots. Presence, not
     // definedness, decides: a literal key whose value is `undefined` is
     // still "found" and resolves to the default, not dot-path traversal.
-    if (Object.hasOwn(obj as object, keyStr)) {
-        const literalValue = (obj as Record<string, unknown>)[keyStr];
+    const literal = readLiteralKey(obj, keyStr);
 
-        return !isUndefined(literalValue)
-            ? (literalValue as TReturn)
+    if (literal.found) {
+        return !isUndefined(literal.value)
+            ? (literal.value as TReturn)
             : resolveDefault();
     }
 
@@ -1882,7 +1988,7 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
 
     // Handle nested property access with dot notation
     const segments = keyStr.split(".");
-    let current: Record<string, unknown> = result;
+    let current: Record<string, unknown> | Map<unknown, unknown> = result;
 
     const lastIndex = segments.length - 1;
 
@@ -1890,32 +1996,41 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
     // `$a['a']['']['b']`. Skipping it wrote the wrong path or dropped the value.
     for (const [index, segment] of segments.entries()) {
         if (index === lastIndex) {
-            defineKey(current, segment, value);
+            if (isMap(current)) {
+                writeMapKey(current, segment, value);
+            } else {
+                defineKey(current, segment, value);
+            }
 
             break;
         }
 
         // An unsafe segment not yet its own risks reading the inherited
         // accessor/data value (e.g. Object.prototype); treat it as absent.
-        const existing =
-            isUnsafeKey(segment) && !Object.hasOwn(current, segment)
-                ? undefined
-                : current[segment];
+        const existing = isMap(current)
+            ? readMapKey(current, segment).value
+            : isUnsafeKey(segment) && !Object.hasOwn(current, segment)
+              ? undefined
+              : current[segment];
 
-        // Arr::set descends by is_array, so a class instance, Date or Map on the path is
-        // replaced wholesale; a list is a container and keeps its elements. The clone is
-        // what makes the write immutable, so it has to match the container's own shape.
-        defineKey(
-            current,
-            segment,
-            !isWritableContainer(existing)
-                ? {}
-                : isArray(existing)
-                  ? [...(existing as unknown[])]
-                  : { ...(existing as Record<string, unknown>) },
-        );
+        // Arr::set descends by is_array, so a class instance or Date on the path is replaced wholesale; a list
+        // or Map is a container and keeps its entries. The clone is what makes the write immutable, so it has to
+        // match the container's own shape.
+        const next = !isWritableContainer(existing)
+            ? {}
+            : isArray(existing)
+              ? [...existing]
+              : isMap(existing)
+                ? new Map(existing)
+                : { ...(existing as Record<string, unknown>) };
 
-        current = current[segment] as Record<string, unknown>;
+        if (isMap(current)) {
+            writeMapKey(current, segment, next);
+        } else {
+            defineKey(current, segment, next);
+        }
+
+        current = next as Record<string, unknown> | Map<unknown, unknown>;
     }
 
     return result as Record<TKey, TValue>;
@@ -1943,7 +2058,7 @@ export function hasObjectKey<TValue, TKey extends PropertyKey = PropertyKey>(
     const keyStr = String(key);
 
     // The literal key wins even when it contains dots.
-    if (Object.hasOwn(obj as object, keyStr)) {
+    if (readLiteralKey(obj, keyStr).found) {
         return true;
     }
 
@@ -1967,4 +2082,30 @@ function forgetName(key: unknown): string {
     return isNull(key) || isUndefined(key) || isFloat(key)
         ? toPhpKeyString(key)
         : String(key);
+}
+
+/**
+ * Read one literal key of an object, telling a key that holds `undefined` from a missing one.
+ *
+ * A Map stands for a PHP array, so it is read by the key PHP stores and its own members such as `size` are never keys.
+ *
+ * @param data - The object or Map to read.
+ * @param key - The key, read whole even when it contains dots.
+ * @returns Whether the key exists, and its value when it does.
+ *
+ * @example
+ * readLiteralKey({ "a.b": 1 }, "a.b"); -> { found: true, value: 1 }
+ * readLiteralKey(new Map([[2, "c"]]), "2"); -> { found: true, value: "c" }
+ */
+function readLiteralKey(
+    data: object,
+    key: string,
+): { found: boolean; value?: unknown } {
+    if (isMap(data)) {
+        return readMapKey(data, key);
+    }
+
+    return Object.hasOwn(data, key)
+        ? { found: true, value: (data as Record<string, unknown>)[key] }
+        : { found: false };
 }

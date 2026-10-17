@@ -1,0 +1,16 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "C32-D-whereInstanceOf-assoc-types",
+            "php": "(new Collection([new stdClass, new ArrayObject, new SplStack]))->whereInstanceOf(['a' => stdClass::class, 'b' => SplStack::class])->keys()",
+            "value": [
+                0,
+                2
+            ]
+        }
+    ]
+}

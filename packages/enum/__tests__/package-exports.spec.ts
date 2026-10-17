@@ -12,6 +12,7 @@ interface PackageExportTarget {
 }
 
 interface EnumPackageManifest {
+    dependencies: Record<string, string>;
     exports: Record<string, PackageExportTarget>;
     publishConfig: {
         exports: Record<string, PackageExportTarget>;
@@ -60,5 +61,11 @@ describe("package exports", () => {
             import: "./dist/vite-plugin.js",
             default: "./dist/vite-plugin.js",
         });
+    });
+
+    it("declares @tolki/utils as a runtime dependency", () => {
+        const manifest = readPackageManifest();
+
+        expect(manifest.dependencies["@tolki/utils"]).toBe("workspace:^");
     });
 });

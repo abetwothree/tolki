@@ -1,0 +1,53 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "uniqueStrict-duplicatesStrict-key-order",
+            "php": "(new Collection([['x' => 1, 'y' => 2], ['y' => 2, 'x' => 1]]))->uniqueStrict() and ->duplicatesStrict()",
+            "value": {
+                "uniqueStrict": [
+                    {
+                        "x": 1,
+                        "y": 2
+                    },
+                    {
+                        "y": 2,
+                        "x": 1
+                    }
+                ],
+                "duplicatesStrict": []
+            }
+        },
+        {
+            "label": "C32-D-unique-arrays-strict",
+            "php": "(new Collection([[1, 2], ['1', 2], [1, 2]]))->uniqueStrict()",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    "1",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "uniqueStrict-list-gap-keys",
+            "php": "pairs((new Collection([1, 1, 2]))->uniqueStrict())",
+            "value": [
+                [
+                    0,
+                    1
+                ],
+                [
+                    2,
+                    2
+                ]
+            ]
+        }
+    ]
+}

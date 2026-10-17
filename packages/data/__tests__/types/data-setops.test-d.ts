@@ -410,7 +410,7 @@ describe("data setops type tests", () => {
         // return, where PHP's `+` keeps both, so obj serves the list backing too.
 
         it("still has an arr delegate whose return cannot hold PHP's keyed answer", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "union-list-keyed-operand"
+            // docs/php-parity/Collection/union.json, "union-list-keyed-operand"
             expectTypeOf(Arr.union([1, 2], [3])).toExtend<unknown[]>();
             expectTypeOf(Data.dataUnion([1, 2], { a: 5 })).not.toExtend<
                 unknown[]
@@ -418,7 +418,7 @@ describe("data setops type tests", () => {
         });
 
         it("still answers an object for a list backing with a gap", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "union-list-backing-keyed-result"
+            // docs/php-parity/Collection/union.json, "union-list-backing-keyed-result"
             expectTypeOf(Arr.union([1], [4])).toExtend<unknown[]>();
             expectTypeOf(Data.dataUnion([1], { 3: 4 })).not.toExtend<
                 unknown[]

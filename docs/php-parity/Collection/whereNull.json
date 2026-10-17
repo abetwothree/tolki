@@ -1,0 +1,36 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "C32-D-whereNull-keyed",
+            "php": "(new Collection(['a' => null, 'b' => 0, 'c' => null]))->whereNull()",
+            "value": [
+                [
+                    "a",
+                    null
+                ],
+                [
+                    "c",
+                    null
+                ]
+            ]
+        },
+        {
+            "label": "whereNull-list-gap-keys",
+            "php": "pairs((new Collection([null, 0, null]))->whereNull())",
+            "value": [
+                [
+                    0,
+                    null
+                ],
+                [
+                    2,
+                    null
+                ]
+            ]
+        }
+    ]
+}

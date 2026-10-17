@@ -28,15 +28,27 @@ export type UnwrapFn<T> = T extends (...args: unknown[]) => infer R ? R : T;
  * For arrays: numeric keys resolve to the element type.
  * For objects: string keys resolve to the property type.
  * For tuples: specific numeric keys resolve to the element at that position.
+ * For Maps: any key resolves to the value type or `undefined`, since a Map may not hold it.
  *
  * @example
  * ```ts
  * type A = ResolveKey<string[], 0>; // string
  * type B = ResolveKey<{ name: string; age: number }, "name">; // string
  * type C = ResolveKey<[string, number], 1>; // number
+ * type D = ResolveKey<Map<string, number>, "size">; // number | undefined
  * ```
  */
-export type ResolveKey<T, K> =
+export type ResolveKey<T, K> = [T] extends [
+    Exclude<T, ReadonlyMap<unknown, unknown>>,
+]
+    ? ResolveOwnKey<T, K>
+    : // A Map stands for a PHP array, so its entries are its keys and `size` or a method never is.
+      T extends ReadonlyMap<unknown, infer V>
+      ? V | undefined
+      : ResolveOwnKey<T, K>;
+
+/** {@link ResolveKey} for a value that is not a Map: a property, a list element or a tuple member. */
+type ResolveOwnKey<T, K> =
     // If K is directly a key of T (handles objects and tuple numeric indices)
     K extends keyof T
         ? T[K]
@@ -372,7 +384,7 @@ type ObjectIndexStep<T, K extends string> = K extends keyof T
       : [never, true];
 
 /**
- * Resolves one path segment to `[value, mayBeMissing]`. `get()` walks only objects and lists, so a scalar or function
+ * Resolves one path segment to `[value, mayBeMissing]`. `get()` walks objects, lists and Maps, so a scalar or function
  * ends the path; a built-in object's members are mostly on its prototype, which `Object.hasOwn` doesn't see.
  */
 type ObjectPathStep<T, K extends string> = T extends readonly unknown[]
@@ -381,26 +393,27 @@ type ObjectPathStep<T, K extends string> = T extends readonly unknown[]
             ? [T[N], false]
             : [T[number], true]
         : [never, true]
-    : T extends
-            | string
-            | number
-            | boolean
-            | bigint
-            | symbol
-            | ((...args: never[]) => unknown)
-      ? [never, true]
+    : T extends ReadonlyMap<unknown, infer V>
+      ? [V, true]
       : T extends
-              | Date
-              | RegExp
-              | Promise<unknown>
-              | ReadonlyMap<unknown, unknown>
-              | ReadonlySet<unknown>
-              | WeakMap<object, unknown>
-              | WeakSet<object>
-        ? [T[K & keyof T], true]
-        : IsBareObject<T> extends true
-          ? [unknown, true]
-          : ObjectKeyStep<T, K>;
+              | string
+              | number
+              | boolean
+              | bigint
+              | symbol
+              | ((...args: never[]) => unknown)
+        ? [never, true]
+        : T extends
+                | Date
+                | RegExp
+                | Promise<unknown>
+                | ReadonlySet<unknown>
+                | WeakMap<object, unknown>
+                | WeakSet<object>
+          ? [T[K & keyof T], true]
+          : IsBareObject<T> extends true
+            ? [unknown, true]
+            : ObjectKeyStep<T, K>;
 
 /** One segment through an object with declared keys or index signatures. */
 type ObjectKeyStep<T, K extends string> =
@@ -468,17 +481,20 @@ type ObjectPathTop<T, P> = T extends unknown
 
 /** Whether `get()` reads dotted path `P` as one literal key of `T`: always, never, or maybe (then it walks). */
 type ObjectPathLiteral<T, P extends string> =
-    P extends KnownObjectKeys<T>
-        ? Record<never, never> extends Pick<T, P & keyof T>
+    // get() tries a dotted key on a Map before walking it, and a Map's type never promises which keys it holds.
+    T extends ReadonlyMap<unknown, unknown>
+        ? boolean
+        : P extends KnownObjectKeys<T>
+          ? Record<never, never> extends Pick<T, P & keyof T>
+              ? boolean
+              : true
+          : string extends keyof T
             ? boolean
-            : true
-        : string extends keyof T
-          ? boolean
-          : P extends `${number}`
-            ? number extends keyof T
-                ? boolean
-                : false
-            : false;
+            : P extends `${number}`
+              ? number extends keyof T
+                  ? boolean
+                  : false
+              : false;
 
 /**
  * Every value a dot path through `T` can reach, to a bounded depth. Used when
@@ -494,20 +510,24 @@ export type ObjectPathValue<T, D extends number = 5> = [D] extends [never]
       ?
             | Exclude<E, undefined>
             | ObjectPathValue<NonNullable<E>, ObjectPathDepth[D]>
-      : T extends (...args: never[]) => unknown
-        ? never
-        : T extends object
-          ? [keyof T] extends [never]
-              ? unknown
-              : {
-                    [K in keyof T]-?:
-                        | Exclude<T[K], undefined>
-                        | ObjectPathValue<
-                              NonNullable<T[K]>,
-                              ObjectPathDepth[D]
-                          >;
-                }[keyof T]
-          : never;
+      : T extends ReadonlyMap<unknown, infer V>
+        ?
+              | Exclude<V, undefined>
+              | ObjectPathValue<NonNullable<V>, ObjectPathDepth[D]>
+        : T extends (...args: never[]) => unknown
+          ? never
+          : T extends object
+            ? [keyof T] extends [never]
+                ? unknown
+                : {
+                      [K in keyof T]-?:
+                          | Exclude<T[K], undefined>
+                          | ObjectPathValue<
+                                NonNullable<T[K]>,
+                                ObjectPathDepth[D]
+                            >;
+                  }[keyof T]
+            : never;
 
 /**
  * Resolves the value at a dot path within an object, adding `TDefault`

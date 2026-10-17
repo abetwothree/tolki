@@ -1,0 +1,15 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "union \u2014 left wins, including null",
+            "php": "[\"a\"=>null] + [\"a\"=>1]",
+            "value": {
+                "a": null
+            }
+        }
+    ]
+}

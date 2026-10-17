@@ -157,6 +157,30 @@ public function isAboveThreshold(int $threshold): bool
 
 `params` values must be constant expressions, because they're PHP attribute arguments. A method whose parameters are all optional needs no `params`. If a method throws for a case, that case's value publishes as `null`.
 
+#### Object and Array Values
+
+An instance or static method's value publishes as `json_encode()` writes it, which is also what an [`EnumResource`](./enum-api-resource.md) response sends. An object publishes as its JSON:
+
+- A Carbon date publishes as its ISO 8601 string, such as `'2026-01-01T17:00:00.000000Z'`.
+- A collection publishes as its items.
+- A `JsonSerializable` object publishes what its `jsonSerialize()` returns.
+- Any other object publishes its public properties. An object with only protected or private properties publishes `{}`, and a plain PHP `DateTime` publishes its `date`, `timezone_type` and `timezone` fields.
+
+A value that `json_encode()` can't write, such as `NAN` or a string that isn't valid UTF-8, publishes as `null`.
+
+::: warning Arrays With Out-of-Order Integer Keys
+An array whose integer keys don't count up from 0 in order publishes as an object keyed by those numbers, because that's how `json_encode()` writes it. `array_filter()` keeps each item's key, so it returns such an array whenever it removes an item before one it keeps. An `EnumResource` response sends the same value as a list, so `ts:publish` warns about the method. Keys that are numeric strings, such as `'01'`, are re-indexed the same way. Wrap the array in `array_values()` to publish and send a list, or use keys that aren't numeric to publish and send an object:
+
+```php
+#[TsEnumMethod]
+public function higherPriorities(): array
+{
+    return array_values(array_filter(self::cases(), fn (self $case) => $case->value > $this->value));
+}
+```
+
+:::
+
 ### `#[TsEnumStaticMethod]`
 
 `#[TsEnumStaticMethod]` takes the same `name`, `description` and `params` options. The package calls the method once, not once per case, and publishes its return value as one top-level property:

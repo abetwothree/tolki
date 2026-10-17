@@ -238,7 +238,7 @@ To change the generated TypeScript's formatting without writing PHP, publish the
 php artisan vendor:publish --tag="laravel-ts-publish-views"
 ```
 
-The command copies the templates to `resources/views/vendor/laravel-ts-publish`, and Laravel loads your copies ahead of the package's. The [generation cache](./generating-cache.md) doesn't track templates, so run `php artisan ts:publish --fresh` after you edit one. Otherwise, classes whose PHP hasn't changed keep their old output.
+The command copies the templates to `resources/views/vendor/laravel-ts-publish`, and Laravel loads your copies ahead of the package's. The next `ts:publish` after you edit one rebuilds the [generation cache](./generating-cache.md), so you don't need `--fresh`. The exception is a view your template includes by a computed name, covered in [What the Cache Can't Detect](./generating-cache.md#what-the-cache-can-t-detect).
 
 To use a template with a different name, point the feature's template key at it. These are the keys and their default views:
 

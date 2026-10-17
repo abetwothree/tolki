@@ -91,6 +91,15 @@ export default defineConfig({
                     environment: "node",
                 },
             },
+            // The VitePress theme sits outside packages/*; its helpers need their own project to be collected.
+            {
+                extends: true,
+                test: {
+                    name: "docs",
+                    root: "./docs/vitepress/.vitepress/theme",
+                    environment: "jsdom",
+                },
+            },
         ],
     },
 });

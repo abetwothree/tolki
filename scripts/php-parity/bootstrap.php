@@ -75,6 +75,7 @@ if (! is_file($autoload)) {
 }
 
 require $autoload;
+require __DIR__ . '/shared.php';
 
 $GLOBALS['__probes'] = [];
 
