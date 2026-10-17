@@ -1,5 +1,28 @@
 # @tolki/types
 
+## 1.9.0
+
+### Minor Changes
+
+- e332aa3: Adds types for resource collections paginated with `simplePaginate()` or `cursorPaginate()`, and for the JSON:API documents a Laravel `JsonApiResource` sends (Laravel 12.45 and later).
+  - **Breaking:** type correction: `from` and `to` are `null` on an empty page, so `SimplePaginator`, `LengthAwarePaginator` and `JsonResourceMeta` now type them `number | null`. Code that uses them as a `number` needs a `null` check.
+  - `JsonResourceSimplePaginator<T>`, `ResourceSimplePagination` and `JsonResourceSimpleMeta` type a `simplePaginate()` resource collection.
+  - `JsonResourceCursorPaginator<T>`, `ResourceCursorPagination` and `JsonResourceCursorMeta` type a `cursorPaginate()` resource collection.
+  - `SimplePaginator` and `JsonResourceSimpleMeta` gain an optional `current_page_url`, which Laravel sends from 12.15.
+  - `PaginatorLink` gains an optional `page`, which Laravel sends from 12.23 on every link but the `...` separator.
+  - `JsonApiDocument`, `JsonApiCollection`, `JsonApiPaginator`, `JsonApiSimplePaginator` and `JsonApiCursorPaginator` type a JSON:API response, given its resource object and what `included` may hold.
+  - `JsonApiResourceObject`, `JsonApiResourceIdentifier`, `JsonApiToOneRelationship`, `JsonApiToManyRelationship`, `JsonApiRelationship` and `JsonApiObject` type a document's parts.
+  - `JsonApiSparse` types a resource object read with a sparse fieldset, such as `?fields[posts]=title`.
+
+### Patch Changes
+
+- d6942cc: Dot-path types now see through a `Map`, the way the `@tolki` helpers read one. A path that passes through a `Map`, such as `"settings.theme"` on `{ settings: new Map<string, string>() }`, now types the Map's value instead of `null`, and writing through one keeps it typed as a `Map`.
+  - `ResolveKey` types a key on a `Map` as the Map's value, or `undefined` because the Map may not hold it, instead of one of the Map's own members: `ResolveKey<Map<string, number>, "size">` is now `number | undefined`, not the type of `size`. `ResolvePath`, `GetFieldType` and `ArrayResolvePath` follow it at every step of a path.
+  - `ObjectResolvePath` reads through a `Map` at any step: `ObjectResolvePath<{ m: Map<string, number> }, "m.n">` is `number | null`.
+  - `ObjectPathValue` reaches a `Map`'s values and what they hold, instead of the Map's methods.
+  - `SetObjectPath` keeps a `Map` on the path a `Map` that holds the new key: `SetObjectPath<{ m: Map<string, number> }, "m.n", true>` is `{ m: Map<string | number, number | true> }`.
+  - New `DotReach` types every value `dot()` may keep at some depth, walking into a `Map` as `dot()` does. `FlattenReach` still keeps a `Map` whole, as `flatten()` does.
+
 ## 1.8.0
 
 ### Minor Changes

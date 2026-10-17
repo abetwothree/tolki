@@ -1,5 +1,18 @@
 # @tolki/ts
 
+## 1.0.3
+
+### Patch Changes
+
+- e9fb109: `@tolki/ts` now re-exports `defineEnum`, `from`, `tryFrom` and `cases`, and the `AsEnum`, `CaseValue`, `DefineEnumResult`, `EnumConst` and `FromResult` types, from `@tolki/enum` instead of shipping its own copy, so both packages run the same code. Imports from `@tolki/ts` and `@tolki/ts/enums` don't change, and installing `@tolki/ts` now also installs `@tolki/enum`.
+- Updated dependencies [e332aa3]
+- Updated dependencies [e9fb109]
+- Updated dependencies [d6942cc]
+- Updated dependencies [886f9ad]
+  - @tolki/types@1.9.0
+  - @tolki/enum@1.1.3
+  - @tolki/utils@1.6.0
+
 ## 1.0.2
 
 ### Patch Changes
