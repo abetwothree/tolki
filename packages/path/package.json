@@ -4,7 +4,7 @@
     "description": "Utilities for working with path-based operations across arrays/objects.",
     "author": "Abraham Arango <https://github.com/abetwothree>",
     "license": "MIT",
-     "repository": {
+    "repository": {
         "type": "git",
         "url": "git+https://github.com/abetwothree/tolki.git",
         "directory": "packages/path"
