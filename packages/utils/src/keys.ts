@@ -52,7 +52,7 @@ export function entriesKeyValue<T extends PropertyKey>(
  * @param key - The key to check
  * @returns True if the key could cause prototype pollution
  */
-export function isUnsafeKey(key: string): boolean {
+export function isUnsafeKey(key: PropertyKey): boolean {
     return key === "__proto__" || key === "constructor" || key === "prototype";
 }
 
@@ -470,8 +470,8 @@ export function renumberPhpIntegerKeys<TValue>(
  * reaching `Object.prototype` through the inherited setter.
  *
  * `defineKey` is the sanctioned way to write a computed key onto a fresh result object;
- * plain `result[key] = value` lets a `"__proto__"` key reparent `result`. A key other than
- * `__proto__` that is already non-configurable falls back to assignment, since it cannot be a setter.
+ * plain `result[key] = value` lets a `"__proto__"` key reparent `result`. A key that is already
+ * non-configurable falls back to assignment, except an unsafe one (see `isUnsafeKey`), which only takes the value.
  *
  * @param target - The object to define the key on
  * @param key - The key to define
@@ -489,13 +489,14 @@ export function defineKey<TValue>(
     }
 
     // A non-configurable own key (an array's `length`, a sealed object's entry)
-    // cannot be redefined; plain assignment is both correct and safe there,
-    // because such a key already exists as own data. `__proto__` is never assigned.
-    if (
-        key !== "__proto__" &&
-        Object.getOwnPropertyDescriptor(target, key)?.configurable === false
-    ) {
-        (target as Record<PropertyKey, TValue>)[key] = value;
+    // cannot be redefined, so it is assigned; an unsafe key is never assigned,
+    // so no setter of its can run, and takes just the new value instead.
+    if (Object.getOwnPropertyDescriptor(target, key)?.configurable === false) {
+        if (isUnsafeKey(key)) {
+            Object.defineProperty(target, key, { value });
+        } else {
+            (target as Record<PropertyKey, TValue>)[key] = value;
+        }
 
         return;
     }

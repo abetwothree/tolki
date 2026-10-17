@@ -1,5 +1,5 @@
 import * as Utils from "@tolki/utils";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 describe("Utils", () => {
     it("entriesKeyValue converts numeric-like strings and preserves others", () => {
@@ -175,19 +175,40 @@ describe("Utils", () => {
             expect(Object.getPrototypeOf(target)).toBe(Object.prototype);
         });
 
-        it("never assigns __proto__, even as a non-configurable own key", () => {
-            const target: Record<string, unknown> = {};
-            Object.defineProperty(target, "__proto__", {
-                value: 1,
-                writable: true,
-            });
+        it.each(["__proto__", "constructor", "prototype"])(
+            "updates a sealed object's own %s without reparenting it",
+            (key) => {
+                const target: Record<string, unknown> = {};
+                Object.defineProperty(target, key, {
+                    value: 1,
+                    writable: true,
+                    enumerable: true,
+                    configurable: true,
+                });
+                Object.seal(target);
 
-            expect(() => Utils.defineKey(target, "__proto__", 2)).toThrow(
-                TypeError,
-            );
-            expect(target["__proto__"]).toBe(1);
-            expect(Object.getPrototypeOf(target)).toBe(Object.prototype);
-        });
+                Utils.defineKey(target, key, 2);
+
+                expect(
+                    Object.getOwnPropertyDescriptor(target, key)?.value,
+                ).toBe(2);
+                expect(Object.getPrototypeOf(target)).toBe(Object.prototype);
+            },
+        );
+
+        it.each(["__proto__", "constructor", "prototype"])(
+            "never runs the setter of a non-configurable own %s",
+            (key) => {
+                const set = vi.fn();
+                const target: Record<string, unknown> = {};
+                Object.defineProperty(target, key, { get: () => 1, set });
+
+                expect(() => Utils.defineKey(target, key, 2)).toThrow(
+                    TypeError,
+                );
+                expect(set).not.toHaveBeenCalled();
+            },
+        );
     });
 
     describe("phpArrayKey", () => {
