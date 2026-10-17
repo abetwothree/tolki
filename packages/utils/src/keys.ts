@@ -52,7 +52,7 @@ export function entriesKeyValue<T extends PropertyKey>(
  * @param key - The key to check
  * @returns True if the key could cause prototype pollution
  */
-export function isUnsafeKey(key: PropertyKey): boolean {
+export function isUnsafeKey(key: string): boolean {
     return key === "__proto__" || key === "constructor" || key === "prototype";
 }
 
@@ -471,7 +471,7 @@ export function renumberPhpIntegerKeys<TValue>(
  *
  * `defineKey` is the sanctioned way to write a computed key onto a fresh result object;
  * plain `result[key] = value` lets a `"__proto__"` key reparent `result`. A key that is already
- * non-configurable falls back to assignment, except an unsafe one (see `isUnsafeKey`), which only takes the value.
+ * non-configurable keeps its attributes and only takes the new value.
  *
  * @param target - The object to define the key on
  * @param key - The key to define
@@ -489,14 +489,9 @@ export function defineKey<TValue>(
     }
 
     // A non-configurable own key (an array's `length`, a sealed object's entry)
-    // cannot be redefined, so it is assigned; an unsafe key is never assigned,
-    // so no setter of its can run, and takes just the new value instead.
+    // cannot be redefined, so it takes just the new value.
     if (Object.getOwnPropertyDescriptor(target, key)?.configurable === false) {
-        if (isUnsafeKey(key)) {
-            Object.defineProperty(target, key, { value });
-        } else {
-            (target as Record<PropertyKey, TValue>)[key] = value;
-        }
+        Object.defineProperty(target, key, { value });
 
         return;
     }

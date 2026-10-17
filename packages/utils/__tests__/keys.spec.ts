@@ -147,7 +147,7 @@ describe("Utils", () => {
     });
 
     describe("defineKey on a non-configurable key", () => {
-        it("falls back to assignment for an array's length", () => {
+        it("updates an array's length", () => {
             const target: unknown[] = [1, 2];
             expect(() =>
                 Utils.defineKey(
@@ -159,7 +159,7 @@ describe("Utils", () => {
             expect(target.length).toBe(5);
         });
 
-        it("falls back to assignment for a sealed object's existing key", () => {
+        it("updates a sealed object's existing key", () => {
             const target = Object.seal({ a: 1 });
             expect(() =>
                 Utils.defineKey(target as Record<string, unknown>, "a", 2),
@@ -196,7 +196,7 @@ describe("Utils", () => {
             },
         );
 
-        it.each(["__proto__", "constructor", "prototype"])(
+        it.each(["a", "__proto__", "constructor", "prototype"])(
             "never runs the setter of a non-configurable own %s",
             (key) => {
                 const set = vi.fn();
