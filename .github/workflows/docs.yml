@@ -1,0 +1,60 @@
+name: Deploy Docs
+
+# Builds the VitePress site here, where runners have the memory for it, and pushes only the built files to the
+# docs-site branch. Forge deploys that branch without installing or building anything.
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "docs/vitepress/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          # lastUpdated reads each page's last commit, which needs the full history.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4.1.0
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build docs
+        run: pnpm docs:build
+
+      - name: Push the built site to the docs-site branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          site="$RUNNER_TEMP/docs-site"
+          mkdir -p "$site"
+          cp -R docs/vitepress/.vitepress/dist "$site/public"
+          cd "$site"
+          git init -q -b docs-site
+          git add -A
+          git -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Deploy docs from ${GITHUB_SHA}"
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" docs-site
