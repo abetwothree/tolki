@@ -1,7 +1,5 @@
 name: Deploy Docs
 
-# Builds the VitePress site here, where runners have the memory for it, and pushes only the built files to the
-# docs-site branch. Forge deploys that branch without installing or building anything.
 on:
   push:
     branches:
