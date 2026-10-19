@@ -47,6 +47,12 @@ These values now publish what Laravel sends, so some generated types change:
 - **Resources built around `null`**: `new UserResource(null)` publishes `null`, the value Laravel sends, where it published `UserResource | null`.
 - **Values built with `new`**: a value built in place publishes what `json_encode()` writes, so `new DateTime()` publishes the date object and `new RuntimeException('x')` publishes `Record<string, never>`. Both published `unknown` before. See [Method Return Types](./api-resources.md#method-return-types) for the values that stay `unknown`.
 
+### `EnumResource` Keeps Numeric Keys
+
+An `EnumResource` response now sends an array whose keys are all numeric but don't count up from 0 in order, such as `[1 => 'a', 4 => 'b']` or `['01' => 'Jan']`, as an object with those keys. That matches the published enum and its `AsEnum` type. The response used to send such an array as a list. If your frontend relies on the list, wrap the method's array in `array_values()`. See [Object and Array Values](./enums.md#object-and-array-values).
+
+`ts:publish` no longer warns about these methods.
+
 ### Inferred Types That No Longer Guess
 
 These types now follow your code and what Laravel runs, so some generated types change.
