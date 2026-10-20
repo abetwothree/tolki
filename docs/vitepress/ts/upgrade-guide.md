@@ -2,7 +2,19 @@
 
 ## Upgrading From 2.7
 
-The release after 2.7 changes what some `#[TsCasts]` entries publish, and what a merged model publishes. Numeric keys, list literals, enum cases, values built with `new`, and top-level integer keys also now publish as Laravel sends them. Some inferred types change too, where the package guessed a type, read the wrong class, or misread a docblock. Run `php artisan ts:publish` after you update, and check the changes below against your generated files.
+Version 2.8 changes what some `#[TsCasts]` entries publish, and what a merged model publishes. Numeric keys, list literals, enum cases, values built with `new`, top-level integer keys, casts, and classes with `__toString()` also now publish as Laravel sends them, and so do API resources and their collections in Inertia props. Some inferred types change too, where the package guessed a type, read the wrong class, or misread a docblock. Update `@tolki/ts`, run `php artisan ts:publish`, and check the changes below against your generated files.
+
+### Update `@tolki/ts`
+
+The generated files import types that `@tolki/types` added in `1.9.0`, such as the simple and cursor paginator types and the JSON:API document types. Update `@tolki/ts` to `1.0.3` or later, which requires that version:
+
+```bash
+npm install @tolki/ts@latest
+```
+
+If you also install `@tolki/types` yourself, update it to `^1.9.0`.
+
+`@tolki/types` `1.9.0` types a paginator's `from` and `to` as `number | null`, because Laravel sends `null` for both on an empty page. Code that uses them as a `number` needs a `null` check.
 
 ### `#[TsCasts]` Changes
 
@@ -47,11 +59,33 @@ These values now publish what Laravel sends, so some generated types change:
 - **Resources built around `null`**: `new UserResource(null)` publishes `null`, the value Laravel sends, where it published `UserResource | null`.
 - **Values built with `new`**: a value built in place publishes what `json_encode()` writes, so `new DateTime()` publishes the date object and `new RuntimeException('x')` publishes `Record<string, never>`. Both published `unknown` before. See [Method Return Types](./api-resources.md#method-return-types) for the values that stay `unknown`.
 
-### `EnumResource` Keeps Numeric Keys
+### Casts and Serialized Classes
+
+These types now follow what Laravel and `json_encode()` send:
+
+- **`decimal:N` casts** publish `string`, because Laravel returns a decimal cast as a string on every database. They published `number`. An uncast `decimal` or `numeric` column now follows the driver you publish on: `string` on MySQL, MariaDB and PostgreSQL, and `number` on SQLite and SQL Server. See [Numbers](./models.md#numbers).
+- **`timestamp` casts** publish `number`, the Unix timestamp Laravel sends, whatever `timestamps_as_date` is set to. They published `string`, or `Date`. A `timestamp` column without that cast, such as `created_at`, keeps its date type. See [Dates & Times](./models.md#dates-times).
+- **Classes with `__toString()`** publish their public properties as a shape, or `Record<string, never>` when they have none, because `json_encode()` ignores `__toString()`. They published `string`. See [DTO-Typed Accessors and Casts](./models.md#dto-typed-accessors-and-casts).
+- **Plain `DateTime` values**: a method or accessor that returns a `DateTime` or `DateTimeImmutable` publishes `{ date: string; timezone_type: number; timezone: string }`, the object Laravel sends. It published `string`. Carbon dates still publish `string`. See [Method Return Types](./api-resources.md#method-return-types).
+- **Enum method values** publish only what `json_encode()` writes, so an object's protected, private and hidden values no longer appear in a published enum. See [Object and Array Values](./enums.md#object-and-array-values).
+
+A [`custom_ts_mappings`](./configuration-reference.md#custom-ts-mappings) entry, `#[TsCasts]` or `#[TsType]` still overrides any of these types.
+
+### Resource Collections and Props
+
+API resources and their collections now publish the response Laravel sends, so these types change:
+
+- **A single resource in props**: a page prop or shared value that holds one API resource, from `new`, `make()` or `toResource()`, publishes `{ data: PostResource }`, because Laravel sends it under the `data` key. It published `PostResource`. Read its fields through `data`, such as `props.post.data.title`. After `JsonResource::withoutWrapping()`, it publishes the bare `PostResource`. See [API Resources in Props](./inertia.md#api-resources-in-props).
+- **Paginated resource props**: a resource collection over `simplePaginate()` or `cursorPaginate()` publishes that paginator's own `meta`, such as `JsonResourceSimplePaginator<PostResource>` or `PostCollection & ResourceCursorPagination`. It published the `paginate()` types, `JsonResourcePaginator<PostResource>` and `PostCollection & ResourcePagination`, whose `meta` holds keys these paginators don't send, such as `total`. See [Paginating Inline in the Render Call](./inertia.md#paginating-inline-in-the-render-call).
+- **Collections after `withoutWrapping()`**: a named collection with no `toArray()` of its own, or one whose `toArray()` returns the collected list, publishes a type alias of its list, such as `export type PostCollection = PostResource[];`. Code that reads its `data` key no longer compiles, because Laravel doesn't send that key. A collection that sets its own `$wrap` keeps it. See [The Wrap Key Your App Sets](./api-resources.md#the-wrap-key-your-app-sets).
+- **Collections Laravel guesses**: over an empty collection, an argument-less `toResourceCollection()` skips the guess and sends an empty list. When the guessed collection has its own `toArray()`, a key publishes `UserCollection | never[]` and a page prop publishes `UserCollection | { data: never[] }`, so check for the empty response before you read the collection's own keys. See [Nested Resources](./api-resources.md#nested-resources).
+- **JSON:API resources**: a `JsonApiResource` subclass, from Laravel 12.45, publishes the resource object Laravel sends, with `id`, a `type` literal, `attributes`, and optional `relationships`, `links` and `meta`. As a prop, it publishes the JSON:API document, such as `JsonApiDocument<PostResource, UserResource>`. See [JSON:API Resources](./api-resources.md#json-api-resources).
+
+### `EnumResource` Responses
 
 An `EnumResource` response now sends an array whose keys are all numeric but don't count up from 0 in order, such as `[1 => 'a', 4 => 'b']` or `['01' => 'Jan']`, as an object with those keys. That matches the published enum and its `AsEnum` type. The response used to send such an array as a list. If your frontend relies on the list, wrap the method's array in `array_values()`. See [Object and Array Values](./enums.md#object-and-array-values).
 
-`ts:publish` no longer warns about these methods.
+A method that returns `null` for a case, or throws, is now sent as `null`, which matches the published enum. It was sent as an empty string, `""`. See [Response Shape](./enum-api-resource.md#response-shape).
 
 ### Inferred Types That No Longer Guess
 
@@ -85,6 +119,16 @@ These types now follow your code and what Laravel runs, so some generated types 
 - **`@phpstan-type` aliases inside a list or a shape**: `@property list<Row>|null` publishes a list of the alias's shape, where it published `unknown[] | null`. A promoted constructor property's `@var` reads an alias too, where it published the property's native type. See [Typing JSON Columns With `@phpstan-type` Aliases](./models.md#typing-json-columns-with-phpstan-type-aliases).
 - **A nullable `array` column with a nested `null`**: `@property array{a: ?int}` on a nullable column publishes `{ a: number | null } | null`. It was `{ a: number | null }`.
 
+### Generation Cache
+
+The [generation cache](./generating-cache.md) now rebuilds a class when anything it reads changes, such as an enum method a resource calls, a service, a cast, a value object, a helper function or a `#[TsEnum]` rename. Editing a published template clears the cache too. You can drop any `--fresh` you added for these. See [When a Class Is Rebuilt](./generating-cache.md#when-a-class-is-rebuilt).
+
+A run limited by an `--only-*` flag, such as the one the [Vite plugin](./vite-plugin.md#production-builds) makes on `vite build`, now keeps the cache of the features it skips. With the cache on, it also keeps those features in the globals and JSON files, as the last run that published them left them.
+
+If you bind your own `globals.writer_class` or `json.writer_class`, `$runner->enumGenerators` and its siblings hold only the features a partial run published. Join each with its retained list to keep the rest, such as `$runner->enumGenerators->concat($runner->retainedEnumGenerators)`, and do the same for models, resources, form requests and broadcast events.
+
+The first run after you update rebuilds the whole cache, as it does after any package update.
+
 ### Published Templates
 
 If you published the package's templates, check these:
@@ -102,6 +146,13 @@ If your app binds its own subclass of `InertiaPageAnalyzer` or `InertiaSharedDat
 ### Custom Resource Transformers
 
 If you subclass `ResourceTransformer` and read the protected `castKeysWithImport()` method or the `$importedCastKeys` property, move to the new cast record. Both are gone.
+
+### Docblock Helpers
+
+If your code calls `LaravelTsPublish::extractReturnTypeFromDocblock()` or `LaravelTsPublish::parseArrayShapeToTsTypes()`, check what they return. Both keep their signatures, but they read docblocks as [Docblock Tags](#docblock-tags) describes:
+
+- `extractReturnTypeFromDocblock()` returns the whole type a tag spells, such as `string | null` for `@return string | null`, where it returned `string`.
+- `parseArrayShapeToTsTypes()` also reads `object{...}` shapes and quoted, numeric and hyphenated keys, which it left out, and returns a quoted key without its quotes.
 
 ## Upgrading to 2.0 From 1.x
 
