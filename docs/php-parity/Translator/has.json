@@ -25,6 +25,11 @@
             "value": true
         },
         {
+            "label": "has-star-group-json-line",
+            "php": "t(['en' => ['Hello' => 'Hola :name']])->has('*.Hello')",
+            "value": true
+        },
+        {
             "label": "has-group-line-equal-to-key",
             "php": "t(T2, 'en', 'lv')->has('g.same')",
             "value": false

@@ -36,6 +36,36 @@ function isGroup(value: unknown): value is LangGroup {
 }
 
 /**
+ * Determine if a locale's top-level value is a JSON line rather than a group.
+ *
+ * @param value - The value under one of a locale's keys
+ * @returns Whether the value is a line of the locale's JSON file
+ */
+function isJsonLine(value: unknown): value is string {
+    return !isUndefined(value) && !isNull(value) && !isGroup(value);
+}
+
+/**
+ * Collect a locale's JSON lines into a new group.
+ *
+ * @param localeLines - The locale's lines, if any
+ * @returns A new object holding only the locale's JSON lines
+ */
+function jsonLines(
+    localeLines: LocaleLines | undefined,
+): Record<string, string> {
+    const lines: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries({ ...localeLines })) {
+        if (isJsonLine(value)) {
+            defineKey(lines, key, value);
+        }
+    }
+
+    return lines;
+}
+
+/**
  * Read a record's own key, never one it inherits.
  *
  * @param record - The record to read, if any
@@ -520,7 +550,7 @@ export class Translator<TLines extends LangLines = LangLines> {
     #jsonLine(locale: string, key: string): string | null {
         const line = ownValue(ownValue(this.#lines, locale), key);
 
-        return isUndefined(line) || isNull(line) || isGroup(line) ? null : line;
+        return isJsonLine(line) ? line : null;
     }
 
     /**
@@ -540,10 +570,16 @@ export class Translator<TLines extends LangLines = LangLines> {
         item: string | null,
         replace: Replacements,
     ): TranslationValue | null {
-        const groupLines = ownValue(
-            ownValue(this.#lines, locale),
-            namespace === "*" ? group : `${namespace}::${group}`,
-        );
+        const localeLines = ownValue(this.#lines, locale);
+
+        // Laravel loads a locale's JSON file as the group `*` of the namespace `*`.
+        const groupLines =
+            namespace === "*" && group === "*"
+                ? jsonLines(localeLines)
+                : ownValue(
+                      localeLines,
+                      namespace === "*" ? group : `${namespace}::${group}`,
+                  );
 
         const line: unknown = dataGet(
             isGroup(groupLines) ? groupLines : {},

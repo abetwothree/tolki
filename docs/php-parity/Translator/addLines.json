@@ -52,6 +52,11 @@
             "value": "x.y"
         },
         {
+            "label": "add-lines-json-group-reads-back-through-star",
+            "php": "addLines(['*.Bye' => 'Adios'], 'en'); get('*.Bye')",
+            "value": "Adios"
+        },
+        {
             "label": "add-lines-namespace",
             "php": "addLines(['g.a' => 'A'], 'en', 'courier'); get('courier::g.a')",
             "value": "A"

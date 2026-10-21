@@ -92,6 +92,15 @@ describe("Translator", () => {
             expect(withFallback(T2, "en", "lv").has("Empty")).toBe(true);
         });
 
+        // docs/php-parity/Translator/has.json, "has-star-group-json-line"
+        it("finds a JSON line through the group *", () => {
+            expect(
+                new Translator({ en: { Hello: "Hola :name" } }, "en").has(
+                    "*.Hello",
+                ),
+            ).toBe(true);
+        });
+
         // docs/php-parity/Translator/has.json, "has-group-line-equal-to-key"
         it("misses a group line equal to its key", () => {
             expect(withFallback(T2, "en", "lv").has("g.same")).toBe(false);
@@ -239,6 +248,16 @@ describe("Translator", () => {
             expect(
                 new Translator({ en: { foo: "one" } }, "en").get("foo"),
             ).toBe("one");
+        });
+
+        // docs/php-parity/Translator/get.json, "get-json-line-replaces"
+        it("replaces placeholders in a JSON line", () => {
+            expect(
+                new Translator({ en: { Hello: "Hola :name" } }, "en").get(
+                    "Hello",
+                    { name: "Ann" },
+                ),
+            ).toBe("Hola Ann");
         });
 
         // docs/php-parity/Translator/get.json, "get-json-miss-reads-group"
@@ -425,6 +444,23 @@ describe("Translator", () => {
                 ),
             ).toBe("messages.welcome");
         });
+
+        // docs/php-parity/Translator/get.json, "get-star-group-reads-json-lines"
+        it("reads a JSON line through the group *", () => {
+            expect(
+                new Translator({ en: { Hello: "Hola :name" } }, "en").get(
+                    "*.Hello",
+                    { name: "Ann" },
+                ),
+            ).toBe("Hola Ann");
+        });
+
+        // docs/php-parity/Translator/get.json, "get-star-alone-returns-json-lines"
+        it("answers the JSON lines for the group * alone", () => {
+            expect(
+                new Translator({ en: { Hello: "Hola :name" } }, "en").get("*"),
+            ).toEqual({ Hello: "Hola :name" });
+        });
     });
 
     describe("string", () => {
@@ -563,6 +599,15 @@ describe("Translator", () => {
             translator.addLines({ "*.x.y": "xy" }, "en");
 
             expect(translator.get("x.y")).toBe("xy");
+        });
+
+        // docs/php-parity/Translator/addLines.json, "add-lines-json-group-reads-back-through-star"
+        it("reads an added JSON line back through the group *", () => {
+            const translator = new Translator({ en: { g: { b: "B" } } }, "en");
+
+            translator.addLines({ "*.Bye": "Adios" }, "en");
+
+            expect(translator.get("*.Bye")).toBe("Adios");
         });
 
         // docs/php-parity/Translator/addLines.json, "add-lines-namespace"

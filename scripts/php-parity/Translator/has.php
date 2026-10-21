@@ -15,6 +15,7 @@ probe('has-group-line', "t(T2, 'en', 'lv')->has('g.a')", fn () => $t()->has('g.a
 probe('has-missing-key', "t(T2, 'en', 'lv')->has('g.zzz')", fn () => $t()->has('g.zzz'));
 probe('has-json-line-equal-to-key', "t(T2, 'en', 'lv')->has('Hello')", fn () => $t()->has('Hello'));
 probe('has-json-empty-line', "t(T2, 'en', 'lv')->has('Empty')", fn () => $t()->has('Empty'));
+probe('has-star-group-json-line', "t(['en' => ['Hello' => 'Hola :name']])->has('*.Hello')", fn () => langTranslator(['en' => ['Hello' => 'Hola :name']])->has('*.Hello'));
 probe('has-group-line-equal-to-key', "t(T2, 'en', 'lv')->has('g.same')", fn () => $t()->has('g.same'));
 probe('has-reads-fallback', "t(T2, 'en', 'lv')->has('g.b')", fn () => $t()->has('g.b'));
 probe('has-locale-argument', "t(T2, 'en', 'lv')->has('g.b', 'lv')", fn () => $t()->has('g.b', 'lv'));

@@ -20,6 +20,7 @@ probe('get-keeps-html', "t(['en' => ['foo' => ['bar' => 'breeze <p>test</p>']]])
 probe('get-group-reads-fallback-locale', "langTranslator(['lv' => ['foo::bar' => ['baz' => 'breeze :foo']]], 'en', 'lv')->get('foo::bar.baz', ['foo' => 'bar'])", fn () => langTranslator(['lv' => ['foo::bar' => ['baz' => 'breeze :foo']]], 'en', 'lv')->get('foo::bar.baz', ['foo' => 'bar']));
 probe('get-global-group-line', "t(['en' => ['foo' => ['bar' => 'breeze :foo']]])->get('foo.bar', ['foo' => 'bar'])", fn () => langTranslator(['en' => ['foo' => ['bar' => 'breeze :foo']]])->get('foo.bar', ['foo' => 'bar']));
 probe('get-json-line', "t(['en' => ['foo' => 'one']])->get('foo')", fn () => langTranslator(['en' => ['foo' => 'one']])->get('foo'));
+probe('get-json-line-replaces', "t(['en' => ['Hello' => 'Hola :name']])->get('Hello', ['name' => 'Ann'])", fn () => langTranslator(['en' => ['Hello' => 'Hola :name']])->get('Hello', ['name' => 'Ann']));
 probe('get-json-miss-reads-group', "t(['en' => ['foo' => ['bar' => 'one']]])->get('foo.bar')", fn () => langTranslator(['en' => ['foo' => ['bar' => 'one']]])->get('foo.bar'));
 probe('get-json-miss-reads-group-and-replaces', "t(['en' => ['foo' => ['bar' => 'one :message']]])->get('foo.bar', ['message' => 'two'])", fn () => langTranslator(['en' => ['foo' => ['bar' => 'one :message']]])->get('foo.bar', ['message' => 'two']));
 probe('get-missing-returns-key', "t([])->get('Foo that bar')", fn () => langTranslator([])->get('Foo that bar'));
@@ -41,5 +42,7 @@ probe('get-locale-argument', "t(['es' => ['g' => ['a' => 'A-es']]])->get('g.a', 
 probe('get-without-fallback', "langTranslator(['lv' => ['g' => ['a' => 'A']]], 'en', 'lv')->get('g.a', [], null, false)", fn () => langTranslator(['lv' => ['g' => ['a' => 'A']]], 'en', 'lv')->get('g.a', [], null, false));
 probe('get-extra-namespace-separator', "t([])->get('a::b::c.d')", fn () => langTranslator([])->get('a::b::c.d'));
 probe('get-json-line-is-not-a-group', "t(['en' => ['messages' => 'Messages']])->get('messages.welcome')", fn () => langTranslator(['en' => ['messages' => 'Messages']])->get('messages.welcome'));
+probe('get-star-group-reads-json-lines', "t(['en' => ['Hello' => 'Hola :name']])->get('*.Hello', ['name' => 'Ann'])", fn () => langTranslator(['en' => ['Hello' => 'Hola :name']])->get('*.Hello', ['name' => 'Ann']));
+probe('get-star-alone-returns-json-lines', "t(['en' => ['Hello' => 'Hola :name']])->get('*')", fn () => langTranslator(['en' => ['Hello' => 'Hola :name']])->get('*'));
 
 emit();

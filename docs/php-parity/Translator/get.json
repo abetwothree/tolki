@@ -71,6 +71,11 @@
             "value": "one"
         },
         {
+            "label": "get-json-line-replaces",
+            "php": "t(['en' => ['Hello' => 'Hola :name']])->get('Hello', ['name' => 'Ann'])",
+            "value": "Hola Ann"
+        },
+        {
             "label": "get-json-miss-reads-group",
             "php": "t(['en' => ['foo' => ['bar' => 'one']]])->get('foo.bar')",
             "value": "one"
@@ -183,6 +188,18 @@
             "label": "get-json-line-is-not-a-group",
             "php": "t(['en' => ['messages' => 'Messages']])->get('messages.welcome')",
             "value": "messages.welcome"
+        },
+        {
+            "label": "get-star-group-reads-json-lines",
+            "php": "t(['en' => ['Hello' => 'Hola :name']])->get('*.Hello', ['name' => 'Ann'])",
+            "value": "Hola Ann"
+        },
+        {
+            "label": "get-star-alone-returns-json-lines",
+            "php": "t(['en' => ['Hello' => 'Hola :name']])->get('*')",
+            "value": {
+                "Hello": "Hola :name"
+            }
         }
     ]
 }
