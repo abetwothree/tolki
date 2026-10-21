@@ -36,7 +36,7 @@ This merged shape changes three results of `addLines()`:
   // => "xy"
   ```
 
-- `addLines()` drops a non-numeric item written into a group that is a list. Laravel keeps it under that key, next to the list's own indexes. A list stays a list here, as it does in `@tolki/collection`.
+- `addLines()` drops a non-numeric item written into a group that is a list. Laravel keeps it under that key, next to the list's own indexes. A list stays a list here, as it does in `@tolki/collection`. <!-- docs/php-parity/Translator/addLines.json, "add-lines-keeps-a-string-key-in-a-list-group" -->
 
   ```js
   import { Translator } from "@tolki/lang";
@@ -54,7 +54,7 @@ This merged shape changes three results of `addLines()`:
   // => ["a", "B"]
   ```
 
-- `addLines()` replaces a JSON line with a group when both share a key, because one object cannot hold both. Laravel keeps both: after `addLines({ "Hello.x": "X" }, "en")` it still answers `get("Hello")` with the JSON line.
+- `addLines()` replaces a JSON line with a group when both share a key, because one object cannot hold both. Laravel keeps both: after `addLines({ "Hello.x": "X" }, "en")` it still answers `get("Hello")` with the JSON line. <!-- docs/php-parity/Translator/addLines.json, "add-lines-keeps-a-json-line-beside-a-group" -->
 
   ```js
   import { Translator } from "@tolki/lang";

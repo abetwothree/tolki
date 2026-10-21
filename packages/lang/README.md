@@ -256,7 +256,7 @@ Add translation lines to the given locale.
 
 Exported as the `addLines` method of `Translator`. Lines are keyed `group.item`, a key without a dot names a whole group, and the group `*` adds a JSON line. A package group takes its namespace as the third argument. The call merges into the lines the translator already holds and never changes the object you passed to the constructor. A JSON line's key is taken literally, dots included. <!-- docs/php-parity/Translator/addLines.json, "add-lines-merges-into-a-loaded-group"; docs/php-parity/Translator/addLines.json, "add-lines-json-group"; docs/php-parity/Translator/addLines.json, "add-lines-namespace" -->
 
-Laravel: [`addLines()`](https://laravel.com/api/master/Illuminate/Translation/Translator.html#method_addLines)
+Laravel: [`addLines()`](https://api.laravel.com/docs/master/Illuminate/Translation/Translator.html#method_addLines)
 
 ```js
 import { Translator } from "@tolki/lang";
@@ -286,7 +286,7 @@ Get the specified array translation value.
 
 Exported as the `array` method of `Translator`. It answers a copy of the group, typed exactly, and throws `InvalidArgumentException` when the key names a line or nothing. <!-- docs/php-parity/Translator/array.json, "array-returns-group"; docs/php-parity/Translator/array.json, "array-throws-for-line"; docs/php-parity/Translator/array.json, "array-throws-for-missing-key" -->
 
-Laravel: [`array()`](https://laravel.com/api/master/Illuminate/Translation/Translator.html#method_array)
+Laravel: [`array()`](https://api.laravel.com/docs/master/Illuminate/Translation/Translator.html#method_array)
 
 ```js
 import { Translator } from "@tolki/lang";
@@ -401,7 +401,7 @@ Specify a callback that should be invoked to determine the applicable locale arr
 
 Exported as the `determineLocalesUsing` method of `Translator`. The callback receives the locales a lookup would read, the locale and the fallback, and answers the ones it reads. Duplicates are dropped. <!-- docs/php-parity/Translator/determineLocalesUsing.json, "determine-locales-receives-locales"; docs/php-parity/Translator/determineLocalesUsing.json, "determine-locales-adds-locale"; docs/php-parity/Translator/determineLocalesUsing.json, "determine-locales-receives-duplicates" -->
 
-Laravel: [`determineLocalesUsing()`](https://laravel.com/api/master/Illuminate/Translation/Translator.html#method_determineLocalesUsing)
+Laravel: [`determineLocalesUsing()`](https://api.laravel.com/docs/master/Illuminate/Translation/Translator.html#method_determineLocalesUsing)
 
 ```js
 import { Translator } from "@tolki/lang";
@@ -481,7 +481,7 @@ Get the fallback locale being used.
 
 Exported as the `getFallback` method of `Translator`. A new translator has none, so it answers `null`. <!-- docs/php-parity/Translator/getFallback.json, "fallback-starts-null"; docs/php-parity/Translator/getFallback.json, "fallback-is-set" -->
 
-Laravel: [`getFallback()`](https://laravel.com/api/master/Illuminate/Translation/Translator.html#method_getFallback)
+Laravel: [`getFallback()`](https://api.laravel.com/docs/master/Illuminate/Translation/Translator.html#method_getFallback)
 
 ```js
 import { Translator } from "@tolki/lang";
@@ -503,7 +503,7 @@ Get the default locale being used.
 
 Exported as the `getLocale` method of `Translator`, and as `locale`.
 
-Laravel: [`getLocale()`](https://laravel.com/api/master/Illuminate/Translation/Translator.html#method_getLocale)
+Laravel: [`getLocale()`](https://api.laravel.com/docs/master/Illuminate/Translation/Translator.html#method_getLocale)
 
 <!-- docs/php-parity/Translator/getLocale.json, "get-locale-reads-current" -->
 
@@ -544,7 +544,7 @@ Register a callback that is responsible for handling missing translation keys.
 
 Exported as the `handleMissingKeysUsing` method of `Translator`, which answers the translator. The callback receives the key, the replacements, the locale and whether the fallback was read, and its answer takes the place of the key, with the replacements applied. It does not run for a found line, and `null` stops it. <!-- docs/php-parity/Translator/handleMissingKeysUsing.json, "missing-key-handler-receives-arguments"; docs/php-parity/Translator/handleMissingKeysUsing.json, "missing-key-handler-result-is-replaced"; docs/php-parity/Translator/handleMissingKeysUsing.json, "missing-key-handler-skipped-for-a-found-line"; docs/php-parity/Translator/handleMissingKeysUsing.json, "missing-key-handler-null-keeps-key" -->
 
-Laravel: [`handleMissingKeysUsing()`](https://laravel.com/api/master/Illuminate/Translation/Translator.html#method_handleMissingKeysUsing)
+Laravel: [`handleMissingKeysUsing()`](https://api.laravel.com/docs/master/Illuminate/Translation/Translator.html#method_handleMissingKeysUsing)
 
 ```js
 import { Translator } from "@tolki/lang";
@@ -573,7 +573,7 @@ Determine if a translation exists.
 
 Exported as the `has` method of `Translator`. It reads the fallback locale unless you pass `false` as the third argument. A group line that is equal to its key does not count. The missing-key callback does not run. <!-- docs/php-parity/Translator/has.json, "has-reads-fallback"; docs/php-parity/Translator/has.json, "has-group-line-equal-to-key"; docs/php-parity/Translator/has.json, "has-skips-missing-key-handler" -->
 
-Laravel: [`has()`](https://laravel.com/api/master/Illuminate/Translation/Translator.html#method_has)
+Laravel: [`has()`](https://api.laravel.com/docs/master/Illuminate/Translation/Translator.html#method_has)
 
 ```js
 import { Translator } from "@tolki/lang";
@@ -601,7 +601,7 @@ Determine if a translation exists for a given locale.
 
 Exported as the `hasForLocale` method of `Translator`. The fallback locale is ignored. <!-- docs/php-parity/Translator/hasForLocale.json, "has-for-locale-ignores-fallback" -->
 
-Laravel: [`hasForLocale()`](https://laravel.com/api/master/Illuminate/Translation/Translator.html#method_hasForLocale)
+Laravel: [`hasForLocale()`](https://api.laravel.com/docs/master/Illuminate/Translation/Translator.html#method_hasForLocale)
 
 ```js
 import { Translator } from "@tolki/lang";
@@ -626,7 +626,7 @@ Get the default locale being used.
 
 Exported as the `locale` method of `Translator`, an alias of [`getLocale`](#getlocale).
 
-Laravel: [`locale()`](https://laravel.com/api/master/Illuminate/Translation/Translator.html#method_locale)
+Laravel: [`locale()`](https://api.laravel.com/docs/master/Illuminate/Translation/Translator.html#method_locale)
 
 <!-- docs/php-parity/Translator/getLocale.json, "locale-alias-reads-current" -->
 
@@ -695,7 +695,7 @@ Parse a key into namespace, group, and item.
 
 Exported as the `parseKey` method of `Translator`. A key without a namespace has `*` for one, and a key that names a whole group has `null` for its item. <!-- docs/php-parity/Translator/parseKey.json, "parse-key-namespaced"; docs/php-parity/Translator/parseKey.json, "parse-key-group-only" -->
 
-Laravel: [`parseKey()`](https://laravel.com/api/master/Illuminate/Support/NamespacedItemResolver.html#method_parseKey)
+Laravel: [`parseKey()`](https://api.laravel.com/docs/master/Illuminate/Support/NamespacedItemResolver.html#method_parseKey)
 
 ```js
 import { Translator } from "@tolki/lang";
@@ -718,7 +718,7 @@ Set the fallback locale being used.
 
 Exported as the `setFallback` method of `Translator`. Pass `null` for none.
 
-Laravel: [`setFallback()`](https://laravel.com/api/master/Illuminate/Translation/Translator.html#method_setFallback)
+Laravel: [`setFallback()`](https://api.laravel.com/docs/master/Illuminate/Translation/Translator.html#method_setFallback)
 
 <!-- docs/php-parity/Translator/getFallback.json, "fallback-is-set" -->
 
@@ -742,7 +742,7 @@ Set the loaded translation lines.
 
 Exported as the `setLoaded` method of `Translator`. It replaces every line the translator holds. <!-- docs/php-parity/Translator/setLoaded.json, "set-loaded-replaces-lines" -->
 
-Laravel: [`setLoaded()`](https://laravel.com/api/master/Illuminate/Translation/Translator.html#method_setLoaded)
+Laravel: [`setLoaded()`](https://api.laravel.com/docs/master/Illuminate/Translation/Translator.html#method_setLoaded)
 
 ```js
 import { Translator } from "@tolki/lang";
@@ -761,7 +761,7 @@ Set the default locale.
 
 Exported as the `setLocale` method of `Translator`. A locale that holds `/`, `\`, `..` or a NUL byte throws `InvalidArgumentException`, and a region such as `en-US` is accepted. <!-- docs/php-parity/Translator/setLocale.json, "set-locale-accepts-region"; docs/php-parity/Translator/setLocale.json, "set-locale-rejects-parent-path"; docs/php-parity/Translator/setLocale.json, "set-locale-keeps-previous-locale" -->
 
-Laravel: [`setLocale()`](https://laravel.com/api/master/Illuminate/Translation/Translator.html#method_setLocale)
+Laravel: [`setLocale()`](https://api.laravel.com/docs/master/Illuminate/Translation/Translator.html#method_setLocale)
 
 ```js
 import { Translator } from "@tolki/lang";
@@ -786,7 +786,7 @@ Get the specified string translation value.
 
 Exported as the `string` method of `Translator`. It throws `InvalidArgumentException` when the key names a group. A key with no line answers the key. <!-- docs/php-parity/Translator/string.json, "string-returns-line"; docs/php-parity/Translator/string.json, "string-throws-for-group"; docs/php-parity/Translator/string.json, "string-returns-missing-key" -->
 
-Laravel: [`string()`](https://laravel.com/api/master/Illuminate/Translation/Translator.html#method_string)
+Laravel: [`string()`](https://api.laravel.com/docs/master/Illuminate/Translation/Translator.html#method_string)
 
 ```js
 import { Translator } from "@tolki/lang";
@@ -876,7 +876,7 @@ Create a new translator instance.
 
 Exported as the class `Translator` from `@tolki/lang`. It takes the lines, one object per locale, and the default locale. The lines you pass count as already loaded, and the translator never changes them. Every group `get()` returns is a fresh copy. A key, group or locale named `constructor` or `__proto__` reads only own data.
 
-Laravel: [`Translator`](https://laravel.com/api/master/Illuminate/Translation/Translator.html)
+Laravel: [`Translator`](https://api.laravel.com/docs/master/Illuminate/Translation/Translator.html)
 
 ```js
 import { Translator } from "@tolki/lang";
@@ -931,7 +931,7 @@ This merged shape changes three results of `addLines()`:
   // => "xy"
   ```
 
-- `addLines()` drops a non-numeric item written into a group that is a list. Laravel keeps it under that key, next to the list's own indexes. A list stays a list here, as it does in `@tolki/collection`.
+- `addLines()` drops a non-numeric item written into a group that is a list. Laravel keeps it under that key, next to the list's own indexes. A list stays a list here, as it does in `@tolki/collection`. <!-- docs/php-parity/Translator/addLines.json, "add-lines-keeps-a-string-key-in-a-list-group" -->
 
   ```js
   import { Translator } from "@tolki/lang";
@@ -949,7 +949,7 @@ This merged shape changes three results of `addLines()`:
   // => ["a", "B"]
   ```
 
-- `addLines()` replaces a JSON line with a group when both share a key, because one object cannot hold both. Laravel keeps both: after `addLines({ "Hello.x": "X" }, "en")` it still answers `get("Hello")` with the JSON line.
+- `addLines()` replaces a JSON line with a group when both share a key, because one object cannot hold both. Laravel keeps both: after `addLines({ "Hello.x": "X" }, "en")` it still answers `get("Hello")` with the JSON line. <!-- docs/php-parity/Translator/addLines.json, "add-lines-keeps-a-json-line-beside-a-group" -->
 
   ```js
   import { Translator } from "@tolki/lang";

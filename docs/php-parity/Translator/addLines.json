@@ -68,6 +68,23 @@
                 "Hello",
                 "Hola"
             ]
+        },
+        {
+            "label": "add-lines-keeps-a-string-key-in-a-list-group",
+            "php": "t(['en' => ['g' => ['p', 'q']]]); get('g'); addLines(['g.k' => 'K'], 'en'); get('g')",
+            "value": {
+                "0": "p",
+                "1": "q",
+                "k": "K"
+            }
+        },
+        {
+            "label": "add-lines-keeps-a-json-line-beside-a-group",
+            "php": "t(['en' => ['g' => 'json-line']]); get('g'); addLines(['g.a' => 'A'], 'en'); [get('g'), get('g.a')]",
+            "value": [
+                "json-line",
+                "A"
+            ]
         }
     ]
 }

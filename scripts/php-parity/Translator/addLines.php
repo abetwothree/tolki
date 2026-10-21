@@ -41,4 +41,19 @@ probe('add-lines-json-group-in-a-namespace', "addLines(['*.Hello' => 'Hola'], 'e
     return [$t->get('Hello'), $t->get('courier::*.Hello')];
 });
 
+probe('add-lines-keeps-a-string-key-in-a-list-group', "t(['en' => ['g' => ['p', 'q']]]); get('g'); addLines(['g.k' => 'K'], 'en'); get('g')", function () {
+    $t = langTranslator(['en' => ['g' => ['p', 'q']]]);
+    $t->get('g');
+    $t->addLines(['g.k' => 'K'], 'en');
+
+    return $t->get('g');
+});
+probe('add-lines-keeps-a-json-line-beside-a-group', "t(['en' => ['g' => 'json-line']]); get('g'); addLines(['g.a' => 'A'], 'en'); [get('g'), get('g.a')]", function () {
+    $t = langTranslator(['en' => ['g' => 'json-line']]);
+    $t->get('g');
+    $t->addLines(['g.a' => 'A'], 'en');
+
+    return [$t->get('g'), $t->get('g.a')];
+});
+
 emit();
