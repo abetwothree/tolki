@@ -98,6 +98,7 @@ const DOCS_FIXTURES = "scripts/__tests__/fixtures/php-parity-citations";
 const DOCS_CITATION_ROOTS = [
     "docs/vitepress/arrays-objects",
     "docs/vitepress/collections",
+    "docs/vitepress/localization",
 ];
 
 /**

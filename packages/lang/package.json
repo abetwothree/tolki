@@ -78,6 +78,10 @@
         }
     },
     "tolki": {
-        "docs": []
+        "docs": [
+            "localization/index.md",
+            "localization/translator.md",
+            "localization/differences.md"
+        ]
     }
 }

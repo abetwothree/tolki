@@ -82,12 +82,14 @@ export default defineConfig({
             { text: "Packages", link: "/packages" },
             {
                 text: "Utilities",
-                activeMatch: "^/(strings|numbers|arrays-objects|collections)/",
+                activeMatch:
+                    "^/(strings|numbers|arrays-objects|collections|localization)/",
                 items: [
                     { text: "Strings", link: "/strings/" },
                     { text: "Numbers", link: "/numbers/" },
                     { text: "Arrays & Objects", link: "/arrays-objects/" },
                     { text: "Collections", link: "/collections/" },
+                    { text: "Localization", link: "/localization/" },
                 ],
             },
             { text: "TS Types", link: "/typescript/" },
@@ -172,6 +174,23 @@ export default defineConfig({
                     {
                         text: "Differences from Laravel",
                         link: "/collections/differences",
+                    },
+                ],
+            },
+            {
+                text: "Localization",
+                items: [
+                    {
+                        text: "Installation & Usage",
+                        link: "/localization/",
+                    },
+                    {
+                        text: "Translator Reference",
+                        link: "/localization/translator",
+                    },
+                    {
+                        text: "Differences from Laravel",
+                        link: "/localization/differences",
                     },
                 ],
             },
