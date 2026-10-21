@@ -47,6 +47,9 @@
         "./data": {
             "types": "./src/data.d.ts"
         },
+        "./lang": {
+            "types": "./src/lang.d.ts"
+        },
         "./models": {
             "types": "./src/models.d.ts"
         },

@@ -88,5 +88,6 @@ probe('get-nested-out-of-order-keys', "Arr::get(['m' => [2 => 'c', 0 => 'a']], '
 
     return ['assoc' => Arr::get($o, 'm.0'), 'list' => Arr::get($l, '0.0')];
 });
+probe('get-dotted-key-below-the-top-level', "Arr::get(['g' => ['a.b' => 1]], 'g.a.b', 'miss')", fn () => Arr::get(['g' => ['a.b' => 1]], 'g.a.b', 'miss'));
 
 emit();

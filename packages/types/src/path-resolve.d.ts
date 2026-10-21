@@ -557,8 +557,35 @@ export type ObjectResolvePath<T, P, TDefault = null> = P extends
         ? V | (true extends M ? TDefault : never)
         : TDefault;
 
+/** A depth `ObjectDotPath` can count down from; a larger one would index past `ObjectDotPathDepth` and lift the cap. */
+type ObjectDotPathMaxDepth = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+
 /** The depth left one segment further down. */
 type ObjectDotPathDepth = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+/** Whether a member of `T` can be a function, as on a DOM node, a class instance with methods or a Collection. */
+// An `any` member is not a method, so a loosely typed group still lists its keys.
+type ObjectHasMethod<T> = true extends {
+    [TKey in keyof T]-?: 0 extends 1 & T[TKey]
+        ? false
+        : [Extract<T[TKey], (...args: never[]) => unknown>] extends [never]
+          ? false
+          : true;
+}[keyof T]
+    ? true
+    : false;
+
+/** The paths below a member: an object with a method is listed but never walked into. */
+// Distributed, so `HTMLElement | null` ends too; a list's own methods do not count.
+type ObjectDotPathBelow<
+    T,
+    TValue,
+    TDepth extends ObjectDotPathMaxDepth,
+> = T extends readonly unknown[]
+    ? ObjectDotPath<T, TValue, TDepth>
+    : ObjectHasMethod<T> extends true
+      ? never
+      : ObjectDotPath<T, TValue, TDepth>;
 
 /** A path, when the value under it can be a `TValue`. */
 type ObjectDotPathTo<TPath extends string, TChild, TValue> = [
@@ -568,9 +595,9 @@ type ObjectDotPathTo<TPath extends string, TChild, TValue> = [
     : TPath;
 
 /**
- * Every dot path into `T`, at most `TDepth` segments deep (10 at most), whose value can be a `TValue`. An object's
- * paths go by its string and number keys and a list's by index; a scalar, a function or a built-in object such as a
- * `Map`, a `Set`, a `Date`, a `RegExp` or a `Promise` ends the path.
+ * Every dot path into `T`, at most `TDepth` segments deep (0 to 10), whose value can be a `TValue`. An object's paths
+ * go by its string and number keys and a list's by index. A member holding a scalar, a function, an object with a
+ * method such as a DOM node, or a `Map`, `Set`, `WeakMap`, `WeakSet`, `Date`, `RegExp` or `Promise` ends the path.
  *
  * @example
  * ObjectDotPath<{ a: { b: string }; c: string }>         // "a" | "a.b" | "c"
@@ -580,7 +607,7 @@ type ObjectDotPathTo<TPath extends string, TChild, TValue> = [
 export type ObjectDotPath<
     T,
     TValue = unknown,
-    TDepth extends number = 5,
+    TDepth extends ObjectDotPathMaxDepth = 5,
 > = TDepth extends 0
     ? never
     : T extends
@@ -601,12 +628,12 @@ export type ObjectDotPath<
       : T extends readonly (infer TItem)[]
         ?
               | ObjectDotPathTo<`${number}`, TItem, TValue>
-              | `${number}.${ObjectDotPath<TItem, TValue, ObjectDotPathDepth[TDepth]>}`
+              | `${number}.${ObjectDotPathBelow<TItem, TValue, ObjectDotPathDepth[TDepth]>}`
         : T extends object
           ? {
                 [TKey in keyof T & (string | number)]:
                     | ObjectDotPathTo<`${TKey}`, T[TKey], TValue>
-                    | `${TKey}.${ObjectDotPath<T[TKey], TValue, ObjectDotPathDepth[TDepth]>}`;
+                    | `${TKey}.${ObjectDotPathBelow<T[TKey], TValue, ObjectDotPathDepth[TDepth]>}`;
             }[keyof T & (string | number)]
           : never;
 
@@ -640,6 +667,8 @@ type ObjectDotPathWalk<
 
 /**
  * The value at a path {@link ObjectDotPath} lists, where `${number}` is any one list index and `${string}` any one key.
+ * As with `Arr::get()` and `data_get()`, a dotted key is read whole only at the top level, so `"g.a.b"`, which
+ * `ObjectDotPath` lists for `{ g: { "a.b": number } }`, reaches nothing.
  *
  * @example
  * ObjectDotPathValue<{ l: { x: string }[] }, `l.${number}`> // { x: string }

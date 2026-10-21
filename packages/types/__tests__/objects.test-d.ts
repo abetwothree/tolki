@@ -759,6 +759,19 @@ describe("object helper types", () => {
             expectTypeOf<"a.b.c.d.e.f">().not.toExtend<ObjectDotPath<Deep>>();
         });
 
+        it("takes a depth of at most 10", () => {
+            type Deep = { a: { b: string } };
+
+            expectTypeOf<ObjectDotPath<Deep, unknown, 10>>().toEqualTypeOf<
+                "a" | "a.b"
+            >();
+
+            // @ts-expect-error - a depth past 10 would lift the cap.
+            type TooDeep = ObjectDotPath<Deep, unknown, 11>;
+
+            expectTypeOf<TooDeep>().toBeString();
+        });
+
         it("ends a path at a scalar, a function or a built-in object", () => {
             type Ends = {
                 m: Map<string, { x: string }>;
@@ -776,6 +789,25 @@ describe("object helper types", () => {
             expectTypeOf<ObjectDotPath<Ends>>().toEqualTypeOf<
                 "m" | "d" | "f" | "s" | "r" | "p" | "n" | "b" | "i" | "y"
             >();
+            expectTypeOf<
+                ObjectDotPath<{
+                    w: WeakMap<object, { x: string }>;
+                    s: WeakSet<object>;
+                }>
+            >().toEqualTypeOf<"w" | "s">();
+        });
+
+        it("ends a path at an object with a method", () => {
+            expectTypeOf<
+                ObjectDotPath<{ el: HTMLElement }>
+            >().toEqualTypeOf<"el">();
+            expectTypeOf<
+                ObjectDotPath<{
+                    c: { n: number; inc(): void };
+                    o: { f?: () => void; y: string };
+                    d: { x: string };
+                }>
+            >().toEqualTypeOf<"c" | "o" | "d" | "d.x">();
         });
 
         it("accepts a key whose type is a type parameter", () => {
@@ -844,6 +876,13 @@ describe("object helper types", () => {
             >().toEqualTypeOf<string>();
         });
 
+        // docs/php-parity/Arr/get.json, "get-dotted-key-below-the-top-level"
+        it("reads a dotted key whole only at the top level", () => {
+            expectTypeOf<
+                ObjectDotPathValue<{ g: { "a.b": number } }, "g.a.b">
+            >().toEqualTypeOf<never>();
+        });
+
         it("reads past an optional segment and ends at a scalar or declared keys", () => {
             expectTypeOf<
                 ObjectDotPathValue<{ l?: { a: string }[] }, `l.${number}`>
@@ -853,6 +892,9 @@ describe("object helper types", () => {
                     { l: { a?: { b: string } }[] },
                     `l.${number}.a.b`
                 >
+            >().toEqualTypeOf<string>();
+            expectTypeOf<
+                ObjectDotPathValue<{ l: { a?: string }[] }, `l.${number}.a`>
             >().toEqualTypeOf<string>();
             expectTypeOf<
                 ObjectDotPathValue<{ s: string }, `s.${number}`>

@@ -229,6 +229,18 @@ describe("TranslationResult", () => {
         >().toEqualTypeOf<string>();
     });
 
+    it("reads a group typed with any as any lines", () => {
+        // An untyped import or a cast can type a group's values as any.
+        type AnyGroup = { en: { g: Record<string, any> } };
+
+        expectTypeOf<TranslationResult<AnyGroup, "g">>().toEqualTypeOf<
+            { [key: string]: LangValue } | string
+        >();
+        expectTypeOf<TranslationKey<AnyGroup>>().toEqualTypeOf<
+            "g" | `g.${string}`
+        >();
+    });
+
     it("ends on a recursive line type", () => {
         type Nested = string | Nested[];
 

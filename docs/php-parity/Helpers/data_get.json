@@ -73,6 +73,11 @@
                 1,
                 2
             ]
+        },
+        {
+            "label": "data-get-dotted-key-below-the-top-level",
+            "php": "data_get(['g' => ['a.b' => 1]], 'g.a.b', 'miss')",
+            "value": "miss"
         }
     ]
 }
