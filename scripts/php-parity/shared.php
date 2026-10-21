@@ -14,6 +14,7 @@ use Illuminate\Support\LazyCollection;
 use Illuminate\Support\Number;
 use Illuminate\Support\Str;
 use Illuminate\Support\Stringable;
+use Illuminate\Translation\MessageSelector;
 use Illuminate\Tests\Support\TestArrayableObject;
 use Illuminate\Tests\Support\TestJsonSerializeObject;
 use Illuminate\Tests\Support\TestJsonSerializeWithScalarValueObject;
@@ -542,4 +543,19 @@ function codePointRanges(array $codePoints): array
         fn (array $range) => $range[0] === $range[1] ? sprintf('%04X', $range[0]) : sprintf('%04X-%04X', ...$range),
         $ranges,
     );
+}
+
+/** The numbers every plural-rule row is asked about: integers, fractions and negatives. */
+function langPluralNumbers(): array
+{
+    return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 19, 20, 21, 22, 25, 100, 101, 102, 103, 104, 111, 112, 0.5, 1.5, 2.75, -1, -2, -11, -21];
+}
+
+/** Every locale `MessageSelector::getPluralIndex()` has a `case` for, in source order. */
+function langSelectorLocales(): array
+{
+    $source = file_get_contents((new ReflectionClass(MessageSelector::class))->getFileName());
+    preg_match_all("/case '([A-Za-z_]+)':/", $source, $matches);
+
+    return $matches[1];
 }

@@ -7,7 +7,7 @@ const ROOT = resolve(__dirname, "../..");
 const PROBE_DIR = join(ROOT, "scripts/php-parity");
 const TRANSCRIPT_DIR = join(ROOT, "docs/php-parity");
 const PROBE_PATH =
-    /^(Arr|Collection|Helpers|LazyCollection|Number|Php|Str|Stringable)\/[A-Za-z_][\w-]*\.php$/;
+    /^(Arr|Collection|Helpers|LazyCollection|MessageSelector|Number|Php|Str|Stringable|Translator)\/[A-Za-z_][\w-]*\.php$/;
 
 /**
  * Every file under a directory, as forward-slash paths relative to it.
