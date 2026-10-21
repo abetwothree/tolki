@@ -309,6 +309,7 @@ Packages table layout:
 | packages/arr        | @tolki/arr        | Array helpers                                             |
 | packages/collection | @tolki/collection | Collection class and helpers                              |
 | packages/data       | @tolki/data       | Helpers for working with arrays and objects               |
+| packages/lang       | @tolki/lang       | Translation helpers                                       |
 | packages/num        | @tolki/num        | Number helpers and formatting                             |
 | packages/obj        | @tolki/obj        | Object helpers                                            |
 | packages/path       | @tolki/path       | Path helpers for working with paths in objects and arrays |
@@ -412,6 +413,15 @@ export function dataCollapse(data: unknown): unknown {
   return arrCollapse(arrWrap(data));
 }
 ```
+
+### @tolki/lang
+
+- Ports Laravel's `Translator`, `MessageSelector` and the `__`, `trans` and `trans_choice` helpers
+- Stubs: `Translator.php`, `MessageSelector.php` and `NamespacedItemResolver.php` are the source of truth; `TranslatorTest.php` and `MessageSelectorTest.php` are the tests to adapt
+- The caller passes the lines, one object per locale: a top-level array or plain object is a group file, any other value a JSON line, and `ns::group` a package group. Loading lang files is out of scope
+- `MessageSelector` becomes the functions `choose` and `getPluralIndex`, in the stub's order; `Translator` stays a class because it holds the locale, the fallback and the lines
+- `normalizeLocale` is the one JS-only export: it turns a BCP 47 tag (`en-US`) into Laravel's spelling (`en_US`) through `@tolki/str`'s `slug`
+- use `@tolki/str` for `Str::` calls, `@tolki/data`'s `dataGet` and `dataSet` for `Arr::get` and `Arr::set`, `@tolki/utils` for PHP rules
 
 ### @tolki/num
 
