@@ -78,10 +78,11 @@ translator.get("*.Hello", { name: "Ann" });
 
 ### Building the lines on the server
 
-With Laravel and Inertia, the server can build this object and share it as a prop. For the current locale and the fallback locale, read the JSON file with `lang_path()` when it exists, and add each group with `trans()`, which answers a whole group when you give it only the group's name. <!-- docs/php-parity/Translator/get.json, "get-group-leaves-keep-type-without-replacements" -->
+With Laravel and Inertia, the server can build this object and share it as a prop. For the current locale and the fallback locale, read the JSON file with `lang_path()` when it exists, and each group file with the translator's loader.
 
 ```php
 Inertia::share('lines', function () {
+    $loader = app('translator')->getLoader();
     $lines = [];
 
     foreach (array_unique([app()->getLocale(), config('app.fallback_locale')]) as $locale) {
@@ -89,14 +90,16 @@ Inertia::share('lines', function () {
 
         $lines[$locale] = [
             ...(is_file($json) ? json_decode(file_get_contents($json), true) : []),
-            'messages' => trans('messages', [], $locale),
-            'courier::mail' => trans('courier::mail', [], $locale),
+            'messages' => $loader->load($locale, 'messages'),
+            'courier::mail' => $loader->load($locale, 'mail', 'courier'),
         ];
     }
 
     return $lines;
 });
 ```
+
+Read the groups through the loader rather than with `trans()`: for a locale without a group, `trans()` answers the fallback locale's whole group, which `hasForLocale()` and `choice()` would then take for the current locale's. <!-- docs/php-parity/Helpers/trans.json, "trans-whole-group-reads-fallback-locale" -->
 
 Share the fallback locale's lines as well: after `setFallback()`, a group line the current locale lacks is read from the fallback locale, as in Laravel, and the translator can only read lines the page was sent. <!-- docs/php-parity/Translator/getFallback.json, "fallback-starts-null"; docs/php-parity/Translator/get.json, "get-group-reads-fallback-locale" -->
 

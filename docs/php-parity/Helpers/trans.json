@@ -18,6 +18,13 @@
             "label": "trans-locale-argument",
             "php": "trans('g.a', [], 'es') with an es line",
             "value": "A-es"
+        },
+        {
+            "label": "trans-whole-group-reads-fallback-locale",
+            "php": "trans('g', [], 'ru') on locale ru, fallback en, with no ru group g",
+            "value": {
+                "a": "A"
+            }
         }
     ]
 }

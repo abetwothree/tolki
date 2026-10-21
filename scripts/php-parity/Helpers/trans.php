@@ -17,5 +17,10 @@ probe('trans-locale-argument', "trans('g.a', [], 'es') with an es line", functio
 
     return trans('g.a', [], 'es');
 });
+probe('trans-whole-group-reads-fallback-locale', "trans('g', [], 'ru') on locale ru, fallback en, with no ru group g", function () {
+    langBind(langTranslator(['en' => ['g' => ['a' => 'A']], 'ru' => []], 'ru', 'en'));
+
+    return trans('g', [], 'ru');
+});
 
 emit();
