@@ -422,6 +422,7 @@ export function dataCollapse(data: unknown): unknown {
 - `MessageSelector` becomes the functions `choose` and `getPluralIndex`, in the stub's order; `Translator` stays a class because it holds the locale, the fallback and the lines
 - `normalizeLocale` is the one JS-only export: it turns a BCP 47 tag (`en-US`) into Laravel's spelling (`en_US`) through `@tolki/str`'s `slug`
 - use `@tolki/str` for `Str::` calls, `@tolki/data`'s `dataGet` and `dataSet` for `Arr::get` and `Arr::set`, `@tolki/utils` for PHP rules
+- Types live in `@tolki/types` (`lang.d.ts`), re-exported by `@tolki/lang`; only `TranslationHelpers` stays in the package, because it names the `Translator` class.
 
 ### @tolki/num
 

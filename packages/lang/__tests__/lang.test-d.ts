@@ -410,3 +410,22 @@ describe("typed translators where untyped ones are expected", () => {
         expectTypeOf(createHelpers(translator)).toExtend<TranslationHelpers>();
     });
 });
+
+describe("lines declared as const in a variable", () => {
+    it("accepts readonly lists and objects", () => {
+        const constLines = {
+            en: { g: { a: "A", list: ["a", "b"], nested: { deep: "x" } } },
+        } as const;
+        const constant = new Translator(constLines, "en");
+
+        expectTypeOf(constant.get("g.a")).toEqualTypeOf<string>();
+        expectTypeOf(constant.get("g.list.0")).toEqualTypeOf<string>();
+        expectTypeOf(constant.array("g.list")).toEqualTypeOf<
+            [string, string]
+        >();
+        expectTypeOf(constant.get("g.nested")).toEqualTypeOf<
+            { deep: string } | string
+        >();
+        expectTypeOf(createHelpers(constant).__("g.a")).toEqualTypeOf<string>();
+    });
+});

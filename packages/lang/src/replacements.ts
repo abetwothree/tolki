@@ -1,4 +1,5 @@
 import { swap, ucfirst, upper } from "@tolki/str";
+import type { Replacements, StringableHandlers } from "@tolki/types";
 import {
     hasOwnToString,
     isEnumCase,
@@ -9,8 +10,6 @@ import {
     phpDebugType,
     phpStringCast,
 } from "@tolki/utils";
-
-import type { Replacements, StringableHandlers } from "./types";
 
 /**
  * Cast a replacement as PHP's string functions would.

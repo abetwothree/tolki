@@ -1,13 +1,14 @@
-import type { Translator } from "./translator";
 import type {
     ChoiceNumber,
     LangLines,
     Replacements,
-    TranslationHelpers,
     TranslationKey,
     TranslationResult,
     TranslationValue,
-} from "./types";
+} from "@tolki/types";
+
+import type { Translator } from "./translator";
+import type { TranslationHelpers } from "./types";
 
 /**
  * Create `__`, `trans` and `transChoice` bound to one translator.

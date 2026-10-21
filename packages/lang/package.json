@@ -36,6 +36,7 @@
     "dependencies": {
         "@tolki/data": "workspace:^",
         "@tolki/str": "workspace:^",
+        "@tolki/types": "workspace:^",
         "@tolki/utils": "workspace:^"
     },
     "files": [

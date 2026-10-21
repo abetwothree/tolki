@@ -1,5 +1,21 @@
 import { dataGet, dataSet } from "@tolki/data";
 import { contains } from "@tolki/str";
+import type {
+    ChoiceNumber,
+    LangGroup,
+    LangLines,
+    LangValue,
+    LocaleLines,
+    LocalesResolver,
+    MissingKeyHandler,
+    Replacements,
+    ReplacementValue,
+    StringableType,
+    TranslationArray,
+    TranslationKey,
+    TranslationResult,
+    TranslationValue,
+} from "@tolki/types";
 import {
     defineKey,
     InvalidArgumentException,
@@ -19,22 +35,6 @@ import {
 
 import { choose } from "./message-selector";
 import { makeReplacements } from "./replacements";
-import type {
-    ChoiceNumber,
-    LangGroup,
-    LangLines,
-    LangValue,
-    LocaleLines,
-    LocalesResolver,
-    MissingKeyHandler,
-    Replacements,
-    ReplacementValue,
-    StringableType,
-    TranslationArray,
-    TranslationKey,
-    TranslationResult,
-    TranslationValue,
-} from "./types";
 
 /**
  * Determine if a value is a group: a PHP lang file's array.
@@ -145,7 +145,7 @@ function walkLeaves(
         return isGroup(value) ? walkLeaves(value, callback) : callback(value);
     };
 
-    if (isArray(group)) {
+    if (isArray<LangValue>(group)) {
         return group.map(walk);
     }
 
