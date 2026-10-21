@@ -10,9 +10,17 @@
             "value": "A"
         },
         {
-            "label": "add-lines-merges-into-group",
+            "label": "add-lines-replaces-an-unloaded-group",
             "php": "addLines(['g.a' => 'A'], 'en'); get('g')",
             "value": {
+                "a": "A"
+            }
+        },
+        {
+            "label": "add-lines-merges-into-a-loaded-group",
+            "php": "t(['en' => ['g' => ['b' => 'B']]]); get('g.b'); addLines(['g.a' => 'A'], 'en'); get('g')",
+            "value": {
+                "b": "B",
                 "a": "A"
             }
         },

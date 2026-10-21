@@ -31,7 +31,7 @@ probe('get-group-number-leaf-returns-key', "t(['en' => ['g' => ['n' => 5]]])->ge
 probe('get-json-ignores-fallback', "langTranslator(['es' => ['Hi' => 'Hola']], 'en', 'es')->get('Hi')", fn () => langTranslator(['es' => ['Hi' => 'Hola']], 'en', 'es')->get('Hi'));
 probe('get-group-leaves-keep-type-without-replacements', "t(['en' => ['g' => ['n' => 5, 's' => ':x']]])->get('g')", fn () => langTranslator(['en' => ['g' => ['n' => 5, 's' => ':x']]])->get('g'));
 probe('get-group-leaves-cast-with-replacements', "t(['en' => ['g' => ['n' => 5, 's' => ':x']]])->get('g', ['x' => 'y'])", fn () => langTranslator(['en' => ['g' => ['n' => 5, 's' => ':x']]])->get('g', ['x' => 'y']));
-probe('get-group-null-leaf-with-replacements', "t(['en' => ['g' => ['n' => null, 's' => ':x']]])->get('g', ['x' => 'y'])", fn () => langTranslator(['en' => ['g' => ['n' => null, 's' => ':x']]])->get('g', ['x' => 'y']));
+probe('get-group-null-leaf-with-replacements', "t(['en' => ['g' => ['n' => null, 's' => ':x']]])->get('g', ['x' => 'y'])", fn () => @langTranslator(['en' => ['g' => ['n' => null, 's' => ':x']]])->get('g', ['x' => 'y']));
 probe('get-empty-group-returns-key', "t(['en' => ['g' => []]])->get('g')", fn () => langTranslator(['en' => ['g' => []]])->get('g'));
 probe('get-dotted-key-inside-group', "t(['en' => ['g' => ['a.b' => 'flat']]])->get('g.a.b')", fn () => langTranslator(['en' => ['g' => ['a.b' => 'flat']]])->get('g.a.b'));
 probe('get-list-group-index', "t(['en' => ['g' => ['a', 'b']]])->get('g.1')", fn () => langTranslator(['en' => ['g' => ['a', 'b']]])->get('g.1'));
