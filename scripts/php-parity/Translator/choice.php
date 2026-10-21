@@ -22,6 +22,8 @@ probe('choice-list-replace-gains-count', "t([])->choice(':0 :count', 2, ['z'])",
 probe('choice-uses-fallback-locale-rule', "langTranslator(T3, 'cs', 'en')->choice('files', 5)", fn () => langTranslator($t3, 'cs', 'en')->choice('files', 5));
 probe('choice-uses-own-locale-rule', "langTranslator(T3, 'ru', 'en')->choice('files', 5)", fn () => langTranslator($t3, 'ru', 'en')->choice('files', 5));
 probe('choice-locale-argument', "langTranslator(T3, 'en', 'en')->choice('files', 5, [], 'ru')", fn () => langTranslator($t3, 'en', 'en')->choice('files', 5, [], 'ru'));
+probe('choice-locale-zero-arg', "langTranslator(T3, 'ru', 'en')->choice('files', 5, [], '0')", fn () => langTranslator($t3, 'ru', 'en')->choice('files', 5, [], '0'));
+probe('choice-reads-a-fallback-json-line', "langTranslator(['es' => [], 'en' => [':n apples' => '{1} :n apple|[2,*] :n apples']], 'es', 'en')->choice(':n apples', 1, ['n' => 1])", fn () => langTranslator(['es' => [], 'en' => [':n apples' => '{1} :n apple|[2,*] :n apples']], 'es', 'en')->choice(':n apples', 1, ['n' => 1]));
 probe('choice-without-fallback-uses-first-form', "t([])->choice('item|items', 5)", fn () => langTranslator([])->choice('item|items', 5));
 probe('choice-with-fallback-uses-its-rule', "langTranslator([], 'en', 'en')->choice('item|items', 5)", fn () => langTranslator([], 'en', 'en')->choice('item|items', 5));
 

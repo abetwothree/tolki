@@ -18,6 +18,16 @@ probe('missing-key-handler-receives-arguments', "get('nope', ['x' => '1']) with 
 
     return $seen;
 });
+probe('missing-key-handler-receives-locale-and-fallback', "get('nope', [], 'fr', false) with a handler recording its arguments", function () {
+    $seen = null;
+    $t = langTranslator([]);
+    $t->handleMissingKeysUsing(function (...$args) use (&$seen) {
+        $seen = $args;
+    });
+    $t->get('nope', [], 'fr', false);
+
+    return $seen;
+});
 probe('missing-key-handler-result-is-replaced', "handler returns 'Missing :x'; get('nope', ['x' => '1'])", fn () => langTranslator([])->handleMissingKeysUsing(fn () => 'Missing :x')->get('nope', ['x' => '1']));
 probe('missing-key-handler-null-keeps-key', "handler returns null; get('nope')", fn () => langTranslator([])->handleMissingKeysUsing(fn () => null)->get('nope'));
 probe('missing-key-handler-not-recursive', "handler returns \$t->get('other'); get('nope')", function () {

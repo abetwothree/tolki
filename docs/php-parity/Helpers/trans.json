@@ -13,6 +13,11 @@
             "label": "trans-translates",
             "php": "trans('g.a')",
             "value": "A"
+        },
+        {
+            "label": "trans-locale-argument",
+            "php": "trans('g.a', [], 'es') with an es line",
+            "value": "A-es"
         }
     ]
 }

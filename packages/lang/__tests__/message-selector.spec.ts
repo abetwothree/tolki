@@ -78,7 +78,8 @@ describe("choose", () => {
         expect(choose("one | many", 1, "en")).toBe("one ");
     });
 
-    // docs/php-parity/MessageSelector/choose.json, "choose-inline-trims-php-whitespace"
+    // docs/php-parity/MessageSelector/choose.json, "choose-inline-trims-php-whitespace",
+    // "choose-inline-trims-nul-vertical-tab-and-carriage-return"
     it("trims an inline segment as PHP's trim does", () => {
         expect(choose("{1} \t one \n|[2,*] many", 1, "en")).toBe("one");
         expect(choose("{1}\0\x0Bone\r|[2,*] many", 1, "en")).toBe("one");

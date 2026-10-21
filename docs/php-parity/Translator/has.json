@@ -45,6 +45,11 @@
             "value": true
         },
         {
+            "label": "has-json-line-for-locale",
+            "php": "t(['lv' => ['Z' => '']])->has('Z', 'lv')",
+            "value": true
+        },
+        {
             "label": "has-locale-argument-without-fallback",
             "php": "[has('g.b', 'lv'), has('g.b')] on t(['lv' => ['g' => ['b' => 'B']]]), no fallback",
             "value": [

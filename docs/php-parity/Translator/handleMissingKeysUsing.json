@@ -17,6 +17,16 @@
             ]
         },
         {
+            "label": "missing-key-handler-receives-locale-and-fallback",
+            "php": "get('nope', [], 'fr', false) with a handler recording its arguments",
+            "value": [
+                "nope",
+                [],
+                "fr",
+                false
+            ]
+        },
+        {
             "label": "missing-key-handler-result-is-replaced",
             "php": "handler returns 'Missing :x'; get('nope', ['x' => '1'])",
             "value": "Missing 1"

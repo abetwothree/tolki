@@ -65,6 +65,16 @@
             "value": "\u0444\u0430\u0439\u043b\u043e\u0432"
         },
         {
+            "label": "choice-locale-zero-arg",
+            "php": "langTranslator(T3, 'ru', 'en')->choice('files', 5, [], '0')",
+            "value": "\u0444\u0430\u0439\u043b\u043e\u0432"
+        },
+        {
+            "label": "choice-reads-a-fallback-json-line",
+            "php": "langTranslator(['es' => [], 'en' => [':n apples' => '{1} :n apple|[2,*] :n apples']], 'es', 'en')->choice(':n apples', 1, ['n' => 1])",
+            "value": "1 apple"
+        },
+        {
             "label": "choice-without-fallback-uses-first-form",
             "php": "t([])->choice('item|items', 5)",
             "value": "item"

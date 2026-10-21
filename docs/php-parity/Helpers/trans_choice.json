@@ -13,6 +13,11 @@
             "label": "trans-choice-with-fallback",
             "php": "trans_choice('x|y', 2) with fallback 'en'",
             "value": "y"
+        },
+        {
+            "label": "trans-choice-replace-and-locale",
+            "php": "trans_choice('x', 2, ['n' => 'N'], 'ru') on a ru line ':n \u043e\u0434\u0438\u043d|:n \u0434\u0432\u0430|:n \u043c\u043d\u043e\u0433\u043e'",
+            "value": "N \u0434\u0432\u0430"
         }
     ]
 }

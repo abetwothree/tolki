@@ -605,6 +605,11 @@
             "value": "one"
         },
         {
+            "label": "choose-inline-trims-nul-vertical-tab-and-carriage-return",
+            "php": "choose(\"{1}\\0\\x0Bone\\r|[2,*] many\", 1, 'en')",
+            "value": "one"
+        },
+        {
             "label": "choose-inline-keeps-nbsp",
             "php": "choose(\"{1}\\u{00A0}one\\u{00A0}|[2,*] many\", 1, 'en')",
             "value": "\u00a0one\u00a0"

@@ -69,6 +69,13 @@ describe("Translator", () => {
         it("finds a line of the locale itself", () => {
             expect(withFallback(T2, "en", "lv").hasForLocale("g.a")).toBe(true);
         });
+
+        // docs/php-parity/Translator/hasForLocale.json, "has-for-locale-locale-argument"
+        it("reads the given locale", () => {
+            expect(withFallback(T2, "en", "lv").hasForLocale("g.b", "lv")).toBe(
+                true,
+            );
+        });
     });
 
     describe("has", () => {
@@ -114,6 +121,13 @@ describe("Translator", () => {
         // docs/php-parity/Translator/has.json, "has-locale-argument"
         it("reads the given locale", () => {
             expect(withFallback(T2, "en", "lv").has("g.b", "lv")).toBe(true);
+        });
+
+        // docs/php-parity/Translator/has.json, "has-json-line-for-locale"
+        it("finds a JSON line of the given locale", () => {
+            expect(new Translator({ lv: { Z: "" } }, "en").has("Z", "lv")).toBe(
+                true,
+            );
         });
 
         // docs/php-parity/Translator/has.json, "has-locale-argument-without-fallback"
@@ -655,6 +669,24 @@ describe("Translator", () => {
             ).toBe("файлов");
         });
 
+        // docs/php-parity/Translator/choice.json, "choice-locale-zero-arg"
+        it("reads the default locale for a locale of 0", () => {
+            expect(
+                withFallback(T3, "ru", "en").choice("files", 5, [], "0"),
+            ).toBe("файлов");
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-reads-a-fallback-json-line"
+        it("reads the line from the locale it chose", () => {
+            const translator = withFallback(
+                { es: {}, en: { ":n apples": "{1} :n apple|[2,*] :n apples" } },
+                "es",
+                "en",
+            );
+
+            expect(translator.choice(":n apples", 1, { n: 1 })).toBe("1 apple");
+        });
+
         // docs/php-parity/Translator/choice.json, "choice-without-fallback-uses-first-form"
         it("uses the first form when no fallback is set", () => {
             expect(new Translator({}, "en").choice("item|items", 5)).toBe(
@@ -819,6 +851,21 @@ describe("Translator", () => {
             translator.get("nope", { x: "1" });
 
             expect(seen).toEqual(["nope", { x: "1" }, "en", true]);
+        });
+
+        // docs/php-parity/Translator/handleMissingKeysUsing.json, "missing-key-handler-receives-locale-and-fallback"
+        it("passes the locale and the fallback flag it read", () => {
+            let seen: unknown[] = [];
+            const translator = new Translator({}, "en");
+
+            translator.handleMissingKeysUsing((...args) => {
+                seen = args;
+
+                return null;
+            });
+            translator.get("nope", [], "fr", false);
+
+            expect(seen).toEqual(["nope", [], "fr", false]);
         });
 
         // docs/php-parity/Translator/handleMissingKeysUsing.json, "missing-key-handler-result-is-replaced"

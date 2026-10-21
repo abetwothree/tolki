@@ -13,6 +13,11 @@
             "label": "has-for-locale-own-line",
             "php": "t(T2, 'en', 'lv')->hasForLocale('g.a')",
             "value": true
+        },
+        {
+            "label": "has-for-locale-locale-argument",
+            "php": "t(T2, 'en', 'lv')->hasForLocale('g.b', 'lv')",
+            "value": true
         }
     ]
 }

@@ -13,6 +13,11 @@
             "label": "underscore-translates",
             "php": "__('g.a')",
             "value": "A"
+        },
+        {
+            "label": "underscore-locale-argument",
+            "php": "__('g.a', [], 'es') with an es line",
+            "value": "A-es"
         }
     ]
 }

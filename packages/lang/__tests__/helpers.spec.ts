@@ -2,6 +2,7 @@ import { createHelpers, Translator } from "@tolki/lang";
 import { describe, expect, it } from "vitest";
 
 const lines = { en: { g: { a: "A" } } };
+const bilingual = { en: { g: { a: "A" } }, es: { g: { a: "A-es" } } };
 
 describe("createHelpers", () => {
     describe("__", () => {
@@ -22,6 +23,13 @@ describe("createHelpers", () => {
             // docs/php-parity/Helpers/trans.json, "trans-translates"
             expect(trans("g.a")).toBe("A");
         });
+
+        // docs/php-parity/Helpers/__.json, "underscore-locale-argument"
+        it("reads the given locale", () => {
+            const { __ } = createHelpers(new Translator(bilingual, "en"));
+
+            expect(__("g.a", {}, "es")).toBe("A-es");
+        });
     });
 
     describe("trans", () => {
@@ -32,6 +40,13 @@ describe("createHelpers", () => {
 
             expect(trans()).toBe(translator);
             expect(trans(null)).toBe(translator);
+        });
+
+        // docs/php-parity/Helpers/trans.json, "trans-locale-argument"
+        it("reads the given locale", () => {
+            const { trans } = createHelpers(new Translator(bilingual, "en"));
+
+            expect(trans("g.a", {}, "es")).toBe("A-es");
         });
     });
 
@@ -47,6 +62,15 @@ describe("createHelpers", () => {
 
             // docs/php-parity/Helpers/trans_choice.json, "trans-choice-with-fallback"
             expect(transChoice("x|y", 2)).toBe("y");
+        });
+
+        // docs/php-parity/Helpers/trans_choice.json, "trans-choice-replace-and-locale"
+        it("passes the replacements and the locale", () => {
+            const { transChoice } = createHelpers(
+                new Translator({ ru: { x: ":n один|:n два|:n много" } }, "en"),
+            );
+
+            expect(transChoice("x", 2, { n: "N" }, "ru")).toBe("N два");
         });
     });
 

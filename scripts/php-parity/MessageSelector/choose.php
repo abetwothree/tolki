@@ -43,6 +43,7 @@ probe('choose-nan-misses-a-star-range', "choose('[*,*] all|none', NAN, 'en')", f
 probe('choose-plural-segment-keeps-spaces', "choose('one | many', 2, 'en')", fn () => $s->choose('one | many', 2, 'en'));
 probe('choose-first-segment-keeps-spaces', "choose('one | many', 1, 'en')", fn () => $s->choose('one | many', 1, 'en'));
 probe('choose-inline-trims-php-whitespace', "choose(\"{1} \\t one \\n|[2,*] many\", 1, 'en')", fn () => $s->choose("{1} \t one \n|[2,*] many", 1, 'en'));
+probe('choose-inline-trims-nul-vertical-tab-and-carriage-return', "choose(\"{1}\\0\\x0Bone\\r|[2,*] many\", 1, 'en')", fn () => $s->choose("{1}\0\x0Bone\r|[2,*] many", 1, 'en'));
 probe('choose-inline-keeps-nbsp', "choose(\"{1}\\u{00A0}one\\u{00A0}|[2,*] many\", 1, 'en')", fn () => $s->choose("{1}\u{00A0}one\u{00A0}|[2,*] many", 1, 'en'));
 probe('choose-inline-keeps-form-feed', "choose(\"{1}\\x0Bone\\f|[2,*] many\", 1, 'en')", fn () => $s->choose("{1}\x0Bone\f|[2,*] many", 1, 'en'));
 probe('choose-inline-spans-lines', "choose(\"{1}a\\r\\nb|[2,*]c\", 1, 'en')", fn () => $s->choose("{1}a\r\nb|[2,*]c", 1, 'en'));
