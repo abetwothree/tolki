@@ -13,6 +13,7 @@ const packageDocsFiles = {
     helpers: "helpers.md",
     collections: "collections.md",
     strings: "strings.md",
+    localization: "localization.md",
 } as const;
 
 /**

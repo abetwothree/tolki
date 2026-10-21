@@ -1,0 +1,12 @@
+
+Analyzing file: packages/lang/stubs/NamespacedItemResolver.php
+
+Found 5 function(s):
+
+METHOD DECLARATIONS:
+  public parseKey($key) [line 20]
+  protected parseBasicSegments($segments) [line 52]
+  protected parseNamespacedSegments($key) [line 75]
+  public setParsedKey($key, $parsed) [line 98]
+  public flushParsedKeys() [line 108]
+

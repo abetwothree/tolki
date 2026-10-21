@@ -1,0 +1,12 @@
+
+Analyzing file: packages/lang/stubs/MessageSelectorTest.php
+
+Found 5 function(s):
+
+METHOD DECLARATIONS:
+  public testChoose($expected, $id, $number) [line 12]
+  public testChooseWithFloatDoesNotTriggerDeprecation() [line 19]
+  public testChoosePluralizesFloats() [line 26]
+  public testChooseUsesAbsoluteValueForPluralRules() [line 33]
+  public chooseTestData() [line 50]
+

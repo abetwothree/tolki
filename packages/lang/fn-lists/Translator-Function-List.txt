@@ -1,0 +1,38 @@
+
+Analyzing file: packages/lang/stubs/Translator.php
+
+Found 31 function(s):
+
+METHOD DECLARATIONS:
+  public __construct($loader, $locale) [line 90]
+  public hasForLocale($key, $locale) [line 104]
+  public has($key, $locale, $fallback) [line 117]
+  public get($key, $replace, $locale, $fallback) [line 151]
+  public string($key, $replace, ?string $locale, $fallback) [line 197]
+  public array($key, $replace, ?string $locale, $fallback) [line 217]
+  public choice($key, $number, $replace, $locale) [line 239]
+  protected localeForChoice($key, $locale) [line 268]
+  protected getLine($namespace, $group, $locale, $item, $replace) [line 285]
+  protected makeReplacements($line, $replace) [line 309]
+  public addLines($lines, $locale, $namespace) [line 350]
+  public load($namespace, $group, $locale) [line 367]
+  protected isLoaded($namespace, $group, $locale) [line 389]
+  protected handleMissingTranslationKey($key, $replace, $locale, $fallback) [line 403]
+  public handleMissingKeysUsing(?callable $callback) [line 429]
+  public addNamespace($namespace, $hint) [line 443]
+  public addPath($path) [line 454]
+  public addJsonPath($path) [line 465]
+  public parseKey($key) [line 476]
+  protected localeArray($locale) [line 493]
+  public determineLocalesUsing($callback) [line 508]
+  public getSelector() [line 518]
+  public setSelector($selector) [line 533]
+  public getLoader() [line 543]
+  public locale() [line 553]
+  public getLocale() [line 563]
+  public setLocale($locale) [line 576]
+  public getFallback() [line 590]
+  public setFallback($fallback) [line 601]
+  public setLoaded($loaded) [line 612]
+  public stringable($class, $handler) [line 624]
+

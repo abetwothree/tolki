@@ -29,6 +29,22 @@ const packageFiles = {
         "Jsonable.php": "src/Illuminate/Contracts/Support/Jsonable.php",
         "Common.php": "tests/Support/Common.php",
     },
+    lang: {
+        "ArrayLoader.php": "src/Illuminate/Translation/ArrayLoader.php",
+        "FileLoader.php": "src/Illuminate/Translation/FileLoader.php",
+        "Loader.php": "src/Illuminate/Contracts/Translation/Loader.php",
+        "MessageSelector.php": "src/Illuminate/Translation/MessageSelector.php",
+        "MessageSelectorTest.php":
+            "tests/Translation/TranslationMessageSelectorTest.php",
+        "NamespacedItemResolver.php":
+            "src/Illuminate/Support/NamespacedItemResolver.php",
+        "Translator.php": "src/Illuminate/Translation/Translator.php",
+        "TranslatorContract.php":
+            "src/Illuminate/Contracts/Translation/Translator.php",
+        "TranslatorTest.php": "tests/Translation/TranslationTranslatorTest.php",
+        "functions.php": "src/Illuminate/Collections/functions.php",
+        "helpers.php": "src/Illuminate/Foundation/helpers.php",
+    },
     num: {
         "Number.php": "src/Illuminate/Support/Number.php",
         "NumberTest.php": "tests/Support/SupportNumberTest.php",

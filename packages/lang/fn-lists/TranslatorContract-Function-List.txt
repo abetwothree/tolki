@@ -1,0 +1,11 @@
+
+Analyzing file: packages/lang/stubs/TranslatorContract.php
+
+Found 4 function(s):
+
+METHOD DECLARATIONS:
+  public get($key, $replace, $locale) [line 15]
+  public choice($key, $number, $replace, $locale) [line 26]
+  public getLocale() [line 33]
+  public setLocale($locale) [line 41]
+

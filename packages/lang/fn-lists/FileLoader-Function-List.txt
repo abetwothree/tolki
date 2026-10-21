@@ -1,0 +1,20 @@
+
+Analyzing file: packages/lang/stubs/FileLoader.php
+
+Found 13 function(s):
+
+METHOD DECLARATIONS:
+  public __construct($files, array|string $path) [line 46]
+  public load($locale, $group, $namespace) [line 61]
+  protected loadNamespaced($locale, $group, $namespace) [line 87]
+  protected loadNamespaceOverrides($lines, $locale, $group, $namespace) [line 107]
+  protected loadPaths($paths, $locale, $group) [line 129]
+  protected loadJsonPaths($locale) [line 149]
+  protected isUnsafePathSegment($value, $allowSlashes) [line 174]
+  public addNamespace($namespace, $hint) [line 191]
+  public namespaces() [line 201]
+  public addPath($path) [line 212]
+  public addJsonPath($path) [line 223]
+  public paths() [line 233]
+  public jsonPaths() [line 243]
+
