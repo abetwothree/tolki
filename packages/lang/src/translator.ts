@@ -30,6 +30,9 @@ import type {
     Replacements,
     ReplacementValue,
     StringableType,
+    TranslationArray,
+    TranslationKey,
+    TranslationResult,
     TranslationValue,
 } from "./types";
 
@@ -282,6 +285,12 @@ export class Translator<TLines extends LangLines = LangLines> {
      * translator.get("messages.welcome", { name: "ann" }); // "Welcome, ann"
      * translator.get("messages.missing"); // "messages.missing"
      */
+    get<TKey extends TranslationKey<TLines> | (string & {})>(
+        key: TKey,
+        replace?: Replacements,
+        locale?: string | null,
+        fallback?: boolean,
+    ): TranslationResult<TLines, TKey>;
     get(
         key: string,
         replace: Replacements = {},
@@ -369,6 +378,12 @@ export class Translator<TLines extends LangLines = LangLines> {
      *
      * new Translator({ en: { g: { list: ["a", "b"] } } }, "en").array("g.list"); // ["a", "b"]
      */
+    array<TKey extends TranslationKey<TLines> | (string & {})>(
+        key: TKey,
+        replace?: Replacements,
+        locale?: string | null,
+        fallback?: boolean,
+    ): TranslationArray<TLines, TKey>;
     array(
         key: string,
         replace: Replacements = {},

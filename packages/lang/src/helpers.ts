@@ -4,6 +4,8 @@ import type {
     LangLines,
     Replacements,
     TranslationHelpers,
+    TranslationKey,
+    TranslationResult,
     TranslationValue,
 } from "./types";
 
@@ -30,11 +32,16 @@ export function createHelpers<TLines extends LangLines>(
      * @returns The translation, or null for a null key
      */
     function __(key?: null): null;
-    function __(
-        key: string,
+    function __<TKey extends TranslationKey<TLines> | (string & {})>(
+        key: TKey,
         replace?: Replacements,
         locale?: string | null,
-    ): TranslationValue;
+    ): TranslationResult<TLines, TKey>;
+    function __<TKey extends TranslationKey<TLines> | (string & {})>(
+        key?: TKey | null,
+        replace?: Replacements,
+        locale?: string | null,
+    ): TranslationResult<TLines, TKey> | null;
     function __(
         key?: string | null,
         replace: Replacements = {},
@@ -56,11 +63,16 @@ export function createHelpers<TLines extends LangLines>(
      * @returns The translator, or the translation
      */
     function trans(key?: null): Translator<TLines>;
-    function trans(
-        key: string,
+    function trans<TKey extends TranslationKey<TLines> | (string & {})>(
+        key: TKey,
         replace?: Replacements,
         locale?: string | null,
-    ): TranslationValue;
+    ): TranslationResult<TLines, TKey>;
+    function trans<TKey extends TranslationKey<TLines> | (string & {})>(
+        key?: TKey | null,
+        replace?: Replacements,
+        locale?: string | null,
+    ): Translator<TLines> | TranslationResult<TLines, TKey>;
     function trans(
         key?: string | null,
         replace: Replacements = {},
