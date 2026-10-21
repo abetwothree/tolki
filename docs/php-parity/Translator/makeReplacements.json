@@ -127,6 +127,11 @@
             "message": "mb_ucfirst(): Argument #1 ($string) must be of type string, LangOpaque given"
         },
         {
+            "label": "replace-value-keeps-html",
+            "php": "t([])->get('Hi :name', ['name' => '<b>Ann</b>'])",
+            "value": "Hi <b>Ann</b>"
+        },
+        {
             "label": "replace-tag",
             "php": "t([])->get('We have some nice <docs-link>documentation</docs-link>', ['docs-link' => fn ($c) => \"<a href=\\\"https://laravel.com/docs\\\">$c</a>\"])",
             "value": "We have some nice <a href=\"https://laravel.com/docs\">documentation</a>"

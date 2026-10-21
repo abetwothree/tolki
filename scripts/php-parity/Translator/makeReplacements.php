@@ -40,6 +40,7 @@ $replace('replace-string-backed-enum', ':a', ['a' => Baz::February], "':a', ['a'
 $replace('replace-int-backed-enum', ':a', ['a' => Bar::Thirteen], "':a', ['a' => Bar::Thirteen]");
 $replace('replace-array-value-throws', ':a', ['a' => [1]], "':a', ['a' => [1]]");
 $replace('replace-opaque-object-throws', ':a', ['a' => new LangOpaque], "':a', ['a' => new LangOpaque]");
+$replace('replace-value-keeps-html', 'Hi :name', ['name' => '<b>Ann</b>'], "'Hi :name', ['name' => '<b>Ann</b>']");
 $replace('replace-tag', 'We have some nice <docs-link>documentation</docs-link>', ['docs-link' => fn ($c) => "<a href=\"https://laravel.com/docs\">$c</a>"], "'We have some nice <docs-link>documentation</docs-link>', ['docs-link' => fn (\$c) => \"<a href=\\\"https://laravel.com/docs\\\">\$c</a>\"]");
 $replace('replace-tag-repeats', '<bold-this>bold</bold-this> something else <bold-this>also bold</bold-this>', ['bold-this' => fn ($c) => "<b>$c</b>"], "'<bold-this>bold</bold-this> something else <bold-this>also bold</bold-this>', ['bold-this' => fn (\$c) => \"<b>\$c</b>\"]");
 $replace('replace-tag-closure-int', '<b>x</b>', ['b' => fn () => 5], "'<b>x</b>', ['b' => fn () => 5]");

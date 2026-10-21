@@ -445,6 +445,10 @@ makeReplacements(":a", { a: [1] });
 // => throws TypeError
 ```
 
+::: warning
+Tag callbacks and placeholder values are inserted unescaped, as in PHP, so never pass a line built from untrusted values to `v-html` or `dangerouslySetInnerHTML`. <!-- docs/php-parity/Translator/makeReplacements.json, "replace-value-keeps-html"; docs/php-parity/Translator/makeReplacements.json, "replace-tag" -->
+:::
+
 A list of values replaces `:0`, `:1` and so on. <!-- docs/php-parity/Translator/makeReplacements.json, "replace-list" -->
 
 ```js

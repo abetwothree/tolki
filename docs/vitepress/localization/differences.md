@@ -67,6 +67,37 @@ This merged shape changes three results of `addLines()`:
   // => { x: "X" }
   ```
 
+`setLoaded()` takes the same per-locale object as the constructor. Laravel's `setLoaded()` takes its loaded array, keyed by namespace, then group, then locale, such as `['*' => ['messages' => ['en' => [...]]]]`. <!-- docs/php-parity/Translator/setLoaded.json, "set-loaded-replaces-lines" -->
+
+```js
+import { Translator } from "@tolki/lang";
+
+const translator = new Translator({ en: { g: { a: "old" } } }, "en");
+
+translator.setLoaded({ en: { g: { a: "new" } } });
+
+translator.get("g.a");
+// => "new"
+```
+
+## Types follow the constructor's lines
+
+The keys and results are typed from the lines you pass to the constructor. A group that only `addLines()` added is typed as a string, the answer for a key with no line, even though `get()` answers the group. Read such a group with `array()`, which is typed as a group, or cast the result.
+
+```js
+import { Translator } from "@tolki/lang";
+
+const translator = new Translator({ en: { messages: { hi: "Hi" } } }, "en");
+
+translator.addLines({ "extra.bye": "Bye" }, "en");
+
+translator.get("extra");
+// => { bye: "Bye" }
+
+translator.array("extra");
+// => { bye: "Bye" }
+```
+
 ## Locales and the fallback
 
 Laravel's plural table spells locales `en_US`, so a hyphenated BCP 47 tag gets the default rule, which is always index 0, so `getPluralIndex("en-US", 5)` is 0. This port matches Laravel and adds [`normalizeLocale`](./translator.md#normalizelocale) to convert a tag, which you apply to the locale and to the keys of your lines alike. <!-- docs/php-parity/MessageSelector/getPluralIndex.json, "plural-index-en-US"; docs/php-parity/MessageSelector/getPluralIndex.json, "plural-index-pt-BR" -->
@@ -97,6 +128,20 @@ makeReplacements("<a.b>hi</a.b> <aXb>hi</aXb>", {
   "a.b": (text) => text.toUpperCase(),
 });
 // => "HI <aXb>hi</aXb>"
+```
+
+## Replacements are not escaped
+
+Tag callbacks and placeholder values are inserted unescaped, as in PHP, so never pass a line built from untrusted values to `v-html` or `dangerouslySetInnerHTML`. <!-- docs/php-parity/Translator/makeReplacements.json, "replace-value-keeps-html"; docs/php-parity/Translator/makeReplacements.json, "replace-tag" -->
+
+```js
+import { makeReplacements } from "@tolki/lang";
+
+makeReplacements("Hi :name", { name: "<b>Ann</b>" });
+// => "Hi <b>Ann</b>"
+
+makeReplacements("<b>hi</b>", { b: (text) => `<i>${text}</i>` });
+// => "<i>hi</i>"
 ```
 
 ## Objects need a handler

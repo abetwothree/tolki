@@ -78,20 +78,27 @@ translator.get("*.Hello", { name: "Ann" });
 
 ### Building the lines on the server
 
-With Laravel and Inertia, the server can build this object and share it as a prop. Read the locale's JSON file with `lang_path()`, and add each group with `trans()`, which answers a whole group when you give it only the group's name. <!-- docs/php-parity/Translator/get.json, "get-group-leaves-keep-type-without-replacements" -->
+With Laravel and Inertia, the server can build this object and share it as a prop. For the current locale and the fallback locale, read the JSON file with `lang_path()` when it exists, and add each group with `trans()`, which answers a whole group when you give it only the group's name. <!-- docs/php-parity/Translator/get.json, "get-group-leaves-keep-type-without-replacements" -->
 
 ```php
-Inertia::share('lines', fn () => [
-    app()->getLocale() => [
-        ...json_decode(
-            file_get_contents(lang_path(app()->getLocale().'.json')),
-            true,
-        ),
-        'messages' => trans('messages'),
-        'courier::mail' => trans('courier::mail'),
-    ],
-]);
+Inertia::share('lines', function () {
+    $lines = [];
+
+    foreach (array_unique([app()->getLocale(), config('app.fallback_locale')]) as $locale) {
+        $json = lang_path("{$locale}.json");
+
+        $lines[$locale] = [
+            ...(is_file($json) ? json_decode(file_get_contents($json), true) : []),
+            'messages' => trans('messages', [], $locale),
+            'courier::mail' => trans('courier::mail', [], $locale),
+        ];
+    }
+
+    return $lines;
+});
 ```
+
+Share the fallback locale's lines as well: after `setFallback()`, a group line the current locale lacks is read from the fallback locale, as in Laravel, and the translator can only read lines the page was sent. <!-- docs/php-parity/Translator/getFallback.json, "fallback-starts-null"; docs/php-parity/Translator/get.json, "get-group-reads-fallback-locale" -->
 
 Share only the groups the page needs, because everything in the object ships to the browser.
 

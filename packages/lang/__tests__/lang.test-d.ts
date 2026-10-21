@@ -76,6 +76,15 @@ describe("Translator types", () => {
         expectTypeOf(translator.get("missing.key")).toEqualTypeOf<string>();
     });
 
+    it("types a group only addLines() added as a string, and array() as a group", () => {
+        const added = new Translator({ en: { messages: { hi: "Hi" } } }, "en");
+
+        added.addLines({ "extra.bye": "Bye" }, "en");
+
+        expectTypeOf(added.get("extra")).toEqualTypeOf<string>();
+        expectTypeOf(added.array("extra")).toEqualTypeOf<LangGroup>();
+    });
+
     it("answers either for untyped lines", () => {
         const wide = new Translator({} as LangLines, "en");
 

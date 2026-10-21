@@ -80,20 +80,27 @@ translator.get("*.Hello", { name: "Ann" });
 
 #### Building the lines on the server
 
-With Laravel and Inertia, the server can build this object and share it as a prop. Read the locale's JSON file with `lang_path()`, and add each group with `trans()`, which answers a whole group when you give it only the group's name. <!-- docs/php-parity/Translator/get.json, "get-group-leaves-keep-type-without-replacements" -->
+With Laravel and Inertia, the server can build this object and share it as a prop. For the current locale and the fallback locale, read the JSON file with `lang_path()` when it exists, and add each group with `trans()`, which answers a whole group when you give it only the group's name. <!-- docs/php-parity/Translator/get.json, "get-group-leaves-keep-type-without-replacements" -->
 
 ```php
-Inertia::share('lines', fn () => [
-    app()->getLocale() => [
-        ...json_decode(
-            file_get_contents(lang_path(app()->getLocale().'.json')),
-            true,
-        ),
-        'messages' => trans('messages'),
-        'courier::mail' => trans('courier::mail'),
-    ],
-]);
+Inertia::share('lines', function () {
+    $lines = [];
+
+    foreach (array_unique([app()->getLocale(), config('app.fallback_locale')]) as $locale) {
+        $json = lang_path("{$locale}.json");
+
+        $lines[$locale] = [
+            ...(is_file($json) ? json_decode(file_get_contents($json), true) : []),
+            'messages' => trans('messages', [], $locale),
+            'courier::mail' => trans('courier::mail', [], $locale),
+        ];
+    }
+
+    return $lines;
+});
 ```
+
+Share the fallback locale's lines as well: after `setFallback()`, a group line the current locale lacks is read from the fallback locale, as in Laravel, and the translator can only read lines the page was sent. <!-- docs/php-parity/Translator/getFallback.json, "fallback-starts-null"; docs/php-parity/Translator/get.json, "get-group-reads-fallback-locale" -->
 
 Share only the groups the page needs, because everything in the object ships to the browser.
 
@@ -661,6 +668,8 @@ makeReplacements(":a", { a: [1] });
 // => throws TypeError
 ```
 
+Tag callbacks and placeholder values are inserted unescaped, as in PHP, so never pass a line built from untrusted values to `v-html` or `dangerouslySetInnerHTML`. <!-- docs/php-parity/Translator/makeReplacements.json, "replace-value-keeps-html"; docs/php-parity/Translator/makeReplacements.json, "replace-tag" -->
+
 A list of values replaces `:0`, `:1` and so on. <!-- docs/php-parity/Translator/makeReplacements.json, "replace-list" -->
 
 ```js
@@ -962,6 +971,37 @@ This merged shape changes three results of `addLines()`:
   // => { x: "X" }
   ```
 
+`setLoaded()` takes the same per-locale object as the constructor. Laravel's `setLoaded()` takes its loaded array, keyed by namespace, then group, then locale, such as `['*' => ['messages' => ['en' => [...]]]]`. <!-- docs/php-parity/Translator/setLoaded.json, "set-loaded-replaces-lines" -->
+
+```js
+import { Translator } from "@tolki/lang";
+
+const translator = new Translator({ en: { g: { a: "old" } } }, "en");
+
+translator.setLoaded({ en: { g: { a: "new" } } });
+
+translator.get("g.a");
+// => "new"
+```
+
+### Types follow the constructor's lines
+
+The keys and results are typed from the lines you pass to the constructor. A group that only `addLines()` added is typed as a string, the answer for a key with no line, even though `get()` answers the group. Read such a group with `array()`, which is typed as a group, or cast the result.
+
+```js
+import { Translator } from "@tolki/lang";
+
+const translator = new Translator({ en: { messages: { hi: "Hi" } } }, "en");
+
+translator.addLines({ "extra.bye": "Bye" }, "en");
+
+translator.get("extra");
+// => { bye: "Bye" }
+
+translator.array("extra");
+// => { bye: "Bye" }
+```
+
 ### Locales and the fallback
 
 Laravel's plural table spells locales `en_US`, so a hyphenated BCP 47 tag gets the default rule, which is always index 0, so `getPluralIndex("en-US", 5)` is 0. This port matches Laravel and adds [`normalizeLocale`](https://tolki.abe.dev/localization/translator.html#normalizelocale) to convert a tag, which you apply to the locale and to the keys of your lines alike. <!-- docs/php-parity/MessageSelector/getPluralIndex.json, "plural-index-en-US"; docs/php-parity/MessageSelector/getPluralIndex.json, "plural-index-pt-BR" -->
@@ -992,6 +1032,20 @@ makeReplacements("<a.b>hi</a.b> <aXb>hi</aXb>", {
   "a.b": (text) => text.toUpperCase(),
 });
 // => "HI <aXb>hi</aXb>"
+```
+
+### Replacements are not escaped
+
+Tag callbacks and placeholder values are inserted unescaped, as in PHP, so never pass a line built from untrusted values to `v-html` or `dangerouslySetInnerHTML`. <!-- docs/php-parity/Translator/makeReplacements.json, "replace-value-keeps-html"; docs/php-parity/Translator/makeReplacements.json, "replace-tag" -->
+
+```js
+import { makeReplacements } from "@tolki/lang";
+
+makeReplacements("Hi :name", { name: "<b>Ann</b>" });
+// => "Hi <b>Ann</b>"
+
+makeReplacements("<b>hi</b>", { b: (text) => `<i>${text}</i>` });
+// => "<i>hi</i>"
 ```
 
 ### Objects need a handler
