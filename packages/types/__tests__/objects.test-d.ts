@@ -14,6 +14,7 @@ import type {
     NonKeyedItems,
     NonNullableObject,
     NonObjectItems,
+    ObjectDotPath,
     ObjectFlatValue,
     ObjectKey,
     ObjectPathValue,
@@ -659,6 +660,37 @@ describe("object helper types", () => {
             >().toEqualTypeOf<unknown>();
         });
 
+        it("reads a tuple member at its own index", () => {
+            type Pair = { list: [{ a: string }, string] };
+
+            expectTypeOf<
+                ObjectResolvePath<Pair, "list.0", never>
+            >().toEqualTypeOf<{
+                a: string;
+            }>();
+            expectTypeOf<
+                ObjectResolvePath<Pair, "list.1", never>
+            >().toEqualTypeOf<string>();
+            expectTypeOf<ObjectResolvePath<Pair, "list.0">>().toEqualTypeOf<{
+                a: string;
+            }>();
+            expectTypeOf<
+                ObjectResolvePath<Pair, "list.0", never>
+            >().not.toEqualTypeOf<{ a: string } | string>();
+        });
+
+        it("reads past a tuple's end and a list's index as maybe missing", () => {
+            expectTypeOf<
+                ObjectResolvePath<{ list: [{ a: string }, string] }, "list.2">
+            >().toEqualTypeOf<{ a: string } | string | null>();
+            expectTypeOf<
+                ObjectResolvePath<{ l: { a: string }[] }, "l.0", never>
+            >().toEqualTypeOf<{ a: string }>();
+            expectTypeOf<
+                ObjectResolvePath<{ l: { a: string }[] }, "l.0">
+            >().toEqualTypeOf<{ a: string } | null>();
+        });
+
         it("returns the whole object for a null path", () => {
             expectTypeOf<
                 ObjectResolvePath<{ a: number }, null>
@@ -682,6 +714,77 @@ describe("object helper types", () => {
                 ObjectResolvePath<TreeNode, "children.0.value">
             >().toEqualTypeOf<number | null>();
             expectTypeOf<ObjectPathValue<TreeNode>>().toEqualTypeOf<unknown>();
+        });
+    });
+
+    describe("ObjectDotPath", () => {
+        it("lists every path into a nested object", () => {
+            expectTypeOf<
+                ObjectDotPath<{ a: { b: string }; c: string }>
+            >().toEqualTypeOf<"a" | "a.b" | "c">();
+        });
+
+        it("lists a list's items by index", () => {
+            expectTypeOf<ObjectDotPath<{ l: { x: string }[] }>>().toEqualTypeOf<
+                "l" | `l.${number}` | `l.${number}.x`
+            >();
+            expectTypeOf<
+                ObjectDotPath<{ t: readonly [{ x: string }, string] }>
+            >().toEqualTypeOf<"t" | `t.${number}` | `t.${number}.x`>();
+        });
+
+        it("lists a number key and an optional or nullable key", () => {
+            expectTypeOf<
+                ObjectDotPath<{ 0: { z: string }; o?: { p: string } | null }>
+            >().toEqualTypeOf<"0" | "0.z" | "o" | "o.p">();
+        });
+
+        it("keeps only the paths to a value of the given type", () => {
+            expectTypeOf<
+                ObjectDotPath<{ a: { b: string }; c: string }, object>
+            >().toEqualTypeOf<"a">();
+            expectTypeOf<
+                ObjectDotPath<{ l: { x: string }[] }, string>
+            >().toEqualTypeOf<`l.${number}.x`>();
+        });
+
+        it("stops at the given depth", () => {
+            type Deep = { a: { b: { c: { d: { e: { f: { g: string } } } } } } };
+
+            expectTypeOf<ObjectDotPath<Deep, unknown, 2>>().toEqualTypeOf<
+                "a" | "a.b"
+            >();
+            expectTypeOf<"a.b.c.d.e">().toExtend<ObjectDotPath<Deep>>();
+            expectTypeOf<"a.b.c.d.e.f">().not.toExtend<ObjectDotPath<Deep>>();
+        });
+
+        it("ends a path at a scalar, a function or a built-in object", () => {
+            type Ends = {
+                m: Map<string, { x: string }>;
+                d: Date;
+                f: () => { x: string };
+                s: Set<{ x: string }>;
+                r: RegExp;
+                p: Promise<{ x: string }>;
+                n: number;
+                b: boolean;
+                i: bigint;
+                y: symbol;
+            };
+
+            expectTypeOf<ObjectDotPath<Ends>>().toEqualTypeOf<
+                "m" | "d" | "f" | "s" | "r" | "p" | "n" | "b" | "i" | "y"
+            >();
+        });
+
+        it("accepts a key whose type is a type parameter", () => {
+            function pick<T extends object>(key: ObjectDotPath<T>) {
+                return key;
+            }
+
+            expectTypeOf(pick<{ a: { b: string } }>)
+                .parameter(0)
+                .toEqualTypeOf<"a" | "a.b">();
         });
     });
 });

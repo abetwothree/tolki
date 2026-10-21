@@ -388,9 +388,10 @@ type ObjectIndexStep<T, K extends string> = K extends keyof T
  * ends the path; a built-in object's members are mostly on its prototype, which `Object.hasOwn` doesn't see.
  */
 type ObjectPathStep<T, K extends string> = T extends readonly unknown[]
-    ? K extends `${infer N extends number}`
-        ? N extends KnownObjectKeys<T>
-            ? [T[N], false]
+    ? K extends `${number}`
+        ? // A tuple declares its indices as string keys, so the segment matches one and its number never does.
+          K extends KnownObjectKeys<T>
+            ? [T[K & keyof T], false]
             : [T[number], true]
         : [never, true]
     : T extends ReadonlyMap<unknown, infer V>
@@ -555,3 +556,56 @@ export type ObjectResolvePath<T, P, TDefault = null> = P extends
       : ObjectPathTop<T, P> extends [infer V, infer M]
         ? V | (true extends M ? TDefault : never)
         : TDefault;
+
+/** The depth left one segment further down. */
+type ObjectDotPathDepth = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+/** A path, when the value under it can be a `TValue`. */
+type ObjectDotPathTo<TPath extends string, TChild, TValue> = [
+    Extract<TChild, TValue>,
+] extends [never]
+    ? never
+    : TPath;
+
+/**
+ * Every dot path into `T`, at most `TDepth` segments deep (10 at most), whose value can be a `TValue`. An object's
+ * paths go by its string and number keys and a list's by index; a scalar, a function or a built-in object such as a
+ * `Map`, a `Set`, a `Date`, a `RegExp` or a `Promise` ends the path.
+ *
+ * @example
+ * ObjectDotPath<{ a: { b: string }; c: string }>         // "a" | "a.b" | "c"
+ * ObjectDotPath<{ l: { x: string }[] }>                  // "l" | `l.${number}` | `l.${number}.x`
+ * ObjectDotPath<{ a: { b: string }; c: string }, object> // "a"
+ */
+export type ObjectDotPath<
+    T,
+    TValue = unknown,
+    TDepth extends number = 5,
+> = TDepth extends 0
+    ? never
+    : T extends
+            | string
+            | number
+            | boolean
+            | bigint
+            | symbol
+            | ((...args: never[]) => unknown)
+            | ReadonlyMap<unknown, unknown>
+            | ReadonlySet<unknown>
+            | WeakMap<object, unknown>
+            | WeakSet<object>
+            | Date
+            | RegExp
+            | Promise<unknown>
+      ? never
+      : T extends readonly (infer TItem)[]
+        ?
+              | ObjectDotPathTo<`${number}`, TItem, TValue>
+              | `${number}.${ObjectDotPath<TItem, TValue, ObjectDotPathDepth[TDepth]>}`
+        : T extends object
+          ? {
+                [TKey in keyof T & (string | number)]:
+                    | ObjectDotPathTo<`${TKey}`, T[TKey], TValue>
+                    | `${TKey}.${ObjectDotPath<T[TKey], TValue, ObjectDotPathDepth[TDepth]>}`;
+            }[keyof T & (string | number)]
+          : never;
