@@ -1,6 +1,10 @@
-# @tolki/lang
+<p align="center"><img src="https://raw.githubusercontent.com/abetwothree/tolki/refs/heads/master/docs/vitepress/public/tolki-logo-short.svg" width="50%" alt="Laravel Tolki JS Logo"></p>
 
-Laravel's translator for JavaScript. Documentation: https://tolki.abe.dev/localization/
+# Tolki JS Language Package
+
+This package provides Laravel's translator functionality in JavaScript.
+
+Documentation: https://tolki.abe.dev/localization/
 
 <!-- AUTO-GENERATED-DOCS:START -->
 
