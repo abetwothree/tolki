@@ -25,4 +25,7 @@ probe('choice-locale-argument', "langTranslator(T3, 'en', 'en')->choice('files',
 probe('choice-without-fallback-uses-first-form', "t([])->choice('item|items', 5)", fn () => langTranslator([])->choice('item|items', 5));
 probe('choice-with-fallback-uses-its-rule', "langTranslator([], 'en', 'en')->choice('item|items', 5)", fn () => langTranslator([], 'en', 'en')->choice('item|items', 5));
 
+probe('choice-on-a-group-throws', "langTranslator(['en' => ['g' => ['a' => 'A']]])->choice('g', 2)", fn () => langTranslator(['en' => ['g' => ['a' => 'A']]])->choice('g', 2));
+probe('choice-on-a-json-number-line', "langTranslator(['en' => ['n' => 5]])->choice('n', 2)", fn () => langTranslator(['en' => ['n' => 5]])->choice('n', 2));
+
 emit();

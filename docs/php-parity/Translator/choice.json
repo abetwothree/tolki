@@ -73,6 +73,17 @@
             "label": "choice-with-fallback-uses-its-rule",
             "php": "langTranslator([], 'en', 'en')->choice('item|items', 5)",
             "value": "items"
+        },
+        {
+            "label": "choice-on-a-group-throws",
+            "php": "langTranslator(['en' => ['g' => ['a' => 'A']]])->choice('g', 2)",
+            "threw": "TypeError",
+            "message": "explode(): Argument #2 ($string) must be of type string, array given"
+        },
+        {
+            "label": "choice-on-a-json-number-line",
+            "php": "langTranslator(['en' => ['n' => 5]])->choice('n', 2)",
+            "value": "5"
         }
     ]
 }

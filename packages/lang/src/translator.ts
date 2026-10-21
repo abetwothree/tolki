@@ -13,6 +13,7 @@ import {
     isSet,
     isString,
     isUndefined,
+    phpStringCast,
     phpTypeName,
 } from "@tolki/utils";
 
@@ -393,7 +394,7 @@ export class Translator<TLines extends LangLines = LangLines> {
      * @param replace - The placeholder values; `count` is added unless it holds a value
      * @param locale - The locale to read, the default locale when empty
      * @returns The chosen form with its placeholders replaced
-     * @throws InvalidArgumentException when the key names a group
+     * @throws TypeError when the key names a group, as PHP's explode() does
      *
      * @example
      *
@@ -406,7 +407,15 @@ export class Translator<TLines extends LangLines = LangLines> {
         locale: string | null = null,
     ): string {
         const resolved = this.#localeForChoice(key, locale);
-        const line = this.string(key, [], resolved);
+        const value = this.get(key, [], resolved);
+
+        if (isGroup(value)) {
+            throw new TypeError(
+                "explode(): Argument #2 ($string) must be of type string, array given",
+            );
+        }
+
+        const line = phpStringCast(value);
 
         const count = countOf(number);
 

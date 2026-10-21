@@ -662,11 +662,25 @@ describe("Translator", () => {
             );
         });
 
-        // JS-only: PHP throws a TypeError handing a group to the selector; here the group is rejected up front.
-        it("throws for a key that names a group", () => {
-            expect(() => new Translator(T2, "en").choice("g", 2)).toThrow(
-                InvalidArgumentException,
+        // docs/php-parity/Translator/choice.json, "choice-on-a-group-throws"
+        it("throws a TypeError for a key that names a group", () => {
+            expect(() =>
+                new Translator({ en: { g: { a: "A" } } }, "en").choice("g", 2),
+            ).toThrow(
+                new TypeError(
+                    "explode(): Argument #2 ($string) must be of type string, array given",
+                ),
             );
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-on-a-json-number-line"
+        it("casts a number line to a string", () => {
+            const translator: Translator = Reflect.construct(Translator, [
+                { en: { n: 5 } },
+                "en",
+            ]);
+
+            expect(translator.choice("n", 2)).toBe("5");
         });
     });
 
