@@ -1,0 +1,50 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "missing-key-handler-receives-arguments",
+            "php": "get('nope', ['x' => '1']) with a handler recording its arguments",
+            "value": [
+                "nope",
+                {
+                    "x": "1"
+                },
+                "en",
+                true
+            ]
+        },
+        {
+            "label": "missing-key-handler-result-is-replaced",
+            "php": "handler returns 'Missing :x'; get('nope', ['x' => '1'])",
+            "value": "Missing 1"
+        },
+        {
+            "label": "missing-key-handler-null-keeps-key",
+            "php": "handler returns null; get('nope')",
+            "value": "nope"
+        },
+        {
+            "label": "missing-key-handler-not-recursive",
+            "php": "handler returns $t->get('other'); get('nope')",
+            "value": "other"
+        },
+        {
+            "label": "missing-key-handler-skipped-for-a-found-line",
+            "php": "get('g.a') on a found line; the handler's call count",
+            "value": 0
+        },
+        {
+            "label": "missing-key-handler-returns-translator",
+            "php": "$t->handleMissingKeysUsing(null) === $t",
+            "value": true
+        },
+        {
+            "label": "missing-key-handler-throw-disables-it",
+            "php": "a throwing handler, then a second handler; get('a') throws, get('b')",
+            "value": "b"
+        }
+    ]
+}

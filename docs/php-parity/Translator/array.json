@@ -1,0 +1,33 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "array-returns-group",
+            "php": "t(['en' => ['foo::bar' => ['baz' => ['breeze :foo']]]])->array('foo::bar.baz', ['foo' => 'bar'])",
+            "value": [
+                "breeze bar"
+            ]
+        },
+        {
+            "label": "array-throws-for-line",
+            "php": "t(T1)->array('foo::bar.baz')",
+            "threw": "InvalidArgumentException",
+            "message": "Translation value for key [foo::bar.baz] must be an array, string given."
+        },
+        {
+            "label": "array-throws-for-missing-key",
+            "php": "t([])->array('g.a')",
+            "threw": "InvalidArgumentException",
+            "message": "Translation value for key [g.a] must be an array, string given."
+        },
+        {
+            "label": "array-throws-for-json-number",
+            "php": "t(['en' => ['n' => 5]])->array('n')",
+            "threw": "InvalidArgumentException",
+            "message": "Translation value for key [n] must be an array, integer given."
+        }
+    ]
+}

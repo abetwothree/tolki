@@ -1,0 +1,183 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "get-namespaced-list-item",
+            "php": "t(T1)->get('foo::bar.qux', ['foo' => 'bar'])",
+            "value": {
+                "0": "tree bar",
+                "1": "breeze bar",
+                "beep": {
+                    "rock": "tree bar"
+                }
+            }
+        },
+        {
+            "label": "get-namespaced-line",
+            "php": "t(T1)->get('foo::bar.baz', ['foo' => 'bar'])",
+            "value": "breeze bar"
+        },
+        {
+            "label": "get-namespaced-line-without-replacements",
+            "php": "t(T1)->get('foo::bar.foo')",
+            "value": "foo"
+        },
+        {
+            "label": "get-whole-group-walks-replacements",
+            "php": "t(T1)->get('foo::bar', ['foo' => 'bar'])",
+            "value": {
+                "foo": "foo",
+                "baz": "breeze bar",
+                "qux": {
+                    "0": "tree bar",
+                    "1": "breeze bar",
+                    "beep": {
+                        "rock": "tree bar"
+                    }
+                }
+            }
+        },
+        {
+            "label": "get-missing-namespaced-group-returns-key",
+            "php": "t(T1)->get('foo::unknown', ['foo' => 'bar'])",
+            "value": "foo::unknown"
+        },
+        {
+            "label": "get-missing-namespaced-item-returns-key",
+            "php": "t(T1)->get('foo::bar.unknown')",
+            "value": "foo::bar.unknown"
+        },
+        {
+            "label": "get-keeps-html",
+            "php": "t(['en' => ['foo' => ['bar' => 'breeze <p>test</p>']]])->get('foo.bar')",
+            "value": "breeze <p>test</p>"
+        },
+        {
+            "label": "get-group-reads-fallback-locale",
+            "php": "langTranslator(['lv' => ['foo::bar' => ['baz' => 'breeze :foo']]], 'en', 'lv')->get('foo::bar.baz', ['foo' => 'bar'])",
+            "value": "breeze bar"
+        },
+        {
+            "label": "get-global-group-line",
+            "php": "t(['en' => ['foo' => ['bar' => 'breeze :foo']]])->get('foo.bar', ['foo' => 'bar'])",
+            "value": "breeze bar"
+        },
+        {
+            "label": "get-json-line",
+            "php": "t(['en' => ['foo' => 'one']])->get('foo')",
+            "value": "one"
+        },
+        {
+            "label": "get-json-miss-reads-group",
+            "php": "t(['en' => ['foo' => ['bar' => 'one']]])->get('foo.bar')",
+            "value": "one"
+        },
+        {
+            "label": "get-json-miss-reads-group-and-replaces",
+            "php": "t(['en' => ['foo' => ['bar' => 'one :message']]])->get('foo.bar', ['message' => 'two'])",
+            "value": "one two"
+        },
+        {
+            "label": "get-missing-returns-key",
+            "php": "t([])->get('Foo that bar')",
+            "value": "Foo that bar"
+        },
+        {
+            "label": "get-missing-returns-key-and-replaces",
+            "php": "t([])->get('foo :message', ['message' => 'baz'])",
+            "value": "foo baz"
+        },
+        {
+            "label": "get-json-empty-line-returns-key",
+            "php": "t(['en' => ['Hi' => '']])->get('Hi')",
+            "value": "Hi"
+        },
+        {
+            "label": "get-json-zero-line-returns-key",
+            "php": "t(['en' => ['Hi' => '0']])->get('Hi')",
+            "value": "Hi"
+        },
+        {
+            "label": "get-json-number-line",
+            "php": "t(['en' => ['Hi' => 5]])->get('Hi')",
+            "value": 5
+        },
+        {
+            "label": "get-group-number-leaf-returns-key",
+            "php": "t(['en' => ['g' => ['n' => 5]]])->get('g.n')",
+            "value": "g.n"
+        },
+        {
+            "label": "get-json-ignores-fallback",
+            "php": "langTranslator(['es' => ['Hi' => 'Hola']], 'en', 'es')->get('Hi')",
+            "value": "Hi"
+        },
+        {
+            "label": "get-group-leaves-keep-type-without-replacements",
+            "php": "t(['en' => ['g' => ['n' => 5, 's' => ':x']]])->get('g')",
+            "value": {
+                "n": 5,
+                "s": ":x"
+            }
+        },
+        {
+            "label": "get-group-leaves-cast-with-replacements",
+            "php": "t(['en' => ['g' => ['n' => 5, 's' => ':x']]])->get('g', ['x' => 'y'])",
+            "value": {
+                "n": "5",
+                "s": "y"
+            }
+        },
+        {
+            "label": "get-group-null-leaf-with-replacements",
+            "php": "t(['en' => ['g' => ['n' => null, 's' => ':x']]])->get('g', ['x' => 'y'])",
+            "value": {
+                "n": "",
+                "s": "y"
+            }
+        },
+        {
+            "label": "get-empty-group-returns-key",
+            "php": "t(['en' => ['g' => []]])->get('g')",
+            "value": "g"
+        },
+        {
+            "label": "get-dotted-key-inside-group",
+            "php": "t(['en' => ['g' => ['a.b' => 'flat']]])->get('g.a.b')",
+            "value": "flat"
+        },
+        {
+            "label": "get-list-group-index",
+            "php": "t(['en' => ['g' => ['a', 'b']]])->get('g.1')",
+            "value": "b"
+        },
+        {
+            "label": "get-locale-zero-uses-default",
+            "php": "t(['en' => ['g' => ['a' => 'A']]])->get('g.a', [], '0')",
+            "value": "A"
+        },
+        {
+            "label": "get-locale-argument",
+            "php": "t(['es' => ['g' => ['a' => 'A-es']]])->get('g.a', [], 'es')",
+            "value": "A-es"
+        },
+        {
+            "label": "get-without-fallback",
+            "php": "langTranslator(['lv' => ['g' => ['a' => 'A']]], 'en', 'lv')->get('g.a', [], null, false)",
+            "value": "g.a"
+        },
+        {
+            "label": "get-extra-namespace-separator",
+            "php": "t([])->get('a::b::c.d')",
+            "value": "a::b::c.d"
+        },
+        {
+            "label": "get-json-line-is-not-a-group",
+            "php": "t(['en' => ['messages' => 'Messages']])->get('messages.welcome')",
+            "value": "messages.welcome"
+        }
+    ]
+}

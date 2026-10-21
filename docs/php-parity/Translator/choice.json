@@ -1,0 +1,78 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "choice-fills-count",
+            "php": "t(T3)->choice('apples', 3)",
+            "value": "3 apples"
+        },
+        {
+            "label": "choice-exact-one",
+            "php": "t(T3)->choice('apples', 1)",
+            "value": "one"
+        },
+        {
+            "label": "choice-custom-count",
+            "php": "t(T3)->choice(':count foos', 1234, ['count' => '1,234'])",
+            "value": "1,234 foos"
+        },
+        {
+            "label": "choice-counts-list",
+            "php": "t(T3)->choice('apples', ['a', 'b', 'c'])",
+            "value": "3 apples"
+        },
+        {
+            "label": "choice-counts-assoc-array",
+            "php": "t(T3)->choice('apples', ['a' => 1, 'b' => 2])",
+            "value": "2 apples"
+        },
+        {
+            "label": "choice-counts-collection",
+            "php": "t(T3)->choice('apples', collect([1, 2, 3]))",
+            "value": "3 apples"
+        },
+        {
+            "label": "choice-float",
+            "php": "t(T3)->choice('apples', 1.2)",
+            "value": " one"
+        },
+        {
+            "label": "choice-null-count-is-filled",
+            "php": "t(T3)->choice('apples', 3, ['count' => null])",
+            "value": "3 apples"
+        },
+        {
+            "label": "choice-list-replace-gains-count",
+            "php": "t([])->choice(':0 :count', 2, ['z'])",
+            "value": "z 2"
+        },
+        {
+            "label": "choice-uses-fallback-locale-rule",
+            "php": "langTranslator(T3, 'cs', 'en')->choice('files', 5)",
+            "value": "files"
+        },
+        {
+            "label": "choice-uses-own-locale-rule",
+            "php": "langTranslator(T3, 'ru', 'en')->choice('files', 5)",
+            "value": "\u0444\u0430\u0439\u043b\u043e\u0432"
+        },
+        {
+            "label": "choice-locale-argument",
+            "php": "langTranslator(T3, 'en', 'en')->choice('files', 5, [], 'ru')",
+            "value": "\u0444\u0430\u0439\u043b\u043e\u0432"
+        },
+        {
+            "label": "choice-without-fallback-uses-first-form",
+            "php": "t([])->choice('item|items', 5)",
+            "value": "item"
+        },
+        {
+            "label": "choice-with-fallback-uses-its-rule",
+            "php": "langTranslator([], 'en', 'en')->choice('item|items', 5)",
+            "value": "items"
+        }
+    ]
+}

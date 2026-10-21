@@ -1,0 +1,13 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "set-loaded-replaces-lines",
+            "php": "t(['en' => ['g' => ['a' => 'old']]]); setLoaded(['*' => ['g' => ['en' => ['a' => 'new']]]]); get('g.a')",
+            "value": "new"
+        }
+    ]
+}

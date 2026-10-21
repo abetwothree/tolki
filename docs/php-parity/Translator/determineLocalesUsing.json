@@ -1,0 +1,28 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "determine-locales-receives-locales",
+            "php": "t([]) with a recording resolver; get('g.a')",
+            "value": [
+                "en"
+            ]
+        },
+        {
+            "label": "determine-locales-receives-duplicates",
+            "php": "t([], 'en', 'en') with a recording resolver; get('g.a')",
+            "value": [
+                "en",
+                "en"
+            ]
+        },
+        {
+            "label": "determine-locales-adds-locale",
+            "php": "t(['fr' => ['g' => ['a' => 'fr']]]) with a resolver returning ['en', 'fr', 'en']; get('g.a')",
+            "value": "fr"
+        }
+    ]
+}

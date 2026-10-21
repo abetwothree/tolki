@@ -1,0 +1,18 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "trans-choice-without-fallback",
+            "php": "trans_choice('x|y', 2)",
+            "value": "x"
+        },
+        {
+            "label": "trans-choice-with-fallback",
+            "php": "trans_choice('x|y', 2) with fallback 'en'",
+            "value": "y"
+        }
+    ]
+}

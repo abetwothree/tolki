@@ -1,0 +1,48 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "set-locale-rejects-parent-path",
+            "php": "setLocale('../secret')",
+            "threw": "InvalidArgumentException",
+            "message": "Invalid characters present in locale."
+        },
+        {
+            "label": "set-locale-rejects-backslash",
+            "php": "setLocale('..\\\\secret')",
+            "threw": "InvalidArgumentException",
+            "message": "Invalid characters present in locale."
+        },
+        {
+            "label": "set-locale-rejects-dots",
+            "php": "setLocale('..')",
+            "threw": "InvalidArgumentException",
+            "message": "Invalid characters present in locale."
+        },
+        {
+            "label": "set-locale-rejects-nul",
+            "php": "setLocale(\"en\\0\")",
+            "threw": "InvalidArgumentException",
+            "message": "Invalid characters present in locale."
+        },
+        {
+            "label": "set-locale-rejects-slash",
+            "php": "setLocale('en/US')",
+            "threw": "InvalidArgumentException",
+            "message": "Invalid characters present in locale."
+        },
+        {
+            "label": "set-locale-keeps-previous-locale",
+            "php": "getLocale() after the five rejected setLocale calls",
+            "value": "en"
+        },
+        {
+            "label": "set-locale-accepts-region",
+            "php": "setLocale('en_US'); getLocale()",
+            "value": "en_US"
+        }
+    ]
+}

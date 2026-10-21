@@ -1,0 +1,52 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "add-lines-group-item",
+            "php": "t(['en' => ['g' => ['b' => 'B']]]); addLines(['g.a' => 'A'], 'en'); get('g.a')",
+            "value": "A"
+        },
+        {
+            "label": "add-lines-merges-into-group",
+            "php": "addLines(['g.a' => 'A'], 'en'); get('g')",
+            "value": {
+                "a": "A"
+            }
+        },
+        {
+            "label": "add-lines-nested-item",
+            "php": "addLines(['g.x.y' => 'deep'], 'en'); get('g.x.y')",
+            "value": "deep"
+        },
+        {
+            "label": "add-lines-key-without-dot",
+            "php": "addLines(['nodot' => 'v'], 'en'); get('nodot')",
+            "value": {
+                "": "v"
+            }
+        },
+        {
+            "label": "add-lines-key-without-dot-reads-empty-item",
+            "php": "addLines(['nodot' => 'v'], 'en'); get('nodot.')",
+            "value": "v"
+        },
+        {
+            "label": "add-lines-json-group",
+            "php": "addLines(['*.Hello' => 'Hola'], 'en'); get('Hello')",
+            "value": "Hola"
+        },
+        {
+            "label": "add-lines-json-dotted-key",
+            "php": "addLines(['*.x.y' => 'xy'], 'en'); get('x.y')",
+            "value": "x.y"
+        },
+        {
+            "label": "add-lines-namespace",
+            "php": "addLines(['g.a' => 'A'], 'en', 'courier'); get('courier::g.a')",
+            "value": "A"
+        }
+    ]
+}
