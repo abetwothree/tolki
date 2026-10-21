@@ -12,6 +12,7 @@ $set = fn (string $locale) => langTranslator([])->setLocale($locale);
 
 probe('set-locale-rejects-parent-path', "setLocale('../secret')", fn () => $set('../secret'));
 probe('set-locale-rejects-backslash', "setLocale('..\\\\secret')", fn () => $set('..\\secret'));
+probe('set-locale-rejects-lone-backslash', "setLocale('en\\\\US')", fn () => $set('en\\US'));
 probe('set-locale-rejects-dots', "setLocale('..')", fn () => $set('..'));
 probe('set-locale-rejects-nul', "setLocale(\"en\\0\")", fn () => $set("en\0"));
 probe('set-locale-rejects-slash', "setLocale('en/US')", fn () => $set('en/US'));

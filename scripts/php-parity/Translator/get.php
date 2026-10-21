@@ -26,6 +26,7 @@ probe('get-missing-returns-key', "t([])->get('Foo that bar')", fn () => langTran
 probe('get-missing-returns-key-and-replaces', "t([])->get('foo :message', ['message' => 'baz'])", fn () => langTranslator([])->get('foo :message', ['message' => 'baz']));
 probe('get-json-empty-line-returns-key', "t(['en' => ['Hi' => '']])->get('Hi')", fn () => langTranslator(['en' => ['Hi' => '']])->get('Hi'));
 probe('get-json-zero-line-returns-key', "t(['en' => ['Hi' => '0']])->get('Hi')", fn () => langTranslator(['en' => ['Hi' => '0']])->get('Hi'));
+probe('get-json-null-line-returns-key', "t(['en' => ['Hi' => null]])->get('Hi')", fn () => langTranslator(['en' => ['Hi' => null]])->get('Hi'));
 probe('get-json-number-line', "t(['en' => ['Hi' => 5]])->get('Hi')", fn () => langTranslator(['en' => ['Hi' => 5]])->get('Hi'));
 probe('get-group-number-leaf-returns-key', "t(['en' => ['g' => ['n' => 5]]])->get('g.n')", fn () => langTranslator(['en' => ['g' => ['n' => 5]]])->get('g.n'));
 probe('get-json-ignores-fallback', "langTranslator(['es' => ['Hi' => 'Hola']], 'en', 'es')->get('Hi')", fn () => langTranslator(['es' => ['Hi' => 'Hola']], 'en', 'es')->get('Hi'));

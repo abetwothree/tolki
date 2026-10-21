@@ -40,11 +40,28 @@
             "value": true
         },
         {
+            "label": "has-locale-argument-without-fallback",
+            "php": "[has('g.b', 'lv'), has('g.b')] on t(['lv' => ['g' => ['b' => 'B']]]), no fallback",
+            "value": [
+                true,
+                false
+            ]
+        },
+        {
             "label": "has-skips-missing-key-handler",
             "php": "[$t->has('g.zzz'), $calls] with a counting handler returning 'X'",
             "value": [
                 false,
                 0
+            ]
+        },
+        {
+            "label": "has-restores-missing-key-handler",
+            "php": "[$t->has('g.zzz'), $t->get('nope'), $calls] with a counting handler returning 'X'",
+            "value": [
+                false,
+                "X",
+                1
             ]
         }
     ]

@@ -33,5 +33,11 @@ probe('add-lines-key-without-dot-reads-empty-item', "addLines(['nodot' => 'v'], 
 probe('add-lines-json-group', "addLines(['*.Hello' => 'Hola'], 'en'); get('Hello')", fn () => $added(['*.Hello' => 'Hola'], 'Hello'));
 probe('add-lines-json-dotted-key', "addLines(['*.x.y' => 'xy'], 'en'); get('x.y')", fn () => $added(['*.x.y' => 'xy'], 'x.y'));
 probe('add-lines-namespace', "addLines(['g.a' => 'A'], 'en', 'courier'); get('courier::g.a')", fn () => $added(['g.a' => 'A'], 'courier::g.a', 'courier'));
+probe('add-lines-json-group-in-a-namespace', "addLines(['*.Hello' => 'Hola'], 'en', 'courier'); [get('Hello'), get('courier::*.Hello')]", function () use ($base) {
+    $t = $base();
+    $t->addLines(['*.Hello' => 'Hola'], 'en', 'courier');
+
+    return [$t->get('Hello'), $t->get('courier::*.Hello')];
+});
 
 emit();

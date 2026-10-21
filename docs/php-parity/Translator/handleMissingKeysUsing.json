@@ -45,6 +45,15 @@
             "label": "missing-key-handler-throw-disables-it",
             "php": "a throwing handler, then a second handler; get('a') throws, get('b')",
             "value": "b"
+        },
+        {
+            "label": "missing-key-handler-runs-for-each-missing-key",
+            "php": "[get('a'), get('b'), $calls] with a counting handler returning 'X'",
+            "value": [
+                "X",
+                "X",
+                2
+            ]
         }
     ]
 }

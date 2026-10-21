@@ -107,6 +107,16 @@ describe("Translator", () => {
             expect(withFallback(T2, "en", "lv").has("g.b", "lv")).toBe(true);
         });
 
+        // docs/php-parity/Translator/has.json, "has-locale-argument-without-fallback"
+        it("reads the given locale without a fallback locale", () => {
+            const translator = new Translator({ lv: { g: { b: "B" } } }, "en");
+
+            expect([
+                translator.has("g.b", "lv"),
+                translator.has("g.b"),
+            ]).toEqual([true, false]);
+        });
+
         // docs/php-parity/Translator/has.json, "has-skips-missing-key-handler"
         it("skips the missing-key handler", () => {
             let calls = 0;
@@ -119,6 +129,24 @@ describe("Translator", () => {
             });
 
             expect([translator.has("g.zzz"), calls]).toEqual([false, 0]);
+        });
+
+        // docs/php-parity/Translator/has.json, "has-restores-missing-key-handler"
+        it("turns the missing-key handler back on", () => {
+            let calls = 0;
+            const translator = withFallback(T2, "en", "lv");
+
+            translator.handleMissingKeysUsing(() => {
+                calls++;
+
+                return "X";
+            });
+
+            expect([
+                translator.has("g.zzz"),
+                translator.get("nope"),
+                calls,
+            ]).toEqual([false, "X", 1]);
         });
     });
 
@@ -260,6 +288,16 @@ describe("Translator", () => {
             expect(new Translator({ en: { Hi: "0" } }, "en").get("Hi")).toBe(
                 "Hi",
             );
+        });
+
+        // docs/php-parity/Translator/get.json, "get-json-null-line-returns-key"
+        it("answers the key for a null JSON line", () => {
+            const translator: Translator = Reflect.construct(Translator, [
+                { en: { Hi: null } },
+                "en",
+            ]);
+
+            expect(translator.get("Hi")).toBe("Hi");
         });
 
         // docs/php-parity/Translator/get.json, "get-json-number-line"
@@ -535,6 +573,18 @@ describe("Translator", () => {
 
             expect(translator.get("courier::g.a")).toBe("A");
         });
+
+        // docs/php-parity/Translator/addLines.json, "add-lines-json-group-in-a-namespace"
+        it("adds the group * of a namespace as a group", () => {
+            const translator = new Translator({ en: { g: { b: "B" } } }, "en");
+
+            translator.addLines({ "*.Hello": "Hola" }, "en", "courier");
+
+            expect([
+                translator.get("Hello"),
+                translator.get("courier::*.Hello"),
+            ]).toEqual(["Hello", "Hola"]);
+        });
     });
 
     describe("handleMissingKeysUsing", () => {
@@ -618,6 +668,24 @@ describe("Translator", () => {
             translator.handleMissingKeysUsing(() => "second");
 
             expect(translator.get("b")).toBe("b");
+        });
+
+        // docs/php-parity/Translator/handleMissingKeysUsing.json, "missing-key-handler-runs-for-each-missing-key"
+        it("runs the handler for each missing key", () => {
+            let calls = 0;
+            const translator = new Translator({}, "en");
+
+            translator.handleMissingKeysUsing(() => {
+                calls++;
+
+                return "X";
+            });
+
+            expect([translator.get("a"), translator.get("b"), calls]).toEqual([
+                "X",
+                "X",
+                2,
+            ]);
         });
     });
 
@@ -776,6 +844,13 @@ describe("Translator", () => {
             expect(() =>
                 new Translator({}, "en").setLocale("..\\secret"),
             ).toThrow(invalid);
+        });
+
+        // docs/php-parity/Translator/setLocale.json, "set-locale-rejects-lone-backslash"
+        it("rejects a lone backslash", () => {
+            expect(() => new Translator({}, "en").setLocale("en\\US")).toThrow(
+                invalid,
+            );
         });
 
         // docs/php-parity/Translator/setLocale.json, "set-locale-rejects-dots"

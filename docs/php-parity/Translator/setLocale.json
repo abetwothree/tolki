@@ -17,6 +17,12 @@
             "message": "Invalid characters present in locale."
         },
         {
+            "label": "set-locale-rejects-lone-backslash",
+            "php": "setLocale('en\\\\US')",
+            "threw": "InvalidArgumentException",
+            "message": "Invalid characters present in locale."
+        },
+        {
             "label": "set-locale-rejects-dots",
             "php": "setLocale('..')",
             "threw": "InvalidArgumentException",

@@ -55,6 +55,14 @@
             "label": "add-lines-namespace",
             "php": "addLines(['g.a' => 'A'], 'en', 'courier'); get('courier::g.a')",
             "value": "A"
+        },
+        {
+            "label": "add-lines-json-group-in-a-namespace",
+            "php": "addLines(['*.Hello' => 'Hola'], 'en', 'courier'); [get('Hello'), get('courier::*.Hello')]",
+            "value": [
+                "Hello",
+                "Hola"
+            ]
         }
     ]
 }

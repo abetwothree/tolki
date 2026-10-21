@@ -101,6 +101,11 @@
             "value": "Hi"
         },
         {
+            "label": "get-json-null-line-returns-key",
+            "php": "t(['en' => ['Hi' => null]])->get('Hi')",
+            "value": "Hi"
+        },
+        {
             "label": "get-json-number-line",
             "php": "t(['en' => ['Hi' => 5]])->get('Hi')",
             "value": 5

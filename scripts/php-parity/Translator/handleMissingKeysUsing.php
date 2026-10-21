@@ -54,5 +54,16 @@ probe('missing-key-handler-throw-disables-it', "a throwing handler, then a secon
 
     return $t->get('b');
 });
+probe('missing-key-handler-runs-for-each-missing-key', "[get('a'), get('b'), \$calls] with a counting handler returning 'X'", function () {
+    $calls = 0;
+    $t = langTranslator([]);
+    $t->handleMissingKeysUsing(function () use (&$calls) {
+        $calls++;
+
+        return 'X';
+    });
+
+    return [$t->get('a'), $t->get('b'), $calls];
+});
 
 emit();
