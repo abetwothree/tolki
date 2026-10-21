@@ -85,6 +85,11 @@
             "value": "SSTRASSE Sstra\u00dfe"
         },
         {
+            "label": "replace-digraph-title-case",
+            "php": "t([])->get(':NAME :Name', ['name' => '\u01c6emal'])",
+            "value": "\u01c4EMAL \u01c5emal"
+        },
+        {
             "label": "replace-empty-replacements-keep-line",
             "php": "t([])->get(':name', [])",
             "value": ":name"

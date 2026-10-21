@@ -32,6 +32,7 @@ $replace('replace-case-variants-overwrite', ':name :Name :NAME', ['name' => 'a',
 $replace('replace-empty-key', 'a:b', ['' => 'X'], "'a:b', ['' => 'X']");
 $replace('replace-multibyte-case', ':Name :NAME', ['name' => 'élan'], "':Name :NAME', ['name' => 'élan']");
 $replace('replace-sharp-s-title-case', ':NAME :Name', ['name' => 'ßtraße'], "':NAME :Name', ['name' => 'ßtraße']");
+$replace('replace-digraph-title-case', ':NAME :Name', ['name' => 'ǆemal'], "':NAME :Name', ['name' => 'ǆemal']");
 $replace('replace-empty-replacements-keep-line', ':name', [], "':name', []");
 $replace('replace-stringable-object', ':a', ['a' => new LangMoney(5)], "':a', ['a' => new LangMoney(5)]");
 $replace('replace-string-backed-enum', ':a', ['a' => Baz::February], "':a', ['a' => Baz::February]");

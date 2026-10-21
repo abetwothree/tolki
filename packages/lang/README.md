@@ -1016,13 +1016,16 @@ Laravel's one-argument form, `stringable(fn (Money $money) => …)`, reads the c
 
 ### Title case
 
-For `:Name`, PHP title-cases the first character with `mb_ucfirst`. This port uses `ucfirst` from `@tolki/str`, which upper-cases it. The two differ for `ß`, which PHP title-cases to `Ss` and this port to `SS`, and for `ǆ`, which PHP title-cases to `ǅ`. Every other character gives the same result. <!-- docs/php-parity/Translator/makeReplacements.json, "replace-sharp-s-title-case" -->
+For `:Name`, PHP title-cases the first character with `mb_ucfirst`. This port uses `ucfirst` from `@tolki/str`, which upper-cases it. These two characters are known to differ: `ß`, which PHP title-cases to `Ss` and this port to `SS`, and `ǆ`, which PHP title-cases to `ǅ` and this port to `Ǆ`. <!-- docs/php-parity/Translator/makeReplacements.json, "replace-sharp-s-title-case"; docs/php-parity/Translator/makeReplacements.json, "replace-digraph-title-case" -->
 
 ```js
 import { makeReplacements } from "@tolki/lang";
 
 makeReplacements(":Name", { name: "ßtraße" });
 // => "SStraße"
+
+makeReplacements(":Name", { name: "ǆemal" });
+// => "Ǆemal"
 ```
 
 ### No file loading
