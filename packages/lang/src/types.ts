@@ -139,28 +139,23 @@ type PathValue<
 /** A group's item, read as `Arr::get()` reads it: the whole item as one key first, then split at every dot. */
 type ItemValue<TGroup, TItem extends string | null> = TGroup extends unknown
     ? TItem extends string
-        ? TItem extends keyof TGroup
-            ? TGroup[TItem]
-            : PathValue<TGroup, TItem>
+        ? [ChildValue<TGroup, TItem>] extends [never]
+            ? PathValue<TGroup, TItem>
+            : ChildValue<TGroup, TItem>
         : TGroup
     : never;
 
-/** The values a key reaches in every locale: a JSON line, or a group's line or nested group. */
+/** The lines and groups a key reaches in every locale's groups; a JSON line is a string, which every answer holds. */
 type LocaleValues<
     TLines extends LangLines,
-    TKey extends string,
     TName extends string,
     TItem extends string | null,
 > = {
-    [TLocale in keyof TLines]:
-        | (TKey extends keyof TLines[TLocale]
-              ? Extract<TLines[TLocale][TKey], string>
-              : never)
-        | (TName extends keyof TLines[TLocale]
-              ? ReachedValue<
-                    ItemValue<Exclude<TLines[TLocale][TName], string>, TItem>
-                >
-              : never);
+    [TLocale in keyof TLines]: TName extends keyof TLines[TLocale]
+        ? ReachedValue<
+              ItemValue<Exclude<TLines[TLocale][TName], string>, TItem>
+          >
+        : never;
 }[keyof TLines];
 
 /** PHP skips an empty group, so `get()` answers the key for it. */
@@ -189,10 +184,8 @@ type Translated<TValue, TDepth extends number = 8> = TValue extends string
                 >;
             };
 
-/** The groups among the values a key reaches, with their lines; a string when it reaches no group. */
-type FoundResult<TValues> = [Extract<TValues, object>] extends [never]
-    ? string
-    : Translated<TValues>;
+/** The groups a key reaches, with their lines, or the key itself, which a locale without them answers. */
+type FoundResult<TValues> = Translated<TValues> | string;
 
 /** What `get()` answers for a key spelled out in full. */
 type LiteralKeyResult<TLines extends LangLines, TKey extends string> =
@@ -204,11 +197,11 @@ type LiteralKeyResult<TLines extends LangLines, TKey extends string> =
         ? TNamespace extends "*"
             ? TGroup extends "*"
                 ? TItem extends null
-                    ? LangGroup
+                    ? LangGroup | string
                     : string
-                : FoundResult<LocaleValues<TLines, TKey, TGroup, TItem>>
+                : FoundResult<LocaleValues<TLines, TGroup, TItem>>
             : FoundResult<
-                  LocaleValues<TLines, TKey, `${TNamespace}::${TGroup}`, TItem>
+                  LocaleValues<TLines, `${TNamespace}::${TGroup}`, TItem>
               >
         : never;
 
@@ -235,7 +228,7 @@ type KeyResult<
         : LiteralKeyResult<TLines, TKey>
     : never;
 
-/** What `get()` answers for a key: the group it names in any locale, a string otherwise, either for untyped lines. */
+/** What `get()` answers: the group a key names in any locale or the key, otherwise a string; either if untyped. */
 export type TranslationResult<
     TLines extends LangLines,
     TKey extends string,

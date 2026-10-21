@@ -21,8 +21,28 @@ const lines = {
 };
 const translator = new Translator(lines, "en");
 
+/** Lines whose keys walk more than one segment below the group, and a JSON line that is a group elsewhere. */
+const paths = {
+    en: {
+        Hello: "Hello",
+        g: {
+            nested: { deeper: { x: "x" } },
+            "a.b": { c: "c" },
+            list: [{ a: "a" }],
+            0: { zero: "0" },
+        },
+        "courier::mail": { sent: { to: "Ann" } },
+        rows: [{ a: "a" }],
+    },
+    es: { Hello: { x: "Hola" } },
+};
+const pathsTranslator = new Translator(paths, "en");
+
 /** A key known only by its pattern, as a template literal expression is typed. */
 declare const messagesKey: `messages.${string}`;
+
+/** A key known only by its pattern, which matches lines and no group. */
+declare const welcomeKey: `messages.wel${string}`;
 
 /** A key or nothing, which no single overload row accepts. */
 declare const maybeKey: "messages.welcome" | null;
@@ -38,12 +58,14 @@ describe("Translator types", () => {
         ).toEqualTypeOf<string>();
     });
 
-    it("answers the group for a group key", () => {
-        expectTypeOf(translator.get("messages.nested")).toEqualTypeOf<{
-            deep: string;
-        }>();
+    it("answers the group or the key for a group key", () => {
+        expectTypeOf(translator.get("messages.nested")).toEqualTypeOf<
+            { deep: string } | string
+        >();
         expectTypeOf(translator.get("messages")).toEqualTypeOf<
-            { welcome: string; nested: { deep: string } } | { bye: string }
+            | { welcome: string; nested: { deep: string } }
+            | { bye: string }
+            | string
         >();
         expectTypeOf(translator.array("messages.nested")).toEqualTypeOf<{
             deep: string;
@@ -118,6 +140,9 @@ describe("TranslationResult", () => {
         expectTypeOf<
             TranslationResult<Mixed, "g.a">
         >().toEqualTypeOf<TranslationValue>();
+        expectTypeOf<
+            TranslationResult<Mixed, "g">
+        >().toEqualTypeOf<TranslationValue>();
     });
 
     it("answers each member of a union of keys", () => {
@@ -130,17 +155,18 @@ describe("TranslationResult", () => {
         expectTypeOf(translator.get(messagesKey)).toEqualTypeOf<
             string | { deep: string }
         >();
+        expectTypeOf(translator.get(welcomeKey)).toEqualTypeOf<string>();
     });
 
     it("answers the JSON lines as a group for the * group", () => {
-        expectTypeOf(translator.get("*")).toEqualTypeOf<LangGroup>();
+        expectTypeOf(translator.get("*")).toEqualTypeOf<LangGroup | string>();
         expectTypeOf(translator.get("*.Hello")).toEqualTypeOf<string>();
     });
 
     it("reads the * namespace as no namespace", () => {
-        expectTypeOf(translator.get("*::messages.nested")).toEqualTypeOf<{
-            deep: string;
-        }>();
+        expectTypeOf(translator.get("*::messages.nested")).toEqualTypeOf<
+            { deep: string } | string
+        >();
     });
 
     it("answers a string, never the literal, for lines declared as const", () => {
@@ -150,10 +176,9 @@ describe("TranslationResult", () => {
         );
 
         expectTypeOf(constant.get("g.a")).toEqualTypeOf<string>();
-        expectTypeOf(constant.get("g")).toEqualTypeOf<{
-            a: string;
-            list: [string, string];
-        }>();
+        expectTypeOf(constant.get("g")).toEqualTypeOf<
+            { a: string; list: [string, string] } | string
+        >();
         expectTypeOf(constant.array("g.list")).toEqualTypeOf<
             [string, string]
         >();
@@ -177,9 +202,9 @@ describe("TranslationResult", () => {
             empty.get("validation.attributes"),
         ).toEqualTypeOf<string>();
         expectTypeOf(empty.get("validation.list")).toEqualTypeOf<string>();
-        expectTypeOf(empty.get("validation.kept")).toEqualTypeOf<{
-            none: Record<never, never>;
-        }>();
+        expectTypeOf(empty.get("validation.kept")).toEqualTypeOf<
+            { none: Record<never, never> } | string
+        >();
     });
 
     it("answers a loosely typed group's own type", () => {
@@ -194,11 +219,11 @@ describe("TranslationResult", () => {
             TranslationResult<Loose, "loose.any">
         >().toEqualTypeOf<LangValue>();
         expectTypeOf<TranslationResult<Loose, "loose">>().toEqualTypeOf<
-            Record<string, LangValue>
+            Record<string, LangValue> | string
         >();
-        expectTypeOf<TranslationResult<Loose, "flat">>().toEqualTypeOf<{
-            [key: string]: string;
-        }>();
+        expectTypeOf<TranslationResult<Loose, "flat">>().toEqualTypeOf<
+            { [key: string]: string } | string
+        >();
         expectTypeOf<
             TranslationResult<Loose, "flat.any">
         >().toEqualTypeOf<string>();
@@ -235,6 +260,73 @@ describe("TranslationResult", () => {
     });
 });
 
+describe("deep paths", () => {
+    it("walks every segment to a group two levels down", () => {
+        expectTypeOf(pathsTranslator.get("g.nested.deeper")).toEqualTypeOf<
+            { x: string } | string
+        >();
+        expectTypeOf(pathsTranslator.array("g.nested.deeper")).toEqualTypeOf<{
+            x: string;
+        }>();
+    });
+
+    it("reads a dotted item as one key first", () => {
+        expectTypeOf(pathsTranslator.get("g.a.b")).toEqualTypeOf<
+            { c: string } | string
+        >();
+    });
+
+    it("reads a list's items and an object's number keys by index", () => {
+        expectTypeOf(pathsTranslator.get("g.list.0")).toEqualTypeOf<
+            { a: string } | string
+        >();
+        expectTypeOf(pathsTranslator.get("g.0")).toEqualTypeOf<
+            { zero: string } | string
+        >();
+    });
+
+    it("reads a tuple's item at its own index", () => {
+        type Pair = { en: { g: { pair: [string, { a: string }] } } };
+
+        expectTypeOf<
+            TranslationResult<Pair, "g.pair.0">
+        >().toEqualTypeOf<string>();
+        expectTypeOf<TranslationResult<Pair, "g.pair.1">>().toEqualTypeOf<
+            { a: string } | string
+        >();
+    });
+
+    it("reads a list's own properties as no item", () => {
+        expectTypeOf(
+            pathsTranslator.get("g.list.length"),
+        ).toEqualTypeOf<string>();
+        expectTypeOf(
+            pathsTranslator.get("rows.length"),
+        ).toEqualTypeOf<string>();
+        expectTypeOf(pathsTranslator.get("rows.map")).toEqualTypeOf<string>();
+    });
+
+    it("reads a namespaced key only up to its second separator", () => {
+        expectTypeOf(
+            pathsTranslator.get("courier::mail.sent::cut"),
+        ).toEqualTypeOf<{ to: string } | string>();
+    });
+
+    it("answers a JSON line that is a group in another locale as either", () => {
+        expectTypeOf(pathsTranslator.get("Hello")).toEqualTypeOf<
+            { x: string } | string
+        >();
+    });
+
+    it("lists the paths below a list's items", () => {
+        expectTypeOf<"g.list.0.a">().toExtend<TranslationKey<typeof paths>>();
+        expectTypeOf<"g.0.zero">().toExtend<TranslationKey<typeof paths>>();
+        expectTypeOf<"g.nested.deeper.x">().toExtend<
+            TranslationKey<typeof paths>
+        >();
+    });
+});
+
 describe("type-parameter callers", () => {
     it("answers either for a string key on any lines", () => {
         function lookup<TLines extends LangLines>(
@@ -266,9 +358,9 @@ describe("type-parameter callers", () => {
             return translator.get(key);
         }
 
-        expectTypeOf(lookup("messages.nested")).toEqualTypeOf<{
-            deep: string;
-        }>();
+        expectTypeOf(lookup("messages.nested")).toEqualTypeOf<
+            { deep: string } | string
+        >();
     });
 
     it("forwards a key typed by the lines", () => {
@@ -282,9 +374,9 @@ describe("type-parameter callers", () => {
             return reader.get(key);
         }
 
-        expectTypeOf(lookup(translator, "messages.nested")).toEqualTypeOf<{
-            deep: string;
-        }>();
+        expectTypeOf(lookup(translator, "messages.nested")).toEqualTypeOf<
+            { deep: string } | string
+        >();
     });
 
     it("binds the helpers to any lines", () => {
