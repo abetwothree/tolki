@@ -682,6 +682,29 @@ describe("Translator", () => {
 
             expect(translator.choice("n", 2)).toBe("5");
         });
+
+        // docs/php-parity/Translator/choice.json, "choice-nan"
+        it("passes NaN on as the number", () => {
+            expect(new Translator(T3, "en").choice("apples", NaN)).toBe(" one");
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-numeric-string"
+        it("passes a numeric string on as the number", () => {
+            const translator = new Translator(T3, "en");
+
+            expect(
+                Reflect.apply(translator.choice, translator, ["apples", "5"]),
+            ).toBe("5 apples");
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-null-number"
+        it("passes null on as the number", () => {
+            const translator = new Translator(T3, "en");
+
+            expect(
+                Reflect.apply(translator.choice, translator, ["apples", null]),
+            ).toBe(" one");
+        });
     });
 
     describe("addLines", () => {

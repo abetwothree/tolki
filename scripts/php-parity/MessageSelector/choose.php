@@ -37,6 +37,9 @@ probe('choose-negative-ru-twenty-one', "choose('файл|файла|файлов
 probe('choose-negative-exact-condition', "choose('{-1} minus one|[*,*] other', -1, 'en')", fn () => $s->choose('{-1} minus one|[*,*] other', -1, 'en'));
 probe('choose-numeric-string-number', "choose('item|items', '-3', 'en')", fn () => $s->choose('item|items', '-3', 'en'));
 probe('choose-null-number', "choose('item|items', null, 'en')", fn () => $s->choose('item|items', null, 'en'));
+// PHP's <=> answers 1 for NAN against any string, from either side, so no range bound holds.
+probe('choose-nan-misses-a-numeric-range', "choose('{0} none|{1} one|[2,*] many', NAN, 'en')", fn () => $s->choose('{0} none|{1} one|[2,*] many', NAN, 'en'));
+probe('choose-nan-misses-a-star-range', "choose('[*,*] all|none', NAN, 'en')", fn () => $s->choose('[*,*] all|none', NAN, 'en'));
 probe('choose-plural-segment-keeps-spaces', "choose('one | many', 2, 'en')", fn () => $s->choose('one | many', 2, 'en'));
 probe('choose-first-segment-keeps-spaces', "choose('one | many', 1, 'en')", fn () => $s->choose('one | many', 1, 'en'));
 probe('choose-inline-trims-php-whitespace', "choose(\"{1} \\t one \\n|[2,*] many\", 1, 'en')", fn () => $s->choose("{1} \t one \n|[2,*] many", 1, 'en'));

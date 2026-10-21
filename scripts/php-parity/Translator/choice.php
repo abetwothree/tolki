@@ -28,4 +28,9 @@ probe('choice-with-fallback-uses-its-rule', "langTranslator([], 'en', 'en')->cho
 probe('choice-on-a-group-throws', "langTranslator(['en' => ['g' => ['a' => 'A']]])->choice('g', 2)", fn () => langTranslator(['en' => ['g' => ['a' => 'A']]])->choice('g', 2));
 probe('choice-on-a-json-number-line', "langTranslator(['en' => ['n' => 5]])->choice('n', 2)", fn () => langTranslator(['en' => ['n' => 5]])->choice('n', 2));
 
+// is_countable() is false for each of these, so choice() passes the value on as given.
+probe('choice-nan', "t(T3)->choice('apples', NAN)", fn () => @langTranslator($t3)->choice('apples', NAN));
+probe('choice-numeric-string', "t(T3)->choice('apples', '5')", fn () => langTranslator($t3)->choice('apples', '5'));
+probe('choice-null-number', "t(T3)->choice('apples', null)", fn () => langTranslator($t3)->choice('apples', null));
+
 emit();

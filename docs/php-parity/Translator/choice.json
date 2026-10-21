@@ -84,6 +84,21 @@
             "label": "choice-on-a-json-number-line",
             "php": "langTranslator(['en' => ['n' => 5]])->choice('n', 2)",
             "value": "5"
+        },
+        {
+            "label": "choice-nan",
+            "php": "t(T3)->choice('apples', NAN)",
+            "value": " one"
+        },
+        {
+            "label": "choice-numeric-string",
+            "php": "t(T3)->choice('apples', '5')",
+            "value": "5 apples"
+        },
+        {
+            "label": "choice-null-number",
+            "php": "t(T3)->choice('apples', null)",
+            "value": " one"
         }
     ]
 }

@@ -85,19 +85,32 @@ function extractFromString(part: string, number: number): string | null {
         const from = condition.slice(0, comma);
         const to = condition.slice(comma + 1);
 
-        if (to === "*" && compareValues(number, from) >= 0) {
+        if (to === "*" && atMost(from, number)) {
             return value;
-        } else if (from === "*" && compareValues(number, to) <= 0) {
+        } else if (from === "*" && atMost(number, to)) {
             return value;
-        } else if (
-            compareValues(number, from) >= 0 &&
-            compareValues(number, to) <= 0
-        ) {
+        } else if (atMost(from, number) && atMost(number, to)) {
             return value;
         }
     }
 
     return looseEqual(condition, number) ? value : null;
+}
+
+/**
+ * Determine if `$left <= $right` holds in PHP, which also reads `$a >= $b` as `$b <= $a`.
+ *
+ * @param left - The left operand.
+ * @param right - The right operand.
+ * @returns Whether the left operand is at most the right one.
+ */
+function atMost(left: unknown, right: unknown): boolean {
+    // PHP's <=> answers 1 when NAN meets a string from either side, where compareValues answers a tie or -1.
+    if (Number.isNaN(left) || Number.isNaN(right)) {
+        return false;
+    }
+
+    return compareValues(left, right) <= 0;
 }
 
 /**

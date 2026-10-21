@@ -24,11 +24,11 @@ import {
     isFunction,
     isMap,
     isNull,
-    isNumber,
     isPhpFalsy,
     isPlainObject,
     isSet,
     isString,
+    isTruthyObject,
     isUndefined,
     phpStringCast,
     phpTypeName,
@@ -110,10 +110,6 @@ function gettype(value: unknown): string {
  * @returns The number itself, or the count of the value
  */
 function countOf(number: ChoiceNumber): number {
-    if (isNumber(number)) {
-        return number;
-    }
-
     if (isArray(number)) {
         return number.length;
     }
@@ -122,10 +118,15 @@ function countOf(number: ChoiceNumber): number {
         return number.size;
     }
 
+    // is_countable() is false for NaN, a string or null too, and choice() reads each as given.
+    if (!isTruthyObject(number)) {
+        return number;
+    }
+
     const counter: unknown = Reflect.get(number, "count");
 
-    if (isFunction(counter)) {
-        return Number(Reflect.apply(counter, number, []));
+    if (isFunction<() => number>(counter)) {
+        return Reflect.apply(counter, number, []);
     }
 
     return Object.keys(number).length;

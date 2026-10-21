@@ -171,6 +171,13 @@ describe("choose", () => {
         expect(choose("|", 2, "en")).toBe("");
     });
 
+    // docs/php-parity/MessageSelector/choose.json, "choose-nan-misses-a-numeric-range",
+    // "choose-nan-misses-a-star-range"
+    it("matches no range for NaN", () => {
+        expect(choose("{0} none|{1} one|[2,*] many", NaN, "en")).toBe(" one");
+        expect(choose("[*,*] all|none", NaN, "en")).toBe("none");
+    });
+
     // docs/php-parity/MessageSelector/choose.json, "choose-numeric-string-number", "choose-null-number"
     it("reads a numeric string or null as PHP does", () => {
         expect(

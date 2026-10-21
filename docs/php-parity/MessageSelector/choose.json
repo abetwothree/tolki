@@ -580,6 +580,16 @@
             "value": "items"
         },
         {
+            "label": "choose-nan-misses-a-numeric-range",
+            "php": "choose('{0} none|{1} one|[2,*] many', NAN, 'en')",
+            "value": " one"
+        },
+        {
+            "label": "choose-nan-misses-a-star-range",
+            "php": "choose('[*,*] all|none', NAN, 'en')",
+            "value": "none"
+        },
+        {
             "label": "choose-plural-segment-keeps-spaces",
             "php": "choose('one | many', 2, 'en')",
             "value": " many"
