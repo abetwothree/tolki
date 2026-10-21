@@ -90,6 +90,11 @@ describe("makeReplacements", () => {
         );
     });
 
+    // docs/php-parity/Translator/makeReplacements.json, "replace-nan"
+    it("prints NaN as PHP does", () => {
+        expect(makeReplacements(":n :N", { n: NaN })).toBe("NAN NAN");
+    });
+
     // JS-only: undefined stands for PHP's null; docs/php-parity/Translator/makeReplacements.json,
     //   "replace-null-is-empty"
     it("treats undefined like null", () => {

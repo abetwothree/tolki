@@ -2,13 +2,16 @@ import { swap, ucfirst, upper } from "@tolki/str";
 import type { Replacements, StringableHandlers } from "@tolki/types";
 import {
     hasOwnToString,
+    isBoolean,
     isEnumCase,
     isFunction,
     isNull,
+    isObject,
     isString,
     isUndefined,
     phpDebugType,
     phpStringCast,
+    typeOf,
 } from "@tolki/utils";
 
 /**
@@ -27,9 +30,10 @@ function castReplacement(value: unknown): string {
         return value;
     }
 
+    // typeOf() keeps NaN, which PHP prints as NAN, where isNumber() would leave it to throw.
     if (
-        typeof value === "number" ||
-        typeof value === "boolean" ||
+        typeOf(value) === "number" ||
+        isBoolean(value) ||
         hasOwnToString(value)
     ) {
         return phpStringCast(value);
@@ -87,7 +91,7 @@ export function makeReplacements(
 
         let value: unknown = entry;
 
-        if (typeof value === "object" && value !== null) {
+        if (isObject(value)) {
             const handler = handlers?.get(
                 Object.getPrototypeOf(value)?.constructor,
             );

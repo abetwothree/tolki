@@ -27,6 +27,7 @@ $replace('replace-null-is-empty', 'foo :message', ['message' => null], "'foo :me
 $replace('replace-int', ':n', ['n' => 5], "':n', ['n' => 5]");
 $replace('replace-float', ':n', ['n' => 0.1 + 0.2], "':n', ['n' => 0.1 + 0.2]");
 $replace('replace-large-float', ':n', ['n' => 1e20], "':n', ['n' => 1e20]");
+probe('replace-nan', "t([])->get(':n :N', ['n' => NAN])", fn () => @langTranslator([])->get(':n :N', ['n' => NAN]));
 $replace('replace-bools', ':a|:b', ['a' => true, 'b' => false], "':a|:b', ['a' => true, 'b' => false]");
 $replace('replace-case-variants-overwrite', ':name :Name :NAME', ['name' => 'a', 'Name' => 'b'], "':name :Name :NAME', ['name' => 'a', 'Name' => 'b']");
 $replace('replace-empty-key', 'a:b', ['' => 'X'], "'a:b', ['' => 'X']");

@@ -1,5 +1,3 @@
-import { slug } from "@tolki/str";
-
 /**
  * Turn a BCP 47 tag into the spelling Laravel's plural table uses.
  *
@@ -11,8 +9,10 @@ import { slug } from "@tolki/str";
  * normalizeLocale("pt-br"); // "pt_BR"
  */
 export function normalizeLocale(locale: string): string {
-    return slug(locale, "_")
-        .split("_")
+    return locale
+        .trim()
+        .toLowerCase()
+        .split(/[-_\s]+/)
         .map((subtag, index) => {
             return index > 0 && /^[a-z]{2}$/.test(subtag)
                 ? subtag.toUpperCase()

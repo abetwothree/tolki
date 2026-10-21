@@ -20,6 +20,17 @@ describe("normalizeLocale", () => {
     });
 
     // JS-only: Laravel has no BCP 47 step; its plural table spells locales en_US.
+    it("splits on runs of hyphens, underscores and spaces", () => {
+        expect(normalizeLocale("en US")).toBe("en_US");
+        expect(normalizeLocale("pt-_ br")).toBe("pt_BR");
+    });
+
+    // JS-only: Laravel has no BCP 47 step; its plural table spells locales en_US.
+    it("leaves an empty locale empty", () => {
+        expect(normalizeLocale("")).toBe("");
+    });
+
+    // JS-only: Laravel has no BCP 47 step; its plural table spells locales en_US.
     it("upper-cases only two-letter subtags", () => {
         expect(normalizeLocale("zh-Hant-TW")).toBe("zh_hant_TW");
         expect(normalizeLocale("es-419")).toBe("es_419");

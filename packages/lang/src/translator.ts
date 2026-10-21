@@ -252,8 +252,7 @@ export class Translator<TLines extends LangLines = LangLines> {
      * new Translator({ en: { g: { a: "A" } } }, "en").has("g.b"); // false
      */
     has(key: string, locale: string | null = null, fallback = true): boolean {
-        const resolved =
-            isString(locale) && !isPhpFalsy(locale) ? locale : this.#locale;
+        const resolved = this.#resolveLocale(locale);
 
         const handleMissingTranslationKeys = this.#handleMissingTranslationKeys;
 
@@ -299,8 +298,7 @@ export class Translator<TLines extends LangLines = LangLines> {
         locale: string | null = null,
         fallback = true,
     ): TranslationValue {
-        const resolved =
-            isString(locale) && !isPhpFalsy(locale) ? locale : this.#locale;
+        const resolved = this.#resolveLocale(locale);
 
         const line = this.#jsonLine(resolved, key);
 
@@ -746,8 +744,7 @@ export class Translator<TLines extends LangLines = LangLines> {
      * @returns The locale when it has the key, otherwise the fallback locale, which may be null
      */
     #localeForChoice(key: string, locale: string | null): string | null {
-        const resolved =
-            isString(locale) && !isPhpFalsy(locale) ? locale : this.#locale;
+        const resolved = this.#resolveLocale(locale);
 
         return this.hasForLocale(key, resolved) ? resolved : this.#fallback;
     }
@@ -768,5 +765,15 @@ export class Translator<TLines extends LangLines = LangLines> {
         const determined = isNull(resolver) ? locales : resolver(locales);
 
         return [...new Set(determined)];
+    }
+
+    /**
+     * Resolve a requested locale as PHP's `$locale ?: $this->locale` does.
+     *
+     * @param locale - The requested locale
+     * @returns The locale, or the default locale when it is null, empty or "0"
+     */
+    #resolveLocale(locale: string | null): string {
+        return isString(locale) && !isPhpFalsy(locale) ? locale : this.#locale;
     }
 }

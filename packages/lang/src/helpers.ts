@@ -6,6 +6,7 @@ import type {
     TranslationResult,
     TranslationValue,
 } from "@tolki/types";
+import { isNull, isUndefined } from "@tolki/utils";
 
 import type { Translator } from "./translator";
 import type { TranslationHelpers } from "./types";
@@ -48,7 +49,7 @@ export function createHelpers<TLines extends LangLines>(
         replace: Replacements = {},
         locale: string | null = null,
     ): TranslationValue | null {
-        if (key === null || key === undefined) {
+        if (isNull(key) || isUndefined(key)) {
             return null;
         }
 
@@ -79,7 +80,7 @@ export function createHelpers<TLines extends LangLines>(
         replace: Replacements = {},
         locale: string | null = null,
     ): Translator<TLines> | TranslationValue {
-        if (key === null || key === undefined) {
+        if (isNull(key) || isUndefined(key)) {
             return translator;
         }
 

@@ -60,6 +60,11 @@
             "value": "1.0E+20"
         },
         {
+            "label": "replace-nan",
+            "php": "t([])->get(':n :N', ['n' => NAN])",
+            "value": "NAN NAN"
+        },
+        {
             "label": "replace-bools",
             "php": "t([])->get(':a|:b', ['a' => true, 'b' => false])",
             "value": "1|"
