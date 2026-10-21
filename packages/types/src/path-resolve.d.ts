@@ -609,3 +609,43 @@ export type ObjectDotPath<
                     | `${TKey}.${ObjectDotPath<T[TKey], TValue, ObjectDotPathDepth[TDepth]>}`;
             }[keyof T & (string | number)]
           : never;
+
+/** One segment of a path `ObjectDotPath` lists: a pattern reads any member of a list, or an index signature's value. */
+type ObjectDotPathStep<T, K extends string> =
+    Record<never, never> extends Record<K, unknown>
+        ? T extends readonly unknown[]
+            ? T[number]
+            : T extends object
+              ? K extends `${number}`
+                  ? number extends keyof T
+                      ? T[number & keyof T]
+                      : never
+                  : string extends keyof T
+                    ? T[string & keyof T]
+                    : never
+              : never
+        : ObjectPathStep<T, K>[0];
+
+/** Walks a path `ObjectDotPath` lists, one segment at a time. */
+type ObjectDotPathWalk<
+    T,
+    P extends string,
+> = P extends `${infer Head}.${infer Rest}`
+    ? ObjectDotPathStep<T, Head> extends infer V
+        ? unknown extends V
+            ? unknown
+            : ObjectDotPathWalk<NonNullable<V>, Rest>
+        : never
+    : ObjectDotPathStep<T, P>;
+
+/**
+ * The value at a path {@link ObjectDotPath} lists, where `${number}` is any one list index and `${string}` any one key.
+ *
+ * @example
+ * ObjectDotPathValue<{ l: { x: string }[] }, `l.${number}`> // { x: string }
+ */
+export type ObjectDotPathValue<T, P extends string> = P extends string
+    ? Record<never, never> extends Record<P, unknown>
+        ? Exclude<ObjectDotPathWalk<T, P>, undefined>
+        : ObjectResolvePath<T, P, never>
+    : never;

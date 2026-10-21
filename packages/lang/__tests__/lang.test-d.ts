@@ -429,3 +429,130 @@ describe("lines declared as const in a variable", () => {
         expectTypeOf(createHelpers(constant).__("g.a")).toEqualTypeOf<string>();
     });
 });
+
+describe("pattern keys through lists and index signatures", () => {
+    type Pairs = {
+        en: {
+            g: {
+                pair: [string, { a: string }];
+                trio: [{ a: string }, string, { b: string }[]];
+            };
+        };
+    };
+    type Lists = { en: { g: { m: { x: string }[][]; s: string[] } } };
+    type Loose = {
+        en: {
+            loose: Record<string, LangValue>;
+            flat: Record<string, string>;
+            typed: Record<string, { x: string }>;
+        };
+    };
+    type Rec = string | Rec[];
+    type Nested = { en: { g: { r: Rec } } };
+
+    it("answers a list's item for an index pattern", () => {
+        expectTypeOf<
+            TranslationResult<typeof paths, `g.list.${string}`>
+        >().toEqualTypeOf<string | { a: string }>();
+        expectTypeOf<
+            TranslationResult<typeof paths, `g.list.${number}`>
+        >().toEqualTypeOf<string | { a: string }>();
+        expectTypeOf(
+            pathsTranslator.array(`g.list.${0 as number}`),
+        ).toEqualTypeOf<{
+            a: string;
+        }>();
+    });
+
+    it("answers any tuple member, and a nested list's items, for an index pattern", () => {
+        expectTypeOf<
+            TranslationResult<Pairs, `g.pair.${string}`>
+        >().toEqualTypeOf<string | { a: string }>();
+        expectTypeOf<
+            TranslationResult<Pairs, `g.trio.${string}`>
+        >().toEqualTypeOf<
+            string | { a: string } | { b: string }[] | { b: string }
+        >();
+        expectTypeOf<TranslationResult<Lists, `g.m.${string}`>>().toEqualTypeOf<
+            string | { x: string }[] | { x: string }
+        >();
+    });
+
+    it("keeps the groups a loosely typed or recursive group may answer", () => {
+        expectTypeOf<
+            TranslationResult<Loose, `loose.${string}`>
+        >().toEqualTypeOf<LangValue | string>();
+        expectTypeOf<
+            TranslationResult<Loose, `${string}.${string}`>
+        >().toEqualTypeOf<
+            string | { [key: string]: LangValue } | LangValue[] | { x: string }
+        >();
+        expectTypeOf<
+            TranslationResult<Nested, `g.r.${string}`>
+        >().toEqualTypeOf<Rec | string>();
+    });
+});
+
+describe("readonly lines in, mutable groups out", () => {
+    type LangInputValue = import("@tolki/lang").LangInputValue;
+
+    const frozen = {
+        en: { g: { list: ["a", "b"], o: { k: "v" } } },
+    } as const;
+
+    it("answers a mutable group for untyped lines", () => {
+        const wide = new Translator({} as LangLines, "en");
+
+        expectTypeOf(wide.get("anything")).toEqualTypeOf<
+            string | { [key: string]: LangValue } | LangValue[]
+        >();
+        expectTypeOf(wide.array("anything")).toEqualTypeOf<
+            { [key: string]: LangValue } | LangValue[]
+        >();
+    });
+
+    it("accepts readonly lines in the constructor, addLines and setLoaded", () => {
+        const wide = new Translator({} as LangLines, "en");
+        const added = { "g.list": ["a", "b"] } as const;
+
+        expectTypeOf(frozen.en).toExtend<
+            Readonly<Record<string, LangInputValue>>
+        >();
+        expectTypeOf(wide.setLoaded).toBeCallableWith(frozen);
+        expectTypeOf(wide.addLines).toBeCallableWith(added, "en");
+        expectTypeOf(new Translator(frozen, "en").get("g.o")).toEqualTypeOf<
+            { k: string } | string
+        >();
+    });
+
+    it("answers a loosely typed readonly group as a mutable copy", () => {
+        type Frozen = {
+            en: {
+                loose: { readonly [key: string]: LangInputValue };
+                list: readonly LangInputValue[];
+            };
+        };
+
+        expectTypeOf<TranslationResult<Frozen, "loose">>().toEqualTypeOf<
+            { [key: string]: LangValue } | string
+        >();
+        expectTypeOf<TranslationResult<Frozen, "list">>().toEqualTypeOf<
+            LangValue[] | string
+        >();
+        expectTypeOf<
+            TranslationResult<Frozen, "loose.any">
+        >().toEqualTypeOf<LangValue>();
+    });
+});
+
+describe("items no group types precisely", () => {
+    it("answers a string for an item below a JSON line", () => {
+        expectTypeOf(translator.get("Hello.x")).toEqualTypeOf<string>();
+    });
+
+    it("answers any line or group for an item typed any", () => {
+        expectTypeOf<
+            TranslationResult<{ en: { g: Record<string, any> } }, "g.x">
+        >().toEqualTypeOf<TranslationValue>();
+    });
+});

@@ -15,6 +15,7 @@ import type {
     NonNullableObject,
     NonObjectItems,
     ObjectDotPath,
+    ObjectDotPathValue,
     ObjectFlatValue,
     ObjectKey,
     ObjectPathValue,
@@ -785,6 +786,103 @@ describe("object helper types", () => {
             expectTypeOf(pick<{ a: { b: string } }>)
                 .parameter(0)
                 .toEqualTypeOf<"a" | "a.b">();
+        });
+    });
+
+    describe("ObjectDotPathValue", () => {
+        it("reads a list index as any member of a list or a tuple", () => {
+            expectTypeOf<
+                ObjectDotPathValue<{ l: { a: string }[] }, `l.${number}`>
+            >().toEqualTypeOf<{ a: string }>();
+            expectTypeOf<
+                ObjectDotPathValue<
+                    { t: [string, { a: string }] },
+                    `t.${number}`
+                >
+            >().toEqualTypeOf<string | { a: string }>();
+            expectTypeOf<
+                ObjectDotPathValue<{ l: { a: string }[] }, `l.${number}.a`>
+            >().toEqualTypeOf<string>();
+            expectTypeOf<
+                ObjectDotPathValue<{ l: { a: string }[] }, `l.${number}`>
+            >().not.toEqualTypeOf<{ a: string } | string>();
+        });
+
+        it("reads an index signature's pattern as one key's value", () => {
+            expectTypeOf<
+                ObjectDotPathValue<
+                    { r: Record<string, { x: number }> },
+                    `r.${string}`
+                >
+            >().toEqualTypeOf<{ x: number }>();
+            expectTypeOf<
+                ObjectDotPathValue<
+                    { r: Record<string, { x: number }> },
+                    `r.${string}.x`
+                >
+            >().toEqualTypeOf<number>();
+            expectTypeOf<
+                ObjectDotPathValue<Record<number, string>, `${number}`>
+            >().toEqualTypeOf<string>();
+            expectTypeOf<
+                ObjectDotPathValue<
+                    Record<string, Record<string, number>>,
+                    `${string}.${string}`
+                >
+            >().toEqualTypeOf<number>();
+        });
+
+        it("reads a literal path as ObjectResolvePath reads it", () => {
+            expectTypeOf<
+                ObjectDotPathValue<{ t: [string, { a: string }] }, "t.1">
+            >().toEqualTypeOf<{ a: string }>();
+            expectTypeOf<
+                ObjectDotPathValue<{ "a.b": number; a: { b: string } }, "a.b">
+            >().toEqualTypeOf<number>();
+            expectTypeOf<
+                ObjectDotPathValue<{ a: { b?: string } }, "a.b">
+            >().toEqualTypeOf<string>();
+        });
+
+        it("reads past an optional segment and ends at a scalar or declared keys", () => {
+            expectTypeOf<
+                ObjectDotPathValue<{ l?: { a: string }[] }, `l.${number}`>
+            >().toEqualTypeOf<{ a: string }>();
+            expectTypeOf<
+                ObjectDotPathValue<
+                    { l: { a?: { b: string } }[] },
+                    `l.${number}.a.b`
+                >
+            >().toEqualTypeOf<string>();
+            expectTypeOf<
+                ObjectDotPathValue<{ s: string }, `s.${number}`>
+            >().toEqualTypeOf<never>();
+            expectTypeOf<
+                ObjectDotPathValue<{ o: { a: string } }, `o.${string}`>
+            >().toEqualTypeOf<never>();
+        });
+
+        it("reads the paths ObjectDotPath lists through a recursive type", () => {
+            type Rec = string | Rec[];
+
+            expectTypeOf<
+                ObjectDotPathValue<{ r: Rec }, `r.${number}`>
+            >().toEqualTypeOf<Rec>();
+            expectTypeOf<
+                ObjectDotPathValue<{ r: Rec }, `r.${number}.${number}`>
+            >().toEqualTypeOf<Rec>();
+        });
+
+        it("accepts a path whose type is a type parameter", () => {
+            type Read = <T extends object, P extends ObjectDotPath<T>>(
+                data: T,
+                path: P,
+            ) => ObjectDotPathValue<T, P>;
+            const read = null as unknown as Read;
+
+            expectTypeOf(read({ l: [{ a: "x" }] }, "l.0")).toEqualTypeOf<{
+                a: string;
+            }>();
         });
     });
 });

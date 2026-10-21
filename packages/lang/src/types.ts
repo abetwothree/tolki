@@ -12,6 +12,7 @@ export type {
     ChoiceNumber,
     LangCountable as Countable,
     LangGroup,
+    LangInputValue,
     LangLines,
     LangValue,
     LocaleLines,

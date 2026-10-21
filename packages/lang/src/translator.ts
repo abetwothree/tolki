@@ -3,6 +3,7 @@ import { contains } from "@tolki/str";
 import type {
     ChoiceNumber,
     LangGroup,
+    LangInputValue,
     LangLines,
     LangValue,
     LocaleLines,
@@ -145,7 +146,7 @@ function walkLeaves(
         return isGroup(value) ? walkLeaves(value, callback) : callback(value);
     };
 
-    if (isArray<LangValue>(group)) {
+    if (isArray(group)) {
         return group.map(walk);
     }
 
@@ -455,11 +456,13 @@ export class Translator<TLines extends LangLines = LangLines> {
      * translator.addLines({ "messages.welcome": "Welcome", "*.Hello": "Hola" }, "es");
      */
     addLines(
-        lines: Readonly<Record<string, LangValue>>,
+        lines: Readonly<Record<string, LangInputValue>>,
         locale: string,
         namespace = "*",
     ): void {
-        const localeLines: LocaleLines = { ...ownValue(this.#lines, locale) };
+        const localeLines: Record<string, LangInputValue> = {
+            ...ownValue(this.#lines, locale),
+        };
 
         for (const [key, value] of Object.entries(lines)) {
             const dot = key.indexOf(".");
@@ -478,7 +481,7 @@ export class Translator<TLines extends LangLines = LangLines> {
             const existing = ownValue(localeLines, groupKey);
 
             // dataSet types its copy as a loose record; writing a line into a group still leaves a group.
-            defineKey<LangValue>(
+            defineKey<LangInputValue>(
                 localeLines,
                 groupKey,
                 dataSet(
@@ -489,7 +492,7 @@ export class Translator<TLines extends LangLines = LangLines> {
             );
         }
 
-        const allLines: LangLines = { ...this.#lines };
+        const allLines: Record<string, LocaleLines> = { ...this.#lines };
 
         defineKey(allLines, locale, localeLines);
 

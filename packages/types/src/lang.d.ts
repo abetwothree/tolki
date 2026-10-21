@@ -1,5 +1,9 @@
 import type { Countable } from "./data";
-import type { ObjectDotPath, ObjectResolvePath } from "./path-resolve";
+import type {
+    ObjectDotPath,
+    ObjectDotPathValue,
+    ObjectResolvePath,
+} from "./path-resolve";
 
 /** A tag callback receives the text between `<key>` and `</key>`. */
 type TagCallback = (children: string) => unknown;
@@ -31,16 +35,22 @@ type StringableHandlers = ReadonlyMap<
 >;
 
 /** A group of lines, as a PHP lang file's array holds them. */
-type LangGroup = { [key: string]: LangValue } | readonly LangValue[];
+type LangGroup = { [key: string]: LangValue } | LangValue[];
 
 /** A line, or a group of lines. */
 type LangValue = string | LangGroup;
 
+/** A line, or a group of lines, as the caller hands them over; the translator never writes to them. */
+type LangInputValue =
+    | string
+    | { readonly [key: string]: LangInputValue }
+    | readonly LangInputValue[];
+
 /** One locale's lines: a group under its file's name (`ns::group` for a package), any other value a JSON line. */
-type LocaleLines = Record<string, LangValue>;
+type LocaleLines = Readonly<Record<string, LangInputValue>>;
 
 /** Every locale's lines, keyed by locale. */
-type LangLines = Record<string, LocaleLines>;
+type LangLines = Readonly<Record<string, LocaleLines>>;
 
 /** What `get()` answers: a line, or a copy of a group. */
 type TranslationValue = string | LangGroup;
@@ -94,34 +104,45 @@ type LocaleValues<
 > = {
     [TLocale in keyof TLines]: TName extends keyof TLines[TLocale]
         ? ReachedValue<
-              ObjectResolvePath<
-                  Exclude<TLines[TLocale][TName], string>,
-                  TItem,
-                  never
-              >
+              GroupItem<Exclude<TLines[TLocale][TName], string>, TItem>
           >
         : never;
 }[keyof TLines];
 
-/** PHP skips an empty group, so `get()` answers the key for it. */
-type ReachedValue<TValue> = TValue extends string
-    ? TValue
-    : TValue extends readonly never[]
-      ? string
-      : [keyof TValue] extends [never]
-        ? string
-        : TValue;
+/** A group's item, or the whole group for none; only a pattern's paths, such as a list's `${number}`, are templates. */
+// Distributed so a JSON line, which leaves no group, reaches nothing: ObjectResolvePath reads `never` as unknown.
+type GroupItem<TGroup, TItem extends string | null> = TGroup extends unknown
+    ? TItem extends string
+        ? Record<never, never> extends Record<TItem, unknown>
+            ? ObjectDotPathValue<TGroup, TItem>
+            : ObjectResolvePath<TGroup, TItem, never>
+        : TGroup
+    : never;
 
-/** A value as `get()` copies it, every line a string once replaced; a loosely typed group stays as it is. */
+/** PHP skips an empty group, so `get()` answers the key for it. */
+// An unknown value stands for any line or group, which keyof alone would read as an empty group.
+type ReachedValue<TValue> = unknown extends TValue
+    ? TranslationValue
+    : TValue extends string
+      ? TValue
+      : TValue extends readonly never[]
+        ? string
+        : [keyof TValue] extends [never]
+          ? string
+          : TValue;
+
+/** A value as `get()` copies it, every line a string once replaced; a loosely typed group copies as a `LangGroup`. */
 // A mapped type over a list expands at once, so a recursive type such as LangValue needs the guards and the depth.
 type Translated<TValue, TDepth extends number = 8> = TValue extends string
     ? string
     : TDepth extends 0
       ? TValue
       : { [key: string]: LangValue } extends TValue
-        ? TValue
+        ? string extends keyof TValue
+            ? { [key: string]: LangValue }
+            : TValue
         : LangValue[] extends TValue
-          ? TValue
+          ? LangValue[]
           : {
                 -readonly [TKey in keyof TValue]: Translated<
                     TValue[TKey],
@@ -217,6 +238,7 @@ export type {
     ChoiceNumber,
     LangCountable,
     LangGroup,
+    LangInputValue,
     LangLines,
     LangValue,
     LocaleLines,
