@@ -4,16 +4,22 @@ import {
     defineKey,
     InvalidArgumentException,
     isArray,
+    isFunction,
+    isMap,
     isNull,
+    isNumber,
     isPhpFalsy,
     isPlainObject,
+    isSet,
     isString,
     isUndefined,
     phpTypeName,
 } from "@tolki/utils";
 
+import { choose } from "./message-selector";
 import { makeReplacements } from "./replacements";
 import type {
+    ChoiceNumber,
     LangGroup,
     LangLines,
     LangValue,
@@ -21,6 +27,7 @@ import type {
     LocalesResolver,
     MissingKeyHandler,
     Replacements,
+    ReplacementValue,
     StringableType,
     TranslationValue,
 } from "./types";
@@ -89,6 +96,34 @@ function ownValue<TValue>(
  */
 function gettype(value: unknown): string {
     return isGroup(value) ? "array" : phpTypeName(value);
+}
+
+/**
+ * Count a choice number the way PHP's count() does for an array or a Countable.
+ *
+ * @param number - A number, or a value to count
+ * @returns The number itself, or the count of the value
+ */
+function countOf(number: ChoiceNumber): number {
+    if (isNumber(number)) {
+        return number;
+    }
+
+    if (isArray(number)) {
+        return number.length;
+    }
+
+    if (isMap(number) || isSet(number)) {
+        return number.size;
+    }
+
+    const counter: unknown = Reflect.get(number, "count");
+
+    if (isFunction(counter)) {
+        return Number(Reflect.apply(counter, number, []));
+    }
+
+    return Object.keys(number).length;
 }
 
 /**
@@ -348,6 +383,40 @@ export class Translator<TLines extends LangLines = LangLines> {
         }
 
         return value;
+    }
+
+    /**
+     * Get a translation according to an integer value.
+     *
+     * @param key - The key to look up
+     * @param number - The number to choose a form for; a countable is counted
+     * @param replace - The placeholder values; `count` is added unless it holds a value
+     * @param locale - The locale to read, the default locale when empty
+     * @returns The chosen form with its placeholders replaced
+     * @throws InvalidArgumentException when the key names a group
+     *
+     * @example
+     *
+     * new Translator({ en: { apples: "one|:count apples" } }, "en").choice("apples", 3); // "3 apples"
+     */
+    choice(
+        key: string,
+        number: ChoiceNumber,
+        replace: Replacements = {},
+        locale: string | null = null,
+    ): string {
+        const resolved = this.#localeForChoice(key, locale);
+        const line = this.string(key, [], resolved);
+
+        const count = countOf(number);
+
+        const withCount: Record<string, ReplacementValue> = { ...replace };
+
+        if (isNull(withCount["count"]) || isUndefined(withCount["count"])) {
+            withCount["count"] = count;
+        }
+
+        return this.#makeReplacements(choose(line, count, resolved), withCount);
     }
 
     /**
@@ -639,6 +708,20 @@ export class Translator<TLines extends LangLines = LangLines> {
         this.#handleMissingTranslationKeys = true;
 
         return handled;
+    }
+
+    /**
+     * Get the proper locale for a choice operation.
+     *
+     * @param key - The key being chosen
+     * @param locale - The requested locale, the default locale when empty
+     * @returns The locale when it has the key, otherwise the fallback locale, which may be null
+     */
+    #localeForChoice(key: string, locale: string | null): string | null {
+        const resolved =
+            isString(locale) && !isPhpFalsy(locale) ? locale : this.#locale;
+
+        return this.hasForLocale(key, resolved) ? resolved : this.#fallback;
     }
 
     /**

@@ -1,3 +1,5 @@
+import type { Translator } from "./translator";
+
 /** A tag callback receives the text between `<key>` and `</key>`. */
 export type TagCallback = (children: string) => unknown;
 
@@ -52,3 +54,57 @@ export type MissingKeyHandler = (
 
 /** Turns the locales a lookup would read into the ones it reads. */
 export type LocalesResolver = (locales: string[]) => string[];
+
+/** What PHP's `count()` accepts: an array, a `Countable`, or here a `Map`, a `Set` or an object. */
+export type Countable =
+    | readonly unknown[]
+    | ReadonlyMap<unknown, unknown>
+    | ReadonlySet<unknown>
+    | { count(): number }
+    | Readonly<Record<string, unknown>>;
+
+/** A number, or a value whose count is the number. */
+export type ChoiceNumber = number | Countable;
+
+/** The `__`, `trans` and `transChoice` helpers, bound to one translator. */
+export interface TranslationHelpers<TLines extends LangLines = LangLines> {
+    /**
+     * Translate the given message.
+     *
+     * @param key - The key to look up; null answers null
+     * @returns The null, or the translation
+     */
+    __(key?: null): null;
+    __(
+        key: string,
+        replace?: Replacements,
+        locale?: string | null,
+    ): TranslationValue;
+
+    /**
+     * Translate the given message.
+     *
+     * @param key - The key to look up; none answers the translator
+     * @returns The translator, or the translation
+     */
+    trans(key?: null): Translator<TLines>;
+    trans(
+        key: string,
+        replace?: Replacements,
+        locale?: string | null,
+    ): TranslationValue;
+
+    /**
+     * Translates the given message based on a count.
+     *
+     * @param key - The key to look up
+     * @param number - The number to choose a form for; a countable is counted
+     * @returns The chosen form
+     */
+    transChoice(
+        key: string,
+        number: ChoiceNumber,
+        replace?: Replacements,
+        locale?: string | null,
+    ): string;
+}

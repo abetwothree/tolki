@@ -534,6 +534,142 @@ describe("Translator", () => {
         });
     });
 
+    describe("choice", () => {
+        const T3 = {
+            en: {
+                apples: "{0} none|{1} one|[2,*] :count apples",
+                ":count foos": "{1} :count foos|[2,*] :count foos",
+                files: "file|files",
+            },
+            ru: { files: "файл|файла|файлов" },
+        };
+
+        // docs/php-parity/Translator/choice.json, "choice-fills-count"
+        it("fills the count", () => {
+            expect(new Translator(T3, "en").choice("apples", 3)).toBe(
+                "3 apples",
+            );
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-exact-one"
+        it("picks an exact form", () => {
+            expect(new Translator(T3, "en").choice("apples", 1)).toBe("one");
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-custom-count"
+        it("keeps a custom count", () => {
+            expect(
+                new Translator(T3, "en").choice(":count foos", 1234, {
+                    count: "1,234",
+                }),
+            ).toBe("1,234 foos");
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-counts-list"
+        it("counts a list", () => {
+            expect(
+                new Translator(T3, "en").choice("apples", ["a", "b", "c"]),
+            ).toBe("3 apples");
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-counts-assoc-array"
+        it("counts an object's keys", () => {
+            expect(
+                new Translator(T3, "en").choice("apples", { a: 1, b: 2 }),
+            ).toBe("2 apples");
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-counts-collection"
+        // JS-only: a Countable stand-in for the collection, which is an object with count().
+        it("counts an object with a count method", () => {
+            expect(
+                new Translator(T3, "en").choice("apples", { count: () => 3 }),
+            ).toBe("3 apples");
+        });
+
+        // JS-only: PHP has no Map or Set; their size is the count.
+        it("counts a Map and a Set", () => {
+            const translator = new Translator(T3, "en");
+
+            expect(translator.choice("apples", new Map([["a", 1]]))).toBe(
+                "one",
+            );
+            expect(translator.choice("apples", new Set([1, 2]))).toBe(
+                "2 apples",
+            );
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-float"
+        it("picks index 1 untrimmed for a float no range matches", () => {
+            expect(new Translator(T3, "en").choice("apples", 1.2)).toBe(" one");
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-null-count-is-filled"
+        it("fills a null count", () => {
+            expect(
+                new Translator(T3, "en").choice("apples", 3, { count: null }),
+            ).toBe("3 apples");
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-null-count-is-filled"
+        it("fills an undefined count", () => {
+            expect(
+                new Translator(T3, "en").choice("apples", 3, {
+                    count: undefined,
+                }),
+            ).toBe("3 apples");
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-list-replace-gains-count"
+        it("adds the count to a list of replacements", () => {
+            expect(new Translator({}, "en").choice(":0 :count", 2, ["z"])).toBe(
+                "z 2",
+            );
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-uses-fallback-locale-rule"
+        it("uses the fallback locale's rule", () => {
+            expect(withFallback(T3, "cs", "en").choice("files", 5)).toBe(
+                "files",
+            );
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-with-fallback-uses-its-rule"
+        it("uses the fallback locale's rule on a missing key", () => {
+            expect(withFallback({}, "en", "en").choice("item|items", 5)).toBe(
+                "items",
+            );
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-uses-own-locale-rule"
+        it("uses the locale's own rule", () => {
+            expect(withFallback(T3, "ru", "en").choice("files", 5)).toBe(
+                "файлов",
+            );
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-locale-argument"
+        it("takes the locale argument", () => {
+            expect(
+                withFallback(T3, "en", "en").choice("files", 5, [], "ru"),
+            ).toBe("файлов");
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-without-fallback-uses-first-form"
+        it("uses the first form when no fallback is set", () => {
+            expect(new Translator({}, "en").choice("item|items", 5)).toBe(
+                "item",
+            );
+        });
+
+        // JS-only: PHP throws a TypeError handing a group to the selector; here the group is rejected up front.
+        it("throws for a key that names a group", () => {
+            expect(() => new Translator(T2, "en").choice("g", 2)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+    });
+
     describe("addLines", () => {
         // docs/php-parity/Translator/addLines.json, "add-lines-group-item"
         it("adds an item to a group", () => {
