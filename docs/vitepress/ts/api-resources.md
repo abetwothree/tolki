@@ -1070,7 +1070,7 @@ public function toArray(Request $request): array
 
 Each read sees only the writes that reach it. After `$x = $this->notes;`, a guard that returns `['early' => $x]` publishes `early: string | null`, and a later `$x = $this->resource->getKey(); return ['late' => $x];` publishes `late: number`. A write that reads the variable itself, as in `$label = $label.$this->title` or `$row = ['v' => $row]`, builds on the value before it.
 
-A closure's or a helper's parameter follows the same rules. A write that always runs replaces the value the parameter was passed, and a write inside a block joins it. Here `$this->labelFor($this->title)` publishes `string | number`:
+A closure's or a helper's parameter follows the same rules. A write that always runs replaces the value the parameter was passed. A write inside a block is what later reads in that block see, and past the block it joins the value the parameter was passed. Here `$this->labelFor($this->title)` publishes `string | number`:
 
 ```php
 private function labelFor(string $label)
