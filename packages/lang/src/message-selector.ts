@@ -105,11 +105,6 @@ function extractFromString(part: string, number: number): string | null {
  * @returns Whether the left operand is at most the right one.
  */
 function atMost(left: unknown, right: unknown): boolean {
-    // PHP's <=> answers 1 when NAN meets a string from either side, where compareValues answers a tie or -1.
-    if (Number.isNaN(left) || Number.isNaN(right)) {
-        return false;
-    }
-
     return compareValues(left, right) <= 0;
 }
 

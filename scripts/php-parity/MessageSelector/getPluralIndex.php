@@ -30,5 +30,10 @@ probe(
 );
 probe('plural-index-null-number', "getPluralIndex('en', null)", fn () => $s->getPluralIndex('en', null));
 probe('plural-index-numeric-string', "getPluralIndex('ru', '-21')", fn () => $s->getPluralIndex('ru', '-21'));
+probe(
+    'plural-index-nan',
+    'getPluralIndex(locale, NAN) for each locale',
+    fn () => array_combine(langSelectorLocales(), array_map(fn ($locale) => @$s->getPluralIndex($locale, NAN), langSelectorLocales())),
+);
 
 emit();

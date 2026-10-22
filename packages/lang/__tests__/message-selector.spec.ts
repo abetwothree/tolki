@@ -207,7 +207,7 @@ describe("getPluralIndex", () => {
         const rows = probes.filter(({ label }) => {
             return (
                 label.startsWith("plural-index-") &&
-                !["numbers", "null-number", "numeric-string"].includes(
+                !["numbers", "null-number", "numeric-string", "nan"].includes(
                     label.slice("plural-index-".length),
                 )
             );
@@ -232,5 +232,20 @@ describe("getPluralIndex", () => {
     it("reads a null or a numeric string as PHP does", () => {
         expect(Reflect.apply(getPluralIndex, undefined, ["en", null])).toBe(1);
         expect(Reflect.apply(getPluralIndex, undefined, ["ru", "-21"])).toBe(0);
+    });
+
+    // docs/php-parity/MessageSelector/getPluralIndex.json, "plural-index-nan"
+    it("matches Laravel for NaN in every locale", () => {
+        const indexes = transcript("MessageSelector/getPluralIndex.json").find(
+            ({ label }) => {
+                return label === "plural-index-nan";
+            },
+        )?.value as Record<string, number>;
+
+        expect(Object.keys(indexes)).toHaveLength(280);
+
+        for (const [locale, index] of Object.entries(indexes)) {
+            expect(getPluralIndex(locale, NaN), locale).toBe(index);
+        }
     });
 });

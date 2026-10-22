@@ -207,6 +207,15 @@ function comparePhpValues(
         return comparePhpArrays(a, b, visited ?? new Map());
     }
 
+    const scalars =
+        (typeof a === "number" || isString(a)) &&
+        (typeof b === "number" || isString(b));
+
+    // PHP's <=> answers 1 from either side when NAN meets a number or a string.
+    if (scalars && (Number.isNaN(a) || Number.isNaN(b))) {
+        return 1;
+    }
+
     if (isPhpNumeric(a) && isPhpNumeric(b)) {
         if (isString(a) && isString(b)) {
             return compareNumericStrings(a, b);

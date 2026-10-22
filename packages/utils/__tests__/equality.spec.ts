@@ -337,6 +337,32 @@ describe("Utils", () => {
             expect(Utils.compareValues(["a"], "a")).toBe(0);
             expect(Utils.compareValues([1], "1")).toBe(0);
         });
+
+        // docs/php-parity/Php/spaceship.json, "spaceship on NAN and an int", "spaceship on an int and NAN",
+        // "spaceship on NAN and NAN" and "spaceship on NAN and INF"
+        it("answers 1 from either side when NaN meets a number", () => {
+            expect(Utils.compareValues(NaN, 1)).toBe(1);
+            expect(Utils.compareValues(1, NaN)).toBe(1);
+            expect(Utils.compareValues(NaN, NaN)).toBe(1);
+            expect(Utils.compareValues(NaN, Infinity)).toBe(1);
+        });
+
+        // docs/php-parity/Php/spaceship.json, "spaceship on NAN and a numeric string",
+        // "spaceship on a numeric string and NAN", "spaceship on NAN and a non-numeric string",
+        // "spaceship on a non-numeric string and NAN" and "spaceship on an empty string and NAN"
+        it("answers 1 from either side when NaN meets a string", () => {
+            expect(Utils.compareValues(NaN, "5")).toBe(1);
+            expect(Utils.compareValues("5", NaN)).toBe(1);
+            expect(Utils.compareValues(NaN, "abc")).toBe(1);
+            expect(Utils.compareValues("abc", NaN)).toBe(1);
+            expect(Utils.compareValues("", NaN)).toBe(1);
+        });
+
+        // docs/php-parity/Php/spaceship.json, "spaceship on NAN and null" and "spaceship on NAN and true"
+        it("still compares NaN with null or a boolean as booleans", () => {
+            expect(Utils.compareValues(NaN, null)).toBe(1);
+            expect(Utils.compareValues(NaN, true)).toBe(0);
+        });
     });
 
     it("strictEqual handles class instances vs plain objects and key mismatches", () => {
