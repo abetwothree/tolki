@@ -160,6 +160,11 @@
             "value": "flat"
         },
         {
+            "label": "get-star-item-is-literal",
+            "php": "t(['en' => ['g' => ['a' => ['x' => 'X', 'y' => 'Y']]]])->get('g.a.*')",
+            "value": "g.a.*"
+        },
+        {
             "label": "get-list-group-index",
             "php": "t(['en' => ['g' => ['a', 'b']]])->get('g.1')",
             "value": "b"

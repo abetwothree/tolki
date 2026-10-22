@@ -36,6 +36,7 @@ probe('get-group-leaves-cast-with-replacements', "t(['en' => ['g' => ['n' => 5, 
 probe('get-group-null-leaf-with-replacements', "t(['en' => ['g' => ['n' => null, 's' => ':x']]])->get('g', ['x' => 'y'])", fn () => @langTranslator(['en' => ['g' => ['n' => null, 's' => ':x']]])->get('g', ['x' => 'y']));
 probe('get-empty-group-returns-key', "t(['en' => ['g' => []]])->get('g')", fn () => langTranslator(['en' => ['g' => []]])->get('g'));
 probe('get-dotted-key-inside-group', "t(['en' => ['g' => ['a.b' => 'flat']]])->get('g.a.b')", fn () => langTranslator(['en' => ['g' => ['a.b' => 'flat']]])->get('g.a.b'));
+probe('get-star-item-is-literal', "t(['en' => ['g' => ['a' => ['x' => 'X', 'y' => 'Y']]]])->get('g.a.*')", fn () => langTranslator(['en' => ['g' => ['a' => ['x' => 'X', 'y' => 'Y']]]])->get('g.a.*'));
 probe('get-list-group-index', "t(['en' => ['g' => ['a', 'b']]])->get('g.1')", fn () => langTranslator(['en' => ['g' => ['a', 'b']]])->get('g.1'));
 probe('get-locale-zero-uses-default', "t(['en' => ['g' => ['a' => 'A']]])->get('g.a', [], '0')", fn () => langTranslator(['en' => ['g' => ['a' => 'A']]])->get('g.a', [], '0'));
 probe('get-locale-argument', "t(['es' => ['g' => ['a' => 'A-es']]])->get('g.a', [], 'es')", fn () => langTranslator(['es' => ['g' => ['a' => 'A-es']]])->get('g.a', [], 'es'));

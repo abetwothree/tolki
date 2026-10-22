@@ -59,6 +59,7 @@ probe('choose-empty-condition', "choose('{}none|[1,*]some', 0, 'en')", fn () => 
 probe('choose-null-locale', "choose('item|items', 5, null)", fn () => $s->choose('item|items', 5, null));
 probe('choose-hyphen-locale', "choose('item|items', 5, 'en-US')", fn () => $s->choose('item|items', 5, 'en-US'));
 probe('choose-index-past-segments', "choose('a|b', 5, 'ru')", fn () => $s->choose('a|b', 5, 'ru'));
+probe('choose-unmatched-range-segment-keeps-its-index', "choose('{0} none|one|many', 3, 'en')", fn () => $s->choose('{0} none|one|many', 3, 'en'));
 probe('choose-empty-line', "choose('', 1, 'en')", fn () => $s->choose('', 1, 'en'));
 probe('choose-lone-pipe', "choose('|', 2, 'en')", fn () => $s->choose('|', 2, 'en'));
 

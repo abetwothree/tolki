@@ -404,6 +404,16 @@ describe("Translator", () => {
             ).toBe("flat");
         });
 
+        // docs/php-parity/Translator/get.json, "get-star-item-is-literal"
+        it("reads a * in a key as a literal key, not a wildcard", () => {
+            expect(
+                new Translator(
+                    { en: { g: { a: { x: "X", y: "Y" } } } },
+                    "en",
+                ).get("g.a.*"),
+            ).toBe("g.a.*");
+        });
+
         // docs/php-parity/Translator/get.json, "get-list-group-index"
         it("reads a list group by index", () => {
             expect(

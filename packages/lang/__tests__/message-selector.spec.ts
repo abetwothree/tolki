@@ -162,6 +162,11 @@ describe("choose", () => {
         expect(choose("a|b", 5, "ru")).toBe("a");
     });
 
+    // docs/php-parity/MessageSelector/choose.json, "choose-unmatched-range-segment-keeps-its-index"
+    it("counts an unmatched range segment when picking a plural form", () => {
+        expect(choose("{0} none|one|many", 3, "en")).toBe("one");
+    });
+
     // docs/php-parity/MessageSelector/choose.json, "choose-empty-line"
     it("returns an empty string for an empty line", () => {
         expect(choose("", 1, "en")).toBe("");

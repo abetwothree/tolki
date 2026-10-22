@@ -685,6 +685,11 @@
             "value": "a"
         },
         {
+            "label": "choose-unmatched-range-segment-keeps-its-index",
+            "php": "choose('{0} none|one|many', 3, 'en')",
+            "value": "one"
+        },
+        {
             "label": "choose-empty-line",
             "php": "choose('', 1, 'en')",
             "value": ""
