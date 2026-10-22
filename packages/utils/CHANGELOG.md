@@ -1,5 +1,13 @@
 # @tolki/utils
 
+## 1.6.1
+
+### Patch Changes
+
+- 40d89eb: `compareValues` now answers `1` when `NaN` meets a number or a string, from either side, as PHP's `<=>` does with `NAN`. It used to answer `0` against a number.
+- Updated dependencies [adee162]
+  - @tolki/types@1.10.0
+
 ## 1.6.0
 
 ### Minor Changes
