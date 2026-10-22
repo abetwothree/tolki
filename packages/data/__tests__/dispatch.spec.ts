@@ -1,3 +1,7 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { collapse as arrCollapse, first as arrFirst } from "@tolki/arr";
 import { collapse as objCollapse, first as objFirst } from "@tolki/obj";
 import { describe, expect, it } from "vitest";
@@ -204,5 +208,31 @@ describe("dispatch with a keyed normalizer", () => {
         const rec = { b: 7, a: 8 };
 
         expect(dFirstKeeping(rec)).toBe(dFirstConverting(rec));
+    });
+});
+
+describe("dispatch call sites", () => {
+    // esbuild cannot tell that dispatch() is pure, so an unmarked call keeps every arr and obj helper it names.
+    it("marks every data helper built with dispatch() as pure", () => {
+        const source = readFileSync(
+            path.resolve(
+                fileURLToPath(import.meta.url),
+                "../..",
+                "src/data.ts",
+            ),
+            "utf-8",
+        );
+        const helpers = [
+            ...source.matchAll(
+                /const (\w+)[^=\n]*=\s*(\/\*\s*[#@]__PURE__\s*\*\/\s*)?dispatch\(/g,
+            ),
+        ];
+
+        expect(helpers.length).toBe(source.match(/\bdispatch\(/g)?.length);
+        expect(
+            helpers
+                .filter((helper) => helper[2] === undefined)
+                .map((helper) => helper[1]),
+        ).toEqual([]);
     });
 });
