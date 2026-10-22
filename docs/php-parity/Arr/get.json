@@ -167,6 +167,11 @@
                 "assoc": "a",
                 "list": "a"
             }
+        },
+        {
+            "label": "get-dotted-key-below-the-top-level",
+            "php": "Arr::get(['g' => ['a.b' => 1]], 'g.a.b', 'miss')",
+            "value": "miss"
         }
     ]
 }

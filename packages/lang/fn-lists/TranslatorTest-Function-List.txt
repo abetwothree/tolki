@@ -1,0 +1,43 @@
+
+Analyzing file: packages/lang/stubs/TranslatorTest.php
+
+Found 36 function(s):
+
+METHOD DECLARATIONS:
+  public testSetLocaleRejectsPathTraversal() [line 20]
+  public testHasMethodReturnsFalseWhenReturnedTranslationIsNull() [line 37]
+  public testGetMethodProperlyLoadsAndRetrievesItem() [line 66]
+  public testGetMethodProperlyLoadsAndRetrievesArrayItem() [line 76]
+  public testStringMethodProperlyLoadsAndRetrievesStringItem() [line 86]
+  public testStringMethodThrowsExceptionForArrayItem() [line 94]
+  public testArrayMethodProperlyLoadsAndRetrievesArrayItem() [line 104]
+  public testArrayMethodThrowsExceptionForStringItem() [line 112]
+  public testGetMethodForNonExistingReturnsSameKey() [line 122]
+  public testTransMethodProperlyLoadsAndRetrievesItemWithHTMLInTheMessage() [line 133]
+  public testGetMethodProperlyLoadsAndRetrievesItemWithCapitalization() [line 142]
+  public testGetMethodProperlyLoadsAndRetrievesItemWithLongestReplacementsFirst() [line 151]
+  public testGetMethodProperlyLoadsAndRetrievesItemForFallback() [line 161]
+  public testGetDoesNotCallGetLineTwiceForMissingKeyWhenLocaleMatchesFallback() [line 172]
+  public testGetMethodProperlyLoadsAndRetrievesItemForGlobalNamespace() [line 183]
+  public testChoiceMethodProperlyLoadsAndRetrievesItemForAnInt() [line 191]
+  public testChoiceMethodProperlyLoadsAndRetrievesItemForAFloat() [line 203]
+  public testChoiceMethodProperlyCountsCollectionsAndLoadsAndRetrievesItem() [line 215]
+  public testChoiceMethodProperlySelectsLocaleForChoose() [line 231]
+  public testChoiceMethodProperlyUsesCustomCountReplacement() [line 244]
+  public testGetJson() [line 256]
+  public testGetJsonReplaces() [line 263]
+  public testGetJsonHasAtomicReplacements() [line 270]
+  public testGetJsonReplacesForAssociativeInput() [line 277]
+  public testGetJsonPreservesOrder() [line 284]
+  public testGetJsonForNonExistingJsonKeyLooksForRegularKeys() [line 291]
+  public testGetJsonForNonExistingJsonKeyLooksForRegularKeysAndReplace() [line 299]
+  public testGetJsonForNonExistingReturnsSameKey() [line 307]
+  public testGetJsonForNonExistingReturnsSameKeyAndReplaces() [line 315]
+  public testEmptyFallbacks() [line 323]
+  public testGetJsonReplacesWithStringable() [line 331]
+  public testGetJsonReplacesWithEnums() [line 355]
+  public testTagReplacements() [line 383]
+  public testTagReplacementsHandleMultipleOfSameTag() [line 401]
+  public testDetermineLocalesUsingMethod() [line 419]
+  protected getLoader() [line 433]
+

@@ -1,0 +1,30 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "trans-without-key-returns-translator",
+            "php": "get_class(trans())",
+            "value": "Illuminate\\Translation\\Translator"
+        },
+        {
+            "label": "trans-translates",
+            "php": "trans('g.a')",
+            "value": "A"
+        },
+        {
+            "label": "trans-locale-argument",
+            "php": "trans('g.a', [], 'es') with an es line",
+            "value": "A-es"
+        },
+        {
+            "label": "trans-whole-group-reads-fallback-locale",
+            "php": "trans('g', [], 'ru') on locale ru, fallback en, with no ru group g",
+            "value": {
+                "a": "A"
+            }
+        }
+    ]
+}

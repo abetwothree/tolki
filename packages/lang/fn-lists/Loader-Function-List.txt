@@ -1,0 +1,11 @@
+
+Analyzing file: packages/lang/stubs/Loader.php
+
+Found 4 function(s):
+
+METHOD DECLARATIONS:
+  public load($locale, $group, $namespace) [line 15]
+  public addNamespace($namespace, $hint) [line 24]
+  public addJsonPath($path) [line 32]
+  public namespaces() [line 39]
+

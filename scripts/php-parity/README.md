@@ -3,8 +3,9 @@
 This harness answers one question: **what does real Laravel actually do?**
 
 Every package in this monorepo (`@tolki/arr`, `@tolki/obj`, `@tolki/data`,
-`@tolki/collection`, `@tolki/str`, `@tolki/num`) ports behaviour from
-`Illuminate\Support\Arr`, `Collection`, `Str`, `Stringable` and `Number`. Guessing at that behaviour from memory, from
+`@tolki/collection`, `@tolki/str`, `@tolki/num`, `@tolki/lang`) ports behaviour from
+`Illuminate\Support\Arr`, `Collection`, `Str`, `Stringable`, `Number`, `Illuminate\Translation\Translator` and
+`MessageSelector`. Guessing at that behaviour from memory, from
 docs, or from an old version leads to subtle mismatches. This harness removes
 the guessing: it runs the **real** PHP classes, from the Laravel checkout at
 `FRAMEWORK_PATH` in the repo's `.env`, and records exactly what they return
@@ -70,9 +71,11 @@ Probes are grouped by the Laravel class they exercise, then by method:
 ```text
 scripts/php-parity/
   bootstrap.php   shared.php
-  Arr/get.php  Collection/pop.php  Number/pairs.php  Php/array_splice.php  …
+  Arr/get.php  Collection/pop.php  MessageSelector/choose.php  Number/pairs.php
+  Php/array_splice.php  Translator/get.php  …
 docs/php-parity/
-  Arr/get.json  Collection/pop.json  Number/pairs.json  Php/array_splice.json  …
+  Arr/get.json  Collection/pop.json  MessageSelector/choose.json  Number/pairs.json
+  Php/array_splice.json  Translator/get.json  …
 ```
 
 - A probe belongs to the Laravel method it exercises: the method its label or

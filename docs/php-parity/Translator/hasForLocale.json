@@ -1,0 +1,23 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "has-for-locale-ignores-fallback",
+            "php": "t(T2, 'en', 'lv')->hasForLocale('g.b')",
+            "value": false
+        },
+        {
+            "label": "has-for-locale-own-line",
+            "php": "t(T2, 'en', 'lv')->hasForLocale('g.a')",
+            "value": true
+        },
+        {
+            "label": "has-for-locale-locale-argument",
+            "php": "t(T2, 'en', 'lv')->hasForLocale('g.b', 'lv')",
+            "value": true
+        }
+    ]
+}

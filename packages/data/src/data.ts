@@ -335,7 +335,7 @@ interface DataAdd {
  * dataAdd([1, 2], 2, 3); -> [1, 2, 3]
  * dataAdd({a: 1}, 'b', 2); -> {a: 1, b: 2}
  */
-export const dataAdd: DataAdd = dispatch(
+export const dataAdd: DataAdd = /* @__PURE__ */ dispatch(
     arrAdd,
     objAdd,
     toPositionalBacking,
@@ -355,7 +355,7 @@ export const dataAdd: DataAdd = dispatch(
  * dataItem([['a', 'b'], ['c', 'd']], 0); -> ['a', 'b']
  * dataItem({items: {x: 1, y: 2}}, 'items'); -> {x: 1, y: 2}
  */
-export const dataItem = dispatch(
+export const dataItem = /* @__PURE__ */ dispatch(
     arrayItem,
     objectItem,
     toPositionalBacking,
@@ -375,7 +375,7 @@ export const dataItem = dispatch(
  * dataBoolean([true, false], 0, false); -> true
  * dataBoolean({active: true}, 'active', false); -> true
  */
-export const dataBoolean = dispatch(
+export const dataBoolean = /* @__PURE__ */ dispatch(
     arrBoolean,
     objBoolean,
     toPositionalBacking,
@@ -399,7 +399,7 @@ export const dataBoolean = dispatch(
  * dataChunk([1, 2, 3], 2); -> [[1, 2], [3]]
  * dataChunk(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 2, false); -> { 0: { 0: 'c', 1: 'a' }, 1: { 0: 'b' } }
  */
-export const dataChunk = dispatch(arrChunk, objChunk);
+export const dataChunk = /* @__PURE__ */ dispatch(arrChunk, objChunk);
 
 /**
  * Chunk the data into chunks with a callback.
@@ -420,7 +420,10 @@ export const dataChunk = dispatch(arrChunk, objChunk);
  * -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
  * dataChunkWhile(new Map([[2, 'c'], [0, 'a']]), () => false); -> { 0: { 2: 'c' }, 1: { 0: 'a' } }
  */
-export const dataChunkWhile = dispatch(arrChunkWhile, objChunkWhile);
+export const dataChunkWhile = /* @__PURE__ */ dispatch(
+    arrChunkWhile,
+    objChunkWhile,
+);
 
 /**
  * Chunk the data into chunks by comparing adjacent values using the given key or callback.
@@ -437,7 +440,7 @@ export const dataChunkWhile = dispatch(arrChunkWhile, objChunkWhile);
  * dataChunkBy({ a: 1, b: 1, c: 2 }, (value) => value); -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
  * dataChunkBy(new Map([[2, 1], [0, 1], [1, 2]]), (value) => value); -> { 0: { 0: 1, 2: 1 }, 1: { 1: 2 } }
  */
-export const dataChunkBy = dispatch(arrChunkBy, objChunkBy);
+export const dataChunkBy = /* @__PURE__ */ dispatch(arrChunkBy, objChunkBy);
 
 /**
  * Collapse nested data into a single level.
@@ -454,7 +457,7 @@ export const dataChunkBy = dispatch(arrChunkBy, objChunkBy);
  * dataCollapse({a: {x: 1, y: 2}, b: {z: 3}}); -> {x: 1, y: 2, z: 3}
  * dataCollapse(new Map([[2, ['c']], [0, ['a']]])); -> {0: 'c', 1: 'a'}
  */
-export const dataCollapse = dispatch(arrCollapse, objCollapse);
+export const dataCollapse = /* @__PURE__ */ dispatch(arrCollapse, objCollapse);
 
 /** The value each delegate answers with for the call `dataCombine` actually makes it. */
 type ArrCombineRow<TKeys, TValues> = ReturnType<
@@ -567,7 +570,10 @@ export function dataCount<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataCrossJoin(new Map([['b', [1, 2]]]), new Map([['a', ['x']]])); -> [{b: 1, a: 'x'}, {b: 2, a: 'x'}]
  * dataCrossJoin([1, 2], new Map([['a', ['x', 'y']]])); -> [[1, ['x', 'y']], [2, ['x', 'y']]]
  */
-export const dataCrossJoin = dispatch(arrCrossJoin, objCrossJoin);
+export const dataCrossJoin = /* @__PURE__ */ dispatch(
+    arrCrossJoin,
+    objCrossJoin,
+);
 
 /**
  * Divide data into keys and values.
@@ -585,7 +591,7 @@ export const dataCrossJoin = dispatch(arrCrossJoin, objCrossJoin);
  * dataDivide({a: 1, b: 2}); -> [['a', 'b'], [1, 2]]
  * dataDivide(new Map([['x', 1], [0, 2]])); -> [['x', 0], [1, 2]]
  */
-export const dataDivide = dispatch(arrDivide, objDivide);
+export const dataDivide = /* @__PURE__ */ dispatch(arrDivide, objDivide);
 
 /**
  * Convert data to dot notation.
@@ -604,7 +610,7 @@ export const dataDivide = dispatch(arrDivide, objDivide);
  * dataDot(new Map([[2, 'c'], [0, 'a']]), 'p.'); -> {'p.2': 'c', 'p.0': 'a'}
  * dataDot(new Map([[2, 'c'], [0, 'a']]), '1'); -> {10: 'a', 12: 'c'} (PHP: [12 => 'c', 10 => 'a'])
  */
-export const dataDot = dispatch(arrDot, objDot);
+export const dataDot = /* @__PURE__ */ dispatch(arrDot, objDot);
 
 /**
  * Convert dot notation back to nested data.
@@ -744,7 +750,7 @@ export function dataUnion<TValue>(
  * dataExcept([1, 2, 3, 4], [1, 3]); -> [1, 3] (indices 0 and 2)
  * dataExcept({a: 1, b: 2, c: 3}, ['b']); -> {a: 1, c: 3}
  */
-export const dataExcept = dispatch(
+export const dataExcept = /* @__PURE__ */ dispatch(
     arrExcept,
     objExcept,
     toPositionalBacking,
@@ -767,7 +773,7 @@ export const dataExcept = dispatch(
  * dataExceptValues(['foo', 'bar', 'baz'], ['foo', 'baz']); -> ['bar']
  * dataExceptValues({name: 'taylor', age: 26}, [26]); -> {name: 'taylor'}
  */
-export const dataExceptValues = dispatch(
+export const dataExceptValues = /* @__PURE__ */ dispatch(
     arrExceptValues,
     objExceptValues,
     toPositionalBacking,
@@ -786,7 +792,7 @@ export const dataExceptValues = dispatch(
  * dataExists([1, 2, 3], 1); -> true
  * dataExists({a: 1, b: 2}, 'c'); -> false
  */
-export const dataExists = dispatch(
+export const dataExists = /* @__PURE__ */ dispatch(
     arrExists,
     objExists,
     toPositionalBacking,
@@ -811,7 +817,7 @@ export const dataExists = dispatch(
  * dataTake({a: 1, b: 2, c: 3, d: 4}, 2); -> {a: 1, b: 2}
  * dataTake(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 2); -> {2: 'c', 0: 'a'}
  */
-export const dataTake = dispatch(arrTake, objTake);
+export const dataTake = /* @__PURE__ */ dispatch(arrTake, objTake);
 
 /**
  * Flatten nested data to a specified depth.
@@ -828,7 +834,7 @@ export const dataTake = dispatch(arrTake, objTake);
  * dataFlatten({a: {b: {c: 1}}}, 1); -> [{c: 1}]
  * dataFlatten(new Map([[2, ['c']], [0, 'a']])); -> ['c', 'a']
  */
-export const dataFlatten = dispatch(arrFlatten, objFlatten);
+export const dataFlatten = /* @__PURE__ */ dispatch(arrFlatten, objFlatten);
 
 /**
  * Flip the keys and values of an object or array.
@@ -844,7 +850,7 @@ export const dataFlatten = dispatch(arrFlatten, objFlatten);
  * dataFlip(['a', 'b']); -> {a: 0, b: 1}
  * dataFlip(new Map([[2, 'v'], [0, 'v']])); -> {v: 0}
  */
-export const dataFlip = dispatch(arrFlip, objFlip);
+export const dataFlip = /* @__PURE__ */ dispatch(arrFlip, objFlip);
 
 /**
  * Get a float value from data.
@@ -859,7 +865,7 @@ export const dataFlip = dispatch(arrFlip, objFlip);
  * dataFloat([1.5, 2.7], 0, 0.0); -> 1.5
  * dataFloat({price: 9.99}, 'price', 0.0); -> 9.99
  */
-export const dataFloat = dispatch(
+export const dataFloat = /* @__PURE__ */ dispatch(
     arrFloat,
     objFloat,
     toPositionalBacking,
@@ -878,7 +884,7 @@ export const dataFloat = dispatch(
  * dataForget([1, 2, 3, 4], [1, 3]); -> [1, 3] (removes indices 1 and 3)
  * dataForget({a: 1, b: 2, c: 3}, ['b']); -> {a: 1, c: 3}
  */
-export const dataForget = dispatch(
+export const dataForget = /* @__PURE__ */ dispatch(
     arrForget,
     objForget,
     toPositionalBacking,
@@ -900,7 +906,7 @@ export const dataForget = dispatch(
  */
 // `arr.from` is itself the normalizer — it walks Maps, Sets and generators and rejects
 // scalars — so normalizing before it would swallow its own guard.
-export const dataFrom = dispatch(
+export const dataFrom = /* @__PURE__ */ dispatch(
     arrFrom,
     objFrom,
     (items) => items,
@@ -920,7 +926,7 @@ export const dataFrom = dispatch(
  * dataGet([1, 2, 3], 1, 'default'); -> 2
  * dataGet({a: 1, b: 2}, 'c', 'default'); -> 'default'
  */
-export const dataGet = dispatch(
+export const dataGet = /* @__PURE__ */ dispatch(
     arrGet,
     objGet,
     toPositionalBacking,
@@ -939,7 +945,7 @@ export const dataGet = dispatch(
  * dataHas([1, 2, 3], [0, 1]); -> true
  * dataHas({a: 1, b: 2}, ['a', 'c']); -> false
  */
-export const dataHas = dispatch(
+export const dataHas = /* @__PURE__ */ dispatch(
     arrHas,
     objHas,
     toPositionalBacking,
@@ -958,7 +964,7 @@ export const dataHas = dispatch(
  * dataHasAll([1, 2, 3], [0, 1]); -> true
  * dataHasAll({a: 1, b: 2}, ['a', 'c']); -> false
  */
-export const dataHasAll = dispatch(
+export const dataHasAll = /* @__PURE__ */ dispatch(
     arrHasAll,
     objHasAll,
     toPositionalBacking,
@@ -977,7 +983,7 @@ export const dataHasAll = dispatch(
  * dataHasAny([1, 2, 3], [0, 5]); -> true
  * dataHasAny({a: 1, b: 2}, ['c', 'd']); -> false
  */
-export const dataHasAny = dispatch(
+export const dataHasAny = /* @__PURE__ */ dispatch(
     arrHasAny,
     objHasAny,
     toPositionalBacking,
@@ -1005,7 +1011,11 @@ export const dataHasAny = dispatch(
  */
 // A Set or generator must reach `arrEvery` UNREAD, so an infinite generator still answers;
 // this normalises with `streamPositionalData` rather than the materialising default.
-export const dataEvery = dispatch(arrEvery, objEvery, streamPositionalData);
+export const dataEvery = /* @__PURE__ */ dispatch(
+    arrEvery,
+    objEvery,
+    streamPositionalData,
+);
 
 /**
  * Test if some items in data pass a test.
@@ -1028,7 +1038,11 @@ export const dataEvery = dispatch(arrEvery, objEvery, streamPositionalData);
  */
 // A Set or generator must reach `arrSome` UNREAD, so an infinite generator still answers;
 // this normalises with `streamPositionalData` rather than the materialising default.
-export const dataSome = dispatch(arrSome, objSome, streamPositionalData);
+export const dataSome = /* @__PURE__ */ dispatch(
+    arrSome,
+    objSome,
+    streamPositionalData,
+);
 
 /**
  * Get an integer value from data.
@@ -1043,7 +1057,7 @@ export const dataSome = dispatch(arrSome, objSome, streamPositionalData);
  * dataInteger([1, 2, 3], 0, 0); -> 1
  * dataInteger({count: 42}, 'count', 0); -> 42
  */
-export const dataInteger = dispatch(
+export const dataInteger = /* @__PURE__ */ dispatch(
     arrInteger,
     objInteger,
     toPositionalBacking,
@@ -1067,7 +1081,7 @@ export const dataInteger = dispatch(
  * dataJoin(['a', 'b', 'c'], ', ', ' and '); -> 'a, b and c'
  * dataJoin(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), ', ', ' and '); -> 'c, a and b'
  */
-export const dataJoin = dispatch(arrJoin, objJoin);
+export const dataJoin = /* @__PURE__ */ dispatch(arrJoin, objJoin);
 
 /**
  * Key data by a given key or callback.
@@ -1085,7 +1099,7 @@ export const dataJoin = dispatch(arrJoin, objJoin);
  * -> {1: {id: 1, name: 'John'}, 2: {id: 2, name: 'Jane'}}
  * dataKeyBy(new Map([[2, {id: 'r'}], [0, {id: 'p'}]]), 'id'); -> {r: {id: 'r'}, p: {id: 'p'}}
  */
-export const dataKeyBy = dispatch(arrKeyBy, objKeyBy);
+export const dataKeyBy = /* @__PURE__ */ dispatch(arrKeyBy, objKeyBy);
 
 /**
  * Prepend keys with a given prefix.
@@ -1104,7 +1118,7 @@ export const dataKeyBy = dispatch(arrKeyBy, objKeyBy);
  * dataPrependKeysWith(new Map([[2, 'c'], [0, 'a']]), 'k'); -> {k2: 'c', k0: 'a'}
  * dataPrependKeysWith(new Map([['x', 1], [2, 'c'], [0, 'a']]), '1'); -> {10: 'a', 12: 'c', '1x': 1}
  */
-export const dataPrependKeysWith = dispatch(
+export const dataPrependKeysWith = /* @__PURE__ */ dispatch(
     arrPrependKeysWith,
     objPrependKeysWith,
 );
@@ -1127,7 +1141,7 @@ export const dataPrependKeysWith = dispatch(
  * dataOnly({a: 1, b: 2, c: 3}, ['a', 'c']); -> {a: 1, c: 3}
  * dataOnly(new Map([['b', 1], [0, 2], ['a', 3]]), ['a', 'b']); -> {b: 1, a: 3}
  */
-export const dataOnly = dispatch(arrOnly, objOnly);
+export const dataOnly = /* @__PURE__ */ dispatch(arrOnly, objOnly);
 
 /**
  * Get only items with specified values from data.
@@ -1145,7 +1159,7 @@ export const dataOnly = dispatch(arrOnly, objOnly);
  * dataOnlyValues(['foo', 'bar', 'baz'], ['foo', 'baz']); -> ['foo', 'baz']
  * dataOnlyValues({name: 'taylor', age: 26}, [26]); -> {age: 26}
  */
-export const dataOnlyValues = dispatch(
+export const dataOnlyValues = /* @__PURE__ */ dispatch(
     arrOnlyValues,
     objOnlyValues,
     toPositionalBacking,
@@ -1163,7 +1177,7 @@ export const dataOnlyValues = dispatch(
  *
  * dataSelect([{a: 1, b: 2, c: 3}], ['a', 'c']); -> [{a: 1, c: 3}]
  */
-export const dataSelect = dispatch(
+export const dataSelect = /* @__PURE__ */ dispatch(
     arrSelect,
     objSelect,
     toPositionalBacking,
@@ -1324,7 +1338,10 @@ export function dataMapWithKeys<
  * dataMapSpread([[1, 2], [3, 4]], (a, b) => a + b); -> [3, 7]
  * dataMapSpread(new Map([[2, ['c', 1]], [0, ['a', 2]]]), (x) => x + ++calls); -> {2: 'c1', 0: 'a2'}
  */
-export const dataMapSpread = dispatch(arrMapSpread, objMapSpread);
+export const dataMapSpread = /* @__PURE__ */ dispatch(
+    arrMapSpread,
+    objMapSpread,
+);
 
 /**
  * Prepend a value to data.
@@ -1344,7 +1361,7 @@ export const dataMapSpread = dispatch(arrMapSpread, objMapSpread);
  * dataPrepend({b: 2, c: 3}, 1, 'a'); -> {a: 1, b: 2, c: 3}
  * dataPrepend(new Map([[2, 'c'], [0, 'a']]), 'z'); -> {0: 'z', 1: 'c', 2: 'a'}
  */
-export const dataPrepend = dispatch(arrPrepend, objPrepend);
+export const dataPrepend = /* @__PURE__ */ dispatch(arrPrepend, objPrepend);
 
 /**
  * Pull and remove a value from data.
@@ -1359,7 +1376,7 @@ export const dataPrepend = dispatch(arrPrepend, objPrepend);
  * dataPull([1, 2, 3], 1, 'default'); -> {value: 2, data: [1, 3]}
  * dataPull({a: 1, b: 2}, 'b', 'default'); -> {value: 2, data: {a: 1}}
  */
-export const dataPull = dispatch(
+export const dataPull = /* @__PURE__ */ dispatch(
     arrPull,
     objPull,
     toPositionalBacking,
@@ -1381,7 +1398,7 @@ export const dataPull = dispatch(
  * dataQuery([1, 2, 3]); -> '0=1&1=2&2=3'
  * dataQuery(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> '2=c&0=a&1=b'
  */
-export const dataQuery = dispatch(arrQuery, objQuery);
+export const dataQuery = /* @__PURE__ */ dispatch(arrQuery, objQuery);
 
 /**
  * Get random elements from data.
@@ -1401,7 +1418,7 @@ export const dataQuery = dispatch(arrQuery, objQuery);
  * dataRandom({a: 1, b: 2, c: 3}, 1, true); -> {b: 2} (random, keys kept)
  * dataRandom(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 3); -> {0: 'c', 1: 'a', 2: 'b'}
  */
-export const dataRandom = dispatch(arrRandom, objRandom);
+export const dataRandom = /* @__PURE__ */ dispatch(arrRandom, objRandom);
 
 /**
  * Read the entries `dataSearch`, `dataBefore` and `dataAfter` walk, in the order PHP walks the array.
@@ -1683,7 +1700,7 @@ export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataShift([1, 2, 3]); -> 1
  * dataShift(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 2); -> ['c', 'a'], the Map left as it was
  */
-export const dataShift = dispatch(
+export const dataShift = /* @__PURE__ */ dispatch(
     arrShift,
     objShift,
     toPositionalBacking,
@@ -1703,7 +1720,7 @@ export const dataShift = dispatch(
  * dataSet([1, 2, 3], 1, 'new'); -> [1, 'new', 3]
  * dataSet({a: 1, b: 2}, 'c', 3); -> {a: 1, b: 2, c: 3}
  */
-export const dataSet = dispatch(
+export const dataSet = /* @__PURE__ */ dispatch(
     arrSet,
     objSet,
     toPositionalBacking,
@@ -1723,14 +1740,14 @@ export const dataSet = dispatch(
  * dataPush([1, 2], null, 3, 4); -> [1, 2, 3, 4]
  * dataPush({a: [1, 2]}, 'a', 3, 4); -> {a: [1, 2, 3, 4]}
  */
-export const dataPush = dispatch(
+export const dataPush = /* @__PURE__ */ dispatch(
     arrPush,
     objPush,
     toPositionalBacking,
     toKeyedData,
 );
 
-const unshiftBacking = dispatch(
+const unshiftBacking = /* @__PURE__ */ dispatch(
     arrUnshift,
     objUnshift,
     toPositionalBacking,
@@ -1772,7 +1789,7 @@ export const dataUnshift = ((...args: readonly unknown[]): unknown => {
  * dataShuffle([1, 2, 3, 4]); -> [3, 1, 4, 2] (random order)
  * dataShuffle({a: 1, b: 2, c: 3}); -> {0: 3, 1: 1, 2: 2} (random order, reindexed 0..n-1)
  */
-export const dataShuffle = dispatch(
+export const dataShuffle = /* @__PURE__ */ dispatch(
     arrShuffle,
     objShuffle,
     toPositionalBacking,
@@ -1795,7 +1812,10 @@ export const dataShuffle = dispatch(
  * dataSkipUntil({a: 1, b: 2, c: 3}, (value, key) => key === 'b'); -> {b: 2, c: 3}
  * dataSkipUntil(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'a'); -> {0: 'a', 1: 'b'}
  */
-export const dataSkipUntil = dispatch(arrSkipUntil, objSkipUntil);
+export const dataSkipUntil = /* @__PURE__ */ dispatch(
+    arrSkipUntil,
+    objSkipUntil,
+);
 
 /**
  * Skip items in the data while the given condition is met.
@@ -1813,7 +1833,10 @@ export const dataSkipUntil = dispatch(arrSkipUntil, objSkipUntil);
  * dataSkipWhile({a: 1, b: 2, c: 1}, 1); -> {b: 2, c: 1}
  * dataSkipWhile(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'c'); -> {0: 'a', 1: 'b'}
  */
-export const dataSkipWhile = dispatch(arrSkipWhile, objSkipWhile);
+export const dataSkipWhile = /* @__PURE__ */ dispatch(
+    arrSkipWhile,
+    objSkipWhile,
+);
 
 /**
  * Slice the underlying data items
@@ -1831,7 +1854,7 @@ export const dataSkipWhile = dispatch(arrSkipWhile, objSkipWhile);
  * dataSlice([1, 2, 3, 4], 1, 2); -> [2, 3]
  * dataSlice(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 1); -> {0: 'a', 1: 'b'}
  */
-export const dataSlice = dispatch(arrSlice, objSlice);
+export const dataSlice = /* @__PURE__ */ dispatch(arrSlice, objSlice);
 
 /**
  * Get the sole item that passes a test.
@@ -1853,7 +1876,7 @@ export const dataSlice = dispatch(arrSlice, objSlice);
  * dataSole(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), (value) => value === 'c'); -> 'c' (keys seen: 2, 0, 1)
  * dataSole(new Map([[1, 'a'], ['1', 'b']])); -> 'b'
  */
-export const dataSole = dispatch(arrSole, objSole);
+export const dataSole = /* @__PURE__ */ dispatch(arrSole, objSole);
 
 /**
  * Sort data using a callback.
@@ -1872,7 +1895,7 @@ export const dataSole = dispatch(arrSole, objSole);
  * dataSort(new Map([[2, {n: 1, id: 'p'}], [0, {n: 1, id: 'q'}], [1, {n: 0, id: 'r'}]]), 'n');
  * -> {0: {n: 0, id: 'r'}, 1: {n: 1, id: 'p'}, 2: {n: 1, id: 'q'}}
  */
-export const dataSort = dispatch(arrSort, objSort);
+export const dataSort = /* @__PURE__ */ dispatch(arrSort, objSort);
 
 /**
  * Sort data in descending order using a callback.
@@ -1891,7 +1914,7 @@ export const dataSort = dispatch(arrSort, objSort);
  * dataSortDesc(new Map([[2, {n: 1, id: 'p'}], [0, {n: 1, id: 'q'}], [1, {n: 0, id: 'r'}]]), 'n');
  * -> {0: {n: 1, id: 'p'}, 1: {n: 1, id: 'q'}, 2: {n: 0, id: 'r'}}
  */
-export const dataSortDesc = dispatch(arrSortDesc, objSortDesc);
+export const dataSortDesc = /* @__PURE__ */ dispatch(arrSortDesc, objSortDesc);
 
 /**
  * Sort data recursively.
@@ -1909,7 +1932,10 @@ export const dataSortDesc = dispatch(arrSortDesc, objSortDesc);
  * dataSortRecursive({b: {y: 2, x: 1}, a: {z: 3, w: 4}}); -> {a: {w: 4, z: 3}, b: {x: 1, y: 2}}
  * dataSortRecursive(new Map([[1, 'a'], [0, 'b']])); -> {0: 'b', 1: 'a'}
  */
-export const dataSortRecursive = dispatch(arrSortRecursive, objSortRecursive);
+export const dataSortRecursive = /* @__PURE__ */ dispatch(
+    arrSortRecursive,
+    objSortRecursive,
+);
 
 /**
  * Sort data recursively in descending order.
@@ -1927,7 +1953,7 @@ export const dataSortRecursive = dispatch(arrSortRecursive, objSortRecursive);
  * dataSortRecursiveDesc({a: {w: 4, z: 3}, b: {x: 1, y: 2}}); -> {b: {y: 2, x: 1}, a: {z: 3, w: 4}}
  * dataSortRecursiveDesc(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> {0: 'a', 1: 'b', 2: 'c'}
  */
-export const dataSortRecursiveDesc = dispatch(
+export const dataSortRecursiveDesc = /* @__PURE__ */ dispatch(
     arrSortRecursiveDesc,
     objSortRecursiveDesc,
 );
@@ -1952,7 +1978,7 @@ export const dataSortRecursiveDesc = dispatch(
  * dataSplice([1, 2, 3, 4], 1, 2); -> [2, 3]
  * dataSplice(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 1); -> {0: 'a', 1: 'b'}
  */
-export const dataSplice = dispatch(
+export const dataSplice = /* @__PURE__ */ dispatch(
     arrSplice,
     objSplice,
     toPositionalBacking,
@@ -1975,7 +2001,10 @@ export const dataSplice = dispatch(
  * dataTakeUntil({a: 1, b: 2, c: 3}, (value, key) => key === 'c'); -> {a: 1, b: 2}
  * dataTakeUntil(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'a'); -> {2: 'c'}
  */
-export const dataTakeUntil = dispatch(arrTakeUntil, objTakeUntil);
+export const dataTakeUntil = /* @__PURE__ */ dispatch(
+    arrTakeUntil,
+    objTakeUntil,
+);
 
 /**
  * Take items in the data while the given condition is met.
@@ -1993,7 +2022,10 @@ export const dataTakeUntil = dispatch(arrTakeUntil, objTakeUntil);
  * dataTakeWhile({a: 1, b: 1, c: 2, d: 1}, 1); -> {a: 1, b: 1}
  * dataTakeWhile(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'c'); -> {2: 'c'}
  */
-export const dataTakeWhile = dispatch(arrTakeWhile, objTakeWhile);
+export const dataTakeWhile = /* @__PURE__ */ dispatch(
+    arrTakeWhile,
+    objTakeWhile,
+);
 
 /**
  * Get a string value from data.
@@ -2008,7 +2040,7 @@ export const dataTakeWhile = dispatch(arrTakeWhile, objTakeWhile);
  * dataString(['hello', 'world'], 0, ''); -> 'hello'
  * dataString({name: 'John'}, 'name', ''); -> 'John'
  */
-export const dataString = dispatch(
+export const dataString = /* @__PURE__ */ dispatch(
     arrString,
     objString,
     toPositionalBacking,
@@ -2030,7 +2062,10 @@ export const dataString = dispatch(
  * dataToCssClasses({btn: true, 'btn-primary': true, disabled: false}); -> 'btn btn-primary'
  * dataToCssClasses(new Map([[2, 'c2'], ['x', true], [0, 'c0']])); -> 'c2 x c0'
  */
-export const dataToCssClasses = dispatch(arrToCssClasses, objToCssClasses);
+export const dataToCssClasses = /* @__PURE__ */ dispatch(
+    arrToCssClasses,
+    objToCssClasses,
+);
 
 /**
  * Convert data to CSS styles string.
@@ -2047,7 +2082,10 @@ export const dataToCssClasses = dispatch(arrToCssClasses, objToCssClasses);
  * dataToCssStyles({'color:red': true, 'display:none': false}); -> 'color:red;'
  * dataToCssStyles(new Map([['x:1', true], [0, 'z:0'], ['y:1', true]])); -> 'x:1; z:0; y:1;'
  */
-export const dataToCssStyles = dispatch(arrToCssStyles, objToCssStyles);
+export const dataToCssStyles = /* @__PURE__ */ dispatch(
+    arrToCssStyles,
+    objToCssStyles,
+);
 
 /**
  * Filter data where callback returns true.
@@ -2067,7 +2105,7 @@ export const dataToCssStyles = dispatch(arrToCssStyles, objToCssStyles);
  * dataWhere({a: 1, b: 2, c: 3}, (value) => value > 1); -> {b: 2, c: 3}
  * dataWhere(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), () => ++calls <= 2); -> {2: 'c', 0: 'a'}
  */
-export const dataWhere = dispatch(arrWhere, objWhere);
+export const dataWhere = /* @__PURE__ */ dispatch(arrWhere, objWhere);
 
 /**
  * Replace the data items with the given items.
@@ -2205,7 +2243,7 @@ export function dataReplaceRecursive<
  * dataReject({a: 1, b: 2, c: 3}, (value) => value > 1); -> {a: 1}
  * dataReject(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), () => ++calls <= 1); -> {0: 'a', 1: 'b'}
  */
-export const dataReject = dispatch(arrReject, objReject);
+export const dataReject = /* @__PURE__ */ dispatch(arrReject, objReject);
 
 /**
  * Reverse the data items.
@@ -2223,7 +2261,7 @@ export const dataReject = dispatch(arrReject, objReject);
  * dataReverse([1, 2, 3]); -> [3, 2, 1]
  * dataReverse(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> {0: 'b', 1: 'a', 2: 'c'}
  */
-export const dataReverse = dispatch(arrReverse, objReverse);
+export const dataReverse = /* @__PURE__ */ dispatch(arrReverse, objReverse);
 
 /**
  * Pad data to the specified length with a value.
@@ -2243,7 +2281,7 @@ export const dataReverse = dispatch(arrReverse, objReverse);
  * dataPad([1, 2], 4, 0); -> [1, 2, 0, 0]
  * dataPad(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 4, 'P'); -> {0: 'c', 1: 'a', 2: 'b', 3: 'P'}
  */
-export const dataPad = dispatch(arrPad, objPad);
+export const dataPad = /* @__PURE__ */ dispatch(arrPad, objPad);
 
 /**
  * Partition data into two groups based on callback.
@@ -2263,7 +2301,10 @@ export const dataPad = dispatch(arrPad, objPad);
  * dataPartition({a: 1, b: 2, c: 3}, (value) => value > 1); -> [{b: 2, c: 3}, {a: 1}]
  * dataPartition(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), () => ++calls <= 1); -> [{2: 'c'}, {0: 'a', 1: 'b'}]
  */
-export const dataPartition = dispatch(arrPartition, objPartition);
+export const dataPartition = /* @__PURE__ */ dispatch(
+    arrPartition,
+    objPartition,
+);
 
 /**
  * Filter out null values from data.
@@ -2282,7 +2323,10 @@ export const dataPartition = dispatch(arrPartition, objPartition);
  * dataWhereNotNull({a: 1, b: null, c: 2}); -> {a: 1, c: 2}
  * dataWhereNotNull(new Map([[1, 'a'], ['x', 'm'], ['1', null]])); -> {x: 'm'}
  */
-export const dataWhereNotNull = dispatch(arrWhereNotNull, objWhereNotNull);
+export const dataWhereNotNull = /* @__PURE__ */ dispatch(
+    arrWhereNotNull,
+    objWhereNotNull,
+);
 
 /**
  * Get all values from data (array or object).
@@ -2298,7 +2342,7 @@ export const dataWhereNotNull = dispatch(arrWhereNotNull, objWhereNotNull);
  * dataValues({a: 1, b: 2, c: 3}); -> [1, 2, 3]
  * dataValues(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> ['c', 'a', 'b']
  */
-export const dataValues = dispatch(arrValues, objValues);
+export const dataValues = /* @__PURE__ */ dispatch(arrValues, objValues);
 
 /**
  * Get all keys from data (array or object).
@@ -2315,7 +2359,7 @@ export const dataValues = dispatch(arrValues, objValues);
  * dataKeys({a: 1, b: 2, c: 3}); -> ['a', 'b', 'c']
  * dataKeys(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> [2, 0, 1]
  */
-export const dataKeys = dispatch(arrKeys, objKeys);
+export const dataKeys = /* @__PURE__ */ dispatch(arrKeys, objKeys);
 
 /**
  * Filter data using a callback function.
@@ -2332,7 +2376,7 @@ export const dataKeys = dispatch(arrKeys, objKeys);
  * dataFilter({a: 1, b: 2, c: 3, d: 4}, (value) => value > 2); -> {c: 3, d: 4}
  * dataFilter(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), () => ++calls <= 2); -> {2: 'c', 0: 'a'}
  */
-export const dataFilter = dispatch(arrFilter, objFilter);
+export const dataFilter = /* @__PURE__ */ dispatch(arrFilter, objFilter);
 
 /**
  * Transform data using a callback function.
@@ -2349,7 +2393,7 @@ export const dataFilter = dispatch(arrFilter, objFilter);
  * dataMap({a: 1, b: 2}, (value) => value * 2); -> {a: 2, b: 4}
  * dataMap(new Map([[2, 'c'], [0, 'a']]), (value) => value + ++calls); -> {2: 'c1', 0: 'a2'}
  */
-export const dataMap = dispatch(arrMap, objMap);
+export const dataMap = /* @__PURE__ */ dispatch(arrMap, objMap);
 
 /**
  * Get the first value from data that passes a test.
@@ -2373,7 +2417,11 @@ export const dataMap = dispatch(arrMap, objMap);
  */
 // A Set or generator reaches `arrFirst` UNREAD via `streamPositionalData`, and `arrFirst` stops at the first match,
 // so an endless generator answers with or without a callback.
-export const dataFirst = dispatch(arrFirst, objFirst, streamPositionalData);
+export const dataFirst = /* @__PURE__ */ dispatch(
+    arrFirst,
+    objFirst,
+    streamPositionalData,
+);
 
 /**
  * Get the last value from data that passes a test.
@@ -2397,7 +2445,11 @@ export const dataFirst = dispatch(arrFirst, objFirst, streamPositionalData);
  */
 // A Set or generator reaches `arrLast` UNREAD via `streamPositionalData`, but `last` has to walk to
 // the end whatever it is handed, so the backing must still be finite.
-export const dataLast = dispatch(arrLast, objLast, streamPositionalData);
+export const dataLast = /* @__PURE__ */ dispatch(
+    arrLast,
+    objLast,
+    streamPositionalData,
+);
 
 /**
  * Determine if data contains a value.
@@ -2416,7 +2468,7 @@ export const dataLast = dispatch(arrLast, objLast, streamPositionalData);
  * dataContains(new Map([[2, null], [0, 'a']]), () => true, true); -> true (a match holding null counts)
  * dataContains(new Map([[1, 'a'], ['1', 'b']]), 'a'); -> false
  */
-export const dataContains = dispatch(arrContains, objContains);
+export const dataContains = /* @__PURE__ */ dispatch(arrContains, objContains);
 
 /**
  * Determine if data contains a value, using strict comparison.
@@ -2438,7 +2490,7 @@ export const dataContains = dispatch(arrContains, objContains);
  * dataContainsStrict([{ tags: ['a', 'b'] }], 'tags', ['a', 'b']); -> true
  * dataContainsStrict([{ user: { id: 2 } }], 'user.id', 2); -> true
  */
-export const dataContainsStrict = dispatch(
+export const dataContainsStrict = /* @__PURE__ */ dispatch(
     arrContainsStrict,
     objContainsStrict,
 );
@@ -2458,7 +2510,7 @@ export const dataContainsStrict = dispatch(
  *
  * dataDiff([1, 2, 3, 4], [2, 4]); -> [1, 3]
  */
-export const dataDiff = dispatch(
+export const dataDiff = /* @__PURE__ */ dispatch(
     arrDiff,
     objDiff,
     toPositionalBacking,
@@ -2480,7 +2532,7 @@ export const dataDiff = dispatch(
  *
  * dataDiffAssoc({a: 1, b: 2, c: 3}, {b: 2}); -> {a: 1, c: 3}
  */
-export const dataDiffAssoc = dispatch(
+export const dataDiffAssoc = /* @__PURE__ */ dispatch(
     arrDiffAssoc,
     objDiffAssoc,
     toPositionalBacking,
@@ -2501,7 +2553,7 @@ export const dataDiffAssoc = dispatch(
  * dataDiffKeys({id: 1, first_word: 'Hello'}, {id: 123, foo_bar: 'Hello'}); -> {first_word: 'Hello'}
  * dataDiffKeys([1, 2, 3], [9, 9]); -> [3]
  */
-export const dataDiffKeys = dispatch(
+export const dataDiffKeys = /* @__PURE__ */ dispatch(
     arrDiffKeys,
     objDiffKeys,
     toPositionalBacking,
@@ -2523,7 +2575,7 @@ export const dataDiffKeys = dispatch(
  * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
  * dataDiffUsing(['green', 'brown', 'blue'], ['GREEN', 'yellow'], strcasecmp); -> ['brown', 'blue']
  */
-export const dataDiffUsing = dispatch(
+export const dataDiffUsing = /* @__PURE__ */ dispatch(
     arrDiffUsing,
     objDiffUsing,
     toPositionalBacking,
@@ -2546,7 +2598,7 @@ export const dataDiffUsing = dispatch(
  * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
  * dataDiffAssocUsing({a: 'green', b: 'brown'}, {A: 'green', c: 'blue'}, strcasecmp); -> {b: 'brown'}
  */
-export const dataDiffAssocUsing = dispatch(
+export const dataDiffAssocUsing = /* @__PURE__ */ dispatch(
     arrDiffAssocUsing,
     objDiffAssocUsing,
     toPositionalBacking,
@@ -2569,7 +2621,7 @@ export const dataDiffAssocUsing = dispatch(
  * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
  * dataDiffKeysUsing({id: 1, first_word: 'Hello'}, {ID: 123, foo_bar: 'Hello'}, strcasecmp); -> {first_word: 'Hello'}
  */
-export const dataDiffKeysUsing = dispatch(
+export const dataDiffKeysUsing = /* @__PURE__ */ dispatch(
     arrDiffKeysUsing,
     objDiffKeysUsing,
     toPositionalBacking,
@@ -2593,7 +2645,7 @@ export const dataDiffKeysUsing = dispatch(
  * dataPluck({a: {name: 'John'}, b: {name: 'Jane'}}, 'name'); -> ['John', 'Jane']
  * dataPluck(new Map([[2, {n: 'c'}], [0, {n: 'a'}], [1, {n: 'b'}]]), 'n'); -> ['c', 'a', 'b']
  */
-export const dataPluck = dispatch(arrPluck, objPluck);
+export const dataPluck = /* @__PURE__ */ dispatch(arrPluck, objPluck);
 
 /**
  * Get and remove the last N items from the data, mutating it in place.
@@ -2611,7 +2663,7 @@ export const dataPluck = dispatch(arrPluck, objPluck);
  * dataPop([1, 2, 3]); -> 3
  * dataPop(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 2); -> ['b', 'a'], the Map left as it was
  */
-export const dataPop = dispatch(
+export const dataPop = /* @__PURE__ */ dispatch(
     arrPop,
     objPop,
     toPositionalBacking,
@@ -2631,7 +2683,7 @@ export const dataPop = dispatch(
  * @param callable - Optional comparison function
  * @returns The intersected data
  */
-export const dataIntersect = dispatch(
+export const dataIntersect = /* @__PURE__ */ dispatch(
     arrIntersect,
     objIntersect,
     toPositionalBacking,
@@ -2653,7 +2705,7 @@ export const dataIntersect = dispatch(
  * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
  * dataIntersectUsing({a: 'green', b: 'brown'}, {A: 'GREEN'}, strcasecmp); -> {a: 'green'}
  */
-export const dataIntersectUsing = dispatch(
+export const dataIntersectUsing = /* @__PURE__ */ dispatch(
     arrIntersectUsing,
     objIntersectUsing,
     toPositionalBacking,
@@ -2676,7 +2728,7 @@ export const dataIntersectUsing = dispatch(
  * dataIntersectAssoc({a: 'green', b: 'brown'}, {a: 'green', b: 'yellow'}); -> {a: 'green'}
  * dataIntersectAssoc([1, 2, 3], [2, 3, 4]); -> []
  */
-export const dataIntersectAssoc = dispatch(
+export const dataIntersectAssoc = /* @__PURE__ */ dispatch(
     arrIntersectAssoc,
     objIntersectAssoc,
     toPositionalBacking,
@@ -2698,7 +2750,7 @@ export const dataIntersectAssoc = dispatch(
  * const strcasecmpKeys = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
  * dataIntersectAssocUsing({a: 'green', b: 'brown'}, {A: 'GREEN', B: 'brown'}, strcasecmpKeys); -> {b: 'brown'}
  */
-export const dataIntersectAssocUsing = dispatch(
+export const dataIntersectAssocUsing = /* @__PURE__ */ dispatch(
     arrIntersectAssocUsing,
     objIntersectAssocUsing,
     toPositionalBacking,
@@ -2713,7 +2765,7 @@ export const dataIntersectAssocUsing = dispatch(
  * @param items - The items to intersect with
  * @returns The intersected data
  */
-export const dataIntersectByKeys = dispatch(
+export const dataIntersectByKeys = /* @__PURE__ */ dispatch(
     arrIntersectByKeys,
     objIntersectByKeys,
     toPositionalBacking,

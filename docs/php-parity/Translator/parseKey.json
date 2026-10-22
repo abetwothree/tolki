@@ -1,0 +1,89 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "parse-key-group-item",
+            "php": "parseKey('g.a')",
+            "value": [
+                "*",
+                "g",
+                "a"
+            ]
+        },
+        {
+            "label": "parse-key-group-only",
+            "php": "parseKey('g')",
+            "value": [
+                "*",
+                "g",
+                null
+            ]
+        },
+        {
+            "label": "parse-key-nested-item",
+            "php": "parseKey('g.a.b')",
+            "value": [
+                "*",
+                "g",
+                "a.b"
+            ]
+        },
+        {
+            "label": "parse-key-namespaced",
+            "php": "parseKey('ns::g.a')",
+            "value": [
+                "ns",
+                "g",
+                "a"
+            ]
+        },
+        {
+            "label": "parse-key-namespaced-group-only",
+            "php": "parseKey('ns::g')",
+            "value": [
+                "ns",
+                "g",
+                null
+            ]
+        },
+        {
+            "label": "parse-key-extra-separator",
+            "php": "parseKey('a::b::c.d')",
+            "value": [
+                "a",
+                "b",
+                null
+            ]
+        },
+        {
+            "label": "parse-key-leading-dot",
+            "php": "parseKey('.a')",
+            "value": [
+                "*",
+                "",
+                "a"
+            ]
+        },
+        {
+            "label": "parse-key-empty",
+            "php": "parseKey('')",
+            "value": [
+                "*",
+                "",
+                null
+            ]
+        },
+        {
+            "label": "parse-key-trailing-separator",
+            "php": "parseKey('a::')",
+            "value": [
+                "a",
+                "",
+                null
+            ]
+        }
+    ]
+}

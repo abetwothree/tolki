@@ -1,0 +1,88 @@
+{
+    "name": "@tolki/lang",
+    "version": "0.0.0",
+    "description": "Laravel's translator for JavaScript: placeholder replacements, trans_choice plural forms and dot-key lookups.",
+    "author": "Abraham Arango <https://github.com/abetwothree>",
+    "license": "MIT",
+    "homepage": "https://tolki.abe.dev/localization/",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/abetwothree/tolki.git",
+        "directory": "packages/lang"
+    },
+    "bugs": {
+        "url": "https://github.com/abetwothree/tolki/issues"
+    },
+    "type": "module",
+    "main": "src/index.ts",
+    "scripts": {
+        "build": "vite build",
+        "readme:build": "ts-node ../../scripts/readme-build.ts --filter @tolki/lang",
+        "prepack": "pnpm run readme:build && pnpm run build"
+    },
+    "keywords": [
+        "lang",
+        "localization",
+        "translation",
+        "i18n",
+        "trans_choice",
+        "pluralization",
+        "laravel",
+        "utils",
+        "utilities"
+    ],
+    "sideEffects": false,
+    "packageManager": "pnpm@10.12.1",
+    "dependencies": {
+        "@tolki/data": "workspace:^",
+        "@tolki/str": "workspace:^",
+        "@tolki/types": "workspace:^",
+        "@tolki/utils": "workspace:^"
+    },
+    "files": [
+        "dist"
+    ],
+    "publishConfig": {
+        "main": "dist/index.js",
+        "types": "dist/index.d.ts",
+        "exports": {
+            ".": {
+                "import": "./dist/index.js",
+                "require": "./dist/index.js",
+                "types": "./dist/index.d.ts"
+            },
+            "./*": {
+                "import": "./dist/*",
+                "require": "./dist/*",
+                "types": "./dist/*"
+            },
+            "./helpers": {
+                "import": "./dist/helpers.js",
+                "types": "./dist/helpers.d.ts"
+            },
+            "./locale": {
+                "import": "./dist/locale.js",
+                "types": "./dist/locale.d.ts"
+            },
+            "./message-selector": {
+                "import": "./dist/message-selector.js",
+                "types": "./dist/message-selector.d.ts"
+            },
+            "./replacements": {
+                "import": "./dist/replacements.js",
+                "types": "./dist/replacements.d.ts"
+            },
+            "./translator": {
+                "import": "./dist/translator.js",
+                "types": "./dist/translator.d.ts"
+            }
+        }
+    },
+    "tolki": {
+        "docs": [
+            "localization/index.md",
+            "localization/translator.md",
+            "localization/differences.md"
+        ]
+    }
+}

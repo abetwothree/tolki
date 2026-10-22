@@ -1,0 +1,78 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "has-group-line",
+            "php": "t(T2, 'en', 'lv')->has('g.a')",
+            "value": true
+        },
+        {
+            "label": "has-missing-key",
+            "php": "t(T2, 'en', 'lv')->has('g.zzz')",
+            "value": false
+        },
+        {
+            "label": "has-json-line-equal-to-key",
+            "php": "t(T2, 'en', 'lv')->has('Hello')",
+            "value": true
+        },
+        {
+            "label": "has-json-empty-line",
+            "php": "t(T2, 'en', 'lv')->has('Empty')",
+            "value": true
+        },
+        {
+            "label": "has-star-group-json-line",
+            "php": "t(['en' => ['Hello' => 'Hola :name']])->has('*.Hello')",
+            "value": true
+        },
+        {
+            "label": "has-group-line-equal-to-key",
+            "php": "t(T2, 'en', 'lv')->has('g.same')",
+            "value": false
+        },
+        {
+            "label": "has-reads-fallback",
+            "php": "t(T2, 'en', 'lv')->has('g.b')",
+            "value": true
+        },
+        {
+            "label": "has-locale-argument",
+            "php": "t(T2, 'en', 'lv')->has('g.b', 'lv')",
+            "value": true
+        },
+        {
+            "label": "has-json-line-for-locale",
+            "php": "t(['lv' => ['Z' => '']])->has('Z', 'lv')",
+            "value": true
+        },
+        {
+            "label": "has-locale-argument-without-fallback",
+            "php": "[has('g.b', 'lv'), has('g.b')] on t(['lv' => ['g' => ['b' => 'B']]]), no fallback",
+            "value": [
+                true,
+                false
+            ]
+        },
+        {
+            "label": "has-skips-missing-key-handler",
+            "php": "[$t->has('g.zzz'), $calls] with a counting handler returning 'X'",
+            "value": [
+                false,
+                0
+            ]
+        },
+        {
+            "label": "has-restores-missing-key-handler",
+            "php": "[$t->has('g.zzz'), $t->get('nope'), $calls] with a counting handler returning 'X'",
+            "value": [
+                false,
+                "X",
+                1
+            ]
+        }
+    ]
+}
