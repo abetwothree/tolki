@@ -135,9 +135,9 @@ The difference can also run the other way. Where a key the method returns can't 
 
 Outside those cases, `analyze()` runs the same inference that resources, broadcast events, model metadata, Inertia page props, and Inertia shared data publish from. What each of those features adds on top is on its own page, linked above.
 
-`analyze()` and `ts:publish` both type the patterns these docs describe. Anything else, such as an expression neither can follow or [a local you reassign](./api-resources.md#local-variables-and-narrowing), comes back `unknown` rather than a guess.
+`analyze()` and `ts:publish` both type the patterns these docs describe, including [a local you write more than once](./api-resources.md#local-variables-and-narrowing). Anything else, such as an expression neither can follow or a local that a reference can write, comes back `unknown` rather than a guess.
 
-Two cases don't widen to `unknown`. [A conditional's default that can't be typed](./api-resources.md#passing-a-default-argument) leaves the value's own type in place. [A ternary or `?:` arm that can't be typed is left out](./api-resources.md#typing-a-variable-with-var), so `$cond ? $untypable : null` publishes `null`.
+Two cases don't widen to `unknown`. [A conditional's default that can't be typed](./api-resources.md#passing-a-default-argument) leaves the value's own type in place. [A union member that can't be typed is left out](./api-resources.md#values-left-out-of-a-union), whether it's a ternary or `?:` arm or a value that a parameter's writes join. So `$cond ? $untypable : null` publishes `null`.
 
 ## Configuration Reference
 

@@ -356,7 +356,7 @@ export type ShowPageProps = Inertia.SharedData & {
 These expressions are typed:
 
 - **Eloquent finders and collections**, typed from the model the chain starts at. `find()`, `first()` and `firstWhere()` are `Model | null`. `findOrFail()`, `firstOrFail()`, `sole()`, `create()`, `make()`, `firstOrCreate()`, `firstOrNew()` and `updateOrCreate()` are `Model`. `all()` and `get()` are `Model[]`. `paginate()`, `simplePaginate()` and `cursorPaginate()` are `LengthAwarePaginator<Model>`, `SimplePaginator<Model>` and `CursorPaginator<Model>`, imported from `@tolki/types`. `count()` is `number` and `exists()` is `boolean`.
-- **Route-bound model parameters**: a `Post $post` parameter is `Post` wherever a prop uses it.
+- **Route-bound model parameters**: a `Post $post` parameter is `Post` wherever a prop uses it, and a relation read on it is typed by the models the relation loads, so `$post->author` is `User` and `$post->comments` is `Comment[]`.
 - **PHP enums**: a prop holding an enum is the enum's `{Name}Type` alias, imported from the generated [enums](./enums.md). That includes a bare case, such as `'status' => Status::Active`. A rename with [`#[TsEnum]`](./enums.md#tsenum) carries over, so `#[TsEnum(name: 'Size')] enum ShirtSize` gives you `size: SizeType`.
 - **`$request->user()`**, typed through your `auth` config the same way [shared data](./inertia.md) is, and the typed `Request` reads such as `integer()`, `boolean()`, `string()` and `url()`.
 - **`compact()` and `array_merge()`**: passed as the whole props argument, as in `Inertia::render('Posts/Show', compact('post', 'comments'))` or `array_merge($base, [...])`, each types the same as the array literal it builds.

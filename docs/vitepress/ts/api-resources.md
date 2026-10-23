@@ -189,6 +189,8 @@ For `whenNotNull()` and `whenNull()`, the second argument is that default value,
 'discount' => $this->whenNotNull($this->discount_percent, 0), // discount: number
 ```
 
+A closure or a first-class callable is never `null`, so `whenNotNull()` always includes the key and sends what the call returns, `null` included. Over a nullable `rating` column, `'rating' => $this->whenNotNull(fn () => $this->rating)` publishes `rating: string | null`.
+
 A default of the value's own type makes the property required without widening it. A default of another type, such as a string fallback for a number column, publishes a union of both.
 
 An explicit `null` counts as a default, because Laravel checks whether you passed the argument, not what it holds. So `$this->whenLoaded('user', fn ($user) => $user, null)` is required, and it publishes `User | null` instead of `User`.
@@ -230,11 +232,11 @@ When you pass a closure as the value, its first parameter holds whatever Laravel
 | `whenExistsLoaded()`                                              | The relation's `{relation}_exists` flag, a `boolean`                                                                                                             |
 | `whenCounted()`, and `whenAggregated()` with the `count` function | The count, a `number`                                                                                                                                            |
 | `whenAggregated()` with any other function                        | The aggregate, never `null`                                                                                                                                      |
-| `transform()`                                                     | The value you pass as its first argument                                                                                                                         |
-| `when()`, `unless()`                                              | No value, since Laravel passes none. A closure that requires a parameter throws `ArgumentCountError` whenever Laravel calls it, and `ts:publish` warns about it. |
+| `transform()`                                                     | The value you pass as its first argument, without `null`, since Laravel calls the closure only for a filled value                                                |
+| `when()`, `unless()`, `whenNotNull()`                             | No value, since Laravel passes none. A closure that requires a parameter throws `ArgumentCountError` whenever Laravel calls it, and `ts:publish` warns about it. |
 | `whenAppended()`                                                  | No value, since Laravel passes none                                                                                                                              |
 
-When Laravel passes no value, a parameter with a default holds that default's type.
+When Laravel passes no value, a parameter with a default holds that default's type. A default that builds a model holds that model, so `fn ($post = new Post) => $post->author?->name` publishes `string | null`.
 
 The closure's return type becomes the property's type:
 
@@ -243,7 +245,7 @@ The closure's return type becomes the property's type:
 'has_comments' => $this->whenExistsLoaded('comments', fn ($exists) => $exists), // has_comments?: boolean
 ```
 
-Here `author` is a relation that can't load `null`. When a relation is loaded as `null`, Laravel returns `null` without calling the closure, so a relation that can load `null` publishes `author_name?: string | null`. A `whenAggregated()` closure works the same way when its function is a string literal other than `'count'`, because SQL returns `NULL` for that aggregate over no rows. So `fn ($max) => ['max' => $max]` publishes `{ max: number } | null`, unless an accessor or `@property` on your model types the attribute without `null`. See [Nullable Relations](#nullable-relations) for which relations can load `null`.
+Here `author` is a relation that can't load `null`. When a relation is loaded as `null`, Laravel returns `null` without calling the closure, so a relation that can load `null` publishes `author_name?: string | null`. A `whenAggregated()` closure works the same way when its function is a string literal other than `'count'`, because SQL returns `NULL` for that aggregate over no rows. So `fn ($max) => ['max' => $max]` publishes `{ max: number } | null`, unless an accessor or `@property` on your model types the attribute without `null`. A closure that hands the relation to a resource's `collection()` adds `| null` only for a to-one relation that can load `null`. See [Nullable Relations](#nullable-relations) for which relations can load `null`.
 
 #### `whenHas()`, `whenAppended()`, and `whenExistsLoaded()` Type From the Value You Pass
 
@@ -585,6 +587,8 @@ $this->merge(function () {
 
 The closure publishes `user_name?: string` and `user_email?: string`.
 
+A closure can also build its array in a variable and return it. The merge then publishes the keys that the variable's writes set, as [Building the Array in a Variable](#building-the-array-in-a-variable) describes. If an `unset()` that the package can't follow may remove one of its keys, the merge adds none of them. A variable the closure assigns is its own, even when the method has one with the same name.
+
 A merge can also take the resource's own model, `$this->resource`, or a call to one of the resource's methods, such as `$this->labelFields()`, passed as it is or returned from a closure:
 
 ```php
@@ -618,17 +622,76 @@ A closure or an arrow function in value position is typed from what it returns:
 
 This works wherever a value goes, including `when()`, `whenLoaded()`, `whenNotNull()`, `merge()`, and `mergeWhen()`.
 
-A first-class callable, such as `$this->label(...)` or `UserResource::make(...)`, creates a closure. Where Laravel calls the value, as `when()`, `whenLoaded()` and the other conditional methods do, it publishes what the call returns:
+A closure that builds an array in a variable and returns it publishes the keys its writes set, as [Building the Array in a Variable](#building-the-array-in-a-variable) describes:
 
 ```php
-'label' => $this->when($request->has('label'), $this->label(...)),        // label?: string
-'supervisor' => $this->whenLoaded('supervisor', UserResource::make(...)), // supervisor?: UserResource | null
-'length' => strlen(...),                                                  // length: Record<string, never>
+'summary' => $this->when($this->published_at !== null, function () {
+    $summary = ['id' => $this->id];
+
+    if ($this->is_pinned) {
+        $summary['flag'] = 'pinned';
+    } else {
+        $summary['flag'] = 0;
+    }
+
+    return $summary;
+}),
+```
+
+The property publishes `summary?: { id: number; flag: string | number }`.
+
+A first-class callable, such as `$this->label(...)` or `UserResource::make(...)`, creates a closure. Where Laravel calls the value, as `when()`, `whenLoaded()`, `mergeWhen()` and the other conditional methods do, it publishes what the call returns, whether you pass the callable directly or through a local:
+
+```php
+public function toArray(Request $request): array
+{
+    $label = $this->label(...);
+
+    return [
+        'label' => $this->when($request->has('label'), $label),                  // label?: string
+        'supervisor' => $this->whenLoaded('supervisor', UserResource::make(...)), // supervisor?: UserResource | null
+        'length' => strlen(...),                                                  // length: Record<string, never>
+        $this->mergeWhen($request->has('stats'), $this->statFields(...)),         // views?: number
+    ];
+}
+
+/** @return array{views: int} */
+public function statFields(): array
+{
+    return ['views' => 1];
+}
 ```
 
 As a plain value, nothing calls it, and Laravel sends the `Closure` as `{}`, so a first-class callable there, like `length` above, publishes `Record<string, never>`. `ts:publish` warns about such a callable and names its line. Call the function instead, as in `'length' => strlen($this->name)`.
 
-`ts:publish` doesn't analyze a class again while the [generation cache](./generating-cache.md) holds it, so a warning may not repeat on the next run. Run `php artisan ts:publish --fresh` to list every warning.
+### Values Left Out of a Union
+
+When the package can't type one value of a union, it leaves that value out and publishes the others. Here `opaqueTags()` and `opaqueNote()` declare no return type and return something the package can't type:
+
+```php
+'tags' => $this->is_published ? $this->opaqueTags() : [],   // tags: never[]
+'note' => $this->is_published ? $this->opaqueNote() : null, // note: null
+```
+
+The same happens to a `??`, a `match`, a write to a closure's or helper's parameter inside a block, and a key that one branch of a returned array writes, where the writes join, as [Local Variables and Narrowing](#local-variables-and-narrowing) describes. Some unions widen to `unknown` instead, such as a method you read as a value when one of its returns can't be typed.
+
+When what's left is only `null`, an empty array, or both, the published type claims the value is always that. `ts:publish` prints a warning after its summary, naming the class, the line, and the value it left out:
+
+```text
+App\Http\Resources\PostResource: The value on line 24 publishes `never[]`, an array that is always empty, because `$this->opaqueTags()` could not be typed and was left out of its union. Give what it reads a return type or a `@return` docblock.
+```
+
+For a value left as `null`, the message reads "publishes `null`, as if it were always null", and for both, "publishes `null | never[]`, as if it were always null or an empty array".
+
+A ternary or a `??` that leaves out a value beside a typed one raises no warning. A value left out where a parameter's writes, a returned array's branches, a merge's two sides or a spread helper's returns join raises one, because the published type may not cover everything Laravel sends:
+
+```text
+App\Http\Resources\PostResource: The value on line 31 leaves out `$this->opaqueTitle()`, which could not be typed, so its published type may not admit every value it sends. Give what it reads a return type or a `@return` docblock.
+```
+
+Give the method a return type or a `@return` docblock, and its value joins the union again. An inline [`@var`](#typing-a-variable-with-var) that types the variable also removes the warning. `--quiet` hides every warning.
+
+`ts:publish` doesn't analyze a class again while the [generation cache](./generating-cache.md) holds it. A class the cache serves prints none of these warnings, nor the first-class callable warning above, so run `php artisan ts:publish --fresh` to see every one.
 
 ## Method Calls, Variables, and Collections
 
@@ -735,6 +798,8 @@ A model that no database row backs yet has no key, so its `getKey()` adds `| nul
 
 A call that returns the same model, such as `(new Post)->fill([...])`, keeps the `| null`. A helper's `Post $post` parameter adds it only where the call passes a model no row backs yet. The package doesn't follow `save()`, so a model you save after `new` still publishes `number | null`. On a model whose `$primaryKey` is `null`, `getKey()` publishes `null`.
 
+A model you build with `new` and no attributes holds no columns either, so Laravel sends `null` for each one, and a column read on it adds `| null`. `(new Post)->title` publishes `string | null`. A column you set keeps its type, whether you pass it to the constructor, `fill()` it, or write it, as in `$post->title = 'Draft'`. So does every column of a model from `replicate()`, `firstOrNew()` or a factory's `make()`. A relation, an accessor, and a column your model's `$attributes` gives a default publish their types as usual.
+
 On an abstract model, `getKey()` publishes the key type the class declares, through `$keyType`, `HasUuids`, `HasUlids` or Laravel 13's `#[Table]`, joined with the key type of each published model that extends it. So a base whose subclasses key by integer and by UUID publishes `number | string`. When the abstract model works its key out in code, such as in an overridden `getKeyType()`, `getKey()` publishes `unknown`.
 
 `getAuthIdentifier()` on an authenticatable model publishes the type of the column the model identifies users by. That's the key type, or the type of the column a literal `getAuthIdentifierName()` returns, so a model whose `getAuthIdentifierName()` returns `'email'` publishes `string`. A model no row backs yet adds `| null`, and a model that overrides `getAuthIdentifier()` publishes the return type it declares.
@@ -794,12 +859,13 @@ Outside a resource, such as in an Inertia page prop, `tiers` publishes `{ "1": s
 
 A `?array` declaration keeps its `null`, so the method publishes the shape `| null`. An `array|false` declaration keeps its `false` the same way.
 
-What the body reads from the method's parameters is typed too, whether you use its result as a value or spread it. Each parameter holds its declared type, from the signature, or from a `@param` tag when the signature's type is missing or vague, such as `array`. A parameter with no type, or only `mixed`, holds what each call passes. A closure you pass is the exception: in `$this->hold(fn () => 5)`, the parameter holds `unknown`, because a resource sends a closure as `{}`. A first-class callable that Laravel calls gets the value Laravel calls it with, as in `whenLoaded()`:
+What the body reads from the method's parameters is typed too, whether you use its result as a value or spread it. Each parameter holds its declared type, from the signature, or from a `@param` tag when the signature's type is missing or vague, such as `array`. A parameter with no type, or only `mixed`, holds what each call passes, and a collection you pass keeps its model, so a read such as `$comments->first()?->content` is typed. A closure you pass is the exception: in `$this->hold(fn () => 5)`, the parameter holds `unknown`, because a resource sends a closure as `{}`. A first-class callable that Laravel calls gets the value Laravel calls it with, as in `whenLoaded()`:
 
 ```php
 'card' => $this->card($this->resource),                              // card: { id: number; title: string }
 'author_card' => $this->authorCard($this->author),                    // author_card: { name: string }
 'loaded_card' => $this->whenLoaded('author', $this->authorCard(...)), // loaded_card?: { name: string }
+'first_comment' => $this->firstContent($this->comments),             // first_comment: { first: string | null }
 
 private function card(Post $post): array
 {
@@ -809,6 +875,11 @@ private function card(Post $post): array
 private function authorCard($author): array
 {
     return ['name' => $author->name];
+}
+
+private function firstContent($comments): array
+{
+    return ['first' => $comments->first()?->content];
 }
 ```
 
@@ -820,6 +891,47 @@ When the method can return something other than an array literal, apart from a `
 private function contents(): array
 {
     return $this->comments->map(fn ($comment) => $comment->content)->values()->all();
+}
+```
+
+The pipeline can also start at a relation of a model parameter, at a query's `get()`, or at a local holding either:
+
+```php
+final class CommentRowsService
+{
+    public function forPost(Post $post): array
+    {
+        return $post->comments->map(fn ($comment) => ['id' => $comment->id])->values()->all();
+    }
+
+    public function unflagged(): array
+    {
+        $rows = Comment::query()->where('is_flagged', false)->get();
+
+        return $rows->map(fn ($comment) => ['id' => $comment->id])->all();
+    }
+}
+
+// in toArray():
+'post_rows' => resolve(CommentRowsService::class)->forPost($this->resource), // post_rows: { id: number }[]
+'unflagged_rows' => resolve(CommentRowsService::class)->unflagged(),        // unflagged_rows: { id: number }[]
+```
+
+A method that builds its array in a variable and returns it publishes the keys its writes set. Beside a `return` of another array, each `return` is one shape of a union:
+
+```php
+'summary' => $this->summary($request), // summary: { id: number } | { id: number; title: string }
+
+private function summary(Request $request): array
+{
+    if ($request->boolean('short')) {
+        return ['id' => $this->id];
+    }
+
+    $data = ['id' => $this->id];
+    $data['title'] = $this->title;
+
+    return $data;
 }
 ```
 
@@ -883,7 +995,7 @@ Registering, removing, or re-pointing a macro makes the next `ts:publish` rebuil
 
 ### Local Variables and Narrowing
 
-A variable you assign once keeps the type of its value, so you don't need to inline the expression. Assign it in a statement at the top level of the method or of a closure body:
+A variable keeps the type of the value you assign it, so you don't need to inline the expression:
 
 ```php
 public function toArray(Request $request): array
@@ -894,6 +1006,20 @@ public function toArray(Request $request): array
         'slug' => $slug, // string, as if you returned $this->slug
     ];
 }
+```
+
+A variable assigned inside an `if`, a loop, or a `try` block keeps that type for the reads after it in the same block:
+
+```php
+'title_or_count' => $this->when($request->has('title'), function () {
+    if ($this->is_pinned) {
+        $title = $this->title;
+
+        return $title;
+    }
+
+    return 7;
+}), // title_or_count?: string | number
 ```
 
 A conditional value keeps its `?` through the variable, and through a `??` or a ternary. With `$loaded = $this->whenLoaded('author')`, `'author' => $loaded ?? 'none'` publishes `author?: User | string`: a missing value isn't `null`, so `??` returns it, and Laravel drops the key.
@@ -914,7 +1040,65 @@ public function toArray(Request $request): array
 
 A closure that captures the variable by value, with `use ($member)`, and reassigns it doesn't change the outer variable either. Only `use (&$member)` does. An arrow function never does.
 
-A variable you write more than once publishes `unknown`, because the package can't tell which value reaches the response. That includes a second assignment inside an `if` or a loop, a `foreach` that assigns it, a `catch`, `unset()`, `static` or `global`, and changes through `.=`, `++`, or a reference. It also includes passing the variable to a by-reference parameter, such as `preg_match()`'s `$matches`, `settype()`, `parse_str()`, or one of your own methods. A variable assigned only inside an `if`, a loop, or another block also publishes `unknown`. Variables assigned inside a closure body follow the same rules within that closure. A reassignment inside an `if` branch that ends in `return` or `throw` applies only inside that branch, so the code after it keeps reading the original variable.
+A variable you write more than once publishes every value that can reach the read. A write that always runs replaces the value before it, and a write inside an `if`, a loop, a `try`, or a `catch` joins it:
+
+```php
+public function toArray(Request $request): array
+{
+    $status = 'draft';
+
+    if ($this->is_pinned) {
+        $status = 1;
+    }
+
+    $first = null;
+
+    foreach ($this->comments as $comment) {
+        if ($comment->content !== '') {
+            $first = $comment->content;
+
+            break;
+        }
+    }
+
+    return [
+        'status' => $status, // status: string | number
+        'first' => $first,   // first: string | null
+    ];
+}
+```
+
+Each read sees only the writes that reach it. After `$x = $this->notes;`, a guard that returns `['early' => $x]` publishes `early: string | null`, and a later `$x = $this->resource->getKey(); return ['late' => $x];` publishes `late: number`. A write that reads the variable itself, as in `$label = $label.$this->title` or `$row = ['v' => $row]`, builds on the value before it.
+
+A closure's or a helper's parameter follows the same rules. A write that always runs replaces the value the parameter was passed. A write inside a block is what later reads in that block see, and past the block it joins the value the parameter was passed. Here `$this->labelFor($this->title)` publishes `string | number`:
+
+```php
+private function labelFor(string $label)
+{
+    if ($this->is_pinned) {
+        $label = $this->id;
+    }
+
+    return $label;
+}
+```
+
+A write to a closure's or helper's parameter inside a block, or a key one branch writes, that the package can't type is left out of the join, as [Values Left Out of a Union](#values-left-out-of-a-union) describes. On a plain local, such a write makes the read publish `unknown`.
+
+A check that rules out `null` drops it from the reads it covers. With `$score = $this->rating` on a nullable column, `$score !== null ? $score : 'none'` publishes `string`, and so does `$this->when($score, fn () => $score)`, as an optional property.
+
+Some variables still publish `unknown`:
+
+- One a reference can write, through `use (&$x)`, `$alias = &$x`, `global` or `static`
+- One you change with `.=`, `++` or another compound assignment, apart from adding an array with `+=` as described below
+- One an `unset()` may remove
+- One you pass to a by-reference parameter that can change the value's form, such as `settype()`, `parse_str()`, or one of your own methods
+
+Variables assigned inside a closure body follow the same rules within that closure. A reassignment inside an `if` branch that ends in `return` or `throw` applies only inside that branch, so the code after it keeps reading the original variable.
+
+`preg_match()` writes its `$matches` as a list of strings. After `preg_match('/(\w+)-(\d+)/', $this->slug, $matches)`, both `$matches` and `$matches ?? []` publish `string[]`. A pattern with a named group, or a call that passes flags such as `PREG_OFFSET_CAPTURE`, writes the groups keyed by name or nested. The package doesn't type those groups, so `$matches ?? []` publishes `never[]`. A call that may not run, such as one inside an `if`, types `$matches` only when nothing else writes the variable.
+
+A literal key read on a variable that holds an array shape takes that key's type. With `$row = ['a' => 1, 'b' => 'x']`, `$row['b']` publishes `string`, and `$row['c'] ?? null`, a key the shape lacks, publishes `null`. A `map()` parameter and a method whose `@return` declares a shape work the same way, so `$this->pair()[1]` on a method declared `@return array{int, string}` publishes `string`.
 
 A by-reference built-in that keeps the value's form keeps its type:
 
@@ -939,13 +1123,27 @@ sort($original); // $copy keeps the type $original had before the sort
 
 A call on one of a local's keys, such as `sort($groups['x'])`, keeps the local's type when it keeps that key's form.
 
-These rules cover a variable you read as a value. For a variable that `toArray()` returns, the package follows each write instead, as [Building the Array in a Variable](#building-the-array-in-a-variable) describes.
+A variable you build with key writes or `+=` and read as a value publishes the keys written before the read:
+
+```php
+$meta = ['id' => $this->id];
+$meta['name'] = $this->name;
+$early = ['meta' => $meta];
+$meta['late'] = true;
+
+return [
+    'meta' => $meta,   // meta: { id: number; name: string; late: boolean }
+    'early' => $early, // early: { meta: { id: number; name: string } }
+];
+```
+
+For a variable that `toArray()` returns, the package follows each write the same way, as [Building the Array in a Variable](#building-the-array-in-a-variable) describes.
 
 To type a variable the package can't read, annotate its assignment. See [Typing a Variable With `@var`](#typing-a-variable-with-var).
 
 #### Narrowing With `instanceof`
 
-An early-exit `instanceof` guard narrows a variable for every statement after it. Here `attachable` is a `morphTo`, so `$parent` can hold several models until the guard proves it holds a `Post`:
+An early-exit `instanceof` guard narrows a variable for the statements after it, up to the end of the block it sits in. Here `attachable` is a `morphTo`, so `$parent` can hold several models until the guard proves it holds a `Post`:
 
 ```php
 $record = $this->attachable;
@@ -977,21 +1175,35 @@ export interface AttachmentResource {
 }
 ```
 
-A guard narrows a variable only when all of these hold:
+An `if` narrows a variable wherever its test is proven:
 
-- The `if` sits at the top level of the method or closure body.
-- The `if` has no `else` or `elseif`, and its body ends with `return` or `throw`.
-- The condition is a negated test such as `! $parent instanceof Post`, alone or in an `||` chain. A chain joined with `&&` narrows nothing.
-- The test reads a local variable or a closure parameter, not a property such as `$this->author`.
-- Nothing writes the variable after the guard. A write before the guard doesn't matter, since the guard tests the value it leaves.
+- **After a guard**: an `if` whose body ends in `return` or `throw` narrows the reads after it, up to the end of the block it sits in. Inside a loop, so does one whose body ends in `continue` or `break`. A guard nested in a loop or in another `if` narrows only the rest of that block.
+- **Inside a positive test**: `if ($parent instanceof Post) { ... }` narrows the reads in its block. An `elseif` or `else` sees the earlier tests fail, so the `else` of `if (! $parent instanceof Post) { ... }` reads `Post`.
 
-The guard narrows only the reads after it. A read in the guard's own body, or in a `return` placed before the guard, still sees every class the variable can hold. A positive test, such as `if ($parent instanceof Post) { ... }`, narrows nothing, not even inside its own body.
+```php
+$owner = $this->imageable;
+$data = [];
 
-Narrowing applies to reads through the variable, such as `$parent->title`. The variable's own value, as in `'parent' => $parent`, keeps its full union type.
+if ($owner instanceof Post) {
+    $data['post_title'] = $owner->title;
+} elseif ($owner instanceof User) {
+    $data['user_email'] = $owner->email;
+}
 
-An `instanceof` ternary on a variable narrows its true arm the same way, as `record_title` above shows, and so does an `||` chain of tests on that variable. A negated test, such as `! $post instanceof Post ? null : $post->title`, narrows the false arm instead.
+return $data; // post_title?: string; user_email?: string
+```
 
-A ternary that tests `$this->resource` against one model narrows the backing model for its proven arm, so a relation that only a subclass declares resolves there. On a `Team` resource, `$this->resource instanceof SubscribedTeam ? $this->resource->subscriber?->name : null` publishes `string | null`.
+The test can be one `instanceof`, negated or not, or an `||` chain of tests on the same variable, which narrows to any of their classes. A positive test can also join tests with `&&`. A positive test whose `||` joins two different variables narrows neither. A guard whose negated tests are joined with `||` narrows each, and one joined with `&&` narrows none. The test must read a local variable, a closure parameter, or a `foreach` value variable, not a property such as `$this->author`.
+
+A write to the variable between the test and the end of what it narrows cancels the narrowing, even for the reads before that write. A write through one of its members keeps the narrowing when it stores a literal the member's column holds, such as `$parent->title = 'Draft'`, or names no column or relation, such as `$parent->touched = true`. A write before the test doesn't matter, since the test checks the value it leaves.
+
+A read in a guard's own body, in a `return` placed before the guard, or in the `if` condition itself still sees every class the variable can hold.
+
+Narrowing applies to reads through the variable, such as `$parent->title`. A local's own value, as in `'parent' => $parent`, keeps its full union type. A closure parameter bound to one model is the exception: under a test for a published subclass of that model, its own value publishes the subclass, so `$this->whenLoaded('post', fn ($post) => $post instanceof DraftPost ? $post : null)` publishes `DraftPost | null`.
+
+An `instanceof` ternary on a variable narrows its true arm the same way, as `record_title` above shows, and so does an `||` chain of tests on that variable. A negated test, such as `! $post instanceof Post ? null : $post->title`, narrows the false arm instead. A ternary that tests a chain of property reads on `$this` narrows reads through the same chain in its arm, so `$this->imageable instanceof Post ? $this->imageable->getKey() : null` publishes `number | null`.
+
+A test that checks `$this->resource` against one model narrows the backing model wherever it's proven: in a ternary's arm, in an `if` block, or after a guard. So a relation that only a subclass declares resolves there. On a `Team` resource, `$this->resource instanceof SubscribedTeam ? $this->resource->subscriber?->name : null` publishes `string | null`. A method of the resource that the proven code calls reads the narrowed model too, so `$this->resource instanceof SubscribedTeam ? $this->subscriberName() : null` publishes `string | null` when `subscriberName()` returns `$this->resource->subscriber?->name`. In a resource collection, the same test narrows the collected items to the paginator it names, as [Reading `$this->resource`](#reading-this-resource) shows.
 
 A variable assigned from an `instanceof` ternary keeps the narrowing for every read through it. The test can be an `||` chain of `instanceof` checks. Here `imageable` is a `morphTo` whose possible models include one with a string key:
 
@@ -1017,9 +1229,9 @@ return [
 These forms don't narrow:
 
 - **The ternary's own value**: `'either' => $either` publishes the whole union. Only reads through the variable narrow.
-- **A read inside the arm when the test is on a property**: `$this->imageable instanceof Post ? $this->imageable->getKey() : null` stays `number | string | null`. Assign the ternary to a variable, and read through that variable instead.
+- **An `if` that tests a property**: inside `if ($this->imageable instanceof Post) { ... }`, `$this->imageable` still reads every model the `morphTo` can hold. Assign it to a local and test that instead.
 - **A test on a different spelling of the arm's value**: a variable bound to a ternary that tests `$this->resource->imageable` against a `$this->imageable` arm isn't narrowed.
-- **Mixed conditions**: a test joined with `&&`, or an `||` chain that mixes negated and plain tests.
+- **Mixed conditions in a ternary**: a test joined with `&&`, or an `||` chain that mixes negated and plain tests.
 - **The arm the test doesn't prove**: `$this->resource instanceof SubscribedTeam ? null : $this->resource->subscriber` publishes `unknown`, since `Team` has no `subscriber` relation.
 
 #### Typing a Variable With `@var`
@@ -1036,7 +1248,7 @@ return [
 ];
 ```
 
-It also restores a value the package would otherwise drop. Without the annotation, `$picked` below publishes `null`, because the package leaves out a ternary arm it can't type:
+It also restores a value the package would otherwise drop. Without the annotation, `$picked` below publishes `null`, because the package [leaves out a ternary arm it can't type](#values-left-out-of-a-union):
 
 ```php
 /** @var string|null $picked */
@@ -1045,13 +1257,15 @@ $picked = $this->id > 0 ? json_decode('"x"') : null; // string | null
 
 The annotation follows these rules:
 
-- **Placement**: it sits on a `$x = ...;` statement at the top level of the method or closure body. It names the variable, as in `/** @var CartTotals $totals */`, or names none, as in `/** @var CartTotals */`.
-- **Span**: it types the reads after that statement, up to the next statement that writes the variable. A loop that writes the variable ends the span where the loop starts. So an annotation also types a variable you reassign, until its next write.
+- **Placement**: it sits on a `$x = ...;` statement anywhere in the method or closure body, including inside an `if` or a loop. It names the variable, as in `/** @var CartTotals $totals */`, or names none, as in `/** @var CartTotals */`.
+- **Span**: it types the reads after that statement, up to the next statement that writes the variable. A loop that writes the variable ends the span where the loop starts. So an annotation also types a variable you reassign, until its next write. Inside a block, it types the reads after it in that block. Past the block, where the variable held a value before it, the annotated type joins that value. Where the variable held none, reads past the block aren't typed. With `$post = null;` before an `if` whose annotated assignment reads `/** @var Post|null $post */`, `$post?->title` after the `if` publishes `string | null`.
 - **Precedence**: it applies only where the package's own reading of the value is `unknown`, or is only the `null` left after an arm it can't type was dropped. Any other reading stands, whatever the annotation says: `/** @var int $n */ $n = $this->title;` still publishes `string`. To override a type the package got wrong, use [`#[TsCasts]`](#overriding-property-types-with-tscasts).
 
 A conditional value stays optional, so `/** @var User $reviewer */ $reviewer = $this->whenLoaded('reviewer');` publishes `reviewer?: User`.
 
-A closure parameter you reassign reads the new value from that statement on, when the value or an annotation names its class. In `function (User $author)`, `$author = $author->profile;` makes the reads after it use `Profile`. The package can't tell which class `$author->comments->find(1)` returns, so after `$author = $author->comments->find(1);` the reads keep using `User` until you annotate the assignment with `/** @var Comment $author */`. A `foreach` variable bound to a model keeps reading that model.
+A closure parameter you reassign reads the new value from that statement on, when the value or an annotation names its class. In `function (User $author)`, `$author = $author->profile;` makes the reads after it use `Profile`. `find()` with one literal key returns one of the collection's models or `null`. After `$author = $author->comments->find(1);`, `$author?->content` publishes `string | null`, and `$author->name` publishes `unknown`, since a comment has no `name`. A read of the variable itself after that write publishes `unknown`, as `first()` does.
+
+A write the package can't type keeps a model parameter's model, so after `$author = $this->normalize($author);`, where `normalize()` declares no return type, both `$author->name` and `return $author;` still read `User`. Annotate such an assignment, as in `/** @var Comment $author */`, and the reads follow the annotation. A write of a typed value is read as that value, so after `$author = $author->name;`, `return $author;` publishes `string`. A parameter that holds a plain value takes what any write returns, so after `$title = json_decode($title);`, `return $title;` publishes `unknown`. A `foreach` variable bound to a model keeps reading that model.
 
 The annotation's type counts only when it's built from these forms, and when every part of it resolves:
 
@@ -1067,7 +1281,7 @@ Any other type is ignored, so write `list<int>` instead of `int[]`. A model or e
 
 ### Collection Pipelines
 
-A chain of collection methods keeps its element type to the end, whether it starts at a relation or at `collect()`:
+A chain of collection methods keeps its element type to the end, whether it starts at a relation, a local, a query, or `collect()`:
 
 ```php
 return [
@@ -1094,16 +1308,52 @@ export interface PostResource {
 
 These helpers and methods publish as follows:
 
-- **`all()` and `values()`**: a collection and the array behind it both publish `X[]`, so `all()` changes nothing. A method that breaks sequential keys, such as `filter()`, `sortBy()`, or `keyBy()`, adds a `Record<string, X>` arm, because `json_encode()` writes such a collection as an object. `values()` restores sequential keys and removes that arm.
+- **`all()` and `values()`**: a collection and the array behind it both publish `X[]`, so `all()` changes nothing. A method that breaks sequential keys, such as `filter()`, `sortBy()`, or `keyBy()`, adds a `Record<string, X>` arm, because `json_encode()` writes such a collection as an object. The arm stays through a local and through a later `map()`. `values()` restores sequential keys and removes that arm.
 - **`collect()`**: the element type comes from the argument, and the `map()` parameter holds that element, which is why `$word` above is a `string`. On its own, `collect([...])` publishes the list or object its array encodes as, such as `number[]` for `collect([1, 2])` or `{ title: string }` for `collect(['title' => $this->title])`. `collect()` with no argument publishes `never[]`. A bare array literal publishes the same way, so `['a', 'b']` publishes `string[]`. A list holding an element the package can't type publishes `unknown[]`.
 - **`data_get()`**: `data_get($target, 'a.b')` publishes what `$target?->a?->b` would. A default joins the type instead of removing `null`, because `data_get()` returns the default only when the key is missing, not when its value is `null`.
-- **Typed `map()` parameters**: a model type hint on a `map()` parameter types every read through it, chained and nullsafe reads included, when you call `map()` on a variable such as a local or a `whenLoaded()` parameter. With `$rows = $this->resource->getRelation('comments')`, `$rows->map(fn (Comment $comment) => $comment->user?->name ?: null)->all()` publishes `(string | null)[]`. A relation chain such as `$this->comments->map(...)` uses the relation's model the same way. On a `collect(...)` root, or on a `map()` called straight on a method's result, such as `$this->resource->getRelation('comments')->map(...)`, the parameter holds no model, so reads through it publish `unknown`.
+- **`map()` parameters**: the callback's parameter holds the collection's element, with or without a type hint, whether the collection comes from a relation, a local, a `whenLoaded()` parameter, `getRelation()`, a query's `get()`, or `collect()`. Every read through it is typed, chained and nullsafe reads included. A class type hint, such as `fn (Comment $comment)` or a value object's class, types the parameter whatever the collection holds. A write that replaces the parameter is followed into the body.
+
+Here `PromoCode` is a value object with a `string` property `code`:
+
+```php
+public function toArray(Request $request): array
+{
+    $rows = $this->comments;
+    $byContent = $this->comments->keyBy('content');
+
+    return [
+        'collected_reads' => collect($this->comments)->map(fn ($comment) => ['content' => $comment->content, 'who' => $comment->user?->name])->all(),
+        'local_rows' => $rows->map(fn ($comment) => ['who' => $comment->user?->name]),
+        'author_names' => $rows->map(function (Comment $comment) {
+            $comment = $comment->user;
+
+            return $comment->name;
+        }),
+        'keyed_rows' => $byContent->map(fn (Comment $comment) => ['id' => $comment->id])->all(),
+        'query_rows' => Comment::query()->get()->map(fn (Comment $comment) => ['id' => $comment->id])->all(),
+        'codes' => collect([new PromoCode('a')])->map(fn (PromoCode $code) => ['id' => $code->code])->all(),
+    ];
+}
+```
+
+Each map publishes its callback's shape:
+
+```typescript
+collected_reads: { content: string; who: string | null }[];
+local_rows: { who: string | null }[];
+author_names: string[];
+keyed_rows: { id: number }[] | Record<string, { id: number }>;
+query_rows: { id: number }[];
+codes: { id: string }[];
+```
+
+`Model::all()` names its model the same way, so `Post::all()->toResourceCollection()` publishes `PostResource[]`. `map()` on a paginator maps the models on its page, so with `$page = Post::query()->paginate();`, `$page->map(fn (Post $post) => ['id' => $post->id])` publishes `{ id: number }[]`.
 
 `concat($other)` keeps the type only when `$other` is exactly the same collection type. Concatenating `Comment[]` and `Tag[]` publishes `unknown`, since the result is a different collection, not a longer one. A `data_get()` key with a `*` segment also publishes `unknown`.
 
 A chain can start at `$this->resource` too. `$this->resource->comments->map(fn ($comment) => $comment->id)` publishes `number[]`, as `$this->comments->map(...)` does. A `?->` on `$this->resource` adds `| null` once, since a resource can wrap `null`. `$this->resource?->comments->map(fn ($comment) => $comment->id)` publishes `number[] | null`.
 
-`first()`, `last()` and `firstWhere()` on a relation's collection return one of its models or `null`, so a read through them with `?->` is typed. `$this->comments->first()?->content` publishes `string | null`, and so does the same read after `last()` or `firstWhere('is_flagged', true)`. After a `first()` or `last()` call that passes a default, such as `first(null, 'none')`, the read publishes `unknown`, because Laravel returns that default when no model matches.
+`first()`, `last()` and `firstWhere()` on a collection of models return one of its models or `null`, so a read through them with `?->` is typed. That covers a relation's collection, a local holding one, and a variable an inline `@var Collection<int, Comment>` declares. `$this->comments->first()?->content` publishes `string | null`, and so does the same read after `last()`, `firstWhere('is_flagged', true)`, or `find()` with one literal key, such as `find(1)`. After a `first()` or `last()` call that passes a default, such as `first(null, 'none')`, the read publishes `unknown`, because Laravel returns that default when no model matches.
 
 ## Spreads and Inheritance
 
@@ -1454,19 +1704,68 @@ The variable can start from an array literal, as above, or from any of these:
 - `$this->only([...])` with a literal list of keys
 - `array_merge()` of array literals and `parent::toArray($request)` calls
 - A helper method on the resource that returns an array
+- A local you assign one of these once, as in `$data = $defaults;`
 
 A spread of `...$this->with($request)` or `...parent::with($request)` in `toArray()` adds the `$with` keys too.
 
 These rules decide each key:
 
-- **A write inside a block**: a key first written inside an `if`, a loop, a `try` or `catch` block, or a `switch` case publishes optional, because that path may not run.
-- **A key written more than once**: the key takes the type of its last write. `+=` adds only the keys the array doesn't have yet, and assigning a whole new array drops the keys written before it.
-- **An `unset()`**: `unset($data['slug'])` removes the key. Inside a block, it makes the key optional instead.
+- **Branches**: each branch of an `if` chain holds its own value for a key. A key that every branch of a chain ending in `else` writes is required, with each branch's type. A key that only some branches write publishes optional, and a key set before the chain keeps that value as one more type. A branch that ends in `throw`, or in a `return` of anything but the variable, stays out.
+- **Loops**: a loop may run no times, so a key it first writes publishes optional, and a key it re-sets keeps the value it held before the loop as one more type.
+- **`try`, `catch`, and `switch`**: their bodies are read in order. A key first written in one publishes optional, and a key re-set in one takes its last write's type.
+- **A key written more than once in a row**: the key takes the type of its last write. `+=` adds only the keys the array doesn't have yet. Assigning a whole new array drops the keys written before it. Inside one branch, it replaces them for that branch only, so a key that one side lacks publishes optional.
+- **An `unset()`**: `unset($data['slug'])` removes the key, and so does `unset($data[$key])` when `$key` is a local you assign a string literal once. Inside a block, it makes the key optional instead. In `unset($data['name'], $data[$hidden])`, the package removes `name` but can't follow `$data[$hidden]`. An index signature from an [interpolated key](#interpolated-keys) stays after an `unset()` of a literal key it matches, since its value already admits `undefined`.
 - **Other `return` statements**: the variable counts as one branch beside the method's other returns, so a `return []` guard, or a returned array literal that leaves a key out, makes that key optional.
 
-The package doesn't follow `$data[] = ...`, a key computed at runtime such as `$data[$key]`, or a nested key such as `$data['meta']['label']`, whether written or passed to `unset()`. It also reads the method in one pass. A key written after an early `return $data;` publishes required when that write always runs, though the early return sends the array without it. In either case, return an array literal on each path, or list the keys with [`#[TsCasts]`](#overriding-property-types-with-tscasts), which can also mark a key optional.
+Here each key holds the value of every branch that can write it:
 
-`+` publishes PHP's array union, where the left side's keys win and the right side adds the keys it lacks. That holds in a key's value, so `['code' => 'in'] + ['code' => 0, 'lane' => 2]` publishes `{ code: string; lane: number }`, and in a whole return, such as `return parent::toArray($request) + ['note' => 'none'];`.
+```php
+public function toArray(Request $request): array
+{
+    $data = ['id' => $this->id, 'label' => $this->sort_order];
+
+    if ($this->is_active) {
+        $data['mode'] = 1;
+    } else {
+        $data['mode'] = 'off';
+    }
+
+    if ($this->sort_order === 1) {
+        $data['tier'] = 'first';
+        $data['first_only'] = true;
+    } elseif ($this->sort_order === 2) {
+        $data['tier'] = 2;
+    } else {
+        $data['tier'] = false;
+    }
+
+    if ($this->description !== null) {
+        $data['label'] = $this->name;
+        $data['described'] = true;
+    }
+
+    return $data;
+}
+```
+
+On a `Category` resource, the variable publishes:
+
+```typescript
+export interface CategorySummaryResource {
+  id: number;
+  label: number | string;
+  mode: number | string;
+  tier: string | number | boolean;
+  first_only?: boolean;
+  described?: boolean;
+}
+```
+
+A value one branch writes that the package can't type is left out of the key's type, as [Values Left Out of a Union](#values-left-out-of-a-union) describes.
+
+The package doesn't follow `$data[] = ...`, a key computed at runtime, such as `$data[$key]` where `$key` isn't a local holding one string literal, or a nested key such as `$data['meta']['label']`, whether written or passed to `unset()`. It also reads the method in one pass. A key written after an early `return $data;` publishes required when that write always runs, though the early return sends the array without it. A `continue` or `break` isn't followed either, so in a loop body, a write after an `if` that ends in `continue` replaces the `if`'s write, though Laravel can send the `if`'s value. In each case, return an array literal on each path, or list the keys with [`#[TsCasts]`](#overriding-property-types-with-tscasts), which can also mark a key optional.
+
+`+` publishes PHP's array union, where the left side's keys win and the right side adds the keys it lacks. That holds in a key's value, so `['code' => 'in'] + ['code' => 0, 'lane' => 2]` publishes `{ code: string; lane: number }`, and in a whole return, such as `return parent::toArray($request) + ['note' => 'none'];`. Either side can be a local holding an array: with `$defaults = ['note' => 'none', 'id' => 'x']`, `return ['id' => $this->id] + $defaults;` publishes `id: number` and `note: string`.
 
 ### Return Branches and `@return` Shapes
 
@@ -1644,6 +1943,8 @@ members?: (Omit<User, "flag"> & { flag: boolean })[];
 
 The `Omit<>` matters. In PHP the later key wins, so `'flag'` replaces whatever the spread contributed. TypeScript's `&` would instead intersect both, and turn a conflicting key into `never`. When one literal holds several spreads, each spread's `Omit<>` removes every key that a later spread or an explicit key overwrites, in source order.
 
+The spread uses the model the variable holds, on any collection a `map()` runs over. `collect($this->comments)->map(fn (Comment $comment) => [...$comment->toArray(), 'flag' => true])->all()` publishes `(Omit<Comment, "flag"> & { flag: boolean })[]`. A local inside the callback spreads its own model, so `$author = $comment->user;` followed by `[...$author->toArray(), 'x' => 1]` publishes `Omit<User, "x"> & { x: number }` for each comment.
+
 At the top level of `toArray()`, a spread with no key flattens into the resource's own properties instead. `...$this->user->toArray()` adds the user's properties to the interface, and `...PostResource::make($this->post)->resolve()` adds the post resource's. A collection's `...$this->tags->toArray()` adds a `[key: number]` index signature.
 
 ::: info
@@ -1746,7 +2047,7 @@ replies: Comment[];
 kept: Comment[] | null;
 ```
 
-A `?->` on `$this->resource` adds `| null` once, because a resource can wrap `null`. `$this->resource?->comments->only([1, 2])` publishes `Comment[] | null`.
+A `?->` on `$this->resource` adds `| null` once, because a resource can wrap `null`. `$this->resource?->comments->only([1, 2])` publishes `Comment[] | null`. A variable that holds the relation's collection filters the same way, so `'picked' => $this->whenLoaded('comments', fn ($comments) => $comments->only([1, 2]))` publishes `picked?: Comment[]`.
 
 An accessor that returns an Eloquent collection of models filters the same way. It publishes a list of those models, such as `Comment[]`, whatever key type the accessor declares.
 
@@ -2034,6 +2335,21 @@ These calls on `$this->resource` publish a type of their own:
 Laravel throws when the items are a plain collection, or a paginator without that method, so the type covers only the paginators that have it. `total()` exists only on the paginator `paginate()` returns, so call it only in a collection you always build from `paginate()`.
 
 If the collection always receives one kind of paginator, redeclare `$resource` with it. With `/** @var LengthAwarePaginator<int, UserResource> */ public $resource;`, `page` publishes `LengthAwarePaginator<UserResource>`.
+
+An `instanceof` test on `$this->resource` narrows the items to the paginator it names, in a ternary's arm, inside an `if` block, or after a guard. A read outside what the test proves keeps every shape:
+
+```php
+public function toArray(Request $request): array
+{
+    if ($this->resource instanceof LengthAwarePaginator) {
+        return ['pager' => $this->resource];
+    }
+
+    return ['pager' => null];
+}
+```
+
+Here `pager` publishes `LengthAwarePaginator<UserResource> | null`.
 
 A call the collection forwards to `$this->resource`, such as `$this->first()` or `$this->total()`, publishes the same type. In a [key-preserving collection](#key-preserving-collections), the list type is `Record<string, UserResource>`. When no singular resource matches, each type holds `unknown`, such as `unknown[]` and `LengthAwarePaginator<unknown>`.
 
@@ -2345,6 +2661,26 @@ Each `| null` comes from what Laravel does at runtime:
 A `when()`, ternary, `mergeWhen()`, `transform()`, `if` block or earlier `return` that rules out a `null` `parent` by testing `$this->parent` itself, for truthiness, against `null`, with `isset()` or with one `instanceof`, drops the `| null` from what it guards, so `$this->when($this->parent, fn () => CategoryResource::make($this->parent))` publishes `CategoryResource`, while a check on `parent_id` keeps it, because a soft-deleted parent still loads as `null`.
 
 A resource built directly around a relation gets the `| null` only when the package can type that relation. A relation the model doesn't declare, a relation to a model the package doesn't publish, and a `morphTo` with no resolvable target publish without it. Inside a `whenLoaded()` closure, the relation's own rule applies instead, so `$this->whenLoaded('parent', fn ($parent) => CategoryResource::make($parent))` publishes `CategoryResource | null` whenever `parent` can load `null`. In that closure, a relation the model doesn't declare counts as one that can load `null` while `nullable_relations` is on.
+
+A `whenLoaded()` value that hands the relation to a resource's `collection()` is the exception. Only a to-many relation, which loads as a list, fits there, so `$this->whenLoaded('branches', CategoryResource::collection(...))` publishes `branches?: CategoryResource[]` even when the package can't read `branches`.
+
+Inside a `map()`, Laravel turns a nested resource with a `null` payload into `null` only where it reaches the mapped items as an array, so the `| null` depends on how the chain ends. On a `Team` resource, where `members` holds users and `profile` is a `HasOne` relation:
+
+```php
+'profiles' => $this->members->map(fn (User $member) => ['profile' => new ProfileResource($member->profile)]),
+'profiles_all' => $this->members->map(fn (User $member) => ['profile' => new ProfileResource($member->profile)])->all(),
+```
+
+Only the chain that ends in `->all()` adds `| null`:
+
+```typescript
+interface TeamResource {
+  profiles: { profile: ProfileResource }[];
+  profiles_all: { profile: ProfileResource | null }[];
+}
+```
+
+Without `->all()`, or through `->values()`, a member with no profile makes Laravel throw instead of sending `null`.
 
 To turn off nullable relation detection everywhere:
 

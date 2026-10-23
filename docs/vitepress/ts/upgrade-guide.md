@@ -1,5 +1,57 @@
 # Upgrade Guide
 
+## Upgrading From 2.8
+
+The release after 2.8 follows more of the code in `toArray()` and its helpers: variables you write more than once or inside a block, closure parameters, `instanceof` checks, and collection pipelines on any collection. Many values that published `unknown` now publish their type, and some types gain or lose `| null` to match what Laravel sends. Run `php artisan ts:publish` after you update, and check the changes below against your generated files.
+
+### `null` Added or Dropped
+
+- **`transform()` closures**: Laravel calls the closure only for a filled value, so its parameter no longer holds `null`. `$this->transform($this->rating, fn ($rating) => $rating)` publishes `rating?: string`, where it published `string | null`. The default closure still gets the blank value, `null` included.
+- **A `when()` condition on a variable**: `$this->when($score, fn () => $score)` drops `null` from `$score` in the value, so it publishes `string`, where it published `string | null`.
+- **`whenNotNull()` with a closure or a first-class callable**: a closure is never `null`, so Laravel always sends the key and what the closure returns. `$this->whenNotNull(fn () => $this->rating)` publishes `rating: string | null`, where it published `rating?: string`.
+- **A collected `whenLoaded()` value**: a value that hands a relation the package can't read to a resource's `collection()`, such as `$this->whenLoaded('branches', CategoryResource::collection(...))` over a `branches()` method that declares no return type, publishes `CategoryResource[]`, where it published `CategoryResource[] | null`.
+- **A resource built inside `map()`**: a resource built around a relation inside a `map()` that ends in `->all()`, or inside an array a `whenLoaded()` closure returns, adds `| null`, as in `{ profile: ProfileResource | null }[]`. It published the bare resource, though Laravel sends `null` there. See [Nullable Relations](./api-resources.md#nullable-relations).
+- **Enum resources in a relation closure or a `map()`**: `EnumResource::make()` or `new EnumResource()` of a nullable enum column inside a relation closure now adds `| null` where Laravel sends `null`: through `->all()` or an array, as a resource wrap does. A `map()` of enum wraps kept as a `Collection` now publishes `X[]` where it published `(X | null)[]`. Laravel sends `[]` there for a `null` enum, which `X[]` doesn't admit, so end the chain with `->all()` to get `(X | null)[]`.
+- **A column read on a new model**: a model you build with `new` and no attributes reads each column as `null`, so `(new Post)->title` publishes `string | null`, where it published `string`. A model you fill, copy or create keeps the column's type. See [Method Return Types](./api-resources.md#method-return-types).
+
+### Variables, Branches, and Narrowing
+
+- **Variables written more than once**: a variable you assign again, in sequence or inside an `if`, a loop, a `try` or a `catch`, publishes each value that can reach the read, such as `string | number`, where it published `unknown`. A variable a reference can write, or one you change with `.=`, `++` or another compound assignment, still publishes `unknown`. A variable assigned inside a block now publishes its type for the reads after it in that block, where it published `unknown`. See [Local Variables and Narrowing](./api-resources.md#local-variables-and-narrowing).
+- **Parameters written inside a block**: a closure's or a helper's parameter publishes both the value it was passed and the value a write inside a block assigns, such as `string | number`, where it published only the value it was passed.
+- **Returned variables built in branches**: each branch of an `if` chain, and each loop, keeps its own value for a key, so a key re-set in an `if` publishes both types, such as `number | string`, where it published only its last write's type. A whole new array assigned in one branch replaces the keys only there, so a key that only one side holds publishes optional. See [Building the Array in a Variable](./api-resources.md#building-the-array-in-a-variable).
+- **Arrays built in a variable outside `toArray()`'s return**: a closure in value position, a helper you read as a value, and a local you read as a value now publish the keys their writes set, where they published `unknown` or `unknown[]`. A merge closure that returns such a variable now merges its keys.
+- **`+` and `unset()` with a local**: `return ['id' => $this->id] + $defaults;` now publishes the keys of `$defaults` too, and `unset($data[$key])` now removes the key when `$key` is a local holding one string literal.
+- **`instanceof` narrowing**: an `if` narrows a variable inside its own block, in an `elseif` or `else` the earlier tests rule in, and after a guard nested in a loop or another `if`, up to the end of that block. A ternary narrows reads through a `$this->prop` chain in its arm. A resource method that the proven code calls reads the narrowed `$this->resource`. In a resource collection, an `if` narrows the items to the paginator it tests. These reads published `unknown`, `null`, or every class the variable could hold. See [Narrowing With `instanceof`](./api-resources.md#narrowing-with-instanceof).
+- **`preg_match()` and literal keys**: `$matches` publishes `string[]` when the pattern names no group and the call passes no flags, where it published `unknown`. A literal key read on a variable holding an array shape, such as `$row['b']`, publishes that key's type.
+
+### Collections, Relations, and Query Calls
+
+- **`map()` on any collection**: a `map()` callback's parameter holds the collection's element on a local, a `whenLoaded()` parameter, `getRelation()`, a query's `get()` and `collect()` too, with or without a type hint. A class type hint types it whatever the collection holds. Reads through it published `unknown`. A model spread inside the callback, such as `[...$comment->toArray(), 'flag' => true]`, publishes the model the variable holds, where it could name another model or none. See [Collection Pipelines](./api-resources.md#collection-pipelines).
+- **Keyed collections through a local**: after `keyBy()`, `sortBy()`, `filter()` or another step that breaks the keys, a `map()` through a local or ending in `->all()` publishes `X[] | Record<string, X>`, where it published `X[]`.
+- **Collections passed to a helper**: a helper's parameter holds the collection's model, so `$comments->first()?->content` in its body publishes `string | null`, where it published `unknown`. `only()` and `except()` on a variable holding an Eloquent collection publish a list of its models, such as `Comment[]`.
+- **Relation calls the query answers**: `$this->comments()->count()`, `exists()`, `first()?->content`, and other forwarded calls whose query method declares a return type publish it, such as `number` and `boolean`, where they published `unknown`. An aggregate such as `max()`, which declares `mixed`, stays `unknown`. In a [model metadata](./model-metadata.md#how-each-key-is-typed) provider, `$model instanceof Post ? $model->comments()->count() : null` publishes `number | null`, where it published `null`.
+- **Relations only a `@return` declares**: a relation method with no native return type whose `@return` names its relation class, such as `@return Ancestors<static, static>`, now publishes on the model's interface, and `whenLoaded()` over it is typed. It was left out. Laravel's `Notifiable` trait declares `readNotifications()` and `unreadNotifications()` this way, so a notifiable model now publishes `read_notifications`, `unread_notifications`, and their `_count` and `_exists` keys.
+- **To-many relation subclasses**: a relation whose class extends one of Laravel's to-many relations publishes a list such as `Category[]`, whatever its name. In 2.8 a class name without "Many" published one model. A subclass that loads one model publishes `Category | null`.
+- **Route-bound model relations**: in page props, `$post->author` publishes `User` and `$post->comments` `Comment[]`, where they published `unknown`. See [What the Props Expression Can Be](./routing.md#what-the-props-expression-can-be).
+
+### Other Values Now Typed
+
+- **String helpers**: `Str::upper()`, `Str::lower()` and other Laravel methods whose conditional `@return` is a string on every branch publish `string`, where they published `unknown`.
+- **`array_filter()`**: publishes the array you pass it, with its keys. Over a `Record<string, string>` cast it publishes `Record<string, string>`. Over a list it publishes `string[] | Record<number, string>` where the value is sent as-is, since a gap the filter leaves makes JSON write an object. It published `unknown`.
+- **Integer ranges in docblocks**: `int<0, max>`, `int<1, 10>` and other integer ranges in a `@return` or `@property` tag publish `number`, where they published `unknown`.
+- **A first-class callable in a local**: `$label = $this->label(...)`, passed to `when()`, `mergeWhen()` or another conditional method, publishes what the call returns.
+- **Loop-built keys in an accessor**: a model accessor whose getter writes `$totals['k'.$index] = $index` in a `foreach` publishes ``{ [key: `k${string}`]: unknown | undefined }``, where it published `unknown[]`. Laravel sends an object, such as `{"k1":1,"k2":2}`.
+
+### Reassigned Values That No Longer Guess
+
+- **`json_decode()` of a reassigned parameter**: after `$title = json_decode($title);`, the parameter holds what `json_decode()` returns, so `return $title;` publishes `unknown`, where it published the parameter's old type, such as `string`. Any write that always runs replaces the value a parameter was passed, but a model parameter keeps its model past a write the package can't type. See [Typing a Variable With `@var`](./api-resources.md#typing-a-variable-with-var).
+- **`find()` on a reassigned closure parameter**: after `$author = $author->comments->find(1);`, reads use `Comment`, so `$author?->content` publishes `string | null`, and `$author->name` publishes `unknown`, where it read `User`'s `name`.
+- **A merge closure's own variables**: a variable a `merge()` closure assigns is its own, so the closure no longer reads the method's variable of the same name. With `$label = 'x';` in `toArray()` and `$label = $this->id;` in the closure, the merged `label` publishes `number`, where it published `string`.
+
+### New Warnings
+
+`ts:publish` now warns after its summary where it left out a value it can't type and only `null` or an empty array is left. It also warns where a parameter's writes, a returned array's branches, a merge's two sides or a spread helper's returns join and leave a value out. A class the generation cache serves prints none of them, so run `php artisan ts:publish --fresh` to see every one. See [Values Left Out of a Union](./api-resources.md#values-left-out-of-a-union).
+
 ## Upgrading From 2.7
 
 The release after 2.7 changes what some `#[TsCasts]` entries publish, and what a merged model publishes. Numeric keys, list literals, enum cases, values built with `new`, and top-level integer keys also now publish as Laravel sends them. Some inferred types change too, where the package guessed a type, read the wrong class, or misread a docblock. Run `php artisan ts:publish` after you update, and check the changes below against your generated files.
