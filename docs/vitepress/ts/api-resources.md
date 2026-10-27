@@ -806,14 +806,57 @@ On an abstract model, `getKey()` publishes the key type the class declares, thro
 
 A method that returns a plain PHP `DateTime` or `DateTimeImmutable` publishes `{ date: string; timezone_type: number; timezone: string }`, the object `json_encode()` writes for it. A Carbon date publishes `string`, or `Date` under `timestamps_as_date`, and so do the `now()` and `today()` helpers, which return one. A `DateTimeInterface` can hold either kind, so it publishes the Carbon date's type or that object, and a `CarbonPeriod` publishes a list of the Carbon date's type. A `CarbonInterval` publishes the `DateInterval` fields `json_encode()` writes for it, such as `y`, `m`, `d` and `days`. `str($value)` publishes `string`, and `str()` with no argument publishes `Record<string, never>`. `url($path)` publishes `string` when the path can't be `null`, and `unknown` when it can or has no type.
 
-A value built in place publishes what `json_encode()` writes for it as well, so `new DateTime()` publishes that date object and `new RuntimeException('x')` publishes `Record<string, never>`. `new Collection($items)` publishes as `collect($items)` does. These values stay `unknown` when built in place:
+A value built in place publishes what `json_encode()` writes for it as well, so `new DateTime()` publishes that date object and `new RuntimeException('x')` publishes `Record<string, never>`. `new Collection($items)` publishes as `collect($items)` does. `new stdClass`, and a method declared to return `stdClass`, publish `Record<string, unknown>`, because a `stdClass` can gain properties at run time.
+
+These values stay `unknown` when built in place:
 
 - An `Arrayable` or a `Responsable`
 - An Inertia `ProvidesInertiaProperty` class
 - A model
-- A class with no public property and no `__toString()`, such as `stdClass`
+- A class with no public property and no `__toString()`
 
 Type such a key with [`#[TsCasts]`](#overriding-property-types-with-tscasts).
+
+`array_values()` keeps the element type and publishes a list. An `(object)` cast publishes the object `json_encode()` writes: a shape keeps its keys, a list becomes a `Record` keyed by its indexes, and `(object) []` publishes `Record<string, never>`. An `(array)` cast of an array keeps the array's type:
+
+```php
+public function toArray(Request $request): array
+{
+    return [
+        'tags' => array_values(array_filter($this->tags())),
+        'count_list' => array_values($this->tagCounts()),
+        'tag_counts' => (object) $this->tagCounts(),
+        'tag_object' => (object) $this->tags(),
+        'size' => (object) ['width' => 640, 'label' => 'large'],
+        'counts' => (array) $this->tagCounts(),
+    ];
+}
+
+/** @return list<string> */
+private function tags(): array
+{
+    return explode(',', $this->title);
+}
+
+/** @return array<string, int> */
+private function tagCounts(): array
+{
+    return array_count_values($this->tags());
+}
+```
+
+Each key publishes the list or object PHP sends:
+
+```typescript
+export interface PostTagsResource {
+  tags: string[];
+  count_list: number[];
+  tag_counts: Record<string, number>;
+  tag_object: Record<string, string>;
+  size: { width: number; label: string };
+  counts: Record<string, number>;
+}
+```
 
 A method that returns the base `Model` class, `Illuminate\Foundation\Auth\User`, an abstract model, or a model that isn't published, such as one in `models.excluded`, publishes `unknown`, because no published file has a type for it. Declare the concrete model as the return type, such as `: Order`, to type the value.
 
@@ -937,7 +980,36 @@ private function summary(Request $request): array
 
 If one `return` can't be typed, or the method yields, the property publishes `unknown`.
 
-When you use the method's result as a value, a value in the array that is an enum or a model publishes `unknown`, because a method body can't supply the import it needs. The rest of the shape keeps its types. Spreading the same method keeps an enum's type. To type that value, build the array in `toArray()` itself, or override the property with [`#[TsCasts]`](#overriding-property-types-with-tscasts) and a type your frontend exports, as in `['type' => 'StatusPayload', 'import' => '@/types/payloads']`. An entry imports only a type it names whole, so a type named inside a shape you write in the entry isn't imported.
+When you use the method's result as a value, a value in the array that is an enum or a model publishes `unknown`, because a method body can't supply the import it needs. The rest of the shape keeps its types, and an enum's `->value` or `->name` publishes the literal union of its values or names, as [Reading `->value` and `->name`](./enums.md#reading-value-and-name) describes. Spreading the same method keeps an enum's type. To type that value, build the array in `toArray()` itself, or override the property with [`#[TsCasts]`](#overriding-property-types-with-tscasts) and a type your frontend exports, as in `['type' => 'StatusPayload', 'import' => '@/types/payloads']`. An entry imports only a type it names whole, so a type named inside a shape you write in the entry isn't imported.
+
+Here a `Post` casts `status` to the int-backed `PostStatus` enum, whose cases are `Draft = 0` and `Published = 1`. The resource uses `statusLabel()` as a value, then spreads it:
+
+```php
+public function toArray(Request $request): array
+{
+    return [
+        'label' => $this->statusLabel($this->status),
+        ...$this->statusLabel($this->status),
+    ];
+}
+
+private function statusLabel(PostStatus $status): array
+{
+    return ['name' => $status->name, 'value' => $status->value];
+}
+```
+
+`label` publishes the literal unions, and the spread keys publish the enum's aliases:
+
+```typescript
+import type { PostStatusKind, PostStatusType } from "../../enums";
+
+export interface PostLabelResource {
+  label: { name: "Draft" | "Published"; value: 0 | 1 };
+  name: PostStatusKind;
+  value: PostStatusType;
+}
+```
 
 A model's own `toArray()`, called as a value, publishes `Record<string, unknown>`, because the relations it includes depend on what's loaded at runtime. A relation's collection, as in `$this->comments->toArray()`, publishes `Record<string, unknown>[]`. To publish the model's keys, spread it instead, as [Model `toArray()` Spread](#model-toarray-spread) shows.
 
@@ -1428,6 +1500,77 @@ export interface BodylessOrderResource {
 
 The nearest class up the parent chain that declares a `toArray()` provides the shape, so inheritance several levels deep works. The backing model comes from the parent chain too: a resource with no `@mixin` or `@extends` tag of its own uses the nearest ancestor's, as step 3 of [How the Backing Model Is Resolved](#how-the-backing-model-is-resolved) describes. That keeps the inherited properties typed from their columns.
 
+The package reads the inherited body as PHP runs it for the child:
+
+- `$this->` and `static::` reach the child, so a method, constant, or property the child overrides publishes the child's type. That includes a helper that `toArray()` spreads.
+- `self::` reaches the class that declares the body, and `parent::` reaches that class's parent.
+- A `private` member stays the one in the class that declares `toArray()`, because PHP never overrides one.
+
+```php
+class BaseCardResource extends JsonResource
+{
+    public const KIND = 'card';
+
+    public function toArray(Request $request): array
+    {
+        return [
+            'title' => $this->title(),
+            'kind' => static::KIND,
+            'label' => self::label(),
+            'weight' => $this->weight(),
+        ];
+    }
+
+    public function title(): int|string
+    {
+        return 0;
+    }
+
+    public static function label(): int|string
+    {
+        return 0;
+    }
+
+    private function weight(): int
+    {
+        return 1;
+    }
+}
+
+class NoticeCardResource extends BaseCardResource
+{
+    public const KIND = 7;
+
+    public function title(): string
+    {
+        return 'Notice';
+    }
+
+    public static function label(): string
+    {
+        return 'notice';
+    }
+
+    public function weight(): string
+    {
+        return 'heavy';
+    }
+}
+```
+
+`title` and `kind` come from `NoticeCardResource`. `label` keeps the parent's `string | number`, because `self::label()` calls `BaseCardResource::label()`, and `weight` keeps `number`, because `weight()` is private to `BaseCardResource`:
+
+```typescript
+export interface NoticeCardResource {
+  title: string;
+  kind: number;
+  label: string | number;
+  weight: number;
+}
+```
+
+`self::make()` and `self::collection()` in the inherited body build the child, as they do in PHP. So a `FeaturedCategoryResource` that inherits `'children' => self::collection($this->whenLoaded('children'))` from `CategoryResource` publishes `children?: FeaturedCategoryResource[]`. A method that returns `static`, called through `self::` or `parent::`, returns the child too.
+
 If no class in the chain declares a `toArray()`, the resource publishes the model's properties, as [JsonResource Base Delegation](#jsonresource-base-delegation) describes. With no model either, the interface is empty, apart from any types `#[TsExtends]` adds. A `ResourceCollection` subclass with no `toArray()` still finds its element type as [Resource Collections](#resource-collections) describes.
 
 ### A `toArray()` From a Trait
@@ -1467,6 +1610,45 @@ export interface LabelResource {
 ```
 
 A subclass of `LabelResource` with no `toArray()` of its own publishes the same keys. A `ResourceCollection` can take its `toArray()` from a trait the same way.
+
+In the trait's `toArray()`, `self::` reaches the class that uses the trait, and `parent::` reaches that class's parent. `$this->` and `static::` reach the resource, as they do in an [inherited `toArray()`](#inheriting-a-parent-toarray). Here `TagCardResource` extends the `BaseCardResource` above:
+
+```php
+trait ShapesCard
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            ...parent::toArray($request),
+            'label' => self::label(),
+            'kind' => static::KIND,
+        ];
+    }
+}
+
+class TagCardResource extends BaseCardResource
+{
+    use ShapesCard;
+
+    public const KIND = 'tag';
+
+    public static function label(): string
+    {
+        return 'tag';
+    }
+}
+```
+
+`parent::toArray()` spreads `BaseCardResource`'s keys, and `label` and `kind` take `TagCardResource`'s types:
+
+```typescript
+export interface TagCardResource {
+  title: string | number;
+  kind: string;
+  label: string;
+  weight: number;
+}
+```
 
 ### JsonResource Base Delegation
 
@@ -1766,6 +1948,85 @@ A value one branch writes that the package can't type is left out of the key's t
 The package doesn't follow `$data[] = ...`, a key computed at runtime, such as `$data[$key]` where `$key` isn't a local holding one string literal, or a nested key such as `$data['meta']['label']`, whether written or passed to `unset()`. It also reads the method in one pass. A key written after an early `return $data;` publishes required when that write always runs, though the early return sends the array without it. A `continue` or `break` isn't followed either, so in a loop body, a write after an `if` that ends in `continue` replaces the `if`'s write, though Laravel can send the `if`'s value. In each case, return an array literal on each path, or list the keys with [`#[TsCasts]`](#overriding-property-types-with-tscasts), which can also mark a key optional.
 
 `+` publishes PHP's array union, where the left side's keys win and the right side adds the keys it lacks. That holds in a key's value, so `['code' => 'in'] + ['code' => 0, 'lane' => 2]` publishes `{ code: string; lane: number }`, and in a whole return, such as `return parent::toArray($request) + ['note' => 'none'];`. Either side can be a local holding an array: with `$defaults = ['note' => 'none', 'id' => 'x']`, `return ['id' => $this->id] + $defaults;` publishes `id: number` and `note: string`.
+
+A helper that you pass the array to, and that returns it, keeps the array's keys and adds the keys it writes. A vague `@return array<string, mixed>` on the helper doesn't hide them:
+
+```php
+public function toArray(Request $request): array
+{
+    $data = [
+        'id' => $this->id,
+        'title' => $this->title,
+        'url' => url("/posts/{$this->id}"),
+        'disabled' => false,
+    ];
+
+    return $this->guard($data);
+}
+
+/**
+ * @param  array<string, mixed>  $data
+ * @return array<string, mixed>
+ */
+private function guard(array $data): array
+{
+    if ($this->trashed()) {
+        $data['url'] = null;
+        $data['disabled'] = true;
+    }
+
+    return $data;
+}
+```
+
+The resource publishes the array's keys, with the helper's writes joined in:
+
+```typescript
+export interface PostLinkResource {
+  id: number;
+  title: string;
+  url: string | null;
+  disabled: boolean;
+}
+```
+
+The same holds when you use the helper's result as a value, so `'link' => $this->guard(['url' => url('/posts'), 'disabled' => false])` publishes `link: { url: string | null; disabled: boolean }`.
+
+When a helper's array starts from a value the package can't read, such as `$request->all()`, a key that holds the helper's result publishes the keys the helper writes, plus an index signature for the rest. When all the package can read of a helper's array is its `@return array<string, mixed>`, such a key publishes `Record<string, unknown>`:
+
+```php
+public function toArray(Request $request): array
+{
+    return [
+        'filters' => $this->filters($request),
+        'options' => $this->options(),
+    ];
+}
+
+/** @return array<string, mixed> */
+private function filters(Request $request): array
+{
+    $filters = $request->all();
+    $filters['page'] = 1;
+
+    return $filters;
+}
+
+/** @return array<string, mixed> */
+private function options(): array
+{
+    return json_decode($this->content, true);
+}
+```
+
+`filters` keeps the key the helper writes, and `options` publishes a record:
+
+```typescript
+export interface PostFiltersResource {
+  filters: { page: number; [key: string]: unknown };
+  options: Record<string, unknown>;
+}
+```
 
 ### Return Branches and `@return` Shapes
 
