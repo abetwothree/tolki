@@ -982,6 +982,35 @@ If one `return` can't be typed, or the method yields, the property publishes `un
 
 When you use the method's result as a value, a value in the array that is an enum or a model publishes `unknown`, because a method body can't supply the import it needs. The rest of the shape keeps its types, and an enum's `->value` or `->name` publishes the literal union of its values or names, as [Reading `->value` and `->name`](./enums.md#reading-value-and-name) describes. Spreading the same method keeps an enum's type. To type that value, build the array in `toArray()` itself, or override the property with [`#[TsCasts]`](#overriding-property-types-with-tscasts) and a type your frontend exports, as in `['type' => 'StatusPayload', 'import' => '@/types/payloads']`. An entry imports only a type it names whole, so a type named inside a shape you write in the entry isn't imported.
 
+Here a `Post` casts `status` to the int-backed `PostStatus` enum, whose cases are `Draft = 0` and `Published = 1`. The resource uses `statusLabel()` as a value, then spreads it:
+
+```php
+public function toArray(Request $request): array
+{
+    return [
+        'label' => $this->statusLabel($this->status),
+        ...$this->statusLabel($this->status),
+    ];
+}
+
+private function statusLabel(PostStatus $status): array
+{
+    return ['name' => $status->name, 'value' => $status->value];
+}
+```
+
+`label` publishes the literal unions, and the spread keys publish the enum's aliases:
+
+```typescript
+import type { PostStatusKind, PostStatusType } from "../../enums";
+
+export interface PostLabelResource {
+  label: { name: "Draft" | "Published"; value: 0 | 1 };
+  name: PostStatusKind;
+  value: PostStatusType;
+}
+```
+
 A model's own `toArray()`, called as a value, publishes `Record<string, unknown>`, because the relations it includes depend on what's loaded at runtime. A relation's collection, as in `$this->comments->toArray()`, publishes `Record<string, unknown>[]`. To publish the model's keys, spread it instead, as [Model `toArray()` Spread](#model-toarray-spread) shows.
 
 An `only()` or `except()` call names no class, so its result keeps its shape:
@@ -1475,7 +1504,7 @@ The package reads the inherited body as PHP runs it for the child:
 
 - `$this->` and `static::` reach the child, so a method, constant, or property the child overrides publishes the child's type. That includes a helper that `toArray()` spreads.
 - `self::` reaches the class that declares the body, and `parent::` reaches that class's parent.
-- A `private` member stays the declaring class's, because PHP never overrides one.
+- A `private` member stays the one in the class that declares `toArray()`, because PHP never overrides one.
 
 ```php
 class BaseCardResource extends JsonResource
@@ -1961,7 +1990,9 @@ export interface PostLinkResource {
 }
 ```
 
-The same holds when you use the helper's result as a value, so `'link' => $this->guard(['url' => url('/posts'), 'disabled' => false])` publishes `link: { url: string | null; disabled: boolean }`. When a helper's array starts from a value the package can't read, such as `$request->all()`, a key that holds the helper's result publishes the keys the helper writes, plus an index signature for the rest. When the package can read nothing of a helper's array but its `@return array<string, mixed>`, such a key publishes `Record<string, unknown>`:
+The same holds when you use the helper's result as a value, so `'link' => $this->guard(['url' => url('/posts'), 'disabled' => false])` publishes `link: { url: string | null; disabled: boolean }`.
+
+When a helper's array starts from a value the package can't read, such as `$request->all()`, a key that holds the helper's result publishes the keys the helper writes, plus an index signature for the rest. When all the package can read of a helper's array is its `@return array<string, mixed>`, such a key publishes `Record<string, unknown>`:
 
 ```php
 public function toArray(Request $request): array
