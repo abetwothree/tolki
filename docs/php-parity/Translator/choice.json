@@ -1,0 +1,114 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "choice-fills-count",
+            "php": "t(T3)->choice('apples', 3)",
+            "value": "3 apples"
+        },
+        {
+            "label": "choice-exact-one",
+            "php": "t(T3)->choice('apples', 1)",
+            "value": "one"
+        },
+        {
+            "label": "choice-custom-count",
+            "php": "t(T3)->choice(':count foos', 1234, ['count' => '1,234'])",
+            "value": "1,234 foos"
+        },
+        {
+            "label": "choice-counts-list",
+            "php": "t(T3)->choice('apples', ['a', 'b', 'c'])",
+            "value": "3 apples"
+        },
+        {
+            "label": "choice-counts-assoc-array",
+            "php": "t(T3)->choice('apples', ['a' => 1, 'b' => 2])",
+            "value": "2 apples"
+        },
+        {
+            "label": "choice-counts-collection",
+            "php": "t(T3)->choice('apples', collect([1, 2, 3]))",
+            "value": "3 apples"
+        },
+        {
+            "label": "choice-float",
+            "php": "t(T3)->choice('apples', 1.2)",
+            "value": " one"
+        },
+        {
+            "label": "choice-null-count-is-filled",
+            "php": "t(T3)->choice('apples', 3, ['count' => null])",
+            "value": "3 apples"
+        },
+        {
+            "label": "choice-list-replace-gains-count",
+            "php": "t([])->choice(':0 :count', 2, ['z'])",
+            "value": "z 2"
+        },
+        {
+            "label": "choice-uses-fallback-locale-rule",
+            "php": "langTranslator(T3, 'cs', 'en')->choice('files', 5)",
+            "value": "files"
+        },
+        {
+            "label": "choice-uses-own-locale-rule",
+            "php": "langTranslator(T3, 'ru', 'en')->choice('files', 5)",
+            "value": "\u0444\u0430\u0439\u043b\u043e\u0432"
+        },
+        {
+            "label": "choice-locale-argument",
+            "php": "langTranslator(T3, 'en', 'en')->choice('files', 5, [], 'ru')",
+            "value": "\u0444\u0430\u0439\u043b\u043e\u0432"
+        },
+        {
+            "label": "choice-locale-zero-arg",
+            "php": "langTranslator(T3, 'ru', 'en')->choice('files', 5, [], '0')",
+            "value": "\u0444\u0430\u0439\u043b\u043e\u0432"
+        },
+        {
+            "label": "choice-reads-a-fallback-json-line",
+            "php": "langTranslator(['es' => [], 'en' => [':n apples' => '{1} :n apple|[2,*] :n apples']], 'es', 'en')->choice(':n apples', 1, ['n' => 1])",
+            "value": "1 apple"
+        },
+        {
+            "label": "choice-without-fallback-uses-first-form",
+            "php": "t([])->choice('item|items', 5)",
+            "value": "item"
+        },
+        {
+            "label": "choice-with-fallback-uses-its-rule",
+            "php": "langTranslator([], 'en', 'en')->choice('item|items', 5)",
+            "value": "items"
+        },
+        {
+            "label": "choice-on-a-group-throws",
+            "php": "langTranslator(['en' => ['g' => ['a' => 'A']]])->choice('g', 2)",
+            "threw": "TypeError",
+            "message": "explode(): Argument #2 ($string) must be of type string, array given"
+        },
+        {
+            "label": "choice-on-a-json-number-line",
+            "php": "langTranslator(['en' => ['n' => 5]])->choice('n', 2)",
+            "value": "5"
+        },
+        {
+            "label": "choice-nan",
+            "php": "t(T3)->choice('apples', NAN)",
+            "value": " one"
+        },
+        {
+            "label": "choice-numeric-string",
+            "php": "t(T3)->choice('apples', '5')",
+            "value": "5 apples"
+        },
+        {
+            "label": "choice-null-number",
+            "php": "t(T3)->choice('apples', null)",
+            "value": " one"
+        }
+    ]
+}

@@ -42,6 +42,10 @@ DataPackage:
   - changed-files:
       - any-glob-to-any-file: "packages/data/**/*"
 
+LangPackage:
+  - changed-files:
+      - any-glob-to-any-file: "packages/lang/**/*"
+
 NumberPackage:
   - changed-files:
       - any-glob-to-any-file: "packages/num/**/*"

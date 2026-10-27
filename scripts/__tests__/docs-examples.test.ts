@@ -320,6 +320,7 @@ describe("documented examples", () => {
     const files = [
         ...markdownUnder("docs/vitepress/arrays-objects"),
         ...markdownUnder("docs/vitepress/collections"),
+        ...markdownUnder("docs/vitepress/localization"),
         "scripts/__tests__/fixtures/docs-examples.md",
     ];
     const examples = files.flatMap((file) =>

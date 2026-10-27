@@ -29,6 +29,7 @@ export default defineConfig({
                 "@tolki/collection",
                 "@tolki/data",
                 "@tolki/enum",
+                "@tolki/lang",
                 "@tolki/num",
                 "@tolki/obj",
                 "@tolki/path",

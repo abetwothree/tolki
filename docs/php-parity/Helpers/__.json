@@ -1,0 +1,23 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "underscore-null-key",
+            "php": "__(null)",
+            "value": null
+        },
+        {
+            "label": "underscore-translates",
+            "php": "__('g.a')",
+            "value": "A"
+        },
+        {
+            "label": "underscore-locale-argument",
+            "php": "__('g.a', [], 'es') with an es line",
+            "value": "A-es"
+        }
+    ]
+}

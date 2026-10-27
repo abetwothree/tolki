@@ -375,6 +375,61 @@
             "label": "e3 spaceship on a one-element array and true",
             "php": "[1] <=> true",
             "value": 0
+        },
+        {
+            "label": "spaceship on NAN and an int",
+            "php": "NAN <=> 1",
+            "value": 1
+        },
+        {
+            "label": "spaceship on an int and NAN",
+            "php": "1 <=> NAN",
+            "value": 1
+        },
+        {
+            "label": "spaceship on NAN and NAN",
+            "php": "NAN <=> NAN",
+            "value": 1
+        },
+        {
+            "label": "spaceship on NAN and INF",
+            "php": "NAN <=> INF",
+            "value": 1
+        },
+        {
+            "label": "spaceship on NAN and a numeric string",
+            "php": "NAN <=> \"5\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on a numeric string and NAN",
+            "php": "\"5\" <=> NAN",
+            "value": 1
+        },
+        {
+            "label": "spaceship on NAN and a non-numeric string",
+            "php": "NAN <=> \"abc\"",
+            "value": 1
+        },
+        {
+            "label": "spaceship on a non-numeric string and NAN",
+            "php": "\"abc\" <=> NAN",
+            "value": 1
+        },
+        {
+            "label": "spaceship on an empty string and NAN",
+            "php": "\"\" <=> NAN",
+            "value": 1
+        },
+        {
+            "label": "spaceship on NAN and null",
+            "php": "NAN <=> null",
+            "value": 1
+        },
+        {
+            "label": "spaceship on NAN and true",
+            "php": "NAN <=> true",
+            "value": 0
         }
     ]
 }

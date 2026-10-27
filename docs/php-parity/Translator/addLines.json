@@ -1,0 +1,90 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "add-lines-group-item",
+            "php": "t(['en' => ['g' => ['b' => 'B']]]); addLines(['g.a' => 'A'], 'en'); get('g.a')",
+            "value": "A"
+        },
+        {
+            "label": "add-lines-replaces-an-unloaded-group",
+            "php": "addLines(['g.a' => 'A'], 'en'); get('g')",
+            "value": {
+                "a": "A"
+            }
+        },
+        {
+            "label": "add-lines-merges-into-a-loaded-group",
+            "php": "t(['en' => ['g' => ['b' => 'B']]]); get('g.b'); addLines(['g.a' => 'A'], 'en'); get('g')",
+            "value": {
+                "b": "B",
+                "a": "A"
+            }
+        },
+        {
+            "label": "add-lines-nested-item",
+            "php": "addLines(['g.x.y' => 'deep'], 'en'); get('g.x.y')",
+            "value": "deep"
+        },
+        {
+            "label": "add-lines-key-without-dot",
+            "php": "addLines(['nodot' => 'v'], 'en'); get('nodot')",
+            "value": {
+                "": "v"
+            }
+        },
+        {
+            "label": "add-lines-key-without-dot-reads-empty-item",
+            "php": "addLines(['nodot' => 'v'], 'en'); get('nodot.')",
+            "value": "v"
+        },
+        {
+            "label": "add-lines-json-group",
+            "php": "addLines(['*.Hello' => 'Hola'], 'en'); get('Hello')",
+            "value": "Hola"
+        },
+        {
+            "label": "add-lines-json-dotted-key",
+            "php": "addLines(['*.x.y' => 'xy'], 'en'); get('x.y')",
+            "value": "x.y"
+        },
+        {
+            "label": "add-lines-json-group-reads-back-through-star",
+            "php": "addLines(['*.Bye' => 'Adios'], 'en'); get('*.Bye')",
+            "value": "Adios"
+        },
+        {
+            "label": "add-lines-namespace",
+            "php": "addLines(['g.a' => 'A'], 'en', 'courier'); get('courier::g.a')",
+            "value": "A"
+        },
+        {
+            "label": "add-lines-json-group-in-a-namespace",
+            "php": "addLines(['*.Hello' => 'Hola'], 'en', 'courier'); [get('Hello'), get('courier::*.Hello')]",
+            "value": [
+                "Hello",
+                "Hola"
+            ]
+        },
+        {
+            "label": "add-lines-keeps-a-string-key-in-a-list-group",
+            "php": "t(['en' => ['g' => ['p', 'q']]]); get('g'); addLines(['g.k' => 'K'], 'en'); get('g')",
+            "value": {
+                "0": "p",
+                "1": "q",
+                "k": "K"
+            }
+        },
+        {
+            "label": "add-lines-keeps-a-json-line-beside-a-group",
+            "php": "t(['en' => ['g' => 'json-line']]); get('g'); addLines(['g.a' => 'A'], 'en'); [get('g'), get('g.a')]",
+            "value": [
+                "json-line",
+                "A"
+            ]
+        }
+    ]
+}

@@ -22,22 +22,23 @@ How the VitePress site in `docs/vitepress` is laid out, and the rules for adding
 | Collections      | `/collections/`, `/collections/methods-list`, `/collections/differences`                                                                             | `@tolki/collection`                       |
 | Strings          | `/strings/`, `/strings/string-utilities-list`, `/strings/stringable-utilities-list`                                                                  | `@tolki/str`                              |
 | Numbers          | `/numbers/`, `/numbers/number-utilities-list`                                                                                                        | `@tolki/num`                              |
+| Localization     | `/localization/`, `/localization/translator`, `/localization/differences`                                                                            | `@tolki/lang`                             |
 | TypeScript       | `/ts/…`, `/typescript/…`                                                                                                                             | `@tolki/ts`, `@tolki/types`               |
 
 Arrays and objects share one reference page because `@tolki/data` forwards to the other two. See [arr-obj-data-collection-layering.md](./arr-obj-data-collection-layering.md).
 
 ## Nav and sidebar
 
-- The nav is `Home`, `Packages`, `TS & Laravel`, a `Utilities` dropdown, then `TS Types`. The dropdown holds `Strings`, `Numbers`, `Arrays & Objects` and `Collections`, and its `activeMatch` regex is `^/(strings|numbers|arrays-objects|collections)/`, so the dropdown shows as active on every page of those families. Add a new utility family to both the dropdown and that regex.
-- Each family has one sidebar group. `Arrays & Objects` and `Collections` come right after `Strings`.
+- The nav is `Home`, `Packages`, `TS & Laravel`, a `Utilities` dropdown, then `TS Types`. The dropdown holds `Strings`, `Numbers`, `Arrays & Objects`, `Collections` and `Localization`, and its `activeMatch` regex is `^/(strings|numbers|arrays-objects|collections|localization)/`, so the dropdown shows as active on every page of those families. Add a new utility family to both the dropdown and that regex.
+- Each family has one sidebar group. `Arrays & Objects` and `Collections` come right after `Strings`, and `Localization` comes after `Collections`.
 - A sidebar entry is added in the task that creates its page, never earlier. VitePress fails the build on a dead link, and a sidebar link counts.
-- The sidebar groups are `Arrays & Objects` (`Installation & Usage`, `Utilities List`, `Dot Notation`, `PHP Semantics`, `Differences from Laravel`) and `Collections` (`Installation & Usage`, `Methods List`, `Differences from Laravel`).
+- The sidebar groups are `Arrays & Objects` (`Installation & Usage`, `Utilities List`, `Dot Notation`, `PHP Semantics`, `Differences from Laravel`), `Collections` (`Installation & Usage`, `Methods List`, `Differences from Laravel`) and `Localization` (`Installation & Usage`, `Translator Reference`, `Differences from Laravel`).
 
 ## Authoring conventions
 
 ### Links
 
-- Pages that a README includes (`arrays-objects/*`, `collections/*`) use relative `.md` links such as `./dot-notation.md#wildcards` or `../collections/methods-list.md#pluck`. Never write a root link like `/collections/` there, because `readme:build` rewrites only relative links. See [readme-build.md](./readme-build.md).
+- Pages that a README includes (`arrays-objects/*`, `collections/*`, `localization/*`) use relative `.md` links such as `./dot-notation.md#wildcards` or `../collections/methods-list.md#pluck`. Never write a root link like `/collections/` there, because `readme:build` rewrites only relative links. See [readme-build.md](./readme-build.md).
 - Pages that no README includes (`index.md`, `packages.md`, `config.ts`) use root links.
 - Never link to a page that does not exist yet. The task that creates a page adds the links to it. Until then, name the page in plain text.
 

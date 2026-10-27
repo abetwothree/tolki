@@ -36,7 +36,7 @@ Both sides go through `orderedShape` before `toEqual`, because plain deep equali
 
 ## What it covers
 
-The suite `documented examples > runs every documented example` globs `docs/vitepress/arrays-objects/**/*.md`, `docs/vitepress/collections/**/*.md` and `scripts/__tests__/fixtures/docs-examples.md`. A missing directory holds no files. Each example is a test named `file:line`.
+The suite `documented examples > runs every documented example` globs `docs/vitepress/arrays-objects/**/*.md`, `docs/vitepress/collections/**/*.md`, `docs/vitepress/localization/**/*.md` and `scripts/__tests__/fixtures/docs-examples.md`. A missing directory holds no files. Each example is a test named `file:line`.
 
 Run the suite, or narrow it to one page, with the file name as a filter:
 
@@ -55,4 +55,4 @@ A docs page needs a PHP citation in two cases: when it states what Laravel or PH
 <!-- docs/php-parity/Collection/chunk.json, "collection-chunk-last-chunk-keys" -->
 ```
 
-`scripts/__tests__/php-parity.test.ts` reads these comments from the Markdown under `docs/vitepress/arrays-objects` and `docs/vitepress/collections`. It checks that each cited transcript exists, that each quoted string is a label recorded by a transcript the comment cites, and that a comment names at least one label. The citation format, the transcripts and how to add a probe are defined in [scripts/php-parity/README.md](../../scripts/php-parity/README.md).
+`scripts/__tests__/php-parity.test.ts` reads these comments from the Markdown under `docs/vitepress/arrays-objects`, `docs/vitepress/collections` and `docs/vitepress/localization`. It checks that each cited transcript exists, that each quoted string is a label recorded by a transcript the comment cites, and that a comment names at least one label. The citation format, the transcripts and how to add a probe are defined in [scripts/php-parity/README.md](../../scripts/php-parity/README.md).

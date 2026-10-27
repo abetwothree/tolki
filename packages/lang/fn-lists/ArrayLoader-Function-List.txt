@@ -1,0 +1,12 @@
+
+Analyzing file: packages/lang/stubs/ArrayLoader.php
+
+Found 5 function(s):
+
+METHOD DECLARATIONS:
+  public load($locale, $group, $namespace) [line 24]
+  public addNamespace($namespace, $hint) [line 38]
+  public addJsonPath($path) [line 49]
+  public addMessages($locale, $group, $messages, $namespace) [line 63]
+  public namespaces() [line 77]
+

@@ -6,6 +6,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Container\Container;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Arr;
@@ -19,6 +20,9 @@ use Illuminate\Tests\Support\TestJsonSerializeObject;
 use Illuminate\Tests\Support\TestJsonSerializeWithScalarValueObject;
 use Illuminate\Tests\Support\TestJsonableObject;
 use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
+use Illuminate\Translation\ArrayLoader;
+use Illuminate\Translation\MessageSelector;
+use Illuminate\Translation\Translator;
 use Symfony\Component\VarDumper\VarDumper;
 
 require_once repoRoot() . '/packages/collection/stubs/Common.php';
@@ -543,3 +547,70 @@ function codePointRanges(array $codePoints): array
         $ranges,
     );
 }
+
+/** The numbers every plural-rule row is asked about: integers, fractions and negatives. */
+function langPluralNumbers(): array
+{
+    return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 19, 20, 21, 22, 25, 100, 101, 102, 103, 104, 111, 112, 0.5, 1.5, 2.75, -1, -2, -11, -21];
+}
+
+/** Every locale `MessageSelector::getPluralIndex()` has a `case` for, in source order. */
+function langSelectorLocales(): array
+{
+    $source = file_get_contents((new ReflectionClass(MessageSelector::class))->getFileName());
+    preg_match_all("/case '([A-Za-z_]+)':/", $source, $matches);
+
+    return $matches[1];
+}
+
+/** A Translator over the per-locale lines shape: an array is a group, anything else a JSON line. */
+function langTranslator(array $lines, string $locale = 'en', ?string $fallback = null): Translator
+{
+    $loader = new ArrayLoader;
+
+    foreach ($lines as $lineLocale => $entries) {
+        $json = [];
+
+        foreach ($entries as $key => $value) {
+            if (! is_array($value)) {
+                $json[$key] = $value;
+            } elseif (str_contains((string) $key, '::')) {
+                [$namespace, $group] = explode('::', (string) $key, 2);
+                $loader->addMessages((string) $lineLocale, $group, $value, $namespace);
+            } else {
+                $loader->addMessages((string) $lineLocale, (string) $key, $value);
+            }
+        }
+
+        $loader->addMessages((string) $lineLocale, '*', $json, '*');
+    }
+
+    $translator = new Translator($loader, $locale);
+
+    if ($fallback !== null) {
+        $translator->setFallback($fallback);
+    }
+
+    return $translator;
+}
+
+/** Make `__()`, `trans()` and `trans_choice()` read $translator. */
+function langBind(Translator $translator): void
+{
+    Container::setInstance($container = new Container);
+    $container->instance('translator', $translator);
+}
+
+class LangMoney
+{
+    public function __construct(public int $cents) {}
+
+    public function __toString(): string
+    {
+        return '$' . $this->cents;
+    }
+}
+
+class LangEuro extends LangMoney {}
+
+class LangOpaque {}

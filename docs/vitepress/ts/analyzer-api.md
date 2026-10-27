@@ -6,7 +6,7 @@ To change what `ts:publish` itself does, replace one of its stages instead. See 
 
 ## Analyzing a Method
 
-`analyze()` reads what a method returns: nested arrays, conditionals, closures, and method calls. It works on any class, whether or not it's a resource. A property read or a method call is typed from the class of the value you call it on, such as `$this->author->name` or a local variable.
+`analyze()` reads what a method returns: nested arrays, conditionals, closures, and method calls. It works on any class, whether or not it's a resource. A property read or a method call is typed from the class of the value you call it on, such as `$this->author->name` or a local variable. A plain value object gets the same types a resource does for enum `->value` and `->name` reads, `(object)` and `(array)` casts, helpers that return the array you pass them, and an inherited or trait method.
 
 Laravel's conditional methods, such as `$this->when()` and `$this->whenLoaded()`, belong to `JsonResource`, so `analyze()` reads them that way only on a resource. On any other class, `$this->when()` is that class's own method. Laravel's `Conditionable::when()`, which events and other classes can use, returns the callback's result or the object itself. The package doesn't type that, so the key comes back `unknown`, as it does in a publish. A resource built around the call is the exception: `UserResource::make($this->when(…))` still comes back optional on any class, though `Conditionable::when()` always sends the key. Write such a key as a ternary, or give it a `#[TsCasts]` entry on the method with `'optional' => false`.
 
@@ -135,9 +135,9 @@ The difference can also run the other way. Where a key the method returns can't 
 
 Outside those cases, `analyze()` runs the same inference that resources, broadcast events, model metadata, Inertia page props, and Inertia shared data publish from. What each of those features adds on top is on its own page, linked above.
 
-`analyze()` and `ts:publish` both type the patterns these docs describe. Anything else, such as an expression neither can follow or [a local you reassign](./api-resources.md#local-variables-and-narrowing), comes back `unknown` rather than a guess.
+`analyze()` and `ts:publish` both type the patterns these docs describe, including [a local you write more than once](./api-resources.md#local-variables-and-narrowing). Anything else, such as an expression neither can follow or a local that a reference can write, comes back `unknown` rather than a guess.
 
-Two cases don't widen to `unknown`. [A conditional's default that can't be typed](./api-resources.md#passing-a-default-argument) leaves the value's own type in place. [A ternary or `?:` arm that can't be typed is left out](./api-resources.md#typing-a-variable-with-var), so `$cond ? $untypable : null` publishes `null`.
+Two cases don't widen to `unknown`. [A conditional's default that can't be typed](./api-resources.md#passing-a-default-argument) leaves the value's own type in place. [A union member that can't be typed is left out](./api-resources.md#values-left-out-of-a-union), whether it's a ternary or `?:` arm or a value that a parameter's writes join. So `$cond ? $untypable : null` publishes `null`.
 
 ## Configuration Reference
 

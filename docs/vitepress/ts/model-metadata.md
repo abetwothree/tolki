@@ -101,6 +101,46 @@ Point `model_metadata.provider_class` at your class. The published config ships 
 
 Prefer a precise `@return array{...}` shape. PHPStan or Psalm checks the contract, and the package publishes the same shape. The published config names no classes of its own. Every `*_class` key, `provider_class` included, is a commented line that shows what you can swap, and the default applies in code.
 
+Your provider can inherit `provide()` from a base class, or take it from a trait. The package reads it as PHP runs it on the provider that `provider_class` names. `$this->` and `static::` reach that provider, and `self::` reaches the class that declares `provide()`, which for a trait is the class that uses it:
+
+```php
+abstract class BaseModelMetadataProvider implements ModelMetadataProvider
+{
+    public function provide(Model $model): array
+    {
+        return [
+            'morphClass' => (string) $model->getMorphClass(),
+            'channel' => $this->channel($model),
+        ];
+    }
+
+    protected function channel(Model $model): ?string
+    {
+        return null;
+    }
+}
+
+final class AppModelMetadataProvider extends BaseModelMetadataProvider
+{
+    protected function channel(Model $model): string
+    {
+        return $model->getTable().'.updates';
+    }
+}
+```
+
+With `provider_class` set to `AppModelMetadataProvider`, `channel` publishes the override's `string`, not the base class's `string | null`:
+
+```typescript
+export const UserModelMetadata = {
+  morphClass: "App\\Models\\User",
+  channel: "users.updates",
+} as const satisfies {
+  morphClass: string;
+  channel: string;
+};
+```
+
 ## How Each Key Is Typed
 
 Each returned key's TypeScript type comes from the first of these that applies:
@@ -111,8 +151,9 @@ Each returned key's TypeScript type comes from the first of these that applies:
    - Scalars, casts such as `(string) …`, and nested inline arrays
    - Calls on `$model` whose Laravel signature or docblock declares a return type, such as `getTable()`, `getKeyName()`, `getRouteKeyName()` and `getMorphClass()`, which all publish as `string`
    - Enum values, including a case written inline such as `'status' => Status::Active`, which import their `{Name}Type` alias from the generated enums, the same as a `#[TsCasts]` import would
+   - An `instanceof` test on `$model`, which narrows it where the test holds, and relation calls that the query answers, as in `$model instanceof Post ? $model->comments()->count() : null`, which publishes `number | null`
 
-   When the body's type for a key still contains `unknown`, the package ignores it, and the key needs a docblock or `#[TsCasts]` type. A helper with no declared return type, such as `private function tableFor($model)`, is that case.
+   When the body's type for a key still contains `unknown`, the package ignores it, and the key needs a docblock or `#[TsCasts]` type. A helper with no declared return type, such as `private function tableFor($model)`, is that case. Inside a ternary or another union, a value the body can't type is left out instead, as in an API resource. See [Values Left Out of a Union](./api-resources.md#values-left-out-of-a-union).
 
 Marking a key optional decides whether the payload has to return it, not how the key is written once it's returned. The `satisfies` type lists exactly the keys the payload returned, each one required.
 

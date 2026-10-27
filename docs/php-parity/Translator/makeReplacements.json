@@ -1,0 +1,180 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "replace-case-variants",
+            "php": "t([])->get('breeze :0 :Foo :BAR', ['john', 'foo' => 'bar', 'bar' => 'foo'])",
+            "value": "breeze john Bar FOO"
+        },
+        {
+            "label": "replace-longest-key-first",
+            "php": "t([])->get('breeze :foo :foobar', ['foo' => 'bar', 'foobar' => 'taylor'])",
+            "value": "breeze bar taylor"
+        },
+        {
+            "label": "replace-longest-key-first-with-spaces",
+            "php": "t([])->get('breeze :foo :foobar', ['foo' => 'foo bar baz', 'foobar' => 'taylor'])",
+            "value": "breeze foo bar baz taylor"
+        },
+        {
+            "label": "replace-adjacent-placeholders",
+            "php": "t([])->get('bar :i:c :u', ['i' => 'one', 'c' => 'two', 'u' => 'three'])",
+            "value": "bar onetwo three"
+        },
+        {
+            "label": "replace-is-atomic",
+            "php": "t([])->get('Hello :foo!', ['foo' => 'baz:bar', 'bar' => 'abcdef'])",
+            "value": "Hello baz:bar!"
+        },
+        {
+            "label": "replace-follows-line-order",
+            "php": "t([])->get(':greeting :name', ['name' => 'David', 'greeting' => 'Greetings'])",
+            "value": "Greetings David"
+        },
+        {
+            "label": "replace-list",
+            "php": "t([])->get(':0 and :1', ['john', 'jane'])",
+            "value": "john and jane"
+        },
+        {
+            "label": "replace-null-is-empty",
+            "php": "t([])->get('foo :message', ['message' => null])",
+            "value": "foo "
+        },
+        {
+            "label": "replace-int",
+            "php": "t([])->get(':n', ['n' => 5])",
+            "value": "5"
+        },
+        {
+            "label": "replace-float",
+            "php": "t([])->get(':n', ['n' => 0.1 + 0.2])",
+            "value": "0.3"
+        },
+        {
+            "label": "replace-large-float",
+            "php": "t([])->get(':n', ['n' => 1e20])",
+            "value": "1.0E+20"
+        },
+        {
+            "label": "replace-nan",
+            "php": "t([])->get(':n :N', ['n' => NAN])",
+            "value": "NAN NAN"
+        },
+        {
+            "label": "replace-bools",
+            "php": "t([])->get(':a|:b', ['a' => true, 'b' => false])",
+            "value": "1|"
+        },
+        {
+            "label": "replace-case-variants-overwrite",
+            "php": "t([])->get(':name :Name :NAME', ['name' => 'a', 'Name' => 'b'])",
+            "value": "a b B"
+        },
+        {
+            "label": "replace-empty-key",
+            "php": "t([])->get('a:b', ['' => 'X'])",
+            "value": "aXb"
+        },
+        {
+            "label": "replace-multibyte-case",
+            "php": "t([])->get(':Name :NAME', ['name' => '\u00e9lan'])",
+            "value": "\u00c9lan \u00c9LAN"
+        },
+        {
+            "label": "replace-sharp-s-title-case",
+            "php": "t([])->get(':NAME :Name', ['name' => '\u00dftra\u00dfe'])",
+            "value": "SSTRASSE Sstra\u00dfe"
+        },
+        {
+            "label": "replace-digraph-title-case",
+            "php": "t([])->get(':NAME :Name', ['name' => '\u01c6emal'])",
+            "value": "\u01c4EMAL \u01c5emal"
+        },
+        {
+            "label": "replace-empty-replacements-keep-line",
+            "php": "t([])->get(':name', [])",
+            "value": ":name"
+        },
+        {
+            "label": "replace-stringable-object",
+            "php": "t([])->get(':a', ['a' => new LangMoney(5)])",
+            "value": "$5"
+        },
+        {
+            "label": "replace-string-backed-enum",
+            "php": "t([])->get(':a', ['a' => Baz::February])",
+            "value": "February"
+        },
+        {
+            "label": "replace-int-backed-enum",
+            "php": "t([])->get(':a', ['a' => Bar::Thirteen])",
+            "value": "13"
+        },
+        {
+            "label": "replace-array-value-throws",
+            "php": "t([])->get(':a', ['a' => [1]])",
+            "threw": "TypeError",
+            "message": "mb_ucfirst(): Argument #1 ($string) must be of type string, array given"
+        },
+        {
+            "label": "replace-opaque-object-throws",
+            "php": "t([])->get(':a', ['a' => new LangOpaque])",
+            "threw": "TypeError",
+            "message": "mb_ucfirst(): Argument #1 ($string) must be of type string, LangOpaque given"
+        },
+        {
+            "label": "replace-value-keeps-html",
+            "php": "t([])->get('Hi :name', ['name' => '<b>Ann</b>'])",
+            "value": "Hi <b>Ann</b>"
+        },
+        {
+            "label": "replace-tag",
+            "php": "t([])->get('We have some nice <docs-link>documentation</docs-link>', ['docs-link' => fn ($c) => \"<a href=\\\"https://laravel.com/docs\\\">$c</a>\"])",
+            "value": "We have some nice <a href=\"https://laravel.com/docs\">documentation</a>"
+        },
+        {
+            "label": "replace-tag-repeats",
+            "php": "t([])->get('<bold-this>bold</bold-this> something else <bold-this>also bold</bold-this>', ['bold-this' => fn ($c) => \"<b>$c</b>\"])",
+            "value": "<b>bold</b> something else <b>also bold</b>"
+        },
+        {
+            "label": "replace-tag-closure-int",
+            "php": "t([])->get('<b>x</b>', ['b' => fn () => 5])",
+            "value": "5"
+        },
+        {
+            "label": "replace-tag-skips-newline",
+            "php": "t([])->get(\"<b>x\\ny</b>\", ['b' => fn ($c) => \"[$c]\"])",
+            "value": "<b>x\ny</b>"
+        },
+        {
+            "label": "replace-tag-matches-carriage-return",
+            "php": "t([])->get(\"<b>x\\ry</b>\", ['b' => fn ($c) => \"[$c]\"])",
+            "value": "[x\ry]"
+        },
+        {
+            "label": "replace-tag-is-lazy",
+            "php": "t([])->get('<b>a<b>c</b>d</b>', ['b' => fn ($c) => \"[$c]\"])",
+            "value": "[a<b>c]d</b>"
+        },
+        {
+            "label": "replace-tag-leaves-colon-placeholder",
+            "php": "t([])->get(':b <b>x</b>', ['b' => fn ($c) => \"[$c]\"])",
+            "value": ":b [x]"
+        },
+        {
+            "label": "replace-tag-output-gets-placeholders",
+            "php": "t([])->get('<b>x</b>', ['b' => fn () => ':name', 'name' => 'Ann'])",
+            "value": "Ann"
+        },
+        {
+            "label": "replace-tag-key-is-a-pattern",
+            "php": "t([])->get('<aXb>hi</aXb>', ['a.b' => fn ($c) => strtoupper($c)])",
+            "value": "HI"
+        }
+    ]
+}

@@ -86,6 +86,12 @@ Not sure which one fits your data? See [Choosing a package](https://tolki.abe.de
 | [`@tolki/str`](./packages/str) | Laravel's `Str` helpers, plus the fluent `Stringable` through `of()`. | [![npm version](https://badge.fury.io/js/@tolki%2Fstr.svg)](https://badge.fury.io/js/@tolki%2Fstr) [![npm downloads](https://img.shields.io/npm/dm/@tolki/str.svg)](https://www.npmjs.com/package/@tolki/str) |
 | [`@tolki/num`](./packages/num) | Laravel's `Num` helpers, such as `format`, `currency` and `fileSize`. | [![npm version](https://badge.fury.io/js/@tolki%2Fnum.svg)](https://badge.fury.io/js/@tolki%2Fnum) [![npm downloads](https://img.shields.io/npm/dm/@tolki/num.svg)](https://www.npmjs.com/package/@tolki/num) |
 
+### Localization
+
+| Package                          | Description                                                           | npm                                                                                                                                                                                                               |
+| -------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`@tolki/lang`](./packages/lang) | Laravel's translator: placeholders, plural forms and dot-key lookups. | [![npm version](https://badge.fury.io/js/@tolki%2Flang.svg)](https://badge.fury.io/js/@tolki%2Flang) [![npm downloads](https://img.shields.io/npm/dm/@tolki/lang.svg)](https://www.npmjs.com/package/@tolki/lang) |
+
 ### TypeScript
 
 | Package                            | Description                                                                                                                              | npm                                                                                                                                                                                                                   |

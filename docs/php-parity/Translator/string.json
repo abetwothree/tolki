@@ -1,0 +1,24 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.36.0-32-g6d2eefbb14"
+    },
+    "probes": [
+        {
+            "label": "string-returns-line",
+            "php": "t(T1)->string('foo::bar.baz', ['foo' => 'bar'])",
+            "value": "breeze bar"
+        },
+        {
+            "label": "string-throws-for-group",
+            "php": "t(T1)->string('foo::bar.qux')",
+            "threw": "InvalidArgumentException",
+            "message": "Translation value for key [foo::bar.qux] must be a string, array given."
+        },
+        {
+            "label": "string-returns-missing-key",
+            "php": "t(T1)->string('nope')",
+            "value": "nope"
+        }
+    ]
+}

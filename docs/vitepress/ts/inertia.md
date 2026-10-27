@@ -28,7 +28,7 @@ With `inertia.enabled` on (the default), the package builds the file from your m
 
 When the package can't create an instance of the model, it reads the key type from the class, and publishes `unknown` if code works the key out. A `getAuthIdentifierName()` that works the column out in code, such as from config, publishes `unknown` too, and so does an override of `getAuthIdentifier()`, since only running your app shows which value the ID holds.
 
-In a route's [page props](./routing.md#inertia-integration), `getKey()` on a route-bound model publishes the model's key type with no `| null`, because Laravel binds only a saved row. With a `Post $post` action parameter, `'post_id' => $post->getKey()` publishes `post_id: number`.
+In a route's [page props](./routing.md#inertia-integration), `getKey()` on a route-bound model publishes the model's key type with no `| null`, because Laravel binds only a saved row. With a `Post $post` action parameter, `'post_id' => $post->getKey()` publishes `post_id: number`. A relation read on the parameter is typed by the models it loads, so `'comments' => $post->comments` publishes `comments: Comment[]`.
 
 ::: warning A Ternary Between Two Different Enums
 A key whose ternary arms wrap different enums, such as `$cond ? EnumResource::make(Role::Admin) : EnumResource::make(Status::Draft)`, renders as `RoleType | StatusType` with no import for either name. Your build then fails with a `TS2304` error for each. Give both arms the same enum, or override that key with a `#[TsCasts]` entry that has an `import`.

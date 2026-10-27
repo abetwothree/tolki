@@ -45,5 +45,6 @@ probe('data-get-wildcard-and-first-last-segments', "data_get(['a' => ['n' => 1],
     data_get(['s' => [['x' => 1], ['x' => 2]]], 's.{first}.x'),
     data_get(['s' => [['x' => 1], ['x' => 2]]], 's.{last}.x'),
 ]);
+probe('data-get-dotted-key-below-the-top-level', "data_get(['g' => ['a.b' => 1]], 'g.a.b', 'miss')", fn () => data_get(['g' => ['a.b' => 1]], 'g.a.b', 'miss'));
 
 emit();

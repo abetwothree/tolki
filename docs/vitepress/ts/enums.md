@@ -311,6 +311,59 @@ function setStatus(status: StatusType) {} // only 'active' | 'inactive'
 function setStatusByKey(status: StatusKind) {} // only 'Active' | 'Inactive'
 ```
 
+### Reading `->value` and `->name`
+
+Read an enum's `->value` or `->name` in an API resource, an Inertia page prop, a broadcast event, or anything else the package types, and the property publishes the enum's alias. The file imports the alias for you. Here a `PostSummaryResource` reads a `Post` model that casts `status` to the int-backed `PostStatus` enum and `visibility` to the unit enum `Visibility`:
+
+```php
+enum PostStatus: int
+{
+    case Draft = 0;
+    case Published = 1;
+}
+
+// PostSummaryResource
+public function toArray(Request $request): array
+{
+    return [
+        'status' => $this->status->value,
+        'status_name' => $this->status->name,
+        'visibility' => $this->visibility->name,
+        'published' => PostStatus::Published->value,
+    ];
+}
+```
+
+Each property publishes the alias that lists what PHP sends for it:
+
+```typescript
+import type {
+  PostStatusKind,
+  PostStatusType,
+  VisibilityType,
+} from "../../enums";
+
+export interface PostSummaryResource {
+  status: PostStatusType;
+  status_name: PostStatusKind;
+  visibility: VisibilityType;
+  published: PostStatusType;
+}
+```
+
+A backed enum's `->value` publishes its `{Name}Type`, and its `->name` publishes its `{Name}Kind`. A unit enum's `->name` publishes its `{Name}Type`, because its values are its case names.
+
+`PostStatus::Published->value` and `PostStatus::from($value)->value` publish `PostStatusType` too. After `PostStatus::tryFrom()`, `?->value` publishes `PostStatusType | null`. A method you call on a case publishes its return type.
+
+The property uses the alias only when `ts:publish` publishes the enum, and when no case's `#[TsCase]` changes what the alias lists. For a `{Name}Type` that's the case's `value`, and for a `{Name}Kind` its `name`. Otherwise the property publishes the literal union of what PHP sends.
+
+An enum the [filters](#filtering-excluding-enums) leave out publishes the literal union too, and so does every enum while `enums.enabled` is off. For the `Status` enum in the [`#[TsCase]`](#tscase) example, `->value` publishes `1 | 0` and `->name` publishes `'Active' | 'Inactive'`. An int-backed enum with a case outside JavaScript's safe integer range (±2⁵³−1) publishes `number` for `->value`.
+
+In two cases the alias can't be imported, so the property publishes the literal union:
+
+- A helper method's array that a resource uses as a value. A spread of the same helper keeps the aliases, as [Methods Declared as a Bare `array`](./api-resources.md#methods-declared-as-a-bare-array) shows.
+- A [route file](./routing.md), the [Inertia shared data](./inertia.md) file or a [model metadata](./model-metadata.md) companion that reads the `->name` of two enums with the same class name, such as `App\Enums\Status` and `App\Crm\Enums\Status`. These files can't import two names that clash, so each read publishes its case names.
+
 ## Metadata & the `defineEnum()` Wrapper
 
 With `enums.metadata_enabled` on, every enum has a `_cases` list, plus `_methods` and `_static` lists when it publishes instance or static methods. You don't read these lists yourself. `defineEnum()` and the standalone `from`, `tryFrom` and `cases` functions use them to build a PHP-like instance from a case value:

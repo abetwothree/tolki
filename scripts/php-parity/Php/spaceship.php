@@ -143,4 +143,17 @@ probe('e3 greater-than on a keyed array and a non-numeric string', "['x'=>1] > '
 probe('e3 spaceship on an empty array and true', '[] <=> true', fn () => [] <=> true);
 probe('e3 spaceship on a one-element array and true', '[1] <=> true', fn () => [1] <=> true);
 
+// NAN against a number or any string answers 1 from either side; null and booleans still take the bool arm.
+probe('spaceship on NAN and an int', 'NAN <=> 1', fn () => NAN <=> 1);
+probe('spaceship on an int and NAN', '1 <=> NAN', fn () => 1 <=> NAN);
+probe('spaceship on NAN and NAN', 'NAN <=> NAN', fn () => NAN <=> NAN);
+probe('spaceship on NAN and INF', 'NAN <=> INF', fn () => NAN <=> INF);
+probe('spaceship on NAN and a numeric string', 'NAN <=> "5"', fn () => NAN <=> '5');
+probe('spaceship on a numeric string and NAN', '"5" <=> NAN', fn () => '5' <=> NAN);
+probe('spaceship on NAN and a non-numeric string', 'NAN <=> "abc"', fn () => NAN <=> 'abc');
+probe('spaceship on a non-numeric string and NAN', '"abc" <=> NAN', fn () => 'abc' <=> NAN);
+probe('spaceship on an empty string and NAN', '"" <=> NAN', fn () => '' <=> NAN);
+probe('spaceship on NAN and null', 'NAN <=> null', fn () => NAN <=> null);
+probe('spaceship on NAN and true', 'NAN <=> true', fn () => NAN <=> true);
+
 emit();

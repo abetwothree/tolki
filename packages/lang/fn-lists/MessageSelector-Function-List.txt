@@ -1,0 +1,12 @@
+
+Analyzing file: packages/lang/stubs/MessageSelector.php
+
+Found 5 function(s):
+
+METHOD DECLARATIONS:
+  public choose($line, $number, $locale) [line 17]
+  private extract($segments, $number) [line 43]
+  private extractFromString($part, $number) [line 59]
+  private stripConditions($segments) [line 92]
+  public getPluralIndex($locale, $number) [line 110]
+

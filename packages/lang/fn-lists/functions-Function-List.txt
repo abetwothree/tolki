@@ -1,0 +1,8 @@
+
+Analyzing file: packages/lang/stubs/functions.php
+
+Found 1 function(s):
+
+FUNCTION DECLARATIONS:
+  enum_value($value, $default) [line 18]
+

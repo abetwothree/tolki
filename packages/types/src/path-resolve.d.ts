@@ -388,9 +388,10 @@ type ObjectIndexStep<T, K extends string> = K extends keyof T
  * ends the path; a built-in object's members are mostly on its prototype, which `Object.hasOwn` doesn't see.
  */
 type ObjectPathStep<T, K extends string> = T extends readonly unknown[]
-    ? K extends `${infer N extends number}`
-        ? N extends KnownObjectKeys<T>
-            ? [T[N], false]
+    ? K extends `${number}`
+        ? // A tuple declares its indices as string keys, so the segment matches one and its number never does.
+          K extends KnownObjectKeys<T>
+            ? [T[K & keyof T], false]
             : [T[number], true]
         : [never, true]
     : T extends ReadonlyMap<unknown, infer V>
@@ -555,3 +556,125 @@ export type ObjectResolvePath<T, P, TDefault = null> = P extends
       : ObjectPathTop<T, P> extends [infer V, infer M]
         ? V | (true extends M ? TDefault : never)
         : TDefault;
+
+/** A depth `ObjectDotPath` can count down from; a larger one would index past `ObjectDotPathDepth` and lift the cap. */
+type ObjectDotPathMaxDepth = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+
+/** The depth left one segment further down. */
+type ObjectDotPathDepth = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+/** Whether a member of `T` can be a function, as on a DOM node, a class instance with methods or a Collection. */
+// An `any` member is not a method, so a loosely typed group still lists its keys.
+type ObjectHasMethod<T> = true extends {
+    [TKey in keyof T]-?: 0 extends 1 & T[TKey]
+        ? false
+        : [Extract<T[TKey], (...args: never[]) => unknown>] extends [never]
+          ? false
+          : true;
+}[keyof T]
+    ? true
+    : false;
+
+/** The paths below a member: an object with a method is listed but never walked into. */
+// Distributed, so `HTMLElement | null` ends too; a list's own methods do not count.
+type ObjectDotPathBelow<
+    T,
+    TValue,
+    TDepth extends ObjectDotPathMaxDepth,
+> = T extends readonly unknown[]
+    ? ObjectDotPath<T, TValue, TDepth>
+    : ObjectHasMethod<T> extends true
+      ? never
+      : ObjectDotPath<T, TValue, TDepth>;
+
+/** A path, when the value under it can be a `TValue`. */
+type ObjectDotPathTo<TPath extends string, TChild, TValue> = [
+    Extract<TChild, TValue>,
+] extends [never]
+    ? never
+    : TPath;
+
+/**
+ * Every dot path into `T`, at most `TDepth` segments deep (0 to 10), whose value can be a `TValue`. An object's paths
+ * go by its string and number keys and a list's by index. A member holding a scalar, a function, an object with a
+ * method such as a DOM node, or a `Map`, `Set`, `WeakMap`, `WeakSet`, `Date`, `RegExp` or `Promise` ends the path.
+ *
+ * @example
+ * ObjectDotPath<{ a: { b: string }; c: string }>         // "a" | "a.b" | "c"
+ * ObjectDotPath<{ l: { x: string }[] }>                  // "l" | `l.${number}` | `l.${number}.x`
+ * ObjectDotPath<{ a: { b: string }; c: string }, object> // "a"
+ */
+export type ObjectDotPath<
+    T,
+    TValue = unknown,
+    TDepth extends ObjectDotPathMaxDepth = 5,
+> = TDepth extends 0
+    ? never
+    : T extends
+            | string
+            | number
+            | boolean
+            | bigint
+            | symbol
+            | ((...args: never[]) => unknown)
+            | ReadonlyMap<unknown, unknown>
+            | ReadonlySet<unknown>
+            | WeakMap<object, unknown>
+            | WeakSet<object>
+            | Date
+            | RegExp
+            | Promise<unknown>
+      ? never
+      : T extends readonly (infer TItem)[]
+        ?
+              | ObjectDotPathTo<`${number}`, TItem, TValue>
+              | `${number}.${ObjectDotPathBelow<TItem, TValue, ObjectDotPathDepth[TDepth]>}`
+        : T extends object
+          ? {
+                [TKey in keyof T & (string | number)]:
+                    | ObjectDotPathTo<`${TKey}`, T[TKey], TValue>
+                    | `${TKey}.${ObjectDotPathBelow<T[TKey], TValue, ObjectDotPathDepth[TDepth]>}`;
+            }[keyof T & (string | number)]
+          : never;
+
+/** One segment of a path `ObjectDotPath` lists: a pattern reads any member of a list, or an index signature's value. */
+type ObjectDotPathStep<T, K extends string> =
+    Record<never, never> extends Record<K, unknown>
+        ? T extends readonly unknown[]
+            ? T[number]
+            : T extends object
+              ? K extends `${number}`
+                  ? number extends keyof T
+                      ? T[number & keyof T]
+                      : never
+                  : string extends keyof T
+                    ? T[string & keyof T]
+                    : never
+              : never
+        : ObjectPathStep<T, K>[0];
+
+/** Walks a path `ObjectDotPath` lists, one segment at a time. */
+type ObjectDotPathWalk<
+    T,
+    P extends string,
+> = P extends `${infer Head}.${infer Rest}`
+    ? ObjectDotPathStep<T, Head> extends infer V
+        ? unknown extends V
+            ? unknown
+            : ObjectDotPathWalk<NonNullable<V>, Rest>
+        : never
+    : ObjectDotPathStep<T, P>;
+
+/**
+ * The value at a path {@link ObjectDotPath} lists, where `${number}` is any one list index and `${string}` any one key.
+ * As with `Arr::get()` and `data_get()`, a dotted key is read whole only at the top level, so `"g.a.b"`, which
+ * `ObjectDotPath` lists for `{ g: { "a.b": number } }`, reaches nothing.
+ *
+ * @example
+ * ObjectDotPathValue<{ l: { x: string }[] }, `l.${number}`> // { x: string }
+ */
+export type ObjectDotPathValue<T, P extends string> = P extends string
+    ? Record<never, never> extends Record<P, unknown>
+        ? Exclude<ObjectDotPathWalk<T, P>, undefined>
+        : ObjectResolvePath<T, P, never>
+    : never;
