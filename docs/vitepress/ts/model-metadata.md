@@ -101,6 +101,46 @@ Point `model_metadata.provider_class` at your class. The published config ships 
 
 Prefer a precise `@return array{...}` shape. PHPStan or Psalm checks the contract, and the package publishes the same shape. The published config names no classes of its own. Every `*_class` key, `provider_class` included, is a commented line that shows what you can swap, and the default applies in code.
 
+Your provider can inherit `provide()` from a base class, or take it from a trait. The package reads it as PHP runs it on the provider that `provider_class` names. `$this->` and `static::` reach that provider, and `self::` reaches the class that declares `provide()`, which for a trait is the class that uses it:
+
+```php
+abstract class BaseModelMetadataProvider implements ModelMetadataProvider
+{
+    public function provide(Model $model): array
+    {
+        return [
+            'morphClass' => (string) $model->getMorphClass(),
+            'channel' => $this->channel($model),
+        ];
+    }
+
+    protected function channel(Model $model): ?string
+    {
+        return null;
+    }
+}
+
+final class AppModelMetadataProvider extends BaseModelMetadataProvider
+{
+    protected function channel(Model $model): string
+    {
+        return $model->getTable().'.updates';
+    }
+}
+```
+
+With `provider_class` set to `AppModelMetadataProvider`, `channel` publishes the override's `string`, not the base class's `string | null`:
+
+```typescript
+export const UserModelMetadata = {
+  morphClass: "App\\Models\\User",
+  channel: "users.updates",
+} as const satisfies {
+  morphClass: string;
+  channel: string;
+};
+```
+
 ## How Each Key Is Typed
 
 Each returned key's TypeScript type comes from the first of these that applies:
