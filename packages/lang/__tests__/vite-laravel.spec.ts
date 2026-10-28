@@ -1,4 +1,6 @@
 // @vitest-environment node
+import path from "node:path";
+
 import type { LaravelLangExportOptions } from "@tolki/lang/vite-laravel";
 import laravelLangExportDefault, {
     laravelLangExport,
@@ -61,6 +63,18 @@ const platform = Object.getOwnPropertyDescriptor(
 function stubPlatform(value: NodeJS.Platform): void {
     Object.defineProperty(process, "platform", { ...platform, value });
 }
+
+/**
+ * Resolve a test path the way Vite reports one on this platform: absolute, with forward slashes.
+ *
+ * @param file - A POSIX absolute path
+ * @returns The path, drive-prefixed on Windows
+ */
+function absolute(file: string): string {
+    return path.resolve(file).replace(/\\/g, "/");
+}
+
+const ROOT = absolute("/project");
 
 const MANIFEST = {
     version: 1,
@@ -127,7 +141,7 @@ async function setupPlugin(
     };
 
     (plugin.configResolved as (config: unknown) => void)({
-        root: "/project",
+        root: ROOT,
         logger,
         command,
     });
@@ -180,7 +194,7 @@ describe("laravelLangExport", () => {
         expect(mockExec.mock.calls[0]?.[0]).toBe(
             "php artisan lang:export --quiet",
         );
-        expect(mockExec.mock.calls[0]?.[1]).toEqual({ cwd: "/project" });
+        expect(mockExec.mock.calls[0]?.[1]).toEqual({ cwd: ROOT });
     });
 
     it("passes each set option as a flag", async () => {
@@ -301,7 +315,7 @@ describe("laravelLangExport", () => {
         await setupPlugin({ output: "resources/lang-out" }, "serve");
 
         expect(mockReadFile).toHaveBeenCalledWith(
-            "/project/resources/lang-out/manifest.json",
+            `${ROOT}/resources/lang-out/manifest.json`,
             "utf-8",
         );
     });
@@ -312,7 +326,7 @@ describe("laravelLangExport", () => {
         await setupPlugin(undefined, "serve");
 
         expect(mockReadFile).toHaveBeenCalledWith(
-            "/project/resources/js/lang/manifest.json",
+            `${ROOT}/resources/js/lang/manifest.json`,
             "utf-8",
         );
     });
@@ -460,10 +474,10 @@ describe("laravelLangExport", () => {
             const { code } = await loadVirtual(plugin);
 
             expect(code).toContain(
-                'import("/project/resources/js/lang/en.json")',
+                `import("${ROOT}/resources/js/lang/en.json")`,
             );
             expect(code).toContain(
-                'import("/project/resources/js/lang/es.json")',
+                `import("${ROOT}/resources/js/lang/es.json")`,
             );
             expect(code).not.toContain("import l0");
         });
@@ -477,7 +491,7 @@ describe("laravelLangExport", () => {
             const { code } = await loadVirtual(plugin, { ssr: true });
 
             expect(code).toContain(
-                'import l0 from "/project/resources/js/lang/en.json";',
+                `import l0 from "${ROOT}/resources/js/lang/en.json";`,
             );
             expect(code).not.toContain("import(");
         });
@@ -499,7 +513,7 @@ describe("laravelLangExport", () => {
             const { addWatchFile } = await loadVirtual(plugin);
 
             expect(addWatchFile).toHaveBeenCalledWith(
-                "/project/resources/js/lang/manifest.json",
+                `${ROOT}/resources/js/lang/manifest.json`,
             );
         });
 
@@ -553,19 +567,19 @@ describe("laravelLangExport", () => {
 
         it("watches the manifest's directories", async () => {
             const { server } = await setupWatcher(undefined, {
-                watch: ["lang", "/pkgs/courier/lang"],
+                watch: ["lang", absolute("/pkgs/courier/lang")],
             });
 
             expect(server.watcher.add).toHaveBeenCalledWith([
-                "/project/lang",
-                "/pkgs/courier/lang",
+                `${ROOT}/lang`,
+                absolute("/pkgs/courier/lang"),
             ]);
         });
 
         it("re-exports one changed file by its root-relative path", async () => {
             const { server } = await setupWatcher();
 
-            server.emit("change", "/project/lang/en/auth.php");
+            server.emit("change", `${ROOT}/lang/en/auth.php`);
             await settle();
 
             expect(commands()).toEqual([
@@ -576,7 +590,7 @@ describe("laravelLangExport", () => {
         it("re-exports a new json file", async () => {
             const { server } = await setupWatcher();
 
-            server.emit("add", "/project/lang/fr.json");
+            server.emit("add", `${ROOT}/lang/fr.json`);
             await settle();
 
             expect(commands()).toEqual([
@@ -587,7 +601,7 @@ describe("laravelLangExport", () => {
         it("passes the same flags to a source run", async () => {
             const { server } = await setupWatcher({ locales: ["en"] });
 
-            server.emit("change", "/project/lang/en/auth.php");
+            server.emit("change", `${ROOT}/lang/en/auth.php`);
             await settle();
 
             expect(commands()).toEqual([
@@ -597,10 +611,10 @@ describe("laravelLangExport", () => {
 
         it("runs a full export for a file outside the root", async () => {
             const { server } = await setupWatcher(undefined, {
-                watch: ["lang", "/pkgs/courier/lang"],
+                watch: ["lang", absolute("/pkgs/courier/lang")],
             });
 
-            server.emit("change", "/pkgs/courier/lang/en/mail.php");
+            server.emit("change", absolute("/pkgs/courier/lang/en/mail.php"));
             await settle();
 
             expect(commands()).toEqual(["php artisan lang:export --quiet"]);
@@ -609,7 +623,7 @@ describe("laravelLangExport", () => {
         it("runs a full export when a file is deleted", async () => {
             const { server } = await setupWatcher();
 
-            server.emit("unlink", "/project/lang/en/auth.php");
+            server.emit("unlink", `${ROOT}/lang/en/auth.php`);
             await settle();
 
             expect(commands()).toEqual(["php artisan lang:export --quiet"]);
@@ -618,7 +632,7 @@ describe("laravelLangExport", () => {
         it("runs a full export when a directory is deleted", async () => {
             const { server } = await setupWatcher();
 
-            server.emit("unlinkDir", "/project/lang/fr");
+            server.emit("unlinkDir", `${ROOT}/lang/fr`);
             await settle();
 
             expect(commands()).toEqual(["php artisan lang:export --quiet"]);
@@ -627,8 +641,8 @@ describe("laravelLangExport", () => {
         it("ignores files that are not .php or .json", async () => {
             const { server } = await setupWatcher();
 
-            server.emit("change", "/project/lang/en/.auth.php.swp");
-            server.emit("unlink", "/project/lang/en/.auth.php.swp");
+            server.emit("change", `${ROOT}/lang/en/.auth.php.swp`);
+            server.emit("unlink", `${ROOT}/lang/en/.auth.php.swp`);
             await settle();
 
             expect(mockExec).not.toHaveBeenCalled();
@@ -637,7 +651,7 @@ describe("laravelLangExport", () => {
         it("ignores directory additions, even for a directory named like a lang file", async () => {
             const { server } = await setupWatcher();
 
-            server.emit("addDir", "/project/lang/en.json");
+            server.emit("addDir", `${ROOT}/lang/en.json`);
             await settle();
 
             expect(mockExec).not.toHaveBeenCalled();
@@ -646,9 +660,9 @@ describe("laravelLangExport", () => {
         it("ignores the output directory and paths outside every watch dir", async () => {
             const { server } = await setupWatcher();
 
-            server.emit("change", "/project/resources/js/lang/en/auth.json");
-            server.emit("change", "/project/lang-extra/en/auth.php");
-            server.emit("change", "/elsewhere/lang/en/auth.php");
+            server.emit("change", `${ROOT}/resources/js/lang/en/auth.json`);
+            server.emit("change", `${ROOT}/lang-extra/en/auth.php`);
+            server.emit("change", absolute("/elsewhere/lang/en/auth.php"));
             await settle();
 
             expect(mockExec).not.toHaveBeenCalled();
@@ -657,7 +671,7 @@ describe("laravelLangExport", () => {
         it("runs a full export when a watched directory itself is deleted", async () => {
             const { server } = await setupWatcher();
 
-            server.emit("unlinkDir", "/project/lang");
+            server.emit("unlinkDir", `${ROOT}/lang`);
             await settle();
 
             expect(commands()).toEqual(["php artisan lang:export --quiet"]);
@@ -666,7 +680,7 @@ describe("laravelLangExport", () => {
         it("normalizes a Windows-style path before matching it", async () => {
             const { server } = await setupWatcher();
 
-            server.emit("change", "\\project\\lang\\en\\a.php");
+            server.emit("change", `${ROOT}/lang/en/a.php`.replace(/\//g, "\\"));
             await settle();
 
             expect(commands()).toEqual([
@@ -679,7 +693,7 @@ describe("laravelLangExport", () => {
                 watch: ["."],
             });
 
-            server.emit("change", "/project2/lang/x.php");
+            server.emit("change", `${ROOT}2/lang/x.php`);
             await settle();
 
             expect(mockExec).not.toHaveBeenCalled();
@@ -690,15 +704,15 @@ describe("laravelLangExport", () => {
                 watch: ["."],
             });
 
-            server.emit("change", "/project/resources/js/lang/en.json");
-            server.emit("add", "/project/resources/js/lang/fr.json");
-            server.emit("unlink", "/project/resources/js/lang/es.json");
-            server.emit("unlinkDir", "/project/resources/js/lang");
+            server.emit("change", `${ROOT}/resources/js/lang/en.json`);
+            server.emit("add", `${ROOT}/resources/js/lang/fr.json`);
+            server.emit("unlink", `${ROOT}/resources/js/lang/es.json`);
+            server.emit("unlinkDir", `${ROOT}/resources/js/lang`);
             await settle();
 
             expect(mockExec).not.toHaveBeenCalled();
 
-            server.emit("change", "/project/lang/en/auth.php");
+            server.emit("change", `${ROOT}/lang/en/auth.php`);
             await settle();
 
             expect(commands()).toEqual([
@@ -716,11 +730,11 @@ describe("laravelLangExport", () => {
                 },
             );
 
-            server.emit("change", "/project/lang/en/a.php");
+            server.emit("change", `${ROOT}/lang/en/a.php`);
             await settle();
-            server.emit("change", "/project/lang/en/b.php");
-            server.emit("change", "/project/lang/en/c.php");
-            server.emit("change", "/project/lang/en/d.php");
+            server.emit("change", `${ROOT}/lang/en/b.php`);
+            server.emit("change", `${ROOT}/lang/en/c.php`);
+            server.emit("change", `${ROOT}/lang/en/d.php`);
             await settle();
 
             expect(mockExec).toHaveBeenCalledTimes(1);
@@ -744,7 +758,7 @@ describe("laravelLangExport", () => {
         it("reloads the page after a successful run", async () => {
             const { server } = await setupWatcher();
 
-            server.emit("change", "/project/lang/en/auth.php");
+            server.emit("change", `${ROOT}/lang/en/auth.php`);
             await settle();
 
             expect(server.ws.send).toHaveBeenCalledWith({
@@ -755,7 +769,7 @@ describe("laravelLangExport", () => {
         it("does not reload when reload is false, or when the run fails", async () => {
             const quiet = await setupWatcher({ reload: false });
 
-            quiet.server.emit("change", "/project/lang/en/auth.php");
+            quiet.server.emit("change", `${ROOT}/lang/en/auth.php`);
             await settle();
 
             expect(quiet.server.ws.send).not.toHaveBeenCalled();
@@ -767,7 +781,7 @@ describe("laravelLangExport", () => {
                     cb(new Error("exit 1"), "", "");
                 },
             );
-            failing.server.emit("change", "/project/lang/en/auth.php");
+            failing.server.emit("change", `${ROOT}/lang/en/auth.php`);
             await settle();
 
             expect(failing.server.ws.send).not.toHaveBeenCalled();
@@ -783,7 +797,7 @@ describe("laravelLangExport", () => {
                     cb(new Error("exit 1"), "", "");
                 },
             );
-            server.emit("change", "/project/lang/en/auth.php");
+            server.emit("change", `${ROOT}/lang/en/auth.php`);
             await settle();
 
             expect(logger.error).toHaveBeenCalledWith(
@@ -801,15 +815,15 @@ describe("laravelLangExport", () => {
                 }),
             );
             server.watcher.add.mockClear();
-            server.emit("change", "/project/resources/js/lang/manifest.json");
+            server.emit("change", `${ROOT}/resources/js/lang/manifest.json`);
             await settle();
 
             expect(server.watcher.add).toHaveBeenCalledWith([
-                "/project/modules/lang",
+                `${ROOT}/modules/lang`,
             ]);
             expect(mockExec).not.toHaveBeenCalled();
 
-            server.emit("change", "/project/modules/lang/en/auth.php");
+            server.emit("change", `${ROOT}/modules/lang/en/auth.php`);
             await settle();
 
             expect(commands()).toEqual([
@@ -828,22 +842,22 @@ describe("laravelLangExport", () => {
                     }),
             );
             server.watcher.add.mockClear();
-            server.emit("change", "/project/resources/js/lang/manifest.json");
-            server.emit("change", "/project/resources/js/lang/manifest.json");
+            server.emit("change", `${ROOT}/resources/js/lang/manifest.json`);
+            server.emit("change", `${ROOT}/resources/js/lang/manifest.json`);
             await settle();
             resolvers[1]?.(JSON.stringify({ ...MANIFEST, watch: ["new"] }));
             await settle();
             resolvers[0]?.(JSON.stringify({ ...MANIFEST, watch: ["old"] }));
             await settle();
 
-            expect(server.watcher.add.mock.calls).toEqual([[["/project/new"]]]);
+            expect(server.watcher.add.mock.calls).toEqual([[[`${ROOT}/new`]]]);
 
-            server.emit("change", "/project/old/en/auth.php");
+            server.emit("change", `${ROOT}/old/en/auth.php`);
             await settle();
 
             expect(mockExec).not.toHaveBeenCalled();
 
-            server.emit("change", "/project/new/en/auth.php");
+            server.emit("change", `${ROOT}/new/en/auth.php`);
             await settle();
 
             expect(commands()).toEqual([
@@ -855,18 +869,15 @@ describe("laravelLangExport", () => {
             const { server } = await setupWatcher();
 
             mockReadFile.mockClear();
-            server.emit("unlink", "/project/resources/js/lang/manifest.json");
-            server.emit("addDir", "/project/resources/js/lang/manifest.json");
-            server.emit(
-                "unlinkDir",
-                "/project/resources/js/lang/manifest.json",
-            );
+            server.emit("unlink", `${ROOT}/resources/js/lang/manifest.json`);
+            server.emit("addDir", `${ROOT}/resources/js/lang/manifest.json`);
+            server.emit("unlinkDir", `${ROOT}/resources/js/lang/manifest.json`);
             await settle();
 
             expect(mockReadFile).not.toHaveBeenCalled();
             expect(mockExec).not.toHaveBeenCalled();
 
-            server.emit("add", "/project/resources/js/lang/manifest.json");
+            server.emit("add", `${ROOT}/resources/js/lang/manifest.json`);
             await settle();
 
             expect(mockReadFile).toHaveBeenCalledTimes(1);
@@ -881,7 +892,7 @@ describe("laravelLangExport", () => {
             server.watcher.add.mockImplementation(() => {
                 throw new Error("watch broke");
             });
-            server.emit("change", "/project/resources/js/lang/manifest.json");
+            server.emit("change", `${ROOT}/resources/js/lang/manifest.json`);
             await settle();
 
             expect(logger.error).toHaveBeenCalledWith("watch broke");
@@ -896,7 +907,7 @@ describe("laravelLangExport", () => {
             server.watcher.add.mockImplementation(() => {
                 throw "odd";
             });
-            server.emit("change", "/project/resources/js/lang/manifest.json");
+            server.emit("change", `${ROOT}/resources/js/lang/manifest.json`);
             await settle();
 
             expect(logger.error).toHaveBeenCalledWith("odd");
@@ -911,7 +922,7 @@ describe("laravelLangExport", () => {
                     callbacks.push(cb);
                 },
             );
-            server.emit("change", "/project/lang/en/a.php");
+            server.emit("change", `${ROOT}/lang/en/a.php`);
             await settle();
             server.close();
             callbacks[0]?.(null, "", "");
@@ -940,7 +951,7 @@ describe("laravelLangExport", () => {
                 file: string,
             ) => void;
 
-            on("change", "/project/lang/en/a.php");
+            on("change", `${ROOT}/lang/en/a.php`);
             await settle();
 
             expect(second.ws.send).toHaveBeenCalledWith({
@@ -965,8 +976,8 @@ describe("laravelLangExport", () => {
             });
             server.watcher.add.mockClear();
             mockReadFile.mockClear();
-            server.emit("change", "/project/resources/js/lang/manifest.json");
-            server.emit("change", "/project/resources/js/lang/manifest.json");
+            server.emit("change", `${ROOT}/resources/js/lang/manifest.json`);
+            server.emit("change", `${ROOT}/resources/js/lang/manifest.json`);
             await settle();
             resolvers[0]?.(JSON.stringify({ ...MANIFEST, watch: ["old"] }));
             await settle();
@@ -974,8 +985,8 @@ describe("laravelLangExport", () => {
             expect(mockReadFile).toHaveBeenCalledTimes(2);
             expect(server.watcher.add).not.toHaveBeenCalled();
 
-            server.emit("change", "/project/lang/en/auth.php");
-            server.emit("change", "/project/old/en/auth.php");
+            server.emit("change", `${ROOT}/lang/en/auth.php`);
+            server.emit("change", `${ROOT}/old/en/auth.php`);
             await settle();
 
             expect(commands()).toEqual([
@@ -988,12 +999,12 @@ describe("laravelLangExport", () => {
 
             mockReadFile.mockResolvedValue("{nope");
             server.watcher.add.mockClear();
-            server.emit("change", "/project/resources/js/lang/manifest.json");
+            server.emit("change", `${ROOT}/resources/js/lang/manifest.json`);
             await settle();
 
             expect(server.watcher.add).not.toHaveBeenCalled();
 
-            server.emit("change", "/project/lang/en/auth.php");
+            server.emit("change", `${ROOT}/lang/en/auth.php`);
             await settle();
 
             expect(mockExec).toHaveBeenCalledTimes(1);
@@ -1003,7 +1014,7 @@ describe("laravelLangExport", () => {
             const { server } = await setupWatcher();
 
             server.watcher.add.mockClear();
-            server.emit("change", "/project/resources/js/lang/manifest.json");
+            server.emit("change", `${ROOT}/resources/js/lang/manifest.json`);
             await settle();
 
             expect(server.watcher.add).not.toHaveBeenCalled();
@@ -1016,7 +1027,7 @@ describe("laravelLangExport", () => {
                 sourceCommand: "sail artisan lang:export --source={file}",
             });
 
-            server.emit("change", "/project/lang/en/it's.php");
+            server.emit("change", `${ROOT}/lang/en/it's.php`);
             await settle();
 
             expect(commands()).toEqual([
@@ -1027,7 +1038,7 @@ describe("laravelLangExport", () => {
         it("runs the full command when sourceCommand is false", async () => {
             const { server } = await setupWatcher({ sourceCommand: false });
 
-            server.emit("change", "/project/lang/en/auth.php");
+            server.emit("change", `${ROOT}/lang/en/auth.php`);
             await settle();
 
             expect(commands()).toEqual(["php artisan lang:export --quiet"]);
@@ -1039,7 +1050,7 @@ describe("laravelLangExport", () => {
             const plugin = laravelLangExport();
 
             (plugin.configResolved as (config: unknown) => void)({
-                root: "/project",
+                root: ROOT,
                 logger: createLogger(),
                 command: "serve",
             });
