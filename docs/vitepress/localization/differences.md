@@ -178,13 +178,17 @@ makeReplacements(":Name", { name: "ǆemal" });
 // => "Ǆemal"
 ```
 
-## No file loading
+## File loading
 
-The caller passes the lines. There is no loader, so the translator never reads `lang/en.json` or `lang/en/messages.php`, and there is no `addNamespace`, `addPath` or `addJsonPath`. Build the lines object on the server, as shown in [Installation & Usage](./index.md#building-the-lines-on-the-server), or import your JSON files.
+The `Translator` loads nothing. It never reads `lang/en.json` or `lang/en/messages.php`, and it has no `addNamespace`, `addPath` or `addJsonPath`. The caller passes the lines, one object per locale.
+
+Loading is a separate layer, which is JavaScript only. [`createLang`](./translator.md#createlang) wraps a translator and calls the `load` function you give it when a locale is first needed. The [Vite plugin](./vite.md) runs `php artisan lang:export` from the `abetwothree/laravel-lang-export` package, which loads every file through Laravel's own loader and writes one JSON file per locale. The plugin serves those files as `virtual:tolki-lang`, whose `load` is what `createLang` takes. Nothing reads PHP in the browser: the exporter reads it in your Laravel app.
+
+You can skip the exporter. Build the lines object on the server, as shown in [Installation & Usage](./index.md#building-the-lines-on-the-server), or import your JSON files.
 
 ## Not ported
 
-- `load`, `isLoaded`, `getLoader`, `addNamespace`, `addPath`, `addJsonPath`, `FileLoader`, `ArrayLoader` and `TranslationServiceProvider`: loading lang files is the caller's job here.
+- `load`, `isLoaded`, `getLoader`, `addNamespace`, `addPath`, `addJsonPath`, `FileLoader`, `ArrayLoader` and `TranslationServiceProvider`: the `Translator` does not load files. `createLang` loads locales through a function you give it, and the exporter does the file reading.
 - `getSelector` and `setSelector`: the selector is the stateless functions `choose` and `getPluralIndex`.
 - `NamespacedItemResolver::setParsedKey` and `flushParsedKeys`, and the parse cache: the cache is invisible except through those two, which exist for the config repository.
 - `Macroable`, and `stringable()` with a single closure argument: JavaScript has neither macros on this class nor parameter types to read.

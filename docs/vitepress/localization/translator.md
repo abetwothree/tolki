@@ -6,7 +6,7 @@ These are the exports of `@tolki/lang`: the `Translator` class with Laravel's pu
 
 <div class="collection-method-list" markdown="1">
 
-[\_\_](#__) [addLines](#addlines) [array](#array) [choice](#choice) [choose](#choose) [createHelpers](#createhelpers) [determineLocalesUsing](#determinelocalesusing) [get](#get) [getFallback](#getfallback) [getLocale](#getlocale) [getPluralIndex](#getpluralindex) [handleMissingKeysUsing](#handlemissingkeysusing) [has](#has) [hasForLocale](#hasforlocale) [locale](#locale) [makeReplacements](#makereplacements) [normalizeLocale](#normalizelocale) [parseKey](#parsekey) [setFallback](#setfallback) [setLoaded](#setloaded) [setLocale](#setlocale) [string](#string) [stringable](#stringable) [trans](#trans) [transChoice](#transchoice) [Translator](#translator)
+[\_\_](#__) [addLines](#addlines) [array](#array) [bindLang](#bindlang) [choice](#choice) [choose](#choose) [createHelpers](#createhelpers) [createLang](#createlang) [determineLocalesUsing](#determinelocalesusing) [get](#get) [getFallback](#getfallback) [getLocale](#getlocale) [getPluralIndex](#getpluralindex) [handleMissingKeysUsing](#handlemissingkeysusing) [has](#has) [hasForLocale](#hasforlocale) [htmlLocale](#htmllocale) [locale](#locale) [makeReplacements](#makereplacements) [normalizeLocale](#normalizelocale) [parseKey](#parsekey) [setFallback](#setfallback) [setLoaded](#setloaded) [setLocale](#setlocale) [string](#string) [stringable](#stringable) [trans](#trans) [transChoice](#transchoice) [Translator](#translator)
 
 </div>
 
@@ -38,7 +38,7 @@ __(null);
 
 Add translation lines to the given locale.
 
-Exported as the `addLines` method of `Translator`. Lines are keyed `group.item`, a key without a dot names a whole group, and the group `*` adds a JSON line. A package group takes its namespace as the third argument. The call merges into the lines the translator already holds and never changes the object you passed to the constructor. A JSON line's key is taken literally, dots included. <!-- docs/php-parity/Translator/addLines.json, "add-lines-merges-into-a-loaded-group"; docs/php-parity/Translator/addLines.json, "add-lines-json-group"; docs/php-parity/Translator/addLines.json, "add-lines-namespace" -->
+Exported as the `addLines` method of `Translator`. Lines are keyed `group.item`, and the group `*` adds a JSON line. A key without a dot writes the item `""` of a group with that name, so `get("nodot")` answers `{ "": "v" }`. A package group takes its namespace as the third argument. The call merges into the lines the translator already holds and never changes the object you passed to the constructor. A JSON line's key is taken literally, dots included. <!-- docs/php-parity/Translator/addLines.json, "add-lines-merges-into-a-loaded-group"; docs/php-parity/Translator/addLines.json, "add-lines-json-group"; docs/php-parity/Translator/addLines.json, "add-lines-namespace"; docs/php-parity/Translator/addLines.json, "add-lines-key-without-dot" -->
 
 Laravel: [`addLines()`](https://api.laravel.com/docs/master/Illuminate/Translation/Translator.html#method_addLines)
 
@@ -62,6 +62,11 @@ translator.get("courier::mail.sent");
 
 lines;
 // => { en: { messages: { welcome: "Welcome" } } }
+
+translator.addLines({ nodot: "v" }, "en");
+
+translator.get("nodot");
+// => { "": "v" }
 ```
 
 ### array
@@ -88,6 +93,32 @@ translator.array("g.a");
 
 translator.array("g.missing");
 // => throws InvalidArgumentException
+```
+
+### bindLang
+
+Wrap a lang's reads so each one reports to a tracker first. <Badge type="info" text="JS only" />
+
+Exported as `bindLang` from `@tolki/lang`. It takes a lang and a `track` function, calls `track()` before every read, and answers what the lang answers. The reads are `__`, `trans`, `transChoice`, `has`, `hasForLocale`, `getLocale`, `getFallback`, `isLocale` and `isLoaded`. The Vue, React and Svelte entries are built on it: the tracker is how a view learns what it reads.
+
+```js
+import { bindLang, createLang } from "@tolki/lang";
+
+const lang = createLang({ locale: "en", lines: { en: { Hi: "Hi" } } });
+
+let reads = 0;
+const tracked = bindLang(lang, () => {
+  reads += 1;
+});
+
+tracked.__("Hi");
+// => "Hi"
+
+tracked.getLocale();
+// => "en"
+
+reads;
+// => 2
 ```
 
 ### choice
@@ -177,6 +208,56 @@ trans("Hi");
 
 transChoice("apples", 2);
 // => "2 apples"
+```
+
+### createLang
+
+Create a translator that loads locales on demand and tells subscribers when its answers change. <Badge type="info" text="JS only" />
+
+Exported as `createLang` from `@tolki/lang`. The options are the starting `locale`, an optional `fallback`, the `lines` at hand and a `load` function that fetches a locale's lines, at once or as a promise. A module namespace from `import()` is unwrapped to its default export. It answers the helpers `__`, `trans` and `transChoice`, the reads `has`, `hasForLocale`, `getLocale`, `getFallback`, `isLocale` and `isLoaded`, and the `translator` behind them.
+
+- `ready` is a promise that settles once the starting locale and the fallback are loaded. It rejects when a load fails.
+- `setLocale(locale)` and `setFallback(locale)` load the locale before they switch, and the last call wins. A failed load rejects and changes nothing. `setFallback(null)` clears the fallback.
+- `load(locale)` fetches a locale without switching, and notifies subscribers only when it loaded something new.
+- `subscribe(listener)` calls the listener after each change and returns a function that stops the calls. `getVersion()` counts the changes.
+
+A loaded file replaces each top-level key it holds, a group, a `namespace::group` or a JSON line. Lines added earlier with `addLines()` under other keys survive. A locale that holds `/`, `\`, `..` or a NUL byte throws `InvalidArgumentException` from `createLang`, `setLocale`, `setFallback` and `load`, without calling the loader. A synchronous loader that throws makes `createLang` throw. See [Loading locales on demand](./index.md#loading-locales-on-demand).
+
+```js
+import { createLang } from "@tolki/lang";
+
+const files = {
+  en: { Welcome: "Welcome" },
+  es: { Welcome: "Bienvenido" },
+};
+
+const lang = createLang({
+  locale: "en",
+  load: async (locale) => files[locale],
+});
+
+await lang.ready;
+
+let changes = 0;
+lang.subscribe(() => {
+  changes += 1;
+});
+
+lang.translator.addLines({ "extra.x": "X" }, "es");
+
+await lang.setLocale("es");
+
+lang.__("Welcome");
+// => "Bienvenido"
+
+lang.__("extra.x");
+// => "X"
+
+changes;
+// => 1
+
+lang.getVersion();
+// => 2
 ```
 
 ### determineLocalesUsing
@@ -402,6 +483,23 @@ translator.hasForLocale("g.a");
 
 translator.hasForLocale("g.b");
 // => true
+```
+
+### htmlLocale
+
+Read the locale the page declares on its `<html lang>`. <Badge type="info" text="JS only" />
+
+Exported as `htmlLocale` from `@tolki/lang`. Pass the locales your lines hold. The tag must be one of them, in either spelling: `<html lang="pt-BR">` answers `pt-BR` when the list holds it, else `pt_BR` when the list holds that. It answers `null` without a document, for an empty `lang`, or when no listed locale matches. Without a list, it answers the tag run through [`normalizeLocale`](#normalizelocale).
+
+It needs a document, so the example does not run in Node.
+
+```js
+import { htmlLocale } from "@tolki/lang";
+
+// With <html lang="pt-BR">:
+htmlLocale(["pt_BR", "en"]); // "pt_BR"
+htmlLocale(["en", "es"]); // null
+htmlLocale(); // "pt_BR"
 ```
 
 ### locale
