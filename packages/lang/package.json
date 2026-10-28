@@ -154,7 +154,6 @@
         ]
     },
     "devDependencies": {
-        "@sveltejs/vite-plugin-svelte": "^6.2.4",
         "@testing-library/dom": "^10.4.2",
         "@testing-library/react": "^16.3.3",
         "@testing-library/svelte": "^5.4.2",
