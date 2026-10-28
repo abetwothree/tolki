@@ -233,6 +233,26 @@ type LangCountable =
 /** A number, or a value whose count is the number. */
 type ChoiceNumber = number | LangCountable;
 
+/** What `import()` answers for a locale's JSON file: a module namespace whose default export is the lines. */
+type LocaleModule = { readonly default: LocaleLines };
+
+/** Fetches one locale's lines, at once or later; a file imported as a module is unwrapped. */
+type LocaleLinesLoader = (
+    locale: string,
+) => LocaleLines | LocaleModule | Promise<LocaleLines | LocaleModule>;
+
+/** What `createLang()` is built from. */
+interface LangOptions<TLines extends LangLines = LangLines> {
+    /** The locale to start in. */
+    readonly locale: string;
+    /** The locale a lookup falls back to. */
+    readonly fallback?: string | null;
+    /** The lines already at hand, one object per locale. */
+    readonly lines?: TLines;
+    /** Fetches a locale's lines when it is first needed. */
+    readonly load?: LocaleLinesLoader;
+}
+
 // An export list keeps the helpers above private: a .d.ts module without one exports every declaration.
 export type {
     ChoiceNumber,
@@ -240,8 +260,11 @@ export type {
     LangGroup,
     LangInputValue,
     LangLines,
+    LangOptions,
     LangValue,
     LocaleLines,
+    LocaleLinesLoader,
+    LocaleModule,
     LocalesResolver,
     MissingKeyHandler,
     Replacements,

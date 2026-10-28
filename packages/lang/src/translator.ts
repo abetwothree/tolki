@@ -1,5 +1,4 @@
 import { dataGet, dataSet } from "@tolki/data";
-import { contains } from "@tolki/str";
 import type {
     ChoiceNumber,
     LangGroup,
@@ -34,6 +33,7 @@ import {
     phpTypeName,
 } from "@tolki/utils";
 
+import { assertLocale } from "./locale-guard";
 import { choose } from "./message-selector";
 import { makeReplacements } from "./replacements";
 
@@ -172,6 +172,29 @@ function parseBasicSegments(key: string): [group: string, item: string | null] {
     return dot === -1 ? [key, null] : [key.slice(0, dot), key.slice(dot + 1)];
 }
 
+/** Reaches a translator's private lines; the class body assigns it. */
+let mergeImplementation: (
+    translator: Translator<LangLines>,
+    locale: string,
+    lines: LocaleLines,
+) => void;
+
+/**
+ * Merge one locale's lines into a translator, each top-level key replacing the one it held.
+ *
+ * @param translator - The translator to add to
+ * @param locale - The locale the lines belong to
+ * @param lines - The locale's lines, such as a lang JSON file holds them
+ * @internal
+ */
+export function mergeLocaleLines<TLines extends LangLines>(
+    translator: Translator<TLines>,
+    locale: string,
+    lines: LocaleLines,
+): void {
+    mergeImplementation(translator as Translator<LangLines>, locale, lines);
+}
+
 /**
  * Translate keys into lines, with Laravel's Translator rules for groups, JSON lines, locales and placeholders.
  */
@@ -210,6 +233,26 @@ export class Translator<TLines extends LangLines = LangLines> {
      * Indicates whether missing translation keys should be handled.
      */
     #handleMissingTranslationKeys = true;
+
+    static {
+        mergeImplementation = (translator, locale, lines) => {
+            const localeLines: Record<string, LangInputValue> = {
+                ...ownValue(translator.#lines, locale),
+            };
+
+            for (const [key, value] of Object.entries(lines)) {
+                defineKey(localeLines, key, value);
+            }
+
+            const allLines: Record<string, LocaleLines> = {
+                ...translator.#lines,
+            };
+
+            defineKey(allLines, locale, localeLines);
+
+            translator.#lines = allLines;
+        };
+    }
 
     /**
      * Create a new translator instance.
@@ -582,11 +625,7 @@ export class Translator<TLines extends LangLines = LangLines> {
      * @throws InvalidArgumentException when the locale holds `/`, `\`, `..` or a NUL byte
      */
     setLocale(locale: string): void {
-        if (contains(locale, ["/", "\\", "..", "\0"])) {
-            throw new InvalidArgumentException(
-                "Invalid characters present in locale.",
-            );
-        }
+        assertLocale(locale);
 
         this.#locale = locale;
     }

@@ -185,6 +185,13 @@ export default defineConfig({
                         link: "/localization/",
                     },
                     {
+                        text: "Vite Plugin",
+                        link: "/localization/vite",
+                    },
+                    { text: "Vue", link: "/localization/vue" },
+                    { text: "React", link: "/localization/react" },
+                    { text: "Svelte", link: "/localization/svelte" },
+                    {
                         text: "Translator Reference",
                         link: "/localization/translator",
                     },

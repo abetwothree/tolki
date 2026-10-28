@@ -105,6 +105,8 @@ Share the fallback locale's lines as well: after `setFallback()`, a group line t
 
 Share only the groups the page needs, because everything in the object ships to the browser.
 
+With Laravel, you can skip writing this by hand: [Exporting from Laravel](#exporting-from-laravel) writes the same object to JSON files for you.
+
 ## Quick start
 
 Create a translator with the lines and the current locale, set a fallback locale, and bind the helpers `__`, `trans` and `transChoice` to it with `createHelpers`.
@@ -227,7 +229,133 @@ renderFor("en");
 
 The translator never changes the lines object it was given, so one `lines` object can serve every request.
 
+## Exporting from Laravel
+
+The [`abetwothree/laravel-lang-export`](https://github.com/abetwothree/laravel-lang) Composer package writes your Laravel translations as one JSON file per locale, in the shape the lines object takes. It loads every file through Laravel's own translation loader, so the output matches what `__()` resolves, package namespaces and `lang/vendor` overrides included.
+
+```bash
+composer require abetwothree/laravel-lang-export
+php artisan lang:export
+```
+
+That writes `resources/js/lang/en.json`, one file per locale, and a `manifest.json` that lists the locales and the directories the lines came from. Run the command yourself, or let the Vite plugin run it. The plugin exports before a build and when the dev server starts, re-exports a lang file when you save it, and serves the files as a module that `createLang` can load from. See [Vite Plugin](./vite.md).
+
+```ts
+// vite.config.ts
+import laravelLangExport from "@tolki/lang/vite-laravel";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [laravelLangExport()],
+});
+```
+
+[Building the lines on the server](#building-the-lines-on-the-server) stays the way to go when you do not want the exporter: it shares the lines with the page as a prop.
+
+## Loading locales on demand
+
+`createLang` builds a translator that loads a locale's lines when it first needs them, and tells subscribers when its answers change. Give it a `load` function that answers a locale's lines, or a promise of them. A loader that imports a JSON file may answer the module, and `createLang` takes its default export.
+
+A synchronous `load` applies its lines before `createLang` returns. Both the starting locale and the fallback load.
+
+```js
+import { createLang } from "@tolki/lang";
+
+const files = {
+  en: { messages: { apples: "{0} none|[1,*] :count apples" } },
+  es: { Welcome: "Bienvenido" },
+};
+
+const lang = createLang({
+  locale: "es",
+  fallback: "en",
+  load: (locale) => files[locale],
+});
+
+lang.__("Welcome");
+// => "Bienvenido"
+
+lang.transChoice("messages.apples", 5);
+// => "5 apples"
+```
+
+With an asynchronous `load`, the lines arrive later. `lang.ready` is a promise that settles once the starting locale and the fallback are loaded. Until then, a lookup answers the key, as it does for any missing line. If a load fails, `ready` rejects.
+
+```js
+import { createLang } from "@tolki/lang";
+
+const files = {
+  en: { auth: { failed: "These credentials do not match." } },
+  es: { auth: { failed: "Las credenciales no coinciden." } },
+};
+
+const lang = createLang({
+  locale: "es",
+  fallback: "en",
+  load: async (locale) => files[locale],
+});
+
+lang.__("auth.failed");
+// => "auth.failed"
+
+await lang.ready;
+
+lang.__("auth.failed");
+// => "Las credenciales no coinciden."
+```
+
+`setLocale` loads a locale, then switches to it. The current locale stays in place while the load runs, so the page never shows a half-loaded language. If the load fails, `setLocale` rejects and the locale stays as it was. `setFallback` does the same for the fallback locale and accepts `null` for none.
+
+When calls overlap, the last call wins, whichever load finishes first.
+
+```js
+import { createLang } from "@tolki/lang";
+
+const files = {
+  en: { Hi: "Hi" },
+  es: { Hi: "Hola" },
+  de: { Hi: "Hallo" },
+};
+
+const lang = createLang({
+  locale: "en",
+  load: async (locale) => files[locale],
+});
+
+await lang.ready;
+
+const toEs = lang.setLocale("es");
+const toDe = lang.setLocale("de");
+
+await Promise.all([toEs, toDe]);
+
+lang.getLocale();
+// => "de"
+
+lang.__("Hi");
+// => "Hallo"
+```
+
+A loaded locale file replaces each top-level key it holds, whether that is a group, a `namespace::group` or a JSON line. Lines you added earlier with `translator.addLines()` under other keys survive the load. A locale loads once, even when several calls ask for it at the same time, and a locale whose load failed loads again on the next call.
+
+`load(locale)` fetches a locale without switching to it, for a link the user is likely to click. It notifies subscribers only when it loaded something new.
+
+A locale that holds `/`, `\`, `..` or a NUL byte throws `InvalidArgumentException` from `createLang`, `setLocale`, `setFallback` and `load`, before the loader runs. A locale is a file name on the server, and this keeps it from walking out of the lang directory.
+
+```js
+import { createLang } from "@tolki/lang";
+
+const lang = createLang({ locale: "en", load: () => ({}) });
+
+await lang.setLocale("../secrets");
+// => throws InvalidArgumentException
+```
+
+Call `subscribe(listener)` to hear about every change. It returns a function that stops the calls. `getVersion()` counts the changes, which is the snapshot that React's `useSyncExternalStore` wants. The [Vue](./vue.md), [React](./react.md) and [Svelte](./svelte.md) pages show the bindings that use them.
+
 ## Next
 
+- [Vite Plugin](./vite.md) exports your lang files and serves them as a module.
+- [Vue](./vue.md), [React](./react.md) and [Svelte](./svelte.md) bind a `createLang` to your components.
 - [Translator Reference](./translator.md) lists every export with an example.
 - [Differences from Laravel](./differences.md) lists what this port does not do the way PHP does.

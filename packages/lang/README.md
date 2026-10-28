@@ -111,6 +111,8 @@ Share the fallback locale's lines as well: after `setFallback()`, a group line t
 
 Share only the groups the page needs, because everything in the object ships to the browser.
 
+With Laravel, you can skip writing this by hand: [Exporting from Laravel](#exporting-from-laravel) writes the same object to JSON files for you.
+
 ### Quick start
 
 Create a translator with the lines and the current locale, set a fallback locale, and bind the helpers `__`, `trans` and `transChoice` to it with `createHelpers`.
@@ -227,10 +229,807 @@ renderFor("en");
 
 The translator never changes the lines object it was given, so one `lines` object can serve every request.
 
+### Exporting from Laravel
+
+The [`abetwothree/laravel-lang-export`](https://github.com/abetwothree/laravel-lang) Composer package writes your Laravel translations as one JSON file per locale, in the shape the lines object takes. It loads every file through Laravel's own translation loader, so the output matches what `__()` resolves, package namespaces and `lang/vendor` overrides included.
+
+```bash
+composer require abetwothree/laravel-lang-export
+php artisan lang:export
+```
+
+That writes `resources/js/lang/en.json`, one file per locale, and a `manifest.json` that lists the locales and the directories the lines came from. Run the command yourself, or let the Vite plugin run it. The plugin exports before a build and when the dev server starts, re-exports a lang file when you save it, and serves the files as a module that `createLang` can load from. See [Vite Plugin](https://tolki.abe.dev/localization/vite.html).
+
+```ts
+// vite.config.ts
+import laravelLangExport from "@tolki/lang/vite-laravel";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [laravelLangExport()],
+});
+```
+
+[Building the lines on the server](#building-the-lines-on-the-server) stays the way to go when you do not want the exporter: it shares the lines with the page as a prop.
+
+### Loading locales on demand
+
+`createLang` builds a translator that loads a locale's lines when it first needs them, and tells subscribers when its answers change. Give it a `load` function that answers a locale's lines, or a promise of them. A loader that imports a JSON file may answer the module, and `createLang` takes its default export.
+
+A synchronous `load` applies its lines before `createLang` returns. Both the starting locale and the fallback load.
+
+```js
+import { createLang } from "@tolki/lang";
+
+const files = {
+  en: { messages: { apples: "{0} none|[1,*] :count apples" } },
+  es: { Welcome: "Bienvenido" },
+};
+
+const lang = createLang({
+  locale: "es",
+  fallback: "en",
+  load: (locale) => files[locale],
+});
+
+lang.__("Welcome");
+// => "Bienvenido"
+
+lang.transChoice("messages.apples", 5);
+// => "5 apples"
+```
+
+With an asynchronous `load`, the lines arrive later. `lang.ready` is a promise that settles once the starting locale and the fallback are loaded. Until then, a lookup answers the key, as it does for any missing line. If a load fails, `ready` rejects.
+
+```js
+import { createLang } from "@tolki/lang";
+
+const files = {
+  en: { auth: { failed: "These credentials do not match." } },
+  es: { auth: { failed: "Las credenciales no coinciden." } },
+};
+
+const lang = createLang({
+  locale: "es",
+  fallback: "en",
+  load: async (locale) => files[locale],
+});
+
+lang.__("auth.failed");
+// => "auth.failed"
+
+await lang.ready;
+
+lang.__("auth.failed");
+// => "Las credenciales no coinciden."
+```
+
+`setLocale` loads a locale, then switches to it. The current locale stays in place while the load runs, so the page never shows a half-loaded language. If the load fails, `setLocale` rejects and the locale stays as it was. `setFallback` does the same for the fallback locale and accepts `null` for none.
+
+When calls overlap, the last call wins, whichever load finishes first.
+
+```js
+import { createLang } from "@tolki/lang";
+
+const files = {
+  en: { Hi: "Hi" },
+  es: { Hi: "Hola" },
+  de: { Hi: "Hallo" },
+};
+
+const lang = createLang({
+  locale: "en",
+  load: async (locale) => files[locale],
+});
+
+await lang.ready;
+
+const toEs = lang.setLocale("es");
+const toDe = lang.setLocale("de");
+
+await Promise.all([toEs, toDe]);
+
+lang.getLocale();
+// => "de"
+
+lang.__("Hi");
+// => "Hallo"
+```
+
+A loaded locale file replaces each top-level key it holds, whether that is a group, a `namespace::group` or a JSON line. Lines you added earlier with `translator.addLines()` under other keys survive the load. A locale loads once, even when several calls ask for it at the same time, and a locale whose load failed loads again on the next call.
+
+`load(locale)` fetches a locale without switching to it, for a link the user is likely to click. It notifies subscribers only when it loaded something new.
+
+A locale that holds `/`, `\`, `..` or a NUL byte throws `InvalidArgumentException` from `createLang`, `setLocale`, `setFallback` and `load`, before the loader runs. A locale is a file name on the server, and this keeps it from walking out of the lang directory.
+
+```js
+import { createLang } from "@tolki/lang";
+
+const lang = createLang({ locale: "en", load: () => ({}) });
+
+await lang.setLocale("../secrets");
+// => throws InvalidArgumentException
+```
+
+Call `subscribe(listener)` to hear about every change. It returns a function that stops the calls. `getVersion()` counts the changes, which is the snapshot that React's `useSyncExternalStore` wants. The [Vue](https://tolki.abe.dev/localization/vue.html), [React](https://tolki.abe.dev/localization/react.html) and [Svelte](https://tolki.abe.dev/localization/svelte.html) pages show the bindings that use them.
+
 ### Next
 
+- [Vite Plugin](https://tolki.abe.dev/localization/vite.html) exports your lang files and serves them as a module.
+- [Vue](https://tolki.abe.dev/localization/vue.html), [React](https://tolki.abe.dev/localization/react.html) and [Svelte](https://tolki.abe.dev/localization/svelte.html) bind a `createLang` to your components.
 - [Translator Reference](https://tolki.abe.dev/localization/translator.html) lists every export with an example.
 - [Differences from Laravel](https://tolki.abe.dev/localization/differences.html) lists what this port does not do the way PHP does.
+
+## Vite Plugin
+
+`@tolki/lang/vite-laravel` is a Vite plugin that runs the `lang:export` command of [`abetwothree/laravel-lang-export`](https://github.com/abetwothree/laravel-lang), watches your lang files, and serves the exported locales as a module that [`createLang`](https://tolki.abe.dev/localization/index.html#loading-locales-on-demand) loads from.
+
+### Installation
+
+Install the Composer package in your Laravel app, and the Vite plugin comes with `@tolki/lang`. Vite 7 or 8 is the peer dependency.
+
+```bash
+composer require abetwothree/laravel-lang-export
+```
+
+```bash [npm]
+npm install @tolki/lang
+```
+
+```bash [yarn]
+yarn add @tolki/lang
+```
+
+```bash [pnpm]
+pnpm add @tolki/lang
+```
+
+Add the plugin to `vite.config.ts`. The default export and the named `laravelLangExport` are the same function.
+
+```ts
+// vite.config.ts
+import laravelLangExport from "@tolki/lang/vite-laravel";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [laravelLangExport()],
+});
+```
+
+The exporter writes `resources/js/lang/{locale}.json` for each locale and a `manifest.json`. Its [output contract](https://github.com/abetwothree/laravel-lang/blob/main/docs/output-contract.md) lists what each file holds. Git-ignoring `resources/js/lang` is fine, unless you set `runOnBuildStart: false`, because the plugin exports before it builds.
+
+### Options
+
+Every option is optional. The four export options become artisan flags on every run, a full export and a one-file export alike. When you leave one out, the flag is left out and `config/lang-export.php` decides.
+
+| Option            | Default                              | Artisan flag                           |
+| ----------------- | ------------------------------------ | -------------------------------------- |
+| `command`         | `"php artisan lang:export"`          |                                        |
+| `sourceCommand`   | `` `${command} --source={file}` ``   | `--source=`, through the `{file}` slot |
+| `output`          | the exporter's `resources/js/lang`   | `--output=`                            |
+| `locales`         | every locale                         | `--locale=`, once for each locale      |
+| `only`            | every group                          | `--only=`, once for each pattern       |
+| `except`          | no group left out                    | `--except=`, once for each pattern     |
+| `runOnDevStart`   | `true`                               |                                        |
+| `runOnBuildStart` | `true`                               |                                        |
+| `reload`          | `true`                               |                                        |
+| `failOnError`     | `true` in `vite build`, else `false` |                                        |
+| `quiet`           | `true`                               | `--quiet`, added once                  |
+
+- `command` runs through Node's `exec()` from the Vite root, so a shell alias such as `sail` is not available. Give the whole command, such as `"./vendor/bin/sail artisan lang:export"`.
+- `sourceCommand` exports one changed file. `{file}` becomes the shell-escaped path. Set it to `false` to always run the full command.
+- `output` is passed to artisan, which resolves it against the Laravel base path. The plugin resolves it against the Vite root, so the two must agree, as they do when the Vite root is the Laravel root, as in a standard app. The plugin reads `manifest.json` from the same directory, or from `resources/js/lang` when you leave `output` out.
+- `runOnDevStart` and `runOnBuildStart` choose whether to export once when `vite dev` starts and before bundling in `vite build`. `laravel-lang-export` skips files whose bytes are unchanged, so a run with no changes costs one PHP boot ([output contract](https://github.com/abetwothree/laravel-lang/blob/main/docs/output-contract.md#writes)).
+- `reload` sends a full page reload after a successful export during `vite dev`.
+- `failOnError` decides whether a failed export throws. A failed build stops, while a failed dev run logs the error and keeps the server up.
+- `quiet` appends `--quiet` to every command unless your command or template already holds it.
+
+```ts
+// vite.config.ts
+import laravelLangExport from "@tolki/lang/vite-laravel";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [
+    laravelLangExport({
+      locales: ["en", "es"],
+      except: ["validation"],
+    }),
+  ],
+});
+```
+
+Pass a flag here, rather than in `command`, so the one-file export gets the same flags as the full one. `laravel-lang-export` fingerprints the options that shape the files, and a mismatch turns a one-file run into a full export that can remove locale files ([output contract](https://github.com/abetwothree/laravel-lang/blob/main/docs/output-contract.md#command)).
+
+### Dev and build
+
+In `vite build`, the plugin runs one full export before bundling. A failed export fails the build. Because the build runs the export, it needs PHP and the app's `vendor/` directory. A build stage that has only Node, such as a Docker stage, needs `runOnBuildStart: false` and the locale files committed or copied in.
+
+In `vite dev`, the plugin runs one full export when the server starts, then watches the directories the manifest lists under `watch`. It reads the list again whenever `manifest.json` changes.
+
+- A `.php` or `.json` file that you add or change inside the Vite root runs `--source=<path relative to the root>`, which exports that file alone.
+- A file outside the root, such as a package that Composer symlinks from elsewhere, a deleted file or directory, or two or more changes that queue behind a running export, runs one full export.
+- A file with any other extension, such as an editor swap file, runs nothing.
+- Exports never overlap. Changes that arrive while one runs wait, then run as one export.
+
+After a successful export, the dev server reloads the page.
+
+Changes inside the output directory never trigger an export, so the plugin does not loop on its own files. Keep the output directory outside every lang directory: the exporter refuses an output that is one, and an output that is a parent of one would hide that directory's changes.
+
+#### Sail
+
+When PHP runs in a Sail container, point `command` at Sail. The plugin passes paths relative to the Vite root. `laravel-lang-export` compares absolute `--source` paths as normalized strings, so a host path never matches one inside the container, while a relative path resolves against the base path on both sides ([output contract](https://github.com/abetwothree/laravel-lang/blob/main/docs/output-contract.md#caller-obligations)).
+
+```ts
+// vite.config.ts
+import laravelLangExport from "@tolki/lang/vite-laravel";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [
+    laravelLangExport({
+      command: "./vendor/bin/sail artisan lang:export",
+    }),
+  ],
+});
+```
+
+A package outside the Vite root, such as a path repository, re-exports in full, because `laravel-lang-export` cannot match an absolute host path against one inside the container.
+
+### The virtual module
+
+The plugin serves a module named `virtual:tolki-lang`. It exports `locales`, the locales the manifest lists, and `load(locale)`, which answers a locale's lines. Pass `load` straight to `createLang`.
+
+```ts
+import { createLang } from "@tolki/lang";
+import { load } from "virtual:tolki-lang";
+
+const lang = createLang({ locale: "en", fallback: "en", load });
+await lang.ready;
+```
+
+For the browser, `load` imports the locale's file with `import()`, so each locale becomes its own content-hashed chunk, and a visitor downloads only the locales they use. For the server build, the module imports every locale up front, so `load` answers at once and `createLang` needs no `await`. A locale the manifest does not list throws an `Error` that names the locales that were exported. A manifest locale that holds anything but ASCII letters, digits, `_` and `-` is left out, a dot included.
+
+When the manifest is missing or unreadable, the plugin warns and `locales` is empty.
+
+Do not import the files with `import.meta.glob("./lang/*.json")`. That pattern also matches `manifest.json`, which lists directories on your server, and Vite would ship it as a public file.
+
+#### Types
+
+Add the types for `virtual:tolki-lang` to `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "types": ["@tolki/lang/client"]
+  }
+}
+```
+
+Or reference them from a `.d.ts` file in your project:
+
+```ts
+/// <reference types="@tolki/lang/client" />
+```
+
+They declare `locales` as `readonly string[]`, and `load` as a function from a locale to its lines or a promise of them.
+
+### Loading without the module
+
+You can give `createLang` any `load` function. This one fetches each locale from `public/lang`:
+
+```ts
+import { createLang } from "@tolki/lang";
+
+const lang = createLang({
+  locale: "en",
+  fallback: "en",
+  load: async (locale) => {
+    const response = await fetch(`/lang/${locale}.json`);
+
+    return response.json();
+  },
+});
+```
+
+**Warning:** Do not expose `manifest.json`. The exporter writes it next to the locale files, and its `watch` list holds the paths of your lang directories, which can be absolute server paths when a directory sits outside the project. If you export to a folder under `public`, delete the manifest from what you deploy, or export to `resources/js/lang` and copy only the `{locale}.json` files into `public/lang`. Every line in a locale file ships to the browser as well, so use the `only` and `except` options to leave out groups such as `validation` that the page never shows.
+
+### Next
+
+- [Vue](https://tolki.abe.dev/localization/vue.html), [React](https://tolki.abe.dev/localization/react.html) and [Svelte](https://tolki.abe.dev/localization/svelte.html) bind the lang you create to your components.
+- [Installation & Usage](https://tolki.abe.dev/localization/index.html) covers `createLang`, `ready` and `setLocale`.
+
+## Vue
+
+`@tolki/lang/vue` installs a `createLang()` into a Vue 3.5 app. Templates get `__`, `trans` and `transChoice`, the `useLang()` composable gives a `locale` you can bind with `v-model`, and every one of them re-renders when the locale changes.
+
+### Setup with Inertia
+
+Create the lang in `resources/js/app.ts` and wait for `lang.ready` before you mount, so the first render already has its lines. Read the starting locale from the Inertia page prop `props.initialPage.props.locale`, the value the server rendered with, and start in `"en"` when the exporter did not write that locale. The locale never comes from `navigator.language`.
+
+```ts
+// resources/js/app.ts
+import { createInertiaApp } from "@inertiajs/vue3";
+import { createLang } from "@tolki/lang/vue";
+import { load, locales } from "virtual:tolki-lang";
+import { createSSRApp, h } from "vue";
+
+createInertiaApp({
+  resolve: (name) => import(`./Pages/${name}.vue`),
+  async setup({ el, App, props, plugin }) {
+    const wanted = props.initialPage.props.locale as string;
+    const locale = locales.includes(wanted) ? wanted : "en";
+    const lang = createLang({ locale, fallback: "en", load });
+
+    await lang.ready;
+
+    createSSRApp({ render: () => h(App, props) })
+      .use(plugin)
+      .use(lang)
+      .mount(el);
+  },
+});
+```
+
+A page without Inertia has no page prop, so read the locale from its `<html lang>` with `htmlLocale(locales) ?? "en"`. `htmlLocale` from `@tolki/lang` matches `<html lang="pt-BR">` to the spelling the exporter wrote, `pt_BR`, and answers `null` when no listed locale matches.
+
+`createLang` from `@tolki/lang/vue` takes the same options as the core [`createLang`](https://tolki.abe.dev/localization/index.html#loading-locales-on-demand): the locale, a fallback, `lines` you already have, and `load`. What it returns is the lang itself and a Vue plugin, so `app.use(lang)` installs it and `lang.setLocale()` works anywhere. [The Vite plugin](https://tolki.abe.dev/localization/vite.html) supplies `load` and `locales`.
+
+Share the locale with Inertia, and have Laravel put it in the `<html>` tag as well. If the shared locale is not one the exporter wrote, the guard starts the lang in `"en"`.
+
+```blade
+{{-- resources/views/app.blade.php --}}
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+```
+
+```php
+// app/Http/Middleware/HandleInertiaRequests.php
+public function share(Request $request): array
+{
+    return [
+        ...parent::share($request),
+        'locale' => app()->getLocale(),
+    ];
+}
+```
+
+#### Server-side rendering
+
+On the server, build one `createLang()` for each request, inside `setup`, and read the locale from `page.props.locale` with the same guard. The module the Vite plugin serves to the server build loads every locale up front, so the lang has its lines at once and there is nothing to await.
+
+```ts
+// resources/js/ssr.ts
+import { createInertiaApp } from "@inertiajs/vue3";
+import createServer from "@inertiajs/vue3/server";
+import { createLang } from "@tolki/lang/vue";
+import { renderToString } from "@vue/server-renderer";
+import { load, locales } from "virtual:tolki-lang";
+import { createSSRApp, h } from "vue";
+
+createServer((page) =>
+  createInertiaApp({
+    page,
+    render: renderToString,
+    resolve: (name) => import(`./Pages/${name}.vue`),
+    setup({ App, props, plugin }) {
+      const wanted = page.props.locale as string;
+      const locale = locales.includes(wanted) ? wanted : "en";
+
+      return createSSRApp({ render: () => h(App, props) })
+        .use(plugin)
+        .use(createLang({ locale, fallback: "en", load }));
+    },
+  }),
+);
+```
+
+**Warning:** Never create the lang at module level on a server. The plugin subscribes once to each app it installs into, and it stops listening only when the app unmounts. A server-rendered app is never unmounted, so a `Lang` shared across requests would add a listener on every request and never remove it. It would also share one locale between requests that run at the same time. A `createLang()` inside `setup` has neither problem.
+
+The client has to start in the locale the server rendered, or hydration reports a mismatch. Both sides read the same prop and apply the same guard because the server and the client must start in the same locale: on the server, `load` throws for a locale the exporter did not write, and the guard starts that request in `"en"` instead.
+
+### In templates
+
+The plugin adds `__`, `trans` and `transChoice` as global properties, so a template calls them without an import. They read the lang the app was given.
+
+```vue
+<template>
+  <h1>{{ __("Welcome") }}</h1>
+  <p>{{ trans("messages.welcome", { name: user.name }) }}</p>
+  <p>{{ transChoice("messages.apples", count) }}</p>
+</template>
+```
+
+`__` works only in precompiled templates: single-file components, which every Vite app uses. A template that Vue compiles in the browser, such as a `template:` string or markup in the page's DOM, looks globals up through a `with` proxy that rejects names starting with an underscore, so `__` does not resolve there. `trans` and `transChoice` work in both. If you compile templates at run time, call `trans`.
+
+### useLang
+
+In a script-setup block, `useLang()` gives the same reads, plus the current `locale`, `setLocale` and `lang`, the framework-agnostic lang behind them. It throws an `Error` when the app has no lang installed.
+
+`locale` is a writable computed ref. Setting it loads the locale, then switches, so `v-model` on a `<select>` works. The old locale stays on screen until the new lines arrive.
+
+```vue
+<script setup lang="ts">
+import { locales } from "virtual:tolki-lang";
+import { useLang } from "@tolki/lang/vue";
+
+const { __, locale } = useLang();
+</script>
+
+<template>
+  <label>
+    {{ __("Language") }}
+    <select v-model="locale">
+      <option v-for="code in locales" :key="code" :value="code">
+        {{ code }}
+      </option>
+    </select>
+  </label>
+</template>
+```
+
+A failed load leaves the locale as it was. To handle the failure, call `await setLocale(code)` from the composable and catch the rejection.
+
+`has`, `hasForLocale`, `getLocale`, `getFallback`, `isLocale` and `isLoaded` are there too, and each re-renders its reader when the lang changes. Use `lang.translator` for anything the reads do not cover, such as `addLines()`.
+
+### Typing
+
+Without any setup, `__` answers `string` or a group. Name your lines once, and keys complete in your editor and results are typed by the line they name. Augment `LangRegister` from `@tolki/lang` with the type of your default locale's file:
+
+```ts
+// resources/js/lang.d.ts
+import type en from "./lang/en.json";
+
+declare module "@tolki/lang" {
+  interface LangRegister {
+    lines: typeof en;
+  }
+}
+```
+
+Importing a JSON file as a type needs `"resolveJsonModule": true` in `tsconfig.json`. The registered lines type `useLang()`, `createLang()` and the template globals alike. Pass a type argument, as in `useLang<typeof lines>()`, to override it for one call.
+
+### Switching locale on navigation
+
+An Inertia visit can change the locale, such as a language link that sets a cookie. Inertia has no part in the lang, so listen for its `navigate` event and hand the page's locale to `setLocale`. The event fires on every page visit, and `setLocale` notifies the app even when the locale is the same, so check `isLocale` first.
+
+```ts
+import { router } from "@inertiajs/vue3";
+import { locales } from "virtual:tolki-lang";
+
+router.on("navigate", async (event) => {
+  const wanted = event.detail.page.props.locale as string;
+  const locale = locales.includes(wanted) ? wanted : "en";
+
+  if (!lang.isLocale(locale)) {
+    await lang.setLocale(locale);
+  }
+});
+```
+
+The guard is the one `setup` uses, so a visit to a locale the exporter did not write switches to `"en"` rather than leaving `setLocale` to reject. Register it in `app.ts`, right after you create `lang`. A client app without server-side rendering uses `createApp` where the example uses `createSSRApp`. `setLocale` does not change `<html lang>`, so set `document.documentElement.lang` in the same handler if the page needs it.
+
+### Next
+
+- [Vite Plugin](https://tolki.abe.dev/localization/vite.html) exports the lines and serves `load`.
+- [React](https://tolki.abe.dev/localization/react.html) and [Svelte](https://tolki.abe.dev/localization/svelte.html) have the same API for the other two frameworks.
+
+## React
+
+`@tolki/lang/react` hands a lang to a React 19 tree. `<LangProvider>` provides it, `useLang()` reads it, and a component that reads it renders again when the locale changes.
+
+### Setup with Inertia
+
+Create the lang outside the tree, once for the page on the client and once for each request on the server, then give it to `<LangProvider lang={lang}>`. `createLang` is the core function, re-exported from `@tolki/lang/react`, and takes the options of [`createLang`](https://tolki.abe.dev/localization/index.html#loading-locales-on-demand).
+
+On the client, read the starting locale from the Inertia page prop `props.initialPage.props.locale`, the value the server rendered with, and start in `"en"` when the exporter did not write that locale. Wait for `lang.ready` before `hydrateRoot`, so the first render already has its lines and matches the server's markup. The locale never comes from `navigator.language`.
+
+```tsx
+// resources/js/app.tsx
+import { createInertiaApp } from "@inertiajs/react";
+import { createLang, LangProvider } from "@tolki/lang/react";
+import { load, locales } from "virtual:tolki-lang";
+import { hydrateRoot } from "react-dom/client";
+
+createInertiaApp({
+  resolve: (name) => import(`./Pages/${name}.tsx`),
+  async setup({ el, App, props }) {
+    const wanted = props.initialPage.props.locale as string;
+    const locale = locales.includes(wanted) ? wanted : "en";
+    const lang = createLang({ locale, fallback: "en", load });
+
+    await lang.ready;
+
+    hydrateRoot(
+      el,
+      <LangProvider lang={lang}>
+        <App {...props} />
+      </LangProvider>,
+    );
+  },
+});
+```
+
+[The Vite plugin](https://tolki.abe.dev/localization/vite.html) supplies `load` and `locales`. A page without Inertia has no page prop, so read the locale from its `<html lang>` with `htmlLocale(locales) ?? "en"`, from `@tolki/lang`. Share the locale with Inertia, and have Laravel put it in the `<html>` tag as well, as the [Vue page](https://tolki.abe.dev/localization/vue.html#setup-with-inertia) shows. A client app without server-side rendering uses `createRoot` where the example uses `hydrateRoot`.
+
+#### Server-side rendering
+
+On the server, build one `createLang()` for each request, inside `setup`, from `page.props.locale` with the same guard. The module the Vite plugin serves to the server build loads every locale up front, so the lang has its lines at once and there is nothing to await.
+
+```tsx
+// resources/js/ssr.tsx
+import { createInertiaApp } from "@inertiajs/react";
+import createServer from "@inertiajs/react/server";
+import { createLang, LangProvider } from "@tolki/lang/react";
+import { renderToString } from "react-dom/server";
+import { load, locales } from "virtual:tolki-lang";
+
+createServer((page) =>
+  createInertiaApp({
+    page,
+    render: renderToString,
+    resolve: (name) => import(`./Pages/${name}.tsx`),
+    setup: ({ App, props }) => {
+      const wanted = page.props.locale as string;
+      const locale = locales.includes(wanted) ? wanted : "en";
+      const lang = createLang({ locale, fallback: "en", load });
+
+      return (
+        <LangProvider lang={lang}>
+          <App {...props} />
+        </LangProvider>
+      );
+    },
+  }),
+);
+```
+
+**Warning:** Never create the lang at module level on a server. One `Lang` shared across requests would share its locale between requests that run at the same time. Create it inside `setup`, so each request has its own.
+
+The client has to start in the locale the server rendered, or hydration reports a mismatch. Both sides read the same prop and apply the same guard because the server and the client must start in the same locale: on the server, `load` throws for a locale the exporter did not write, and the guard starts that request in `"en"` instead.
+
+### useLang
+
+`useLang()` gives the reads `__`, `trans` and `transChoice`, plus `has`, `hasForLocale`, `getLocale`, `getFallback`, `isLocale` and `isLoaded`, the current `locale`, `setLocale`, and `lang`, the framework-agnostic lang behind them. It throws an `Error` when no `<LangProvider>` is above the component.
+
+Every component that calls `useLang()` renders again when the lang changes, and a memoized child that receives `__` as a prop gets a new function, so it renders again too. `setLocale` loads the locale, then switches. The old locale stays on screen until the new lines arrive.
+
+```tsx
+import { useLang } from "@tolki/lang/react";
+import { locales } from "virtual:tolki-lang";
+
+export function LanguageSwitcher() {
+  const { __, locale, setLocale } = useLang();
+
+  return (
+    <label>
+      {__("Language")}
+      <select value={locale} onChange={(e) => void setLocale(e.target.value)}>
+        {locales.map((code) => (
+          <option key={code} value={code}>
+            {code}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+```
+
+A failed load leaves the locale as it was and rejects the promise `setLocale` returns. To handle it, `await setLocale(code)` in a `try` block.
+
+```tsx
+import { useLang } from "@tolki/lang/react";
+
+export function Apples({ count }: { count: number }) {
+  const { __, transChoice } = useLang();
+
+  return (
+    <>
+      <h1>{__("Welcome")}</h1>
+      <p>{transChoice("messages.apples", count)}</p>
+    </>
+  );
+}
+```
+
+### Typing
+
+Without any setup, `__` answers `string` or a group, and JSX does not take a group as a child. So either name your lines once, or wrap the call in `String()`. To name them, augment `LangRegister` from `@tolki/lang` with the type of your default locale's file. Keys then complete in your editor, and a result is typed by the line it names.
+
+```ts
+// resources/js/lang.d.ts
+import type en from "./lang/en.json";
+
+declare module "@tolki/lang" {
+  interface LangRegister {
+    lines: typeof en;
+  }
+}
+```
+
+Importing a JSON file as a type needs `"resolveJsonModule": true` in `tsconfig.json`. Pass a type argument, as in `useLang<typeof lines>()`, to override the registered lines for one call.
+
+### Switching locale on navigation
+
+An Inertia visit can change the locale. Inertia has no part in the lang, so listen for its `navigate` event and hand the page's locale to `setLocale`. `setLocale` notifies the tree even when the locale is the same, so check `isLocale` first.
+
+```ts
+import { router } from "@inertiajs/react";
+import { locales } from "virtual:tolki-lang";
+
+router.on("navigate", async (event) => {
+  const wanted = event.detail.page.props.locale as string;
+  const locale = locales.includes(wanted) ? wanted : "en";
+
+  if (!lang.isLocale(locale)) {
+    await lang.setLocale(locale);
+  }
+});
+```
+
+The guard is the one `setup` uses, so a visit to a locale the exporter did not write switches to `"en"` rather than leaving `setLocale` to reject. Register it in `app.tsx`, right after you create `lang`. `setLocale` does not change `<html lang>`, so set `document.documentElement.lang` in the same handler if the page needs it.
+
+### Next
+
+- [Vite Plugin](https://tolki.abe.dev/localization/vite.html) exports the lines and serves `load`.
+- [Vue](https://tolki.abe.dev/localization/vue.html) and [Svelte](https://tolki.abe.dev/localization/svelte.html) have the same API for the other two frameworks.
+
+## Svelte
+
+`@tolki/lang/svelte` gives Svelte 5.7 or later a lang through context. A parent calls `setLang()`, or you pass `langContext(lang)` to `mount()`, `hydrate()` or `render()`, and a component below calls `getLang()`. Everything it reads is tracked, so the component updates when the locale changes.
+
+### Setup with Inertia
+
+Inertia owns the root component, so hand the lang over as context. `createLang` is the core function, re-exported from `@tolki/lang/svelte`, and takes the options of [`createLang`](https://tolki.abe.dev/localization/index.html#loading-locales-on-demand). `langContext(lang)` builds the context map that `getLang()` finds.
+
+On the client, read the starting locale from the Inertia page prop `props.initialPage.props.locale`, the value the server rendered with, and start in `"en"` when the exporter did not write that locale. Wait for `lang.ready` before `hydrate`, so the first render already has its lines and matches the server's markup. The locale never comes from `navigator.language`.
+
+```ts
+// resources/js/app.ts
+import { createInertiaApp } from "@inertiajs/svelte";
+import { createLang, langContext } from "@tolki/lang/svelte";
+import { load, locales } from "virtual:tolki-lang";
+import { hydrate } from "svelte";
+
+createInertiaApp({
+  resolve: (name) => import(`./Pages/${name}.svelte`),
+  async setup({ el, App, props }) {
+    const wanted = props.initialPage.props.locale as string;
+    const locale = locales.includes(wanted) ? wanted : "en";
+    const lang = createLang({ locale, fallback: "en", load });
+
+    await lang.ready;
+
+    hydrate(App, { target: el, props, context: langContext(lang) });
+  },
+});
+```
+
+[The Vite plugin](https://tolki.abe.dev/localization/vite.html) supplies `load` and `locales`. A page without Inertia has no page prop, so read the locale from its `<html lang>` with `htmlLocale(locales) ?? "en"`, from `@tolki/lang`. Share the locale with Inertia, and have Laravel put it in the `<html>` tag as well, as the [Vue page](https://tolki.abe.dev/localization/vue.html#setup-with-inertia) shows. A client app without server-side rendering uses `mount` where the example uses `hydrate`.
+
+#### Server-side rendering
+
+On the server, build one `createLang()` for each request, inside `setup`, from `page.props.locale` with the same guard, and pass its context to `render`. The module the Vite plugin serves to the server build loads every locale up front, so the lang has its lines at once and there is nothing to await.
+
+```ts
+// resources/js/ssr.ts
+import { createInertiaApp } from "@inertiajs/svelte";
+import createServer from "@inertiajs/svelte/server";
+import { createLang, langContext } from "@tolki/lang/svelte";
+import { load, locales } from "virtual:tolki-lang";
+import { render } from "svelte/server";
+
+createServer((page) =>
+  createInertiaApp({
+    page,
+    resolve: (name) => import(`./Pages/${name}.svelte`),
+    setup({ App, props }) {
+      const wanted = page.props.locale as string;
+      const locale = locales.includes(wanted) ? wanted : "en";
+      const lang = createLang({ locale, fallback: "en", load });
+
+      return render(App, { props, context: langContext(lang) });
+    },
+  }),
+);
+```
+
+**Warning:** Never create the lang at module level on a server. One `Lang` shared across requests would share its locale between requests that run at the same time. Create it inside `setup`, so each request has its own.
+
+The client has to start in the locale the server rendered, or hydration reports a mismatch. Both sides read the same prop and apply the same guard because the server and the client must start in the same locale: on the server, `load` throws for a locale the exporter did not write, and the guard starts that request in `"en"` instead.
+
+### Your own root component
+
+When your app owns the root, skip the context and call `setLang()` while the root component initializes. Every component below can call `getLang()`.
+
+```svelte
+<script lang="ts">
+  import { setLang } from "@tolki/lang/svelte";
+  import type { Lang } from "@tolki/lang";
+
+  import Greeting from "./Greeting.svelte";
+
+  const { lang }: { lang: Lang } = $props();
+
+  setLang(lang);
+</script>
+
+<Greeting />
+```
+
+`setLang()` reads the lang once, when the component initializes, as a provider reads its prop. It returns the same object `getLang()` does.
+
+### getLang
+
+`getLang()` gives the reads `__`, `trans` and `transChoice`, plus `has`, `hasForLocale`, `getLocale`, `getFallback`, `isLocale` and `isLoaded`, the current `locale`, `setLocale`, and `lang`, the framework-agnostic lang behind them. It throws an `Error` when no lang is in context.
+
+Each read subscribes the component, so a destructured `__` still updates it when the locale changes. Assigning to `locale` loads the locale, then switches, so `bind:value` works on a `<select>`. The old locale stays on screen until the new lines arrive.
+
+```svelte
+<script lang="ts">
+  import { getLang } from "@tolki/lang/svelte";
+  import { locales } from "virtual:tolki-lang";
+
+  const lang = getLang();
+  const { __, transChoice } = lang;
+</script>
+
+<h1>{__("Welcome")}</h1>
+<p>{transChoice("messages.apples", 2)}</p>
+
+<label>
+  {__("Language")}
+  <select bind:value={lang.locale}>
+    {#each locales as code (code)}
+      <option value={code}>{code}</option>
+    {/each}
+  </select>
+</label>
+```
+
+A failed load leaves the locale as it was. To handle the failure, call `await lang.setLocale(code)` and catch the rejection.
+
+### Typing
+
+Without any setup, `__` answers `string` or a group. Name your lines once, and keys complete in your editor and results are typed by the line they name. Augment `LangRegister` from `@tolki/lang` with the type of your default locale's file:
+
+```ts
+// resources/js/lang.d.ts
+import type en from "./lang/en.json";
+
+declare module "@tolki/lang" {
+  interface LangRegister {
+    lines: typeof en;
+  }
+}
+```
+
+Importing a JSON file as a type needs `"resolveJsonModule": true` in `tsconfig.json`. Pass a type argument, as in `getLang<typeof lines>()`, to override the registered lines for one call.
+
+### Switching locale on navigation
+
+An Inertia visit can change the locale. Inertia has no part in the lang, so listen for its `navigate` event and hand the page's locale to `setLocale`. `setLocale` notifies the app even when the locale is the same, so check `isLocale` first.
+
+```ts
+import { router } from "@inertiajs/svelte";
+import { locales } from "virtual:tolki-lang";
+
+router.on("navigate", async (event) => {
+  const wanted = event.detail.page.props.locale as string;
+  const locale = locales.includes(wanted) ? wanted : "en";
+
+  if (!lang.isLocale(locale)) {
+    await lang.setLocale(locale);
+  }
+});
+```
+
+The guard is the one `setup` uses, so a visit to a locale the exporter did not write switches to `"en"` rather than leaving `setLocale` to reject. Register it in `app.ts`, right after you create `lang`. `setLocale` does not change `<html lang>`, so set `document.documentElement.lang` in the same handler if the page needs it.
+
+### Next
+
+- [Vite Plugin](https://tolki.abe.dev/localization/vite.html) exports the lines and serves `load`.
+- [Vue](https://tolki.abe.dev/localization/vue.html) and [React](https://tolki.abe.dev/localization/react.html) have the same API for the other two frameworks.
 
 ## Translator Reference
 
@@ -238,7 +1037,7 @@ These are the exports of `@tolki/lang`: the `Translator` class with Laravel's pu
 
 ### Translator Reference
 
-[\_\_](#__) [addLines](#addlines) [array](#array) [choice](#choice) [choose](#choose) [createHelpers](#createhelpers) [determineLocalesUsing](#determinelocalesusing) [get](#get) [getFallback](#getfallback) [getLocale](#getlocale) [getPluralIndex](#getpluralindex) [handleMissingKeysUsing](#handlemissingkeysusing) [has](#has) [hasForLocale](#hasforlocale) [locale](#locale) [makeReplacements](#makereplacements) [normalizeLocale](#normalizelocale) [parseKey](#parsekey) [setFallback](#setfallback) [setLoaded](#setloaded) [setLocale](#setlocale) [string](#string) [stringable](#stringable) [trans](#trans) [transChoice](#transchoice) [Translator](#translator)
+[\_\_](#__) [addLines](#addlines) [array](#array) [bindLang](#bindlang) [choice](#choice) [choose](#choose) [createHelpers](#createhelpers) [createLang](#createlang) [determineLocalesUsing](#determinelocalesusing) [get](#get) [getFallback](#getfallback) [getLocale](#getlocale) [getPluralIndex](#getpluralindex) [handleMissingKeysUsing](#handlemissingkeysusing) [has](#has) [hasForLocale](#hasforlocale) [htmlLocale](#htmllocale) [locale](#locale) [makeReplacements](#makereplacements) [normalizeLocale](#normalizelocale) [parseKey](#parsekey) [setFallback](#setfallback) [setLoaded](#setloaded) [setLocale](#setlocale) [string](#string) [stringable](#stringable) [trans](#trans) [transChoice](#transchoice) [Translator](#translator)
 
 ### Translator Details
 
@@ -268,7 +1067,7 @@ __(null);
 
 Add translation lines to the given locale.
 
-Exported as the `addLines` method of `Translator`. Lines are keyed `group.item`, a key without a dot names a whole group, and the group `*` adds a JSON line. A package group takes its namespace as the third argument. The call merges into the lines the translator already holds and never changes the object you passed to the constructor. A JSON line's key is taken literally, dots included. <!-- docs/php-parity/Translator/addLines.json, "add-lines-merges-into-a-loaded-group"; docs/php-parity/Translator/addLines.json, "add-lines-json-group"; docs/php-parity/Translator/addLines.json, "add-lines-namespace" -->
+Exported as the `addLines` method of `Translator`. Lines are keyed `group.item`, and the group `*` adds a JSON line. A key without a dot writes the item `""` of a group with that name, so `get("nodot")` answers `{ "": "v" }`. A package group takes its namespace as the third argument. The call merges into the lines the translator already holds and never changes the object you passed to the constructor. A JSON line's key is taken literally, dots included. <!-- docs/php-parity/Translator/addLines.json, "add-lines-merges-into-a-loaded-group"; docs/php-parity/Translator/addLines.json, "add-lines-json-group"; docs/php-parity/Translator/addLines.json, "add-lines-namespace"; docs/php-parity/Translator/addLines.json, "add-lines-key-without-dot" -->
 
 Laravel: [`addLines()`](https://api.laravel.com/docs/master/Illuminate/Translation/Translator.html#method_addLines)
 
@@ -292,6 +1091,11 @@ translator.get("courier::mail.sent");
 
 lines;
 // => { en: { messages: { welcome: "Welcome" } } }
+
+translator.addLines({ nodot: "v" }, "en");
+
+translator.get("nodot");
+// => { "": "v" }
 ```
 
 #### array
@@ -318,6 +1122,32 @@ translator.array("g.a");
 
 translator.array("g.missing");
 // => throws InvalidArgumentException
+```
+
+#### bindLang
+
+Wrap a lang's reads so each one reports to a tracker first.
+
+Exported as `bindLang` from `@tolki/lang`. It takes a lang and a `track` function, calls `track()` before every read, and answers what the lang answers. The reads are `__`, `trans`, `transChoice`, `has`, `hasForLocale`, `getLocale`, `getFallback`, `isLocale` and `isLoaded`. The Vue, React and Svelte entries are built on it: the tracker is how a view learns what it reads.
+
+```js
+import { bindLang, createLang } from "@tolki/lang";
+
+const lang = createLang({ locale: "en", lines: { en: { Hi: "Hi" } } });
+
+let reads = 0;
+const tracked = bindLang(lang, () => {
+  reads += 1;
+});
+
+tracked.__("Hi");
+// => "Hi"
+
+tracked.getLocale();
+// => "en"
+
+reads;
+// => 2
 ```
 
 #### choice
@@ -407,6 +1237,58 @@ trans("Hi");
 
 transChoice("apples", 2);
 // => "2 apples"
+```
+
+#### createLang
+
+Create a translator that loads locales on demand and tells subscribers when its answers change.
+
+Exported as `createLang` from `@tolki/lang`. The options are the starting `locale`, an optional `fallback`, the `lines` at hand and a `load` function that fetches a locale's lines, at once or as a promise. A module namespace from `import()` is unwrapped to its default export. It answers the helpers `__`, `trans` and `transChoice`, the reads `has`, `hasForLocale`, `getLocale`, `getFallback`, `isLocale` and `isLoaded`, and the `translator` behind them.
+
+- `ready` is a promise that settles once the starting locale and the fallback are loaded. It rejects when a load fails.
+- `setLocale(locale)` and `setFallback(locale)` load the locale before they switch, and the last call wins. A failed load rejects and changes nothing. `setFallback(null)` clears the fallback.
+- `load(locale)` fetches a locale without switching, and notifies subscribers only when it loaded something new.
+- `subscribe(listener)` calls the listener after each change and returns a function that stops the calls. `getVersion()` counts the changes.
+
+**Warning:** A listener that throws never stops a switch. Its error is rethrown in a microtask, which a browser reports as an uncaught error and Node treats as an uncaught exception, so a listener on a server must not throw.
+
+A loaded file replaces each top-level key it holds, a group, a `namespace::group` or a JSON line. Lines added earlier with `addLines()` under other keys survive. A locale that holds `/`, `\`, `..` or a NUL byte throws `InvalidArgumentException` from `createLang`, `setLocale`, `setFallback` and `load`, without calling the loader. A synchronous loader that throws makes `createLang` throw. See [Loading locales on demand](https://tolki.abe.dev/localization/index.html#loading-locales-on-demand).
+
+```js
+import { createLang } from "@tolki/lang";
+
+const files = {
+  en: { Welcome: "Welcome" },
+  es: { Welcome: "Bienvenido" },
+};
+
+const lang = createLang({
+  locale: "en",
+  load: async (locale) => files[locale],
+});
+
+await lang.ready;
+
+let changes = 0;
+lang.subscribe(() => {
+  changes += 1;
+});
+
+lang.translator.addLines({ "extra.x": "X" }, "es");
+
+await lang.setLocale("es");
+
+lang.__("Welcome");
+// => "Bienvenido"
+
+lang.__("extra.x");
+// => "X"
+
+changes;
+// => 1
+
+lang.getVersion();
+// => 2
 ```
 
 #### determineLocalesUsing
@@ -632,6 +1514,26 @@ translator.hasForLocale("g.a");
 
 translator.hasForLocale("g.b");
 // => true
+```
+
+#### htmlLocale
+
+Read the locale the page declares on its `<html lang>`.
+
+Exported as `htmlLocale` from `@tolki/lang`. Pass the locales your lines hold. The tag must match one of them, ignoring case and treating `-` and `_` alike, and it answers the list's own spelling: `<html lang="pt-BR">` answers `pt_BR` when the list holds `pt_BR`, and `<html lang="sr-Latn">` answers `sr_Latn`. It answers `null` without a document, for an empty `lang`, or when no listed locale matches. Without a list, it answers the tag run through [`normalizeLocale`](#normalizelocale).
+
+It needs a document, so the example does not run in Node.
+
+```js
+import { htmlLocale } from "@tolki/lang";
+
+// With <html lang="pt-BR">:
+htmlLocale(["pt_BR", "en"]); // "pt_BR"
+htmlLocale(["en", "es"]); // null
+htmlLocale(); // "pt_BR"
+
+// With <html lang="sr-Latn">:
+htmlLocale(["sr_Latn", "en"]); // "sr_Latn"
 ```
 
 #### locale
@@ -1089,13 +1991,17 @@ makeReplacements(":Name", { name: "ǆemal" });
 // => "Ǆemal"
 ```
 
-### No file loading
+### File loading
 
-The caller passes the lines. There is no loader, so the translator never reads `lang/en.json` or `lang/en/messages.php`, and there is no `addNamespace`, `addPath` or `addJsonPath`. Build the lines object on the server, as shown in [Installation & Usage](https://tolki.abe.dev/localization/index.html#building-the-lines-on-the-server), or import your JSON files.
+The `Translator` loads nothing. It never reads `lang/en.json` or `lang/en/messages.php`, and it has no `addNamespace`, `addPath` or `addJsonPath`. The caller passes the lines, one object per locale.
+
+Loading is a separate layer, which is JavaScript only. [`createLang`](https://tolki.abe.dev/localization/translator.html#createlang) wraps a translator and calls the `load` function you give it when a locale is first needed. The [Vite plugin](https://tolki.abe.dev/localization/vite.html) runs `php artisan lang:export` from the `abetwothree/laravel-lang-export` package, which loads every file through Laravel's own loader and writes one JSON file per locale. The plugin serves those files as `virtual:tolki-lang`, whose `load` is what `createLang` takes. Nothing reads PHP in the browser: the exporter reads it in your Laravel app.
+
+You can skip the exporter. Build the lines object on the server, as shown in [Installation & Usage](https://tolki.abe.dev/localization/index.html#building-the-lines-on-the-server), or import your JSON files.
 
 ### Not ported
 
-- `load`, `isLoaded`, `getLoader`, `addNamespace`, `addPath`, `addJsonPath`, `FileLoader`, `ArrayLoader` and `TranslationServiceProvider`: loading lang files is the caller's job here.
+- `load`, `isLoaded`, `getLoader`, `addNamespace`, `addPath`, `addJsonPath`, `FileLoader`, `ArrayLoader` and `TranslationServiceProvider`: the `Translator` does not load files. `createLang` loads locales through a function you give it, and the exporter does the file reading.
 - `getSelector` and `setSelector`: the selector is the stateless functions `choose` and `getPluralIndex`.
 - `NamespacedItemResolver::setParsedKey` and `flushParsedKeys`, and the parse cache: the cache is invisible except through those two, which exist for the config repository.
 - `Macroable`, and `stringable()` with a single closure argument: JavaScript has neither macros on this class nor parameter types to read.

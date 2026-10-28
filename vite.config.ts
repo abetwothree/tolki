@@ -83,6 +83,8 @@ export default defineConfig({
         },
         projects: [
             "packages/*",
+            // Svelte's client runtime needs the browser condition, so its jsdom spec runs apart from the lang project.
+            "packages/lang/vitest.svelte-client.config.ts",
             // scripts/ sits outside packages/*; without this project entry `pnpm test` never collects it.
             {
                 extends: true,

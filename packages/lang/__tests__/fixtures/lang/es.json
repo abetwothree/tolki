@@ -1,0 +1,5 @@
+{
+    "Welcome": "Bienvenido",
+    "auth": { "failed": "Credenciales incorrectas." },
+    "courier::mail": { "sent": "Enviado." }
+}

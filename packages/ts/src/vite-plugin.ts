@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
+import { escapeShellArg, escapeWindowsShellArg } from "@tolki/utils";
 import {
     normalizePath,
     type Plugin,
@@ -12,26 +13,7 @@ import {
 
 const execAsync = promisify(exec);
 
-/**
- * Escape a value for safe interpolation into a shell command string.
- *
- * Uses POSIX single-quote wrapping: the only character that requires
- * escaping inside single quotes is the single quote itself.
- *
- * @param value - The raw string to escape.
- * @returns A shell-safe string.
- */
-export function escapeShellArg(value: string): string {
-    if (value === "") {
-        return "''";
-    }
-
-    if (/^[\w@%+=:,./-]+$/.test(value)) {
-        return value;
-    }
-
-    return "'" + value.replace(/'/g, "'\\''") + "'";
-}
+export { escapeShellArg };
 
 export interface LaravelTsPublishOptions {
     /**
@@ -134,6 +116,18 @@ export interface LaravelTsPublishOptions {
      * @default true
      */
     quiet?: boolean;
+}
+
+/**
+ * Quote a value for the shell `exec` runs: cmd.exe on Windows, where single quotes are literal, else a POSIX shell.
+ *
+ * @param value - The raw value.
+ * @returns The value quoted for the current platform's shell.
+ */
+function shellArg(value: string): string {
+    return process.platform === "win32"
+        ? escapeWindowsShellArg(value)
+        : escapeShellArg(value);
 }
 
 /**
@@ -305,15 +299,20 @@ export function laravelTsPublish(
         isRunning = true;
 
         const baseCommand = commandOverride ?? command;
+        const template =
+            sourceFile && resolvedSourceCommand
+                ? resolvedSourceCommand
+                : baseCommand;
+        // --quiet is decided from the template, so a file name holding it cannot suppress the flag.
         let effectiveCommand =
             sourceFile && resolvedSourceCommand
-                ? resolvedSourceCommand.replaceAll(
-                      "{file}",
-                      escapeShellArg(sourceFile),
+                ? // A function replacer keeps `$&` and friends in the path literal.
+                  resolvedSourceCommand.replaceAll("{file}", () =>
+                      shellArg(sourceFile),
                   )
                 : baseCommand;
 
-        if (quiet && !effectiveCommand.includes("--quiet")) {
+        if (quiet && !template.includes("--quiet")) {
             effectiveCommand += " --quiet";
         }
 

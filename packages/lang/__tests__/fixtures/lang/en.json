@@ -1,0 +1,6 @@
+{
+    "Welcome": "Welcome",
+    "auth": { "failed": "These credentials do not match our records." },
+    "messages": { "apples": "one|:count apples" },
+    "courier::mail": { "sent": "Sent." }
+}

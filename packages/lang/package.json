@@ -1,7 +1,7 @@
 {
     "name": "@tolki/lang",
     "version": "0.1.0",
-    "description": "Laravel's translator for JavaScript: placeholder replacements, trans_choice plural forms and dot-key lookups.",
+    "description": "Laravel's translator for JavaScript: placeholder replacements, trans_choice plural forms and dot-key lookups, with a Vite plugin and Vue, React and Svelte bindings.",
     "author": "Abraham Arango <https://github.com/abetwothree>",
     "license": "MIT",
     "homepage": "https://tolki.abe.dev/localization/",
@@ -13,8 +13,25 @@
     "bugs": {
         "url": "https://github.com/abetwothree/tolki/issues"
     },
+    "$schema": "https://raw.githubusercontent.com/vitejs/vite-plugin-registry/refs/heads/main/data/schema/extended-package-json.schema.json",
+    "compatiblePackages": {
+        "schemaVersion": 1,
+        "vite": {
+            "type": "compatible",
+            "versions": "^7.0.0||^8.0.0"
+        }
+    },
     "type": "module",
     "main": "src/index.ts",
+    "exports": {
+        ".": "./src/index.ts",
+        "./vite-laravel": "./src/vite-laravel/index.ts",
+        "./client": {
+            "types": "./client.d.ts"
+        },
+        "./package.json": "./package.json",
+        "./*": "./src/*.ts"
+    },
     "scripts": {
         "build": "vite build",
         "readme:build": "ts-node ../../scripts/readme-build.ts --filter @tolki/lang",
@@ -29,7 +46,13 @@
         "pluralization",
         "laravel",
         "utils",
-        "utilities"
+        "utilities",
+        "vue",
+        "vue-plugin",
+        "react",
+        "svelte",
+        "vite",
+        "vite-plugin"
     ],
     "sideEffects": false,
     "packageManager": "pnpm@10.12.1",
@@ -39,8 +62,29 @@
         "@tolki/types": "workspace:^",
         "@tolki/utils": "workspace:^"
     },
+    "peerDependencies": {
+        "react": "^19.0.0",
+        "svelte": "^5.7.0",
+        "vite": "^7.0.0||^8.0.0",
+        "vue": "^3.5.0"
+    },
+    "peerDependenciesMeta": {
+        "vue": {
+            "optional": true
+        },
+        "react": {
+            "optional": true
+        },
+        "svelte": {
+            "optional": true
+        },
+        "vite": {
+            "optional": true
+        }
+    },
     "files": [
-        "dist"
+        "dist",
+        "client.d.ts"
     ],
     "publishConfig": {
         "main": "dist/index.js",
@@ -75,14 +119,51 @@
             "./translator": {
                 "import": "./dist/translator.js",
                 "types": "./dist/translator.d.ts"
-            }
+            },
+            "./vue": {
+                "import": "./dist/vue.js",
+                "types": "./dist/vue.d.ts"
+            },
+            "./react": {
+                "import": "./dist/react.js",
+                "types": "./dist/react.d.ts"
+            },
+            "./svelte": {
+                "import": "./dist/svelte.js",
+                "types": "./dist/svelte.d.ts"
+            },
+            "./vite-laravel": {
+                "import": "./dist/vite-laravel/index.js",
+                "types": "./dist/vite-laravel/index.d.ts"
+            },
+            "./client": {
+                "types": "./client.d.ts"
+            },
+            "./package.json": "./package.json"
         }
     },
     "tolki": {
         "docs": [
             "localization/index.md",
+            "localization/vite.md",
+            "localization/vue.md",
+            "localization/react.md",
+            "localization/svelte.md",
             "localization/translator.md",
             "localization/differences.md"
         ]
+    },
+    "devDependencies": {
+        "@testing-library/dom": "^10.4.2",
+        "@testing-library/react": "^16.3.3",
+        "@testing-library/svelte": "^5.4.2",
+        "@types/react": "^19.3.0",
+        "@types/react-dom": "^19.3.0",
+        "@vitejs/plugin-vue": "^6.0.10",
+        "@vue/test-utils": "^2.5.1",
+        "react": "^19.3.1",
+        "react-dom": "^19.3.1",
+        "svelte": "^5.57.3",
+        "vue": "^3.5.44"
     }
 }
