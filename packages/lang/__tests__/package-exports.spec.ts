@@ -14,7 +14,8 @@ interface LangPackageManifest {
     $schema?: string;
     compatiblePackages?: unknown;
     keywords: string[];
-    exports: Record<string, string>;
+    exports: Record<string, string | { types?: string }>;
+    files: string[];
     peerDependencies: Record<string, string>;
     peerDependenciesMeta: {
         vue?: { optional?: boolean };
@@ -66,6 +67,18 @@ describe("package exports", () => {
             import: "./dist/vite-laravel/index.js",
             types: "./dist/vite-laravel/index.d.ts",
         });
+    });
+
+    it("exports the client types from the package root folder", () => {
+        const manifest = readPackageManifest();
+
+        expect(manifest.exports["./client"]).toEqual({
+            types: "./client.d.ts",
+        });
+        expect(manifest.publishConfig.exports["./client"]).toEqual({
+            types: "./client.d.ts",
+        });
+        expect(manifest.files).toContain("client.d.ts");
     });
 
     it("keeps vite an optional peer", () => {

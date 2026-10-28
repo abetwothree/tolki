@@ -26,6 +26,9 @@
     "exports": {
         ".": "./src/index.ts",
         "./vite-laravel": "./src/vite-laravel/index.ts",
+        "./client": {
+            "types": "./client.d.ts"
+        },
         "./*": "./src/*.ts"
     },
     "scripts": {
@@ -79,7 +82,8 @@
         }
     },
     "files": [
-        "dist"
+        "dist",
+        "client.d.ts"
     ],
     "publishConfig": {
         "main": "dist/index.js",
@@ -130,6 +134,9 @@
             "./vite-laravel": {
                 "import": "./dist/vite-laravel/index.js",
                 "types": "./dist/vite-laravel/index.d.ts"
+            },
+            "./client": {
+                "types": "./client.d.ts"
             }
         }
     },

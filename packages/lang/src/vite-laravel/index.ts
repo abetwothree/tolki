@@ -9,6 +9,11 @@ import { exportCommand, sourceExportCommand } from "./command";
 import { readManifest } from "./manifest";
 import type { ExportRunner } from "./runner";
 import { createExportRunner } from "./runner";
+import {
+    RESOLVED_VIRTUAL_MODULE_ID,
+    VIRTUAL_MODULE_ID,
+    virtualModuleCode,
+} from "./virtual-module";
 
 export interface LaravelLangExportOptions extends ExportFlags {
     /**
@@ -126,6 +131,7 @@ export function laravelLangExport(
     let server: ViteDevServer | undefined;
     let runner: ExportRunner;
     let manifestFile = "";
+    let outputDir = "";
     let watchDirs: string[] = [];
 
     /**
@@ -218,6 +224,10 @@ export function laravelLangExport(
 
         configResolved(resolvedConfig) {
             config = resolvedConfig;
+            outputDir = normalizePath(
+                path.resolve(config.root, flags.output ?? DEFAULT_OUTPUT),
+            );
+            manifestFile = `${outputDir}/manifest.json`;
             runner = createExportRunner({
                 fullCommand: exportCommand(command, flags, quiet),
                 sourceCommand:
@@ -252,6 +262,28 @@ export function laravelLangExport(
             });
         },
 
+        resolveId(id) {
+            return id === VIRTUAL_MODULE_ID
+                ? RESOLVED_VIRTUAL_MODULE_ID
+                : undefined;
+        },
+
+        async load(id, loadOptions) {
+            if (id !== RESOLVED_VIRTUAL_MODULE_ID) {
+                return undefined;
+            }
+
+            this.addWatchFile(manifestFile);
+
+            const manifest = await readManifest(manifestFile, config.logger);
+
+            return virtualModuleCode(
+                manifest?.locales ?? [],
+                outputDir,
+                loadOptions?.ssr === true,
+            );
+        },
+
         async buildStart() {
             if (config.command === "build") {
                 if (runOnBuildStart) {
@@ -264,14 +296,6 @@ export function laravelLangExport(
             if (runOnDevStart) {
                 await runner.full();
             }
-
-            manifestFile = normalizePath(
-                path.resolve(
-                    config.root,
-                    flags.output ?? DEFAULT_OUTPUT,
-                    "manifest.json",
-                ),
-            );
 
             await refreshWatchDirs();
         },

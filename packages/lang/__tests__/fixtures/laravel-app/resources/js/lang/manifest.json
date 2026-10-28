@@ -1,0 +1,6 @@
+{
+    "version": 1,
+    "locales": ["en", "es"],
+    "watch": ["/srv/secret/lang"],
+    "fingerprint": "fixture-fingerprint"
+}

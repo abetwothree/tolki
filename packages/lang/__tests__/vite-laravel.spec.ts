@@ -381,6 +381,108 @@ describe("laravelLangExport", () => {
         );
     });
 
+    describe("virtual module", () => {
+        /**
+         * Call the plugin's load hook for the virtual module.
+         *
+         * @param plugin - The plugin
+         * @param options - The load options
+         * @returns The generated code and the watch spy
+         */
+        async function loadVirtual(
+            plugin: ReturnType<typeof laravelLangExport>,
+            options?: { ssr?: boolean },
+        ) {
+            const addWatchFile = vi.fn();
+            const code = await (
+                plugin.load as (
+                    id: string,
+                    options?: { ssr?: boolean },
+                ) => Promise<string | undefined>
+            ).call({ addWatchFile }, "\0virtual:tolki-lang", options);
+
+            return { code, addWatchFile };
+        }
+
+        it("resolves only its own id", () => {
+            const plugin = laravelLangExport();
+            const resolveId = plugin.resolveId as (id: string) => unknown;
+
+            expect(resolveId("virtual:tolki-lang")).toBe(
+                "\0virtual:tolki-lang",
+            );
+            expect(resolveId("x")).toBeUndefined();
+        });
+
+        it("loads only its own id", async () => {
+            const { plugin } = await setupPlugin();
+            const load = plugin.load as (id: string) => Promise<unknown>;
+
+            expect(
+                await load.call({ addWatchFile: vi.fn() }, "x"),
+            ).toBeUndefined();
+        });
+
+        it("imports each locale lazily for the client", async () => {
+            mockReadFile.mockResolvedValue(
+                JSON.stringify({ ...MANIFEST, locales: ["en", "es"] }),
+            );
+
+            const { plugin } = await setupPlugin();
+            const { code } = await loadVirtual(plugin);
+
+            expect(code).toContain(
+                'import("/project/resources/js/lang/en.json")',
+            );
+            expect(code).toContain(
+                'import("/project/resources/js/lang/es.json")',
+            );
+            expect(code).not.toContain("import l0");
+        });
+
+        it("imports every locale eagerly for SSR", async () => {
+            mockReadFile.mockResolvedValue(
+                JSON.stringify({ ...MANIFEST, locales: ["en", "es"] }),
+            );
+
+            const { plugin } = await setupPlugin();
+            const { code } = await loadVirtual(plugin, { ssr: true });
+
+            expect(code).toContain(
+                'import l0 from "/project/resources/js/lang/en.json";',
+            );
+            expect(code).not.toContain("import(");
+        });
+
+        it("leaves out a manifest locale holding a path character", async () => {
+            mockReadFile.mockResolvedValue(
+                JSON.stringify({ ...MANIFEST, locales: ["en", "../etc"] }),
+            );
+
+            const { plugin } = await setupPlugin();
+            const { code } = await loadVirtual(plugin);
+
+            expect(code).toContain('export const locales = ["en"];');
+            expect(code).not.toContain("../etc");
+        });
+
+        it("watches the manifest", async () => {
+            const { plugin } = await setupPlugin();
+            const { addWatchFile } = await loadVirtual(plugin);
+
+            expect(addWatchFile).toHaveBeenCalledWith(
+                "/project/resources/js/lang/manifest.json",
+            );
+        });
+
+        it("exports no locales when the manifest is missing", async () => {
+            const { plugin } = await setupPlugin();
+            const { code } = await loadVirtual(plugin);
+
+            expect(code).toContain("export const locales = [];");
+        });
+    });
+
     describe("dev watcher", () => {
         /**
          * Start the plugin in dev with a manifest, then forget the start-up run.
