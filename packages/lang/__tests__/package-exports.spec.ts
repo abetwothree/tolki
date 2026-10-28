@@ -24,7 +24,7 @@ interface LangPackageManifest {
         vite?: { optional?: boolean };
     };
     publishConfig: {
-        exports: Record<string, PackageExportTarget>;
+        exports: Record<string, PackageExportTarget | string>;
     };
 }
 
@@ -67,6 +67,30 @@ describe("package exports", () => {
             import: "./dist/vite-laravel/index.js",
             types: "./dist/vite-laravel/index.d.ts",
         });
+    });
+
+    it("publishes the five pre-existing subpaths to the flat dist output", () => {
+        const { publishConfig } = readPackageManifest();
+
+        for (const subpath of [
+            "helpers",
+            "locale",
+            "message-selector",
+            "replacements",
+            "translator",
+        ]) {
+            expect(publishConfig.exports[`./${subpath}`]).toEqual({
+                import: `./dist/${subpath}.js`,
+                types: `./dist/${subpath}.d.ts`,
+            });
+        }
+    });
+
+    it("exports package.json", () => {
+        const { exports, publishConfig } = readPackageManifest();
+
+        expect(exports["./package.json"]).toBe("./package.json");
+        expect(publishConfig.exports["./package.json"]).toBe("./package.json");
     });
 
     it("exports the client types from the package root folder", () => {

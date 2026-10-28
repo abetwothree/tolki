@@ -94,6 +94,52 @@ describe("createLang", () => {
         await expect(lang.ready).rejects.toThrow("boom");
     });
 
+    it("leaves no unhandled rejection when the fallback's loader throws", async () => {
+        const unhandled = vi.fn();
+
+        process.on("unhandledRejection", unhandled);
+
+        try {
+            expect(() =>
+                createLang({
+                    locale: "es",
+                    fallback: "xx",
+                    load: (locale) => {
+                        if (locale === "es") {
+                            return Promise.reject(new Error("offline"));
+                        }
+
+                        throw new Error("sync boom");
+                    },
+                }),
+            ).toThrow("sync boom");
+
+            await new Promise((resolve) => setTimeout(resolve, 10));
+
+            expect(unhandled).not.toHaveBeenCalled();
+        } finally {
+            process.off("unhandledRejection", unhandled);
+        }
+    });
+
+    it("treats a foreign thenable as a pending load", async () => {
+        const lang = createLang({
+            locale: "es",
+            load: () =>
+                ({
+                    then: (resolve: (lines: unknown) => void) => {
+                        resolve({ Welcome: "Bienvenido" });
+                    },
+                }) as unknown as Promise<Record<string, string>>,
+        });
+
+        expect(lang.__("Welcome")).toBe("Welcome");
+
+        await lang.ready;
+
+        expect(lang.__("Welcome")).toBe("Bienvenido");
+    });
+
     it("rejects lines that are not an object", async () => {
         const lang = createLang({
             locale: "es",
@@ -192,15 +238,18 @@ describe("setLocale", () => {
             lines: { en: LINES.en },
             load: loader.load,
         });
+        const listener = vi.fn();
         const toEs = lang.setLocale("es");
         const toDe = lang.setLocale("de");
 
+        lang.subscribe(listener);
         loader.settle("de");
         await toDe;
         loader.settle("es");
         await toEs;
 
         expect(lang.getLocale()).toBe("de");
+        expect(listener).toHaveBeenCalledTimes(1);
     });
 
     it("loads a locale once for concurrent calls", async () => {
@@ -269,22 +318,24 @@ describe("setLocale", () => {
         expect(lang.__("Welcome")).toBe("Bienvenido");
     });
 
-    it("keeps a loaded group that is a list an array", async () => {
+    it("keeps a loaded group that is a list an array", () => {
         const lang = createLang({
             locale: "en",
             load: () => ({ g: ["a", "b"] }),
         });
 
         expect(lang.__("g")).toEqual(["a", "b"]);
+        expect(lang.__("g.0")).toBe("a");
     });
 
-    it("loads a group item key holding a dot as one key", async () => {
+    it("loads a group item key holding a dot as one key", () => {
         const lang = createLang({
             locale: "en",
             load: () => ({ g: { "a.b": "AB" } }),
         });
 
         expect(lang.__("g")).toEqual({ "a.b": "AB" });
+        expect(lang.__("g.a.b")).toBe("AB");
     });
 
     it("loads a locale again after its load failed", async () => {
@@ -316,15 +367,18 @@ describe("setFallback", () => {
             lines: { es: LINES.es },
             load: loader.load,
         });
+        const listener = vi.fn();
         const toEn = lang.setFallback("en");
         const toDe = lang.setFallback("de");
 
+        lang.subscribe(listener);
         loader.settle("de");
         await toDe;
         loader.settle("en");
         await toEn;
 
         expect(lang.getFallback()).toBe("de");
+        expect(listener).toHaveBeenCalledTimes(1);
     });
 
     it("loads the fallback before reading it", async () => {
@@ -388,6 +442,25 @@ describe("load", () => {
         expect(lang.isLoaded("de")).toBe(true);
         expect(lang.getLocale()).toBe("en");
         expect(lang.__("Welcome", {}, "de")).toBe("Willkommen");
+    });
+
+    it("notifies once for concurrent loads of the same locale", async () => {
+        const loader = createDeferredLoader();
+        const lang = createLang({
+            locale: "en",
+            lines: { en: LINES.en },
+            load: loader.load,
+        });
+        const listener = vi.fn();
+
+        lang.subscribe(listener);
+
+        const both = Promise.all([lang.load("de"), lang.load("de")]);
+
+        loader.settle("de");
+        await both;
+
+        expect(listener).toHaveBeenCalledTimes(1);
     });
 
     it("rejects when a synchronous loader throws", async () => {
@@ -475,6 +548,50 @@ describe("subscribe", () => {
         await lang.setLocale("es");
 
         expect(second).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe("subscribe listeners", () => {
+    it("calls every listener and reports a throwing one on a microtask", async () => {
+        const lang = createLang({ locale: "en", lines: { en: LINES.en } });
+        const failure = new Error("listener failed");
+        const queued: (() => void)[] = [];
+        const spy = vi
+            .spyOn(globalThis, "queueMicrotask")
+            .mockImplementation((callback) => {
+                queued.push(callback);
+            });
+        const second = vi.fn();
+
+        try {
+            lang.subscribe(() => {
+                throw failure;
+            });
+            lang.subscribe(second);
+
+            await expect(lang.setLocale("es")).resolves.toBeUndefined();
+
+            expect(second).toHaveBeenCalledTimes(1);
+            expect(lang.getLocale()).toBe("es");
+            expect(queued).toHaveLength(1);
+            expect(() => queued[0]?.()).toThrow(failure);
+        } finally {
+            spy.mockRestore();
+        }
+    });
+
+    it("skips a listener an earlier listener removed", async () => {
+        const lang = createLang({ locale: "en", lines: { en: LINES.en } });
+        const second = vi.fn();
+        let unsubscribeSecond = (): void => {};
+
+        lang.subscribe(() => {
+            unsubscribeSecond();
+        });
+        unsubscribeSecond = lang.subscribe(second);
+        await lang.setLocale("es");
+
+        expect(second).not.toHaveBeenCalled();
     });
 });
 

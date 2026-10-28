@@ -6,6 +6,9 @@ import { describe, expectTypeOf, it } from "vitest";
 
 import { LINES } from "./fixtures/lines";
 
+declare const typedReader: ReactLang<typeof LINES>;
+declare const untypedReader: ReactLang;
+
 describe("LangProvider", () => {
     it("accepts a lang made from literal lines", () => {
         const lang = createLang({ locale: "en", lines: { en: LINES.en } });
@@ -17,21 +20,23 @@ describe("LangProvider", () => {
 
 describe("useLang", () => {
     it("types __ from the lines", () => {
-        const reader = {} as ReactLang<typeof LINES>;
-
-        expectTypeOf(reader.__("Welcome")).toEqualTypeOf<string>();
+        expectTypeOf(typedReader.__("Welcome")).toEqualTypeOf<string>();
     });
 
     it("types __ as a translation value without lines", () => {
-        const reader = {} as ReactLang;
+        expectTypeOf(
+            untypedReader.__("anything"),
+        ).toEqualTypeOf<TranslationValue>();
+    });
 
-        expectTypeOf(reader.__("anything")).toEqualTypeOf<TranslationValue>();
+    it("types locale as a string", () => {
+        expectTypeOf(typedReader.locale).toEqualTypeOf<string>();
     });
 
     it("types setLocale and lang", () => {
-        const reader = {} as ReactLang<typeof LINES>;
-
-        expectTypeOf(reader.setLocale("en")).toEqualTypeOf<Promise<void>>();
-        expectTypeOf(reader.lang).toEqualTypeOf<Lang<typeof LINES>>();
+        expectTypeOf(typedReader.setLocale("en")).toEqualTypeOf<
+            Promise<void>
+        >();
+        expectTypeOf(typedReader.lang).toEqualTypeOf<Lang<typeof LINES>>();
     });
 });

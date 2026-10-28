@@ -1,13 +1,25 @@
 import type { VueLang } from "@tolki/lang/vue";
 import { createLang, useLang } from "@tolki/lang/vue";
 import { isUndefined } from "@tolki/utils";
-import { mount } from "@vue/test-utils";
-import { describe, expect, it, vi } from "vitest";
-import { createApp, createSSRApp, defineComponent, nextTick } from "vue";
+import { enableAutoUnmount, mount } from "@vue/test-utils";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+    createApp,
+    createSSRApp,
+    defineComponent,
+    nextTick,
+    watchEffect,
+} from "vue";
 
 import Greeting from "./fixtures/Greeting.vue";
 import { createDeferredLoader, LINES } from "./fixtures/lines";
 import { VUE_SSR_HTML } from "./fixtures/ssr-html";
+
+enableAutoUnmount(afterEach);
+
+afterEach(() => {
+    vi.restoreAllMocks();
+});
 
 /**
  * Read the three paragraphs a mounted greeting renders.
@@ -69,32 +81,40 @@ describe("createLang", () => {
         expect(paragraphs(wrapper)[0]).toBe("Welcome");
     });
 
-    it("stops listening when the app unmounts", () => {
+    it("stops tracking when the app unmounts", async () => {
         const plugin = createLang({
             locale: "es",
             fallback: "en",
             lines: LINES,
         });
-        const unsubscribe = vi.fn();
-        const subscribe = plugin.subscribe;
+        let lang: VueLang | undefined;
+        const Probe = defineComponent({
+            setup() {
+                lang = useLang();
 
-        vi.spyOn(plugin, "subscribe").mockImplementation((listener) => {
-            const stop = subscribe(listener);
-
-            return () => {
-                unsubscribe();
-                stop();
-            };
+                return () => null;
+            },
         });
-
-        const app = createApp(Greeting).use(plugin);
+        const app = createApp(Probe).use(plugin);
 
         app.mount(document.createElement("div"));
-        expect(unsubscribe).not.toHaveBeenCalled();
+
+        if (isUndefined(lang)) {
+            throw new Error("useLang() did not run");
+        }
+
+        const reads: string[] = [];
+        const reader = lang;
+        const stop = watchEffect(() => {
+            reads.push(String(reader.__("Welcome")));
+        });
 
         app.unmount();
+        await plugin.setLocale("en");
+        await nextTick();
+        stop();
 
-        expect(unsubscribe).toHaveBeenCalledTimes(1);
+        expect(reads).toEqual(["Bienvenido"]);
     });
 
     it("keeps two apps' locales apart", async () => {
@@ -178,11 +198,9 @@ describe("useLang", () => {
     });
 
     it("throws without the plugin", () => {
-        const error = vi.spyOn(console, "warn").mockImplementation(() => {});
+        vi.spyOn(console, "warn").mockImplementation(() => {});
 
         expect(() => mount(Greeting)).toThrow(/createLang/);
-
-        error.mockRestore();
     });
 });
 
@@ -201,9 +219,6 @@ describe("hydration", () => {
         expect(warn).not.toHaveBeenCalled();
         expect(error).not.toHaveBeenCalled();
         expect(container.querySelector("p")).toBe(first);
-
-        warn.mockRestore();
-        error.mockRestore();
     });
 
     it("reports a mismatch when the client starts in another locale", () => {
@@ -221,8 +236,5 @@ describe("hydration", () => {
             .join(" ");
 
         expect(logged).toMatch(/Hydration/);
-
-        warn.mockRestore();
-        error.mockRestore();
     });
 });

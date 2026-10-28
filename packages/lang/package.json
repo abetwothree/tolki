@@ -29,6 +29,7 @@
         "./client": {
             "types": "./client.d.ts"
         },
+        "./package.json": "./package.json",
         "./*": "./src/*.ts"
     },
     "scripts": {
@@ -137,7 +138,8 @@
             },
             "./client": {
                 "types": "./client.d.ts"
-            }
+            },
+            "./package.json": "./package.json"
         }
     },
     "tolki": {

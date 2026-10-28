@@ -4,7 +4,7 @@ import type {
     LocaleLines,
     LocaleModule,
 } from "@tolki/types";
-import { isPlainObject, isUndefined } from "@tolki/utils";
+import { isFunction, isObject, isPlainObject, isUndefined } from "@tolki/utils";
 
 import { createHelpers } from "./helpers";
 import { assertLocale } from "./locale-guard";
@@ -44,6 +44,21 @@ function linesOf(
 }
 
 /**
+ * Tell a loader's pending answer, any thenable, from lines.
+ *
+ * @param answer - What the loader answered
+ * @returns True when the answer is still to be awaited
+ */
+function isPending(
+    answer:
+        | LocaleLines
+        | LocaleModule
+        | PromiseLike<LocaleLines | LocaleModule>,
+): answer is PromiseLike<LocaleLines | LocaleModule> {
+    return isObject<unknown>(answer) && isFunction(answer["then"]);
+}
+
+/**
  * Create a translator that loads locales on demand and tells subscribers when its answers change.
  *
  * @param options - The starting locale and fallback, the lines at hand, and how to fetch more
@@ -74,6 +89,7 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
 
     const helpers = createHelpers(translator);
     const loaded = new Set(Object.keys(options.lines ?? {}));
+    const announcedLoads = new Set<string>();
     const inFlight = new Map<string, Promise<void>>();
     const listeners = new Set<() => void>();
     let version = 0;
@@ -100,7 +116,7 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
      */
     async function settle(
         locale: string,
-        pending: Promise<LocaleLines | LocaleModule>,
+        pending: PromiseLike<LocaleLines | LocaleModule>,
     ): Promise<void> {
         try {
             apply(locale, await pending);
@@ -128,7 +144,7 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
 
         const answer = options.load(locale);
 
-        if (!(answer instanceof Promise)) {
+        if (!isPending(answer)) {
             apply(locale, answer);
 
             return null;
@@ -148,7 +164,18 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
         version += 1;
 
         for (const listener of [...listeners]) {
-            listener();
+            if (!listeners.has(listener)) {
+                continue;
+            }
+
+            try {
+                listener();
+            } catch (error) {
+                // Rethrown off this stack, so one failing listener neither stops the rest nor fails the switch.
+                queueMicrotask(() => {
+                    throw error;
+                });
+            }
         }
     }
 
@@ -165,10 +192,19 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
         }
     }
 
-    const ready = announce([
-        request(options.locale),
-        request(options.fallback ?? options.locale),
-    ]);
+    const starting = request(options.locale);
+    let fallbackLoad: Promise<void> | null;
+
+    try {
+        fallbackLoad = request(options.fallback ?? options.locale);
+    } catch (error) {
+        // The locale's load is already running; without a handler its failure would go unhandled.
+        starting?.catch(() => {});
+
+        throw error;
+    }
+
+    const ready = announce([starting, fallbackLoad]);
 
     return {
         ...helpers,
@@ -199,7 +235,12 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
 
             await request(locale);
 
-            if (!wasLoaded && loaded.has(locale)) {
+            if (
+                !wasLoaded &&
+                loaded.has(locale) &&
+                !announcedLoads.has(locale)
+            ) {
+                announcedLoads.add(locale);
                 changed();
             }
         },

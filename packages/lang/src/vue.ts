@@ -1,4 +1,5 @@
 import type { LangLines, LangOptions } from "@tolki/types";
+import { isNull } from "@tolki/utils";
 import type { App, InjectionKey, Plugin, WritableComputedRef } from "vue";
 import { computed, inject, shallowRef } from "vue";
 
@@ -56,9 +57,14 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
 
     const plugin: LangPlugin<TLines> = {
         ...lang,
+        /**
+         * Provide the lang to the app and stop listening once the app unmounts.
+         *
+         * @param app - The Vue app the plugin installs into
+         */
         install(app: App): void {
             const version = shallowRef(lang.getVersion());
-            const unsubscribe = plugin.subscribe(() => {
+            const unsubscribe = lang.subscribe(() => {
                 version.value = lang.getVersion();
             });
             const reader = bindLang(lang, () => version.value);
@@ -96,7 +102,7 @@ export function useLang<
 >(): VueLang<TLines> {
     const vueLang = inject(LANG_KEY, null);
 
-    if (vueLang === null) {
+    if (isNull(vueLang)) {
         throw new Error(
             "useLang() found no lang: install it with app.use(createLang(…)).",
         );
