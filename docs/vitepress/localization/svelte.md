@@ -1,6 +1,8 @@
 # Svelte
 
-`@tolki/lang/svelte` gives Svelte 5.7 or later a lang through context. A parent calls `setLang()`, or you pass `langContext(lang)` to `mount()`, `hydrate()` or `render()`, and a component below calls `getLang()`. Everything it reads is tracked, so the component updates when the locale changes. <Badge type="info" text="JS only" />
+`@tolki/lang/svelte` gives Svelte 5.7 or later a lang through context. A parent calls `setLang()`, or you pass `langContext(lang)` to `mount()`, `hydrate()` or `render()`, and a component below calls `getLang()`. Everything it reads is tracked, so the component updates when the locale changes.
+
+<Badge type="info" text="JS only" />
 
 ## Setup with Inertia
 
@@ -64,7 +66,7 @@ createServer((page) =>
 ```
 
 ::: warning
-Never create the lang at module level on a server. One `Lang` shared across requests would share its locale between requests that run at the same time. Create it inside `setup`, so each request has its own.
+**Warning:** Never create the lang at module level on a server. One `Lang` shared across requests would share its locale between requests that run at the same time. Create it inside `setup`, so each request has its own.
 :::
 
 The client has to start in the locale the server rendered, or hydration reports a mismatch.

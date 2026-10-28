@@ -1,6 +1,8 @@
 # Vue
 
-`@tolki/lang/vue` installs a `createLang()` into a Vue 3.5 app. Templates get `__`, `trans` and `transChoice`, the `useLang()` composable gives a `locale` you can bind with `v-model`, and every one of them re-renders when the locale changes. <Badge type="info" text="JS only" />
+`@tolki/lang/vue` installs a `createLang()` into a Vue 3.5 app. Templates get `__`, `trans` and `transChoice`, the `useLang()` composable gives a `locale` you can bind with `v-model`, and every one of them re-renders when the locale changes.
+
+<Badge type="info" text="JS only" />
 
 ## Setup with Inertia
 
@@ -87,7 +89,7 @@ createServer((page) =>
 ```
 
 ::: warning
-Never create the lang at module level on a server. The plugin subscribes once to each app it installs into, and it stops listening only when the app unmounts. A server-rendered app is never unmounted, so a `Lang` shared across requests would add a listener on every request and never remove it. It would also share one locale between requests that run at the same time. A `createLang()` inside `setup` has neither problem.
+**Warning:** Never create the lang at module level on a server. The plugin subscribes once to each app it installs into, and it stops listening only when the app unmounts. A server-rendered app is never unmounted, so a `Lang` shared across requests would add a listener on every request and never remove it. It would also share one locale between requests that run at the same time. A `createLang()` inside `setup` has neither problem.
 :::
 
 The client has to start in the locale the server rendered, or hydration reports a mismatch. That is why `app.ts` reads `<html lang>`, which Laravel set from the same `app()->getLocale()` that the server rendered with.
@@ -108,7 +110,7 @@ The plugin adds `__`, `trans` and `transChoice` as global properties, so a templ
 
 ## useLang
 
-In a `<script setup>`, `useLang()` gives the same reads, plus the current `locale`, `setLocale` and `lang`, the framework-agnostic lang behind them. It throws an `Error` when the app has no lang installed.
+In a script-setup block, `useLang()` gives the same reads, plus the current `locale`, `setLocale` and `lang`, the framework-agnostic lang behind them. It throws an `Error` when the app has no lang installed.
 
 `locale` is a writable computed ref. Setting it loads the locale, then switches, so `v-model` on a `<select>` works. The old locale stays on screen until the new lines arrive.
 

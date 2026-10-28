@@ -97,7 +97,9 @@ translator.array("g.missing");
 
 ### bindLang
 
-Wrap a lang's reads so each one reports to a tracker first. <Badge type="info" text="JS only" />
+Wrap a lang's reads so each one reports to a tracker first.
+
+<Badge type="info" text="JS only" />
 
 Exported as `bindLang` from `@tolki/lang`. It takes a lang and a `track` function, calls `track()` before every read, and answers what the lang answers. The reads are `__`, `trans`, `transChoice`, `has`, `hasForLocale`, `getLocale`, `getFallback`, `isLocale` and `isLoaded`. The Vue, React and Svelte entries are built on it: the tracker is how a view learns what it reads.
 
@@ -212,7 +214,9 @@ transChoice("apples", 2);
 
 ### createLang
 
-Create a translator that loads locales on demand and tells subscribers when its answers change. <Badge type="info" text="JS only" />
+Create a translator that loads locales on demand and tells subscribers when its answers change.
+
+<Badge type="info" text="JS only" />
 
 Exported as `createLang` from `@tolki/lang`. The options are the starting `locale`, an optional `fallback`, the `lines` at hand and a `load` function that fetches a locale's lines, at once or as a promise. A module namespace from `import()` is unwrapped to its default export. It answers the helpers `__`, `trans` and `transChoice`, the reads `has`, `hasForLocale`, `getLocale`, `getFallback`, `isLocale` and `isLoaded`, and the `translator` behind them.
 
@@ -487,7 +491,9 @@ translator.hasForLocale("g.b");
 
 ### htmlLocale
 
-Read the locale the page declares on its `<html lang>`. <Badge type="info" text="JS only" />
+Read the locale the page declares on its `<html lang>`.
+
+<Badge type="info" text="JS only" />
 
 Exported as `htmlLocale` from `@tolki/lang`. Pass the locales your lines hold. The tag must be one of them, in either spelling: `<html lang="pt-BR">` answers `pt-BR` when the list holds it, else `pt_BR` when the list holds that. It answers `null` without a document, for an empty `lang`, or when no listed locale matches. Without a list, it answers the tag run through [`normalizeLocale`](#normalizelocale).
 

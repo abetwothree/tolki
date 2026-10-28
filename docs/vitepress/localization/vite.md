@@ -1,6 +1,8 @@
 # Vite Plugin
 
-`@tolki/lang/vite-laravel` is a Vite plugin that runs the `lang:export` command of [`abetwothree/laravel-lang-export`](https://github.com/abetwothree/laravel-lang), watches your lang files, and serves the exported locales as a module that [`createLang`](./index.md#loading-locales-on-demand) loads from. <Badge type="info" text="JS only" />
+`@tolki/lang/vite-laravel` is a Vite plugin that runs the `lang:export` command of [`abetwothree/laravel-lang-export`](https://github.com/abetwothree/laravel-lang), watches your lang files, and serves the exported locales as a module that [`createLang`](./index.md#loading-locales-on-demand) loads from.
+
+<Badge type="info" text="JS only" />
 
 ## Installation
 
@@ -38,7 +40,7 @@ export default defineConfig({
 });
 ```
 
-The exporter writes `resources/js/lang/{locale}.json` for each locale and a `manifest.json`. Its [output contract](https://github.com/abetwothree/laravel-lang/blob/main/docs/output-contract.md) lists what each file holds. Git-ignoring `resources/js/lang` is fine, because the plugin exports before it builds.
+The exporter writes `resources/js/lang/{locale}.json` for each locale and a `manifest.json`. Its [output contract](https://github.com/abetwothree/laravel-lang/blob/main/docs/output-contract.md) lists what each file holds. Git-ignoring `resources/js/lang` is fine, unless you set `runOnBuildStart: false`, because the plugin exports before it builds.
 
 ## Options
 
@@ -60,8 +62,8 @@ Every option is optional. The four export options become artisan flags on every 
 
 - `command` runs through Node's `exec()` from the Vite root, so a shell alias such as `sail` is not available. Give the whole command, such as `"./vendor/bin/sail artisan lang:export"`.
 - `sourceCommand` exports one changed file. `{file}` becomes the shell-escaped path. Set it to `false` to always run the full command.
-- `output` is relative to the Laravel base path. The plugin reads `manifest.json` from the same directory, or from `resources/js/lang` when you leave `output` out.
-- `runOnDevStart` and `runOnBuildStart` choose whether to export once when `vite dev` starts and before bundling in `vite build`. The exporter skips files whose bytes are unchanged, so a run with no changes costs one PHP boot.
+- `output` is passed to artisan, which resolves it against the Laravel base path. The plugin resolves it against the Vite root, so the two must agree, as they do when the Vite root is the Laravel root, as in a standard app. The plugin reads `manifest.json` from the same directory, or from `resources/js/lang` when you leave `output` out.
+- `runOnDevStart` and `runOnBuildStart` choose whether to export once when `vite dev` starts and before bundling in `vite build`. `laravel-lang-export` skips files whose bytes are unchanged, so a run with no changes costs one PHP boot ([output contract](https://github.com/abetwothree/laravel-lang/blob/main/docs/output-contract.md#writes)).
 - `reload` sends a full page reload after a successful export during `vite dev`.
 - `failOnError` decides whether a failed export throws. A failed build stops, while a failed dev run logs the error and keeps the server up.
 - `quiet` appends `--quiet` to every command unless your command or template already holds it.
@@ -81,7 +83,7 @@ export default defineConfig({
 });
 ```
 
-Pass a flag here, rather than in `command`, so the one-file export gets the same flags as the full one. A mismatch changes the exporter's fingerprint, which turns the run into a full export.
+Pass a flag here, rather than in `command`, so the one-file export gets the same flags as the full one. `laravel-lang-export` fingerprints the options that shape the files, and a mismatch turns a one-file run into a full export that can remove locale files ([output contract](https://github.com/abetwothree/laravel-lang/blob/main/docs/output-contract.md#command)).
 
 ## Dev and build
 
@@ -98,7 +100,7 @@ After a successful export, the dev server reloads the page.
 
 ### Sail
 
-When PHP runs in a Sail container, point `command` at Sail. The plugin passes paths relative to the Vite root, which also match inside the container.
+When PHP runs in a Sail container, point `command` at Sail. The plugin passes paths relative to the Vite root, which `laravel-lang-export` can match inside the container, because it compares absolute paths as strings ([output contract](https://github.com/abetwothree/laravel-lang/blob/main/docs/output-contract.md#caller-obligations)).
 
 ```ts
 // vite.config.ts
@@ -114,7 +116,7 @@ export default defineConfig({
 });
 ```
 
-A package outside the Vite root, such as a path repository, re-exports in full, because the exporter cannot match an absolute host path against one inside the container.
+A package outside the Vite root, such as a path repository, re-exports in full, because `laravel-lang-export` cannot match an absolute host path against one inside the container.
 
 ## The virtual module
 
@@ -173,7 +175,7 @@ const lang = createLang({
 ```
 
 ::: warning
-Do not expose `manifest.json`. The exporter writes it next to the locale files, and its `watch` list holds the paths of your lang directories, which can be absolute server paths when a directory sits outside the project. If you export to a folder under `public`, delete the manifest from what you deploy, or export to `resources/js/lang` and copy only the `{locale}.json` files into `public/lang`. Every line in a locale file ships to the browser as well, so use the `only` and `except` options to leave out groups such as `validation` that the page never shows.
+**Warning:** Do not expose `manifest.json`. The exporter writes it next to the locale files, and its `watch` list holds the paths of your lang directories, which can be absolute server paths when a directory sits outside the project. If you export to a folder under `public`, delete the manifest from what you deploy, or export to `resources/js/lang` and copy only the `{locale}.json` files into `public/lang`. Every line in a locale file ships to the browser as well, so use the `only` and `except` options to leave out groups such as `validation` that the page never shows.
 :::
 
 ## Next

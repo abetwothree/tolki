@@ -1,6 +1,8 @@
 # React
 
-`@tolki/lang/react` hands a lang to a React 19 tree. `<LangProvider>` provides it, `useLang()` reads it, and a component that reads it renders again when the locale changes. <Badge type="info" text="JS only" />
+`@tolki/lang/react` hands a lang to a React 19 tree. `<LangProvider>` provides it, `useLang()` reads it, and a component that reads it renders again when the locale changes.
+
+<Badge type="info" text="JS only" />
 
 ## Setup with Inertia
 
@@ -74,7 +76,7 @@ createServer((page) =>
 ```
 
 ::: warning
-Never create the lang at module level on a server. One `Lang` shared across requests would share its locale between requests that run at the same time. Create it inside `setup`, so each request has its own.
+**Warning:** Never create the lang at module level on a server. One `Lang` shared across requests would share its locale between requests that run at the same time. Create it inside `setup`, so each request has its own.
 :::
 
 The client has to start in the locale the server rendered, or hydration reports a mismatch.
