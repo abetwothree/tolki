@@ -86,6 +86,7 @@ async function setupPlugin(
     const plugin = laravelLangExport(options);
     const logger = createLogger();
     const listeners: ((event: string, file: string) => void)[] = [];
+    const closers: (() => void)[] = [];
     const server = {
         watcher: {
             add: vi.fn(),
@@ -94,6 +95,16 @@ async function setupPlugin(
             }),
         },
         ws: { send: vi.fn() },
+        httpServer: {
+            once: vi.fn((_event: string, cb: () => void) => {
+                closers.push(cb);
+            }),
+        },
+        close: () => {
+            for (const closer of closers) {
+                closer();
+            }
+        },
         emit: (event: string, file: string) => {
             for (const listener of listeners) {
                 listener(event, file);
@@ -606,10 +617,10 @@ describe("laravelLangExport", () => {
             expect(mockExec).not.toHaveBeenCalled();
         });
 
-        it("ignores directory additions", async () => {
+        it("ignores directory additions, even for a directory named like a lang file", async () => {
             const { server } = await setupWatcher();
 
-            server.emit("addDir", "/project/lang/fr");
+            server.emit("addDir", "/project/lang/en.json");
             await settle();
 
             expect(mockExec).not.toHaveBeenCalled();
@@ -624,6 +635,58 @@ describe("laravelLangExport", () => {
             await settle();
 
             expect(mockExec).not.toHaveBeenCalled();
+        });
+
+        it("runs a full export when a watched directory itself is deleted", async () => {
+            const { server } = await setupWatcher();
+
+            server.emit("unlinkDir", "/project/lang");
+            await settle();
+
+            expect(commands()).toEqual(["php artisan lang:export --quiet"]);
+        });
+
+        it("normalizes a Windows-style path before matching it", async () => {
+            const { server } = await setupWatcher();
+
+            server.emit("change", "\\project\\lang\\en\\a.php");
+            await settle();
+
+            expect(commands()).toEqual([
+                "php artisan lang:export --source=lang/en/a.php --quiet",
+            ]);
+        });
+
+        it("ignores a sibling directory that shares the root's prefix", async () => {
+            const { server } = await setupWatcher(undefined, {
+                watch: ["."],
+            });
+
+            server.emit("change", "/project2/lang/x.php");
+            await settle();
+
+            expect(mockExec).not.toHaveBeenCalled();
+        });
+
+        it("never exports for events inside the output directory, even under a watched directory", async () => {
+            const { server } = await setupWatcher(undefined, {
+                watch: ["."],
+            });
+
+            server.emit("change", "/project/resources/js/lang/en.json");
+            server.emit("add", "/project/resources/js/lang/fr.json");
+            server.emit("unlink", "/project/resources/js/lang/es.json");
+            server.emit("unlinkDir", "/project/resources/js/lang");
+            await settle();
+
+            expect(mockExec).not.toHaveBeenCalled();
+
+            server.emit("change", "/project/lang/en/auth.php");
+            await settle();
+
+            expect(commands()).toEqual([
+                "php artisan lang:export --source=lang/en/auth.php --quiet",
+            ]);
         });
 
         it("collapses a burst of changes into one full export", async () => {
@@ -652,9 +715,13 @@ describe("laravelLangExport", () => {
                 "php artisan lang:export --source=lang/en/a.php --quiet",
                 "php artisan lang:export --quiet",
             ]);
+            expect(server.ws.send).toHaveBeenCalledTimes(1);
 
             callbacks[1]?.(null, "", "");
             await settle();
+
+            // Each run reloads: the collapsed run exports files the first one never saw.
+            expect(server.ws.send).toHaveBeenCalledTimes(2);
         });
 
         it("reloads the page after a successful run", async () => {
@@ -731,6 +798,113 @@ describe("laravelLangExport", () => {
             expect(commands()).toEqual([
                 "php artisan lang:export --source=modules/lang/en/auth.php --quiet",
             ]);
+        });
+
+        it("lets the newest manifest read win when reads resolve out of order", async () => {
+            const { server } = await setupWatcher();
+            const resolvers: ((text: string) => void)[] = [];
+
+            mockReadFile.mockImplementation(
+                () =>
+                    new Promise<string>((resolve) => {
+                        resolvers.push(resolve);
+                    }),
+            );
+            server.watcher.add.mockClear();
+            server.emit("change", "/project/resources/js/lang/manifest.json");
+            server.emit("change", "/project/resources/js/lang/manifest.json");
+            await settle();
+            resolvers[1]?.(JSON.stringify({ ...MANIFEST, watch: ["new"] }));
+            await settle();
+            resolvers[0]?.(JSON.stringify({ ...MANIFEST, watch: ["old"] }));
+            await settle();
+
+            expect(server.watcher.add.mock.calls).toEqual([[["/project/new"]]]);
+
+            server.emit("change", "/project/old/en/auth.php");
+            await settle();
+
+            expect(mockExec).not.toHaveBeenCalled();
+
+            server.emit("change", "/project/new/en/auth.php");
+            await settle();
+
+            expect(commands()).toEqual([
+                "php artisan lang:export --source=new/en/auth.php --quiet",
+            ]);
+        });
+
+        it("only re-reads the manifest for add and change events", async () => {
+            const { server } = await setupWatcher();
+
+            mockReadFile.mockClear();
+            server.emit("unlink", "/project/resources/js/lang/manifest.json");
+            server.emit("addDir", "/project/resources/js/lang/manifest.json");
+            server.emit(
+                "unlinkDir",
+                "/project/resources/js/lang/manifest.json",
+            );
+            await settle();
+
+            expect(mockReadFile).not.toHaveBeenCalled();
+            expect(mockExec).not.toHaveBeenCalled();
+
+            server.emit("add", "/project/resources/js/lang/manifest.json");
+            await settle();
+
+            expect(mockReadFile).toHaveBeenCalledTimes(1);
+        });
+
+        it("logs a watcher failure instead of leaving it unhandled", async () => {
+            const { server, logger } = await setupWatcher();
+
+            mockReadFile.mockResolvedValue(
+                JSON.stringify({ ...MANIFEST, watch: ["lang", "more"] }),
+            );
+            server.watcher.add.mockImplementation(() => {
+                throw new Error("watch broke");
+            });
+            server.emit("change", "/project/resources/js/lang/manifest.json");
+            await settle();
+
+            expect(logger.error).toHaveBeenCalledWith("watch broke");
+        });
+
+        it("logs a watcher failure that is not an Error", async () => {
+            const { server, logger } = await setupWatcher();
+
+            mockReadFile.mockResolvedValue(
+                JSON.stringify({ ...MANIFEST, watch: ["lang", "more"] }),
+            );
+            server.watcher.add.mockImplementation(() => {
+                throw "odd";
+            });
+            server.emit("change", "/project/resources/js/lang/manifest.json");
+            await settle();
+
+            expect(logger.error).toHaveBeenCalledWith("odd");
+        });
+
+        it("sends no reload to a server that closed during an export", async () => {
+            const { server } = await setupWatcher();
+            const callbacks: ExecCallback[] = [];
+
+            mockExec.mockImplementation(
+                (_cmd: string, _opts: unknown, cb: ExecCallback) => {
+                    callbacks.push(cb);
+                },
+            );
+            server.emit("change", "/project/lang/en/a.php");
+            await settle();
+            server.close();
+            callbacks[0]?.(null, "", "");
+            await settle();
+
+            expect(server.httpServer.once).toHaveBeenCalledWith(
+                "close",
+                expect.any(Function),
+            );
+            expect(server.ws.send).not.toHaveBeenCalled();
         });
 
         it("keeps the watched directories when the manifest becomes unreadable", async () => {

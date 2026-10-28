@@ -68,6 +68,8 @@ const DEFAULT_OUTPUT = "resources/js/lang";
 
 const WATCHED_EVENTS = ["add", "change", "unlink", "unlinkDir"];
 
+const MANIFEST_EVENTS = ["add", "change"];
+
 const EXPORTED_EXTENSIONS = [".php", ".json"];
 
 /**
@@ -81,14 +83,14 @@ function isTranslationFile(file: string): boolean {
 }
 
 /**
- * Check whether a path sits under a directory, so `lang` never matches `lang-extra`.
+ * Check whether a path is a directory or sits under it, so `lang` never matches `lang-extra`.
  *
  * @param file - The normalized path.
  * @param dir - The normalized directory.
- * @returns Whether the path is inside the directory.
+ * @returns Whether the path is the directory or inside it.
  */
 function isInside(file: string, dir: string): boolean {
-    return file.startsWith(`${dir}/`);
+    return file === dir || file.startsWith(`${dir}/`);
 }
 
 /**
@@ -133,28 +135,19 @@ export function laravelLangExport(
     let manifestFile = "";
     let outputDir = "";
     let watchDirs: string[] = [];
-
-    /**
-     * Run an export from the watcher, logging a failure that would otherwise go unhandled.
-     *
-     * @param run - Starts the export.
-     */
-    async function runFromWatcher(run: () => Promise<void>): Promise<void> {
-        try {
-            await run();
-        } catch (error) {
-            // The runner only ever rejects with the Error it builds.
-            config.logger.error((error as Error).message);
-        }
-    }
+    let latestRefresh = 0;
 
     /**
      * Re-read the manifest and watch the directories it lists.
      */
     async function refreshWatchDirs(): Promise<void> {
+        latestRefresh += 1;
+
+        const thisRefresh = latestRefresh;
         const manifest = await readManifest(manifestFile, config.logger);
 
-        if (manifest === null) {
+        // A newer read started while this one was pending; its result must not be overwritten.
+        if (manifest === null || thisRefresh !== latestRefresh) {
             return;
         }
 
@@ -184,8 +177,14 @@ export function laravelLangExport(
         const changed = normalizePath(file);
 
         if (changed === manifestFile) {
-            await refreshWatchDirs();
+            if (MANIFEST_EVENTS.includes(event)) {
+                await refreshWatchDirs();
+            }
 
+            return;
+        }
+
+        if (isInside(changed, outputDir)) {
             return;
         }
 
@@ -198,7 +197,7 @@ export function laravelLangExport(
         }
 
         if (event === "unlinkDir") {
-            await runFromWatcher(() => runner.full());
+            await runner.full();
 
             return;
         }
@@ -209,13 +208,27 @@ export function laravelLangExport(
 
         const root = normalizePath(config.root);
 
-        await runFromWatcher(() =>
-            event === "unlink" || !isInside(changed, root)
-                ? runner.full()
-                : runner.source(
-                      normalizePath(path.relative(config.root, changed)),
-                  ),
-        );
+        await (event === "unlink" || !isInside(changed, root)
+            ? runner.full()
+            : runner.source(
+                  normalizePath(path.relative(config.root, changed)),
+              ));
+    }
+
+    /**
+     * Handle one watcher event, logging a failure that would otherwise go unhandled.
+     *
+     * @param event - The watcher event name.
+     * @param file - The path the event is about.
+     */
+    async function handleSafely(event: string, file: string): Promise<void> {
+        try {
+            await handleWatcherEvent(event, file);
+        } catch (error) {
+            config.logger.error(
+                error instanceof Error ? error.message : String(error),
+            );
+        }
     }
 
     return {
@@ -258,7 +271,12 @@ export function laravelLangExport(
             server = devServer;
 
             devServer.watcher.on("all", (event, file) => {
-                void handleWatcherEvent(event, file);
+                void handleSafely(event, file);
+            });
+
+            // An export still running when the server closes must not send it a reload.
+            devServer.httpServer?.once("close", () => {
+                server = undefined;
             });
         },
 

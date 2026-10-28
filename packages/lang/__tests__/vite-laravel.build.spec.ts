@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -24,7 +24,9 @@ let scratch = "";
  * @param ssr - Whether to build the server entry.
  * @returns The output chunks and assets.
  */
-async function buildFixture(ssr: boolean): Promise<Rollup.OutputChunk[]> {
+async function buildFixture(
+    ssr: boolean,
+): Promise<(Rollup.OutputChunk | Rollup.OutputAsset)[]> {
     const result = (await build({
         root,
         configFile: false,
@@ -43,7 +45,39 @@ async function buildFixture(ssr: boolean): Promise<Rollup.OutputChunk[]> {
     })) as Rollup.RollupOutput | Rollup.RollupOutput[];
     const outputs = Array.isArray(result) ? result : [result];
 
-    return outputs.flatMap((output) => output.output) as Rollup.OutputChunk[];
+    return outputs.flatMap((output) => output.output);
+}
+
+/**
+ * Write a build's files to a fresh directory, so its entry can be imported.
+ *
+ * @param output - The build output.
+ * @param name - The directory name under the scratch directory.
+ * @returns The absolute path of every written file, entry first.
+ */
+async function writeBuild(
+    output: (Rollup.OutputChunk | Rollup.OutputAsset)[],
+    name: string,
+): Promise<string> {
+    const dir = path.join(scratch, name);
+
+    let entry = "";
+
+    for (const item of output) {
+        await mkdir(path.dirname(path.join(dir, item.fileName)), {
+            recursive: true,
+        });
+        await writeFile(
+            path.join(dir, item.fileName),
+            item.type === "chunk" ? item.code : item.source,
+        );
+
+        if (item.type === "chunk" && item.isEntry) {
+            entry = path.join(dir, item.fileName);
+        }
+    }
+
+    return entry;
 }
 
 describe("virtual:tolki-lang build", () => {
@@ -57,7 +91,7 @@ describe("virtual:tolki-lang build", () => {
 
     it("emits one chunk per locale, outside the entry", async () => {
         const chunks = (await buildFixture(false)).filter(
-            (item) => item.type === "chunk",
+            (item): item is Rollup.OutputChunk => item.type === "chunk",
         );
         const entry = chunks.find((chunk) => chunk.isEntry);
         const holders = chunks.filter((chunk) =>
@@ -67,27 +101,26 @@ describe("virtual:tolki-lang build", () => {
         expect(entry?.code).not.toContain("Bienvenido");
         expect(holders).toHaveLength(1);
         expect(holders[0]?.isEntry).toBe(false);
-    });
+    }, 30_000);
 
     it("keeps the manifest out of the client build", async () => {
         const output = await buildFixture(false);
         const text = output
-            .map((item) => (item.type === "chunk" ? item.code : ""))
+            .map((item) =>
+                item.type === "chunk" ? item.code : String(item.source),
+            )
             .join("\n");
 
         expect(text).not.toContain("fixture-fingerprint");
         expect(text).not.toContain("/srv/secret");
-    });
+    }, 30_000);
 
     it("builds a server entry whose load is synchronous", async () => {
         const output = await buildFixture(true);
 
         expect(output).toHaveLength(1);
 
-        const file = path.join(scratch, "server.mjs");
-
-        await writeFile(file, output[0]?.code ?? "");
-
+        const file = await writeBuild(output, "server");
         const mod = (await import(pathToFileURL(file).href)) as {
             load: (locale: string) => Record<string, string>;
         };
@@ -96,5 +129,29 @@ describe("virtual:tolki-lang build", () => {
         expect(() => mod.load("xx")).toThrow(
             /No exported lines for locale "xx"/,
         );
-    });
+        expect(() => mod.load("__proto__")).toThrow(
+            /No exported lines for locale "__proto__"/,
+        );
+        expect(() => mod.load("constructor")).toThrow(
+            /No exported lines for locale "constructor"/,
+        );
+    }, 30_000);
+
+    it("builds a client entry whose load rejects an unknown locale", async () => {
+        const file = await writeBuild(await buildFixture(false), "client");
+        const mod = (await import(pathToFileURL(file).href)) as {
+            load: (locale: string) => Promise<Record<string, string>>;
+        };
+
+        expect((await mod.load("es"))["Welcome"]).toBe("Bienvenido");
+        await expect(mod.load("xx")).rejects.toThrow(
+            /No exported lines for locale "xx"/,
+        );
+        await expect(mod.load("__proto__")).rejects.toThrow(
+            /No exported lines for locale "__proto__"/,
+        );
+        await expect(mod.load("constructor")).rejects.toThrow(
+            /No exported lines for locale "constructor"/,
+        );
+    }, 30_000);
 });

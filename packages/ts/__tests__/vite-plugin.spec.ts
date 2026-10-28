@@ -1155,6 +1155,32 @@ describe("laravelTsPublish", () => {
             );
         });
 
+        it.each([
+            ["$&", "'app/$&.php'"],
+            ["$'", "'app/$'\\''.php'"],
+            ["$$", "'app/$$.php'"],
+            ["$`", "'app/$`.php'"],
+        ])(
+            "should substitute %s in the file name literally",
+            async (name, escaped) => {
+                const relative = `app/${name}.php`;
+
+                mockManifestExists([relative]);
+
+                const { plugin } = await setupPlugin();
+
+                await (plugin.handleHotUpdate as HotUpdateHook)({
+                    file: path.resolve(MOCK_ROOT, relative),
+                });
+
+                expect(mockExec).toHaveBeenCalledWith(
+                    `php artisan ts:publish --source=${escaped} --quiet`,
+                    { cwd: MOCK_ROOT },
+                    expect.any(Function),
+                );
+            },
+        );
+
         it("should always run the full command when sourceCommand is false", async () => {
             mockManifestExists();
             const { plugin } = await setupPlugin({

@@ -308,6 +308,24 @@ describe("createExportRunner", () => {
         expect(onSuccess).toHaveBeenCalledTimes(1);
     });
 
+    it("logs the success line only after onSuccess returns", async () => {
+        const { runner, logger, onSuccess } = setup();
+
+        const run = runner.full();
+        await vi.waitFor(() => expect(mockExec).toHaveBeenCalledTimes(1));
+        finish(0);
+        await run;
+
+        const exported = logger.info.mock.calls.findIndex((call) =>
+            String(call[0]).includes("Lang files exported"),
+        );
+
+        expect(exported).toBeGreaterThan(-1);
+        expect(onSuccess.mock.invocationCallOrder[0]).toBeLessThan(
+            logger.info.mock.invocationCallOrder[exported] ?? 0,
+        );
+    });
+
     it("accepts new work after the queue drains", async () => {
         const { runner } = setup();
 
@@ -354,5 +372,9 @@ describe("createExportRunner", () => {
         finish(0);
         await assertion;
         expect(logger.error).not.toHaveBeenCalled();
+        expect(logger.info).not.toHaveBeenCalledWith(
+            expect.stringContaining("Lang files exported"),
+            expect.anything(),
+        );
     });
 });

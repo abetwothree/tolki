@@ -1,23 +1,37 @@
-import { assertLocale } from "../locale-guard";
-
 export const VIRTUAL_MODULE_ID = "virtual:tolki-lang";
 
 export const RESOLVED_VIRTUAL_MODULE_ID = `\0${VIRTUAL_MODULE_ID}`;
 
+const SAFE_LOCALE = /^[\w-]+$/;
+
 /**
- * Check that a locale cannot walk out of the output directory.
+ * Check that a locale is a plain name that cannot walk out of the output directory.
  *
  * @param locale - The manifest locale.
- * @returns Whether it holds no `/`, `\`, `..` or NUL.
+ * @returns Whether it holds only letters, digits, `_` and `-`.
  */
 function isSafeLocale(locale: string): boolean {
-    try {
-        assertLocale(locale);
+    return SAFE_LOCALE.test(locale);
+}
 
-        return true;
-    } catch {
-        return false;
-    }
+/**
+ * Generate the check that refuses a locale the table does not hold.
+ *
+ * @param table - The name of the generated `Map`.
+ * @param locales - The locales the module exports.
+ * @returns The statements to place at the top of `load`.
+ */
+function missingLocaleGuard(table: string, locales: readonly string[]): string {
+    const exported =
+        locales.length === 0
+            ? "No locales were exported."
+            : `Exported: ${locales.join(", ")}.`;
+
+    return [
+        `    if (!${table}.has(locale)) {`,
+        `        throw new Error(\`[@tolki/lang] No exported lines for locale "\${locale}". \` + ${JSON.stringify(exported)});`,
+        "    }",
+    ].join("\n");
 }
 
 /**
@@ -38,39 +52,34 @@ export function virtualModuleCode(
         JSON.stringify(`${outputDir}/${locale}.json`),
     );
     const names = safe.map((locale) => JSON.stringify(locale));
-    const failure = [
-        "    if (!Object.hasOwn(%TABLE%, locale)) {",
-        `        throw new Error(\`[@tolki/lang] No exported lines for locale "\${locale}". Exported: \` + ${JSON.stringify(`${safe.join(", ")}.`)});`,
-        "    }",
-    ].join("\n");
     const header = `export const locales = [${names.join(", ")}];`;
 
     if (ssr) {
         const imports = files.map((file, i) => `import l${i} from ${file};`);
-        const entries = names.map((name, i) => `${name}: l${i}`);
+        const entries = names.map((name, i) => `[${name}, l${i}]`);
 
         return [
             ...imports,
             header,
-            `const lines = { ${entries.join(", ")} };`,
+            `const lines = new Map([${entries.join(", ")}]);`,
             "export function load(locale) {",
-            failure.replace("%TABLE%", "lines"),
-            "    return lines[locale];",
+            missingLocaleGuard("lines", safe),
+            "    return lines.get(locale);",
             "}",
             "",
         ].join("\n");
     }
 
     const loaders = names.map(
-        (name, i) => `${name}: () => import(${files[i]})`,
+        (name, i) => `[${name}, () => import(${files[i]})]`,
     );
 
     return [
         header,
-        `const loaders = { ${loaders.join(", ")} };`,
+        `const loaders = new Map([${loaders.join(", ")}]);`,
         "export async function load(locale) {",
-        failure.replace("%TABLE%", "loaders"),
-        "    const module = await loaders[locale]();",
+        missingLocaleGuard("loaders", safe),
+        "    const module = await loaders.get(locale)();",
         "    return module.default;",
         "}",
         "",

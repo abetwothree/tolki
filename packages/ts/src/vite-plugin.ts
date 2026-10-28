@@ -289,8 +289,8 @@ export function laravelTsPublish(
         const baseCommand = commandOverride ?? command;
         let effectiveCommand =
             sourceFile && resolvedSourceCommand
-                ? resolvedSourceCommand.replaceAll(
-                      "{file}",
+                ? // A function replacer keeps `$&` and friends in the path literal.
+                  resolvedSourceCommand.replaceAll("{file}", () =>
                       escapeShellArg(sourceFile),
                   )
                 : baseCommand;

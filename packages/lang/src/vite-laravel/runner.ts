@@ -108,8 +108,8 @@ export function createExportRunner(options: ExportRunnerOptions): ExportRunner {
             return;
         }
 
-        logger.info(`${LABEL} Lang files exported`, { timestamp: true });
         onSuccess();
+        logger.info(`${LABEL} Lang files exported`, { timestamp: true });
     }
 
     /**
