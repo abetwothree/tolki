@@ -6,12 +6,11 @@
 
 ## Setup with Inertia
 
-Create the lang in `resources/js/app.ts`, read the starting locale from the page's `<html lang>`, and wait for `lang.ready` before you mount, so the first render already has its lines. `htmlLocale(locales)` answers the locale from `<html lang="pt-BR">` in the spelling the exporter wrote, `pt_BR`, and answers `null` when no listed locale matches. The locale never comes from `navigator.language`, so the client always starts in the locale the server rendered.
+Create the lang in `resources/js/app.ts` and wait for `lang.ready` before you mount, so the first render already has its lines. Read the starting locale from the Inertia page prop `props.initialPage.props.locale`, the value the server rendered with, and start in `"en"` when the exporter did not write that locale. The locale never comes from `navigator.language`.
 
 ```ts
 // resources/js/app.ts
 import { createInertiaApp } from "@inertiajs/vue3";
-import { htmlLocale } from "@tolki/lang";
 import { createLang } from "@tolki/lang/vue";
 import { load, locales } from "virtual:tolki-lang";
 import { createSSRApp, h } from "vue";
@@ -19,11 +18,9 @@ import { createSSRApp, h } from "vue";
 createInertiaApp({
   resolve: (name) => import(`./Pages/${name}.vue`),
   async setup({ el, App, props, plugin }) {
-    const lang = createLang({
-      locale: htmlLocale(locales) ?? "en",
-      fallback: "en",
-      load,
-    });
+    const wanted = props.initialPage.props.locale as string;
+    const locale = locales.includes(wanted) ? wanted : "en";
+    const lang = createLang({ locale, fallback: "en", load });
 
     await lang.ready;
 
@@ -35,12 +32,14 @@ createInertiaApp({
 });
 ```
 
+A page without Inertia has no page prop, so read the locale from its `<html lang>` with `htmlLocale(locales) ?? "en"`. `htmlLocale` from `@tolki/lang` matches `<html lang="pt-BR">` to the spelling the exporter wrote, `pt_BR`, and answers `null` when no listed locale matches.
+
 `createLang` from `@tolki/lang/vue` takes the same options as the core [`createLang`](./index.md#loading-locales-on-demand): the locale, a fallback, `lines` you already have, and `load`. What it returns is the lang itself and a Vue plugin, so `app.use(lang)` installs it and `lang.setLocale()` works anywhere. [The Vite plugin](./vite.md) supplies `load` and `locales`.
 
-Have Laravel put the locale in the `<html>` tag and share it with Inertia. If a locale in `<html lang>` is not one the exporter wrote, `htmlLocale` answers `null` and the `?? "en"` takes over.
+Share the locale with Inertia, and have Laravel put it in the `<html>` tag as well. If the shared locale is not one the exporter wrote, the guard starts the lang in `"en"`.
 
 ```blade
-// resources/views/app.blade.php
+{{-- resources/views/app.blade.php --}}
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 ```
 
@@ -57,7 +56,7 @@ public function share(Request $request): array
 
 ### Server-side rendering
 
-On the server, build one `createLang()` for each request, inside `setup`, and read the locale from `page.props.locale`. The module the Vite plugin serves to the server build loads every locale up front, so the lang has its lines at once and there is nothing to await.
+On the server, build one `createLang()` for each request, inside `setup`, and read the locale from `page.props.locale` with the same guard. The module the Vite plugin serves to the server build loads every locale up front, so the lang has its lines at once and there is nothing to await.
 
 ```ts
 // resources/js/ssr.ts
@@ -65,7 +64,7 @@ import { createInertiaApp } from "@inertiajs/vue3";
 import createServer from "@inertiajs/vue3/server";
 import { createLang } from "@tolki/lang/vue";
 import { renderToString } from "@vue/server-renderer";
-import { load } from "virtual:tolki-lang";
+import { load, locales } from "virtual:tolki-lang";
 import { createSSRApp, h } from "vue";
 
 createServer((page) =>
@@ -74,15 +73,12 @@ createServer((page) =>
     render: renderToString,
     resolve: (name) => import(`./Pages/${name}.vue`),
     setup({ App, props, plugin }) {
+      const wanted = page.props.locale as string;
+      const locale = locales.includes(wanted) ? wanted : "en";
+
       return createSSRApp({ render: () => h(App, props) })
         .use(plugin)
-        .use(
-          createLang({
-            locale: page.props.locale as string,
-            fallback: "en",
-            load,
-          }),
-        );
+        .use(createLang({ locale, fallback: "en", load }));
     },
   }),
 );
@@ -92,7 +88,7 @@ createServer((page) =>
 **Warning:** Never create the lang at module level on a server. The plugin subscribes once to each app it installs into, and it stops listening only when the app unmounts. A server-rendered app is never unmounted, so a `Lang` shared across requests would add a listener on every request and never remove it. It would also share one locale between requests that run at the same time. A `createLang()` inside `setup` has neither problem.
 :::
 
-The client has to start in the locale the server rendered, or hydration reports a mismatch. That is why `app.ts` reads `<html lang>`, which Laravel set from the same `app()->getLocale()` that the server rendered with.
+The client has to start in the locale the server rendered, or hydration reports a mismatch. Both sides read the same prop and apply the same guard because the server and the client must start in the same locale: on the server, `load` throws for a locale the exporter did not write, and the guard starts that request in `"en"` instead.
 
 ## In templates
 
@@ -161,9 +157,11 @@ An Inertia visit can change the locale, such as a language link that sets a cook
 
 ```ts
 import { router } from "@inertiajs/vue3";
+import { locales } from "virtual:tolki-lang";
 
 router.on("navigate", async (event) => {
-  const locale = event.detail.page.props.locale as string;
+  const wanted = event.detail.page.props.locale as string;
+  const locale = locales.includes(wanted) ? wanted : "en";
 
   if (!lang.isLocale(locale)) {
     await lang.setLocale(locale);
@@ -171,7 +169,7 @@ router.on("navigate", async (event) => {
 });
 ```
 
-Register it in `app.ts`, right after you create `lang`. A client app without server-side rendering uses `createApp` where the example uses `createSSRApp`. `setLocale` does not change `<html lang>`, so set `document.documentElement.lang` in the same handler if the page needs it.
+The guard is the one `setup` uses, so a visit to a locale the exporter did not write switches to `"en"` rather than leaving `setLocale` to reject. Register it in `app.ts`, right after you create `lang`. A client app without server-side rendering uses `createApp` where the example uses `createSSRApp`. `setLocale` does not change `<html lang>`, so set `document.documentElement.lang` in the same handler if the page needs it.
 
 ## Next
 

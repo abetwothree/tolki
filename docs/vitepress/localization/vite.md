@@ -87,7 +87,7 @@ Pass a flag here, rather than in `command`, so the one-file export gets the same
 
 ## Dev and build
 
-In `vite build`, the plugin runs one full export before bundling. A failed export fails the build.
+In `vite build`, the plugin runs one full export before bundling. A failed export fails the build. Because the build runs the export, it needs PHP and the app's `vendor/` directory. A build stage that has only Node, such as a Docker stage, needs `runOnBuildStart: false` and the locale files committed or copied in.
 
 In `vite dev`, the plugin runs one full export when the server starts, then watches the directories the manifest lists under `watch`. It reads the list again whenever `manifest.json` changes.
 
@@ -132,7 +132,7 @@ const lang = createLang({ locale: "en", fallback: "en", load });
 await lang.ready;
 ```
 
-For the browser, `load` imports the locale's file with `import()`, so each locale becomes its own content-hashed chunk, and a visitor downloads only the locales they use. For the server build, the module imports every locale up front, so `load` answers at once and `createLang` needs no `await`. A locale the manifest does not list throws an `Error` that names the locales that were exported. A manifest locale that holds `/`, `\`, `..` or a NUL byte is left out.
+For the browser, `load` imports the locale's file with `import()`, so each locale becomes its own content-hashed chunk, and a visitor downloads only the locales they use. For the server build, the module imports every locale up front, so `load` answers at once and `createLang` needs no `await`. A locale the manifest does not list throws an `Error` that names the locales that were exported. A manifest locale that holds anything but ASCII letters, digits, `_` and `-` is left out, a dot included.
 
 When the manifest is missing or unreadable, the plugin warns and `locales` is empty.
 
