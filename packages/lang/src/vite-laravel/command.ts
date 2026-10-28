@@ -1,4 +1,8 @@
-import { escapeShellArg, escapeWindowsShellArg } from "@tolki/utils";
+import {
+    escapeShellArg,
+    escapeWindowsShellArg,
+    isUndefined,
+} from "@tolki/utils";
 
 export interface ExportFlags {
     /** The directory the exporter writes to, relative to the Laravel base path. */
@@ -40,7 +44,7 @@ function withFlags(
 ): string {
     let result = command;
 
-    if (flags.output !== undefined) {
+    if (!isUndefined(flags.output)) {
         result += ` --output=${shellArg(flags.output)}`;
     }
 

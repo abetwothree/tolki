@@ -185,6 +185,7 @@ let mergeImplementation: (
  * @param translator - The translator to add to
  * @param locale - The locale the lines belong to
  * @param lines - The locale's lines, such as a lang JSON file holds them
+ * @internal
  */
 export function mergeLocaleLines<TLines extends LangLines>(
     translator: Translator<TLines>,

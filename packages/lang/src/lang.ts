@@ -4,7 +4,13 @@ import type {
     LocaleLines,
     LocaleModule,
 } from "@tolki/types";
-import { isFunction, isObject, isPlainObject, isUndefined } from "@tolki/utils";
+import {
+    isFunction,
+    isNull,
+    isObject,
+    isPlainObject,
+    isUndefined,
+} from "@tolki/utils";
 
 import { createHelpers } from "./helpers";
 import { assertLocale } from "./locale-guard";
@@ -76,7 +82,7 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
 ): Lang<TLines> {
     assertLocale(options.locale);
 
-    if (!isUndefined(options.fallback) && options.fallback !== null) {
+    if (!isUndefined(options.fallback) && !isNull(options.fallback)) {
         assertLocale(options.fallback);
     }
 
@@ -188,7 +194,7 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
     async function announce(pending: (Promise<void> | null)[]): Promise<void> {
         await Promise.all(pending);
 
-        if (pending.some((entry) => entry !== null)) {
+        if (pending.some((entry) => !isNull(entry))) {
             changed();
         }
     }
@@ -262,7 +268,7 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
             changed();
         },
         setFallback: async (fallback) => {
-            if (fallback !== null) {
+            if (!isNull(fallback)) {
                 assertLocale(fallback);
             }
 
@@ -270,7 +276,7 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
 
             const token = latestFallback;
 
-            if (fallback !== null) {
+            if (!isNull(fallback)) {
                 await request(fallback);
             }
 
