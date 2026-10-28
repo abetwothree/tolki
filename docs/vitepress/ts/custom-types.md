@@ -35,29 +35,7 @@ abstract class Node implements Arrayable
 final class Panel extends Node {}
 ```
 
-A page renders panels three ways:
-
-```php
-return Inertia::render('Ui/Dashboard', [
-    'widgets' => [new Panel, new Panel],
-    'maybe' => $request->boolean('maybe') ? new Panel : null,
-    'coll' => collect([new Panel, new Panel]),
-]);
-```
-
-Each one publishes `UiNode`, and the file imports it:
-
-```typescript
-import type { UiNode } from "@js/types/ui";
-
-export type IndexPageProps = Inertia.SharedData & {
-  widgets: UiNode[];
-  maybe: UiNode | null;
-  coll: UiNode[];
-};
-```
-
-The type replaces whatever the package would infer for the class, from `toArray()`, `jsonSerialize()`, `__toString()` or its public properties. A [`#[TsCasts]`](./models.md#tscasts) entry for one key still wins over it. The type is also a promise about what Laravel sends for the class, and the package can't check that promise. See [Keeping the Type True](#keeping-the-type-true).
+Every `Panel` value then publishes `UiNode` and imports it, as the [page props example](#inertia-page-props-and-shared-data) shows. The type replaces whatever the package would infer for the class, from `toArray()`, `jsonSerialize()`, `__toString()` or its public properties. A [`#[TsCasts]`](./models.md#tscasts) entry for one key still wins over it. The type is also a promise about what Laravel sends for the class, and the package can't check that promise. See [Keeping the Type True](#keeping-the-type-true).
 
 ## Where a Type Is Inherited From
 
@@ -68,9 +46,6 @@ A class takes the `#[TsType]` of each trait it uses, each interface it implement
 | `Panel extends Node`       | None                | `UiNode`, from `Node`     |
 | `Badge implements HasIcon` | None                | `UiIcon`, from `HasIcon`  |
 | `Pennies extends Amount`   | None                | `UiAmount`, from `Amount` |
-| `Gauge extends Node`       | `UiGauge`, alone    | `UiGauge`                 |
-
-`Gauge` stands alone with [`inherit: false`](#standing-alone-with-inherit-false).
 
 ## Composed Types
 
@@ -92,7 +67,7 @@ final class Chart extends Node implements HasIcon
 }
 ```
 
-The package names the interface after the class, with a `Type` suffix. The interface gets a file of its own, which follows the class's namespace as a model's file does, so `App\Packages\Ui\Chart` writes `app/packages/ui/chart.ts`:
+The package names the interface `{Basename}Type`, after the class. The interface gets a file of its own, which follows the class's namespace as a model's file does, so `App\Packages\Ui\Chart` writes `app/packages/ui/chart.ts`:
 
 ```typescript
 import type { UiHello, UiIcon, UiNode } from "@js/types/ui";
@@ -109,13 +84,7 @@ A class's own `#[TsType]` joins the ones it inherits:
 final class Dial extends Node {}
 ```
 
-`Dial` publishes `DialType`:
-
-```typescript
-import type { UiDial, UiNode } from "@js/types/ui";
-
-export interface DialType extends UiDial, UiNode {}
-```
+`Dial` publishes `DialType`, which extends `UiDial` and then `UiNode`.
 
 The `extends` list starts with the nearest type: the class's own, then its traits', then its interfaces', and then its parent class's, which follows the same order.
 
@@ -131,11 +100,11 @@ Pass `inherit: false` to publish a class's own type without the ones it would in
 final class Gauge extends Node {}
 ```
 
-A `Gauge` value publishes `UiGauge`, and the package writes no `GaugeType`. On a parent class, a trait or an interface, `inherit: false` passes on only that one's own type, without the ones it inherits.
+A `Gauge` value publishes `UiGauge`, and the package writes no `GaugeType`. On a parent class, a trait or an interface, `inherit: false` passes on only its own type, without the ones it inherits.
 
 ### Types That Can't Be Extended
 
-An interface can extend only a named type, such as `UiNode`, `Acme.Ui.Node` or `Paginated<Chart>`. A keyword type such as `string`, a union, an array, a literal and a `Record<…>` can't join a composed type. When one of a class's types can't, the nearest type wins, and `ts:publish` warns which ones it left out:
+An interface can extend only a named type, such as `UiNode`, `Acme.Ui.Node` or `Paginated<Chart>`. A keyword type such as `string`, a union, an array, a literal and a `Record<…>` can't join a composed type. When one of a class's types can't, the nearest type wins, and `ts:publish` names the types it left out in a warning:
 
 ```php
 #[TsType('string')]
@@ -156,7 +125,7 @@ The package reads only the name of each type, not what it holds. The composed in
 
 ## Lists and Nullable Values
 
-A value keeps its shape around the type:
+Lists, nullable values and optional keys keep their form:
 
 - A list of the class publishes a list of the type. That covers an array literal, `collect([...])`, a `list<Chart>` docblock and an `AsCollection::of(Chart::class)` cast, so `[new Panel, new Panel]` publishes `UiNode[]`.
 - A value that can be `null` keeps its `| null`, as in `?Dial`, a nullable column, or a ternary with a `null` arm. A type that already includes `null`, such as `'UiNode | null'`, doesn't get a second one.
@@ -168,10 +137,13 @@ The examples below are from one app. Each output shows the keys that its PHP sho
 
 ### Inertia Page Props and Shared Data
 
-A page prop publishes the type of each class value, including the value a deferred or optional prop's closure declares:
+A page prop publishes the type of each class value, in a list, behind a ternary, and in the value a deferred or optional prop's closure declares:
 
 ```php
 return Inertia::render('Ui/Dashboard', [
+    'widgets' => [new Panel, new Panel],
+    'maybe' => $request->boolean('maybe') ? new Panel : null,
+    'coll' => collect([new Panel, new Panel]),
     'composed' => new Chart,
     'gauge' => new Gauge,
     'pennies' => new Pennies(5),
@@ -180,13 +152,16 @@ return Inertia::render('Ui/Dashboard', [
 ]);
 ```
 
-The page-props type imports `ChartType` from its module:
+The page-props type imports `ChartType` from `Chart`'s module:
 
 ```typescript
-import type { UiAmount, UiGauge } from "@js/types/ui";
+import type { UiAmount, UiGauge, UiNode } from "@js/types/ui";
 import type { ChartType } from "../../packages/ui";
 
 export type IndexPageProps = Inertia.SharedData & {
+  widgets: UiNode[];
+  maybe: UiNode | null;
+  coll: UiNode[];
   composed: ChartType;
   gauge: UiGauge;
   pennies: UiAmount;
@@ -244,7 +219,7 @@ export interface UiPanelResource {
 }
 ```
 
-Laravel writes these values with `json_encode()`, not `toArray()`, so `Node` needs a `jsonSerialize()` to send its `toArray()` shape here. See [Keeping the Type True](#keeping-the-type-true).
+Laravel writes these values with `json_encode()`, not `toArray()`, so `Node` must implement `JsonSerializable`, returning `$this->toArray()`, to send the same shape here. See [Keeping the Type True](#keeping-the-type-true).
 
 ### Model Attributes and Casts
 
@@ -289,16 +264,7 @@ A custom cast class takes `#[TsType]` the same way, so every column that uses th
 #[TsType(['type' => 'MenuSettingsType', 'import' => '@js/types/settings'])]
 class MenuSettings implements CastsAttributes
 {
-    public function get(
-        Model $model,
-        string $key,
-        mixed $value,
-        array $attributes,
-    ): ?array {
-        // ...
-    }
-
-    // ...
+    // get() and set() ...
 }
 
 class Profile extends Model
@@ -329,10 +295,6 @@ final class Board
     public function __construct(
         public Panel $panel = new Panel,
         public Chart $chart = new Chart,
-        public ?Gauge $gauge = null,
-        public Pennies $total = new Pennies,
-        /** @var list<Chart> */
-        public array $charts = [],
     ) {}
 }
 
@@ -359,7 +321,7 @@ final class UiBoardUpdated implements ShouldBroadcast
 `board` keeps each member's type:
 
 ```typescript
-import type { UiAmount, UiGauge, UiIcon, UiNode } from "@js/types/ui";
+import type { UiAmount, UiIcon, UiNode } from "@js/types/ui";
 import type { ChartType } from "../packages/ui";
 
 export interface UiBoardUpdated {
@@ -369,15 +331,11 @@ export interface UiBoardUpdated {
   maybe: UiNode | null;
   chart: ChartType;
   charts: ChartType[];
-  board: {
-    panel: UiNode;
-    chart: ChartType;
-    gauge: UiGauge | null;
-    total: UiAmount;
-    charts: ChartType[];
-  };
+  board: { panel: UiNode; chart: ChartType };
 }
 ```
+
+Laravel writes the values inside `charts` and `board` with `json_encode()`. See [Keeping the Type True](#keeping-the-type-true).
 
 ## Enums
 
@@ -392,16 +350,7 @@ enum UiTone: string
 }
 ```
 
-A value that is the enum itself publishes your type: a case, a property or return type declared as the enum, and an attribute cast to it. The enum's own file, `->value`, `->name` and `EnumResource` keep the enum's names:
-
-```php
-return [
-    'tone' => UiTone::Bright,
-    'tone_resource' => EnumResource::make(UiTone::Bright),
-];
-```
-
-In `UiPanelResource`, these two keys publish:
+A value that is the enum itself publishes your type: a case, a property or return type declared as the enum, and an attribute cast to it. The enum's own file, `->value`, `->name` and `EnumResource` keep the enum's names. In `UiPanelResource`, `'tone' => UiTone::Bright` and `'tone_resource' => EnumResource::make(UiTone::Bright)` publish:
 
 ```typescript
 import { type AsEnum } from "@tolki/ts";
@@ -415,7 +364,7 @@ export interface UiPanelResource {
 }
 ```
 
-Don't name the type after the enum's own alias, such as `UiToneType` for `UiTone`. A case can then publish the enum's alias instead of yours.
+Don't name the type after the enum's type alias (`UiToneType`). A case can then publish the enum's alias instead of yours.
 
 ## Models, Resources, and Other Published Classes
 
@@ -425,32 +374,27 @@ A model, an API resource, a broadcast event, a form request, an enum and a contr
 
 The package publishes your type as written, so make sure the class sends that shape. Laravel sends an `Arrayable` class in one of two ways:
 
-- Inertia calls `toArray()` on each prop, and on each value inside an array prop. A broadcast event calls it on each public property.
-- Laravel writes every other value with `json_encode()`. That covers a value in an API resource's `toArray()` array, in an event's `broadcastWith()` array, and in an array or a value object that an event property holds. `json_encode()` ignores `toArray()` and sends the class's public properties.
+- Laravel calls `toArray()` on an Inertia prop and on each value inside an array prop, on a broadcast event's public property, and on a model attribute, including each item of a collection attribute.
+- Laravel writes every other value with `json_encode()`: a value in an API resource's `toArray()` array or an event's `broadcastWith()` array, a value inside an array an event property holds, and a value inside a value object. `json_encode()` ignores `toArray()` and sends the class's public properties.
 
 So an `Arrayable` class that isn't `JsonSerializable` can send two different shapes. Implement `JsonSerializable` and return `$this->toArray()` from `jsonSerialize()` to send one shape everywhere, or return an API resource for the value instead.
 
 ## Configuration
 
-The package writes a composed type's module whenever a published value reaches the class, so most apps need no config. The `class_types` section controls which classes compose:
+The package writes a composed type's module whenever a published file uses a value of the class, so most apps need no config. The `class_types` section controls which classes compose:
 
 ```php
 // config/ts-publish.php
 'class_types' => [
     'enabled' => true,
-    // Write a module for each composed class in these directories
     'additional_directories' => ['app/Packages/Ui'],
-    // Only these classes compose (empty = all)
     'included' => [],
-    // These classes never compose
     'excluded' => [],
 ],
 ```
 
-Each setting works this way:
-
 - **`enabled`**: set it to `false` to stop composing. Each value then publishes its class's nearest type.
-- **`additional_directories`**: the package writes a module for each composed class in these directories, even when no value uses it yet. It scans no directory by default. The [Vite plugin](./vite-plugin.md) watches these classes and the classes, traits and interfaces they take types from. It doesn't watch a composed class that only a published value reaches.
+- **`additional_directories`**: the package writes a module for each composed class in these directories, even when no value uses it yet. It scans no directory by default. The [Vite plugin](./vite-plugin.md) watches these classes and the classes, traits and interfaces they take types from. It doesn't watch a composed class outside these directories.
 - **`included` and `excluded`**: each list takes class names or directory paths. A class they leave out, or one with [`#[TsExclude]`](./excluding-content.md), doesn't compose, and its values publish its nearest type with no warning.
 
 `php artisan ts:publish --only-class-types` writes only the modules. `--source` with a composed class republishes its module. After you add a composed class, run a full `ts:publish`, because a run that skips class types can write a file that imports a module no run has written yet.

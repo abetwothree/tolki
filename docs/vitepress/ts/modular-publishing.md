@@ -1,6 +1,6 @@
 # Modular Publishing
 
-The package writes every TypeScript file into a directory tree that mirrors your PHP namespaces. There's no flat-output mode, and no setting to turn this off. Modular and domain-driven apps, such as those built with [InterNACHI/modular](https://github.com/InterNACHI/modular), keep each module's types together, and a single-namespace app gets one `app/` tree. Models, enums, resources, form requests, broadcast events, and routes all follow the same rule.
+The package writes every TypeScript file into a directory tree that mirrors your PHP namespaces. There's no flat-output mode, and no setting to turn this off. Modular and domain-driven apps, such as those built with [InterNACHI/modular](https://github.com/InterNACHI/modular), keep each module's types together, and a single-namespace app gets one `app/` tree. Models, enums, resources, form requests, broadcast events, routes, and [composed types](./custom-types.md#composed-types) all follow the same rule.
 
 ## Output Structure
 
@@ -178,7 +178,7 @@ import type { Invoice } from "@data/accounting/models";
 import type { InvoiceStatusType } from "@data/accounting/enums";
 ```
 
-Models, enums, resources, form requests, broadcast events, and routes each write their own barrels. A route barrel re-exports each controller's default export by name, such as `export { default as PostController } from './post-controller';`, rather than using `export *`. That keeps two controllers with a method of the same name from clashing.
+Models, enums, resources, form requests, broadcast events, and routes each write their own barrels, and composed types add their modules to their namespace's barrel. A route barrel re-exports each controller's default export by name, such as `export { default as PostController } from './post-controller';`, rather than using `export *`. That keeps two controllers with a method of the same name from clashing.
 
 ::: tip Checking Barrel Output
 `ts:publish --preview=true` prints each barrel's contents under its own label, such as `Model Barrel Files:` or `Enum Barrel Files:`, next to the per-class files. A verbose run, `ts:publish -v`, lists each barrel file's path in its Extras table.

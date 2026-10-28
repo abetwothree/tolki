@@ -237,7 +237,7 @@ TypeScript sees these types only when your `tsconfig.json` includes the file.
 
 ### JSON Definitions File
 
-When `json.enabled` is `true`, the package also writes `laravel-ts-definitions.json`. It describes every published model, enum, resource, form request, and broadcast event as data, such as properties, cases, and methods, instead of TypeScript source:
+When `json.enabled` is `true`, the package also writes `laravel-ts-definitions.json`. It describes every published model, enum, resource, form request, broadcast event, and [composed type](./custom-types.md#composed-types) as data, such as properties, cases, and methods, instead of TypeScript source:
 
 ```php
 // config/ts-publish.php
@@ -248,7 +248,7 @@ When `json.enabled` is `true`, the package also writes `laravel-ts-definitions.j
 ],
 ```
 
-The file has one top-level object per feature: `models`, `enums`, `resources`, `formRequests`, and `broadcastEvents`. Each object is keyed by fully-qualified class name, and each entry has a `name` field that holds the short class name:
+The file has one top-level object per feature: `models`, `enums`, `resources`, `formRequests`, `broadcastEvents`, and `classTypes`. Each object is keyed by fully-qualified class name, and each entry has a `name` field that holds the short class name. A `classTypes` entry's `name` holds the composed type's name instead, such as `ChartType`, and its `extends` field lists the types that interface extends:
 
 ```json
 {
