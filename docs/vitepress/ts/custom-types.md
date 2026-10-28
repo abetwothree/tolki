@@ -394,7 +394,7 @@ The package writes a composed type's module whenever a published file uses a val
 ```
 
 - **`enabled`**: set it to `false` to stop composing. Each value then publishes its class's nearest type.
-- **`additional_directories`**: the package writes a module for each composed class in these directories, even when no value uses it yet. It scans no directory by default. The [Vite plugin](./vite-plugin.md) watches these classes and the classes, traits and interfaces they take types from. It doesn't watch a composed class outside these directories.
+- **`additional_directories`**: the package writes a module for each composed class in these directories, even when no value uses it yet. It scans no directory by default. The [Vite plugin](./vite-plugin.md) watches these classes and the classes, traits and interfaces they take types from. It doesn't watch a composed class that only a published file uses.
 - **`included` and `excluded`**: each list takes class names or directory paths. A class they leave out, or one with [`#[TsExclude]`](./excluding-content.md), doesn't compose, and its values publish its nearest type with no warning.
 
 `php artisan ts:publish --only-class-types` writes only the modules. `--source` with a composed class republishes its module. After you add a composed class, run a full `ts:publish`, because a run that skips class types can write a file that imports a module no run has written yet.
