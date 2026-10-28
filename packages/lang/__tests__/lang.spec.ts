@@ -407,6 +407,36 @@ describe("load", () => {
         expect(lang.isLoaded("es")).toBe(false);
     });
 
+    it("rejects a locale holding a path character without loading", async () => {
+        const load = vi.fn(syncLoad);
+        const lang = createLang({
+            locale: "en",
+            lines: { en: LINES.en },
+            load,
+        });
+
+        await expect(lang.load("../x")).rejects.toThrow(
+            InvalidArgumentException,
+        );
+        expect(load).not.toHaveBeenCalled();
+    });
+
+    it("leaves the version alone for a locale already loaded", async () => {
+        const lang = createLang({
+            locale: "en",
+            lines: { en: LINES.en },
+            load: syncLoad,
+        });
+        const listener = vi.fn();
+        const before = lang.getVersion();
+
+        lang.subscribe(listener);
+        await lang.load("en");
+
+        expect(lang.getVersion()).toBe(before);
+        expect(listener).not.toHaveBeenCalled();
+    });
+
     it("lets lines loaded for a locale reach the version", async () => {
         const lang = createLang({
             locale: "en",

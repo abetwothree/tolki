@@ -193,9 +193,15 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
             };
         },
         load: async (locale) => {
+            assertLocale(locale);
+
+            const wasLoaded = loaded.has(locale);
+
             await request(locale);
 
-            changed();
+            if (!wasLoaded && loaded.has(locale)) {
+                changed();
+            }
         },
         setLocale: async (locale) => {
             assertLocale(locale);
