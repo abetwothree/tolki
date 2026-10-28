@@ -12,6 +12,7 @@ interface PackageExportTarget {
 
 interface LangPackageManifest {
     exports: Record<string, string>;
+    peerDependencies: Record<string, string>;
     peerDependenciesMeta: {
         vue?: { optional?: boolean };
         react?: { optional?: boolean };
@@ -91,5 +92,15 @@ describe("package exports", () => {
         const manifest = readPackageManifest();
 
         expect(manifest.peerDependenciesMeta.svelte?.optional).toBe(true);
+    });
+
+    it("pins the range of every peer", () => {
+        const manifest = readPackageManifest();
+
+        expect(manifest.peerDependencies).toEqual({
+            react: "^19.0.0",
+            svelte: "^5.7.0",
+            vue: "^3.5.0",
+        });
     });
 });

@@ -49,6 +49,7 @@
     },
     "peerDependencies": {
         "react": "^19.0.0",
+        "svelte": "^5.7.0",
         "vue": "^3.5.0"
     },
     "peerDependenciesMeta": {
