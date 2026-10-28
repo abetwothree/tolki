@@ -1,4 +1,4 @@
-import { escapeShellArg } from "@tolki/utils";
+import { escapeShellArg, escapeWindowsShellArg } from "@tolki/utils";
 
 export interface ExportFlags {
     /** The directory the exporter writes to, relative to the Laravel base path. */
@@ -9,6 +9,18 @@ export interface ExportFlags {
     readonly only?: readonly string[];
     /** Group patterns to leave out. */
     readonly except?: readonly string[];
+}
+
+/**
+ * Quote a value for the shell `exec` runs: cmd.exe on Windows, where single quotes are literal, else a POSIX shell.
+ *
+ * @param value - The raw value.
+ * @returns The value quoted for the current platform's shell.
+ */
+function shellArg(value: string): string {
+    return process.platform === "win32"
+        ? escapeWindowsShellArg(value)
+        : escapeShellArg(value);
 }
 
 /**
@@ -29,19 +41,19 @@ function withFlags(
     let result = command;
 
     if (flags.output !== undefined) {
-        result += ` --output=${escapeShellArg(flags.output)}`;
+        result += ` --output=${shellArg(flags.output)}`;
     }
 
     for (const locale of flags.locales ?? []) {
-        result += ` --locale=${escapeShellArg(locale)}`;
+        result += ` --locale=${shellArg(locale)}`;
     }
 
     for (const pattern of flags.only ?? []) {
-        result += ` --only=${escapeShellArg(pattern)}`;
+        result += ` --only=${shellArg(pattern)}`;
     }
 
     for (const pattern of flags.except ?? []) {
-        result += ` --except=${escapeShellArg(pattern)}`;
+        result += ` --except=${shellArg(pattern)}`;
     }
 
     if (quiet && !base.includes("--quiet")) {
@@ -84,7 +96,7 @@ export function sourceExportCommand(
 ): string {
     // A function replacer keeps `$&` and friends in the path literal; the template decides --quiet.
     return withFlags(
-        template.replaceAll("{file}", () => escapeShellArg(file)),
+        template.replaceAll("{file}", () => shellArg(file)),
         template,
         flags,
         quiet,

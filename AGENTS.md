@@ -206,7 +206,8 @@ When using generics in parameter types, make sure to use the correct syntax for 
   - `defineKey(target, key, value)` - defines an own enumerable key without going through a setter
   - `looseEqual(value1, value2)` - checks if two values are loosely equal the way that PHP does it with `==`
   - `entriesKeyValue(variable)` - converts a key of an array or object to number if it should be a number, otherwise, returns the key as is. This is useful when iterating over arrays or objects and getting the keys from `Object.entries()` or similar methods.
-  - `escapeShellArg(value)` - wraps a value in POSIX single quotes so it is safe inside a shell command; every value interpolated into a command goes through it
+  - `escapeShellArg(value)` - makes a value safe inside a POSIX shell command, single-quoting it only when it holds a character the shell would read; every value interpolated into a command goes through it, or through `escapeWindowsShellArg` on Windows
+  - `escapeWindowsShellArg(value)` - makes a value safe inside a cmd.exe command, the shell Node's `exec` runs on Windows, double-quoting it by the MSVCRT argv rules only when needed; `%` cannot be escaped there
 - Where a Laravel method follows a PHP rule, use the `@tolki/utils` helper that ports the rule rather than deriving it again:
   - `phpComputedKey(value, options)` - casts a key a method computed the way Laravel stores it (`true` becomes `1`, a float truncates), reading an `@tolki/enum` case or a `Stringable` object first when the options ask, and throwing PHP's `TypeError` for any other object
   - `arrayKeyExistsError()` - builds the `TypeError` Laravel's `array_key_exists` calls throw for a key `isIllegalOffset` flags

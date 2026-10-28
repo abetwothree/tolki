@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
-import { escapeShellArg } from "@tolki/utils";
+import { escapeShellArg, escapeWindowsShellArg } from "@tolki/utils";
 import {
     normalizePath,
     type Plugin,
@@ -116,6 +116,18 @@ export interface LaravelTsPublishOptions {
      * @default true
      */
     quiet?: boolean;
+}
+
+/**
+ * Quote a value for the shell `exec` runs: cmd.exe on Windows, where single quotes are literal, else a POSIX shell.
+ *
+ * @param value - The raw value.
+ * @returns The value quoted for the current platform's shell.
+ */
+function shellArg(value: string): string {
+    return process.platform === "win32"
+        ? escapeWindowsShellArg(value)
+        : escapeShellArg(value);
 }
 
 /**
@@ -296,7 +308,7 @@ export function laravelTsPublish(
             sourceFile && resolvedSourceCommand
                 ? // A function replacer keeps `$&` and friends in the path literal.
                   resolvedSourceCommand.replaceAll("{file}", () =>
-                      escapeShellArg(sourceFile),
+                      shellArg(sourceFile),
                   )
                 : baseCommand;
 

@@ -163,6 +163,20 @@ function mockManifestMissing() {
     mockReadFile.mockRejectedValue(createEnoentError());
 }
 
+const platform = Object.getOwnPropertyDescriptor(
+    process,
+    "platform",
+) as PropertyDescriptor;
+
+/**
+ * Make the code under test see another platform.
+ *
+ * @param value - The platform `process.platform` reports.
+ */
+function stubPlatform(value: NodeJS.Platform): void {
+    Object.defineProperty(process, "platform", { ...platform, value });
+}
+
 describe("laravelTsPublish", () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -185,6 +199,7 @@ describe("laravelTsPublish", () => {
 
     afterEach(() => {
         vi.clearAllMocks();
+        Object.defineProperty(process, "platform", platform);
     });
 
     describe("plugin metadata", () => {
@@ -1163,6 +1178,8 @@ describe("laravelTsPublish", () => {
         ])(
             "should substitute %s in the file name literally",
             async (name, escaped) => {
+                stubPlatform("linux");
+
                 const relative = `app/${name}.php`;
 
                 mockManifestExists([relative]);
@@ -1252,6 +1269,8 @@ describe("laravelTsPublish", () => {
         });
 
         it("should shell-escape file paths with unsafe characters", async () => {
+            stubPlatform("linux");
+
             const unsafeFile = "app/Models/My Model's File.php";
             mockReadFile.mockResolvedValue(JSON.stringify([unsafeFile]));
             const { plugin } = await setupPlugin();
@@ -1265,6 +1284,24 @@ describe("laravelTsPublish", () => {
 
             expect(mockExec).toHaveBeenCalledWith(
                 "php artisan ts:publish --source='app/Models/My Model'\\''s File.php' --quiet",
+                { cwd: MOCK_ROOT },
+                expect.any(Function),
+            );
+        });
+
+        it("should double-quote a file path with a space on Windows", async () => {
+            stubPlatform("win32");
+
+            const spacedFile = "app/Models/My Model.php";
+            mockReadFile.mockResolvedValue(JSON.stringify([spacedFile]));
+            const { plugin } = await setupPlugin();
+
+            await (plugin.handleHotUpdate as HotUpdateHook)({
+                file: mockNormalizePath(path.resolve(MOCK_ROOT, spacedFile)),
+            });
+
+            expect(mockExec).toHaveBeenCalledWith(
+                'php artisan ts:publish --source="app/Models/My Model.php" --quiet',
                 { cwd: MOCK_ROOT },
                 expect.any(Function),
             );

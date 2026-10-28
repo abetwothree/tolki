@@ -3,7 +3,29 @@ import {
     exportCommand,
     sourceExportCommand,
 } from "@tolki/lang/vite-laravel/command";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+const platform = Object.getOwnPropertyDescriptor(
+    process,
+    "platform",
+) as PropertyDescriptor;
+
+/**
+ * Make the code under test see another platform.
+ *
+ * @param value - The platform `process.platform` reports.
+ */
+function stubPlatform(value: NodeJS.Platform): void {
+    Object.defineProperty(process, "platform", { ...platform, value });
+}
+
+beforeEach(() => {
+    stubPlatform("linux");
+});
+
+afterEach(() => {
+    Object.defineProperty(process, "platform", platform);
+});
 
 describe("exportCommand", () => {
     it("appends --quiet when quiet is set", () => {
@@ -40,6 +62,28 @@ describe("exportCommand", () => {
             "php artisan lang:export --output='my out' --locale=en --only='a b' --except='x'\\''y' --quiet",
         );
     });
+
+    it("single-quotes a pattern on POSIX", () => {
+        expect(
+            exportCommand(
+                "php artisan lang:export",
+                { only: ["admin/*"] },
+                false,
+            ),
+        ).toBe("php artisan lang:export --only='admin/*'");
+    });
+
+    it("double-quotes a pattern on Windows, where cmd.exe keeps single quotes", () => {
+        stubPlatform("win32");
+
+        expect(
+            exportCommand(
+                "php artisan lang:export",
+                { only: ["admin/*"], except: ["x y"] },
+                false,
+            ),
+        ).toBe('php artisan lang:export --only="admin/*" --except="x y"');
+    });
 });
 
 describe("sourceExportCommand", () => {
@@ -54,6 +98,19 @@ describe("sourceExportCommand", () => {
         ).toBe(
             "php artisan lang:export --source='lang/en/my auth.php' --locale=en --quiet",
         );
+    });
+
+    it("double-quotes a file with a space on Windows", () => {
+        stubPlatform("win32");
+
+        expect(
+            sourceExportCommand(
+                "php artisan lang:export --source={file}",
+                "lang/en/my auth.php",
+                {},
+                false,
+            ),
+        ).toBe('php artisan lang:export --source="lang/en/my auth.php"');
     });
 
     it.each([

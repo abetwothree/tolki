@@ -58,6 +58,8 @@ export function arrayValueMessage(value: unknown, key: PathKey): string {
     return `Array value for key [${String(key)}] must be an array, ${phpTypeName(value)} found.`;
 }
 
+const SHELL_SAFE = /^[\w@%+=:,./-]+$/;
+
 /**
  * Escape a value for safe interpolation into a shell command string.
  *
@@ -72,9 +74,46 @@ export function escapeShellArg(value: string): string {
         return "''";
     }
 
-    if (/^[\w@%+=:,./-]+$/.test(value)) {
+    if (SHELL_SAFE.test(value)) {
         return value;
     }
 
     return "'" + value.replace(/'/g, "'\\''") + "'";
+}
+
+/**
+ * Escape a value for safe interpolation into a cmd.exe command string, the shell Node's `exec` runs on Windows.
+ *
+ * `%` cannot be escaped on a cmd.exe command line, so a `%NAME%` in the value still expands.
+ *
+ * @param value - The raw string to escape.
+ * @returns The value bare when every character is safe, else double-quoted by the MSVCRT argv rules.
+ */
+export function escapeWindowsShellArg(value: string): string {
+    if (value === "") {
+        return '""';
+    }
+
+    if (SHELL_SAFE.test(value)) {
+        return value;
+    }
+
+    let escaped = "";
+    let backslashes = 0;
+
+    for (const char of value) {
+        if (char === "\\") {
+            backslashes++;
+
+            continue;
+        }
+
+        escaped +=
+            char === '"'
+                ? `${"\\".repeat(backslashes * 2 + 1)}"`
+                : `${"\\".repeat(backslashes)}${char}`;
+        backslashes = 0;
+    }
+
+    return `"${escaped}${"\\".repeat(backslashes * 2)}"`;
 }

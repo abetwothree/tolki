@@ -71,4 +71,55 @@ describe("Utils", () => {
             );
         });
     });
+
+    describe("escapeWindowsShellArg", () => {
+        it("should return empty double quotes for empty input", () => {
+            expect(Utils.escapeWindowsShellArg("")).toBe('""');
+        });
+
+        it("should pass through safe strings unchanged", () => {
+            expect(Utils.escapeWindowsShellArg("app/Models/User.php")).toBe(
+                "app/Models/User.php",
+            );
+        });
+
+        it("should double-quote strings with spaces or wildcards", () => {
+            expect(Utils.escapeWindowsShellArg("my file.php")).toBe(
+                '"my file.php"',
+            );
+            expect(Utils.escapeWindowsShellArg("admin/*")).toBe('"admin/*"');
+        });
+
+        it("should keep single quotes literal", () => {
+            expect(Utils.escapeWindowsShellArg("it's.php")).toBe('"it\'s.php"');
+        });
+
+        it("should escape double quotes within the value", () => {
+            expect(Utils.escapeWindowsShellArg('say "hi"')).toBe(
+                '"say \\"hi\\""',
+            );
+        });
+
+        it("should double a run of backslashes before a double quote", () => {
+            expect(Utils.escapeWindowsShellArg('a\\\\"b')).toBe(
+                '"a\\\\\\\\\\"b"',
+            );
+        });
+
+        it("should double trailing backslashes before the closing quote", () => {
+            expect(Utils.escapeWindowsShellArg("C:\\my dir\\\\")).toBe(
+                '"C:\\my dir\\\\\\\\"',
+            );
+        });
+
+        it("should leave backslashes elsewhere alone", () => {
+            expect(Utils.escapeWindowsShellArg("lang\\en\\auth.php")).toBe(
+                '"lang\\en\\auth.php"',
+            );
+        });
+
+        it("should leave percent signs as they are", () => {
+            expect(Utils.escapeWindowsShellArg("50% off")).toBe('"50% off"');
+        });
+    });
 });

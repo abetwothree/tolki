@@ -48,6 +48,20 @@ vi.mock("vite", () => ({
     normalizePath: mockNormalizePath,
 }));
 
+const platform = Object.getOwnPropertyDescriptor(
+    process,
+    "platform",
+) as PropertyDescriptor;
+
+/**
+ * Make the code under test see another platform.
+ *
+ * @param value - The platform `process.platform` reports.
+ */
+function stubPlatform(value: NodeJS.Platform): void {
+    Object.defineProperty(process, "platform", { ...platform, value });
+}
+
 const MANIFEST = {
     version: 1,
     locales: ["en"],
@@ -145,6 +159,7 @@ describe("laravelLangExport", () => {
 
     afterEach(() => {
         vi.restoreAllMocks();
+        Object.defineProperty(process, "platform", platform);
     });
 
     it("is also the default export", () => {
@@ -169,6 +184,8 @@ describe("laravelLangExport", () => {
     });
 
     it("passes each set option as a flag", async () => {
+        stubPlatform("linux");
+
         await setupPlugin({
             output: "resources/lang-out",
             locales: ["en", "es"],
@@ -991,6 +1008,8 @@ describe("laravelLangExport", () => {
         });
 
         it("uses a custom sourceCommand with the file escaped", async () => {
+            stubPlatform("linux");
+
             const { server } = await setupWatcher({
                 sourceCommand: "sail artisan lang:export --source={file}",
             });
