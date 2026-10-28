@@ -3,6 +3,7 @@ import { createLang, useLang } from "@tolki/lang/vue";
 import { isUndefined } from "@tolki/utils";
 import { enableAutoUnmount, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { App } from "vue";
 import {
     createApp,
     createSSRApp,
@@ -205,6 +206,14 @@ describe("useLang", () => {
 });
 
 describe("hydration", () => {
+    const hydrated: App[] = [];
+
+    afterEach(() => {
+        for (const app of hydrated.splice(0)) {
+            app.unmount();
+        }
+    });
+
     it("hydrates the server's markup without a mismatch", () => {
         const container = document.createElement("div");
         container.innerHTML = VUE_SSR_HTML;
@@ -212,9 +221,12 @@ describe("hydration", () => {
         const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
         const error = vi.spyOn(console, "error").mockImplementation(() => {});
 
-        createSSRApp(Greeting)
-            .use(createLang({ locale: "es", fallback: "en", lines: LINES }))
-            .mount(container);
+        const app = createSSRApp(Greeting).use(
+            createLang({ locale: "es", fallback: "en", lines: LINES }),
+        );
+
+        hydrated.push(app);
+        app.mount(container);
 
         expect(warn).not.toHaveBeenCalled();
         expect(error).not.toHaveBeenCalled();
@@ -227,9 +239,12 @@ describe("hydration", () => {
         const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
         const error = vi.spyOn(console, "error").mockImplementation(() => {});
 
-        createSSRApp(Greeting)
-            .use(createLang({ locale: "en", fallback: "en", lines: LINES }))
-            .mount(container);
+        const app = createSSRApp(Greeting).use(
+            createLang({ locale: "en", fallback: "en", lines: LINES }),
+        );
+
+        hydrated.push(app);
+        app.mount(container);
 
         const logged = [...warn.mock.calls, ...error.mock.calls]
             .flat()

@@ -89,6 +89,7 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
 
     const helpers = createHelpers(translator);
     const loaded = new Set(Object.keys(options.lines ?? {}));
+    // Guards only the window where two load() calls for one locale overlap, since `loaded` never shrinks.
     const announcedLoads = new Set<string>();
     const inFlight = new Map<string, Promise<void>>();
     const listeners = new Set<() => void>();

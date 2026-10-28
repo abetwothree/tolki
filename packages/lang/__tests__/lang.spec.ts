@@ -549,9 +549,7 @@ describe("subscribe", () => {
 
         expect(second).toHaveBeenCalledTimes(1);
     });
-});
 
-describe("subscribe listeners", () => {
     it("calls every listener and reports a throwing one on a microtask", async () => {
         const lang = createLang({ locale: "en", lines: { en: LINES.en } });
         const failure = new Error("listener failed");
