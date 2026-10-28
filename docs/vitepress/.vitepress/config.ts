@@ -259,6 +259,10 @@ export default defineConfig({
                         link: "/ts/vite-env",
                     },
                     {
+                        text: "Custom Types",
+                        link: "/ts/custom-types",
+                    },
+                    {
                         text: "Extending Interfaces",
                         link: "/ts/extending-interfaces",
                     },

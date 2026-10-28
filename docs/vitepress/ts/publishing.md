@@ -46,7 +46,7 @@ php artisan ts:publish --source="app/Enums/Status.php"
 php artisan ts:publish --source="App\Http\Resources\UserResource"
 ```
 
-The class can be an enum, a model, an API resource, a controller with at least one registered route, a form request, or a broadcast event. On a large project, a single-class run is much faster than a full publish. The [Vite plugin](./vite-plugin.md#single-file-republishing) uses it during development to republish only the file that changed.
+The class can be an enum, a model, an API resource, a controller with at least one registered route, a form request, a broadcast event, or a class with a [composed type](./custom-types.md#composed-types). On a large project, a single-class run is much faster than a full publish. The [Vite plugin](./vite-plugin.md#single-file-republishing) uses it during development to republish only the file that changed.
 
 A single-class run differs from a full run in these ways:
 
@@ -160,6 +160,7 @@ Pass one `--only-*` flag to publish a single feature for one run:
 | `--only-form-requests`      | Form requests                                              |
 | `--only-broadcast-channels` | Broadcast channels                                         |
 | `--only-broadcast-events`   | Broadcast events                                           |
+| `--only-class-types`        | [Composed types](./custom-types.md#composed-types)         |
 | `--only-functional`         | Every enabled feature except model and resource interfaces |
 
 For example:
