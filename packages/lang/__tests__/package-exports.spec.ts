@@ -11,12 +11,16 @@ interface PackageExportTarget {
 }
 
 interface LangPackageManifest {
+    $schema?: string;
+    compatiblePackages?: unknown;
+    keywords: string[];
     exports: Record<string, string>;
     peerDependencies: Record<string, string>;
     peerDependenciesMeta: {
         vue?: { optional?: boolean };
         react?: { optional?: boolean };
         svelte?: { optional?: boolean };
+        vite?: { optional?: boolean };
     };
     publishConfig: {
         exports: Record<string, PackageExportTarget>;
@@ -47,6 +51,47 @@ describe("package exports", () => {
 
         expect(exports["."]).toBe("./src/index.ts");
         expect(exports["./*"]).toBe("./src/*.ts");
+    });
+
+    it("points the vite-laravel entry at its own source", () => {
+        const { exports } = readPackageManifest();
+
+        expect(exports["./vite-laravel"]).toBe("./src/vite-laravel/index.ts");
+    });
+
+    it("publishes the vite-laravel subpath to its dist folder", () => {
+        const manifest = readPackageManifest();
+
+        expect(manifest.publishConfig.exports["./vite-laravel"]).toEqual({
+            import: "./dist/vite-laravel/index.js",
+            types: "./dist/vite-laravel/index.d.ts",
+        });
+    });
+
+    it("keeps vite an optional peer", () => {
+        const manifest = readPackageManifest();
+
+        expect(manifest.peerDependenciesMeta.vite?.optional).toBe(true);
+    });
+
+    it("declares the Vite plugin registry metadata", () => {
+        const manifest = readPackageManifest();
+
+        expect(manifest.$schema).toBe(
+            "https://raw.githubusercontent.com/vitejs/vite-plugin-registry/refs/heads/main/data/schema/extended-package-json.schema.json",
+        );
+        expect(manifest.compatiblePackages).toEqual({
+            schemaVersion: 1,
+            vite: { type: "compatible", versions: "^7.0.0||^8.0.0" },
+        });
+    });
+
+    it("lists the vite keywords", () => {
+        const manifest = readPackageManifest();
+
+        expect(manifest.keywords).toEqual(
+            expect.arrayContaining(["vite", "vite-plugin"]),
+        );
     });
 
     it("publishes the vue subpath to the flat dist output", () => {
@@ -100,6 +145,7 @@ describe("package exports", () => {
         expect(manifest.peerDependencies).toEqual({
             react: "^19.0.0",
             svelte: "^5.7.0",
+            vite: "^7.0.0||^8.0.0",
             vue: "^3.5.0",
         });
     });

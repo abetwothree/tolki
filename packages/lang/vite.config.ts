@@ -26,6 +26,7 @@ export default defineConfig(
                     "react-dom",
                     "svelte",
                     /^svelte\//,
+                    "vite",
                     /^node:/,
                 ],
             },

@@ -13,10 +13,19 @@
     "bugs": {
         "url": "https://github.com/abetwothree/tolki/issues"
     },
+    "$schema": "https://raw.githubusercontent.com/vitejs/vite-plugin-registry/refs/heads/main/data/schema/extended-package-json.schema.json",
+    "compatiblePackages": {
+        "schemaVersion": 1,
+        "vite": {
+            "type": "compatible",
+            "versions": "^7.0.0||^8.0.0"
+        }
+    },
     "type": "module",
     "main": "src/index.ts",
     "exports": {
         ".": "./src/index.ts",
+        "./vite-laravel": "./src/vite-laravel/index.ts",
         "./*": "./src/*.ts"
     },
     "scripts": {
@@ -37,7 +46,9 @@
         "vue",
         "vue-plugin",
         "react",
-        "svelte"
+        "svelte",
+        "vite",
+        "vite-plugin"
     ],
     "sideEffects": false,
     "packageManager": "pnpm@10.12.1",
@@ -50,6 +61,7 @@
     "peerDependencies": {
         "react": "^19.0.0",
         "svelte": "^5.7.0",
+        "vite": "^7.0.0||^8.0.0",
         "vue": "^3.5.0"
     },
     "peerDependenciesMeta": {
@@ -60,6 +72,9 @@
             "optional": true
         },
         "svelte": {
+            "optional": true
+        },
+        "vite": {
             "optional": true
         }
     },
@@ -111,6 +126,10 @@
             "./svelte": {
                 "import": "./dist/svelte.js",
                 "types": "./dist/svelte.d.ts"
+            },
+            "./vite-laravel": {
+                "import": "./dist/vite-laravel/index.js",
+                "types": "./dist/vite-laravel/index.d.ts"
             }
         }
     },

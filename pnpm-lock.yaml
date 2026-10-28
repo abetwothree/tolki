@@ -272,6 +272,9 @@ importers:
       "@tolki/utils":
         specifier: workspace:^
         version: link:../utils
+      vite:
+        specifier: ^7.0.0||^8.0.0
+        version: 7.3.6(@types/node@25.9.4)(jiti@2.7.0)
     devDependencies:
       "@sveltejs/vite-plugin-svelte":
         specifier: ^6.2.4
