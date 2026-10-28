@@ -1181,6 +1181,24 @@ describe("laravelTsPublish", () => {
             },
         );
 
+        it("should still add --quiet when the file name contains it", async () => {
+            const relative = "app/--quiet.php";
+
+            mockManifestExists([relative]);
+
+            const { plugin } = await setupPlugin();
+
+            await (plugin.handleHotUpdate as HotUpdateHook)({
+                file: path.resolve(MOCK_ROOT, relative),
+            });
+
+            expect(mockExec).toHaveBeenCalledWith(
+                "php artisan ts:publish --source=app/--quiet.php --quiet",
+                { cwd: MOCK_ROOT },
+                expect.any(Function),
+            );
+        });
+
         it("should always run the full command when sourceCommand is false", async () => {
             mockManifestExists();
             const { plugin } = await setupPlugin({

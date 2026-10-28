@@ -907,6 +907,63 @@ describe("laravelLangExport", () => {
             expect(server.ws.send).not.toHaveBeenCalled();
         });
 
+        it("keeps reloading a new server after an old one closes", async () => {
+            const { plugin, server: first } = await setupWatcher();
+            const second = {
+                watcher: { add: vi.fn(), on: vi.fn() },
+                ws: { send: vi.fn() },
+                httpServer: { once: vi.fn() },
+            };
+
+            (plugin.configureServer as (server: unknown) => void)(second);
+            first.close();
+
+            const on = second.watcher.on.mock.calls[0]?.[1] as (
+                event: string,
+                file: string,
+            ) => void;
+
+            on("change", "/project/lang/en/a.php");
+            await settle();
+
+            expect(second.ws.send).toHaveBeenCalledWith({
+                type: "full-reload",
+            });
+        });
+
+        it("keeps the old watch dirs when a newer read fails while an older one succeeds", async () => {
+            const { server } = await setupWatcher();
+            const resolvers: ((text: string) => void)[] = [];
+
+            mockReadFile.mockImplementationOnce(
+                () =>
+                    new Promise<string>((resolve) => {
+                        resolvers.push(resolve);
+                    }),
+            );
+            mockReadFile.mockImplementationOnce(() => {
+                const err = new Error("ENOENT") as NodeJS.ErrnoException;
+                err.code = "ENOENT";
+                return Promise.reject(err);
+            });
+            server.watcher.add.mockClear();
+            server.emit("change", "/project/resources/js/lang/manifest.json");
+            server.emit("change", "/project/resources/js/lang/manifest.json");
+            await settle();
+            resolvers[0]?.(JSON.stringify({ ...MANIFEST, watch: ["old"] }));
+            await settle();
+
+            expect(server.watcher.add).not.toHaveBeenCalled();
+
+            server.emit("change", "/project/lang/en/auth.php");
+            server.emit("change", "/project/old/en/auth.php");
+            await settle();
+
+            expect(commands()).toEqual([
+                "php artisan lang:export --source=lang/en/auth.php --quiet",
+            ]);
+        });
+
         it("keeps the watched directories when the manifest becomes unreadable", async () => {
             const { server } = await setupWatcher();
 

@@ -63,6 +63,9 @@ async function writeBuild(
 
     let entry = "";
 
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, "package.json"), '{"type":"module"}');
+
     for (const item of output) {
         await mkdir(path.dirname(path.join(dir, item.fileName)), {
             recursive: true,

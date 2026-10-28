@@ -287,6 +287,11 @@ export function laravelTsPublish(
         isRunning = true;
 
         const baseCommand = commandOverride ?? command;
+        const template =
+            sourceFile && resolvedSourceCommand
+                ? resolvedSourceCommand
+                : baseCommand;
+        // --quiet is decided from the template, so a file name holding it cannot suppress the flag.
         let effectiveCommand =
             sourceFile && resolvedSourceCommand
                 ? // A function replacer keeps `$&` and friends in the path literal.
@@ -295,7 +300,7 @@ export function laravelTsPublish(
                   )
                 : baseCommand;
 
-        if (quiet && !effectiveCommand.includes("--quiet")) {
+        if (quiet && !template.includes("--quiet")) {
             effectiveCommand += " --quiet";
         }
 

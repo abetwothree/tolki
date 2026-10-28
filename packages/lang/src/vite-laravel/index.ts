@@ -274,9 +274,11 @@ export function laravelLangExport(
                 void handleSafely(event, file);
             });
 
-            // An export still running when the server closes must not send it a reload.
+            // An export still running when the server closes must not send it a reload; a newer server stays.
             devServer.httpServer?.once("close", () => {
-                server = undefined;
+                if (server === devServer) {
+                    server = undefined;
+                }
             });
         },
 
