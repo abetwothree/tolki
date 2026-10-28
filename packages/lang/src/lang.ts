@@ -4,11 +4,11 @@ import type {
     LocaleLines,
     LocaleModule,
 } from "@tolki/types";
-import { isPlainObject, isString, isUndefined } from "@tolki/utils";
+import { isPlainObject, isUndefined } from "@tolki/utils";
 
 import { createHelpers } from "./helpers";
 import { assertLocale } from "./locale-guard";
-import { Translator } from "./translator";
+import { mergeLocaleLines, Translator } from "./translator";
 import type {
     Lang,
     LangReader,
@@ -78,6 +78,7 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
     const listeners = new Set<() => void>();
     let version = 0;
     let latestSwitch = 0;
+    let latestFallback = 0;
 
     /**
      * Add a loaded locale's lines to the translator, keeping the lines the app added itself.
@@ -86,18 +87,7 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
      * @param answer - What the loader answered
      */
     function apply(locale: string, answer: LocaleLines | LocaleModule): void {
-        for (const [key, value] of Object.entries(linesOf(locale, answer))) {
-            // addLines reads a key without a dot as an item of the group "", so a group goes in item by item.
-            const entries = isString(value)
-                ? { [`*.${key}`]: value }
-                : Object.fromEntries(
-                      Object.entries(value).map(([item, line]) => {
-                          return [`${key}.${item}`, line];
-                      }),
-                  );
-
-            translator.addLines(entries, locale);
-        }
+        mergeLocaleLines(translator, locale, linesOf(locale, answer));
 
         loaded.add(locale);
     }
@@ -226,7 +216,18 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
         setFallback: async (fallback) => {
             if (fallback !== null) {
                 assertLocale(fallback);
+            }
+
+            latestFallback += 1;
+
+            const token = latestFallback;
+
+            if (fallback !== null) {
                 await request(fallback);
+            }
+
+            if (token !== latestFallback) {
+                return;
             }
 
             translator.setFallback(fallback);

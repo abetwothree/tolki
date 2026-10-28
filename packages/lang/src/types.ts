@@ -191,7 +191,7 @@ export interface Lang<
 }
 
 /** Apps augment this to name their lines: `interface LangRegister { lines: typeof en }`. */
- 
+// oxlint-disable-next-line typescript/no-empty-object-type -- apps augment it
 export interface LangRegister {}
 
 /** The lines a register names, or any lines when it names none. */

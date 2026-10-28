@@ -269,6 +269,24 @@ describe("setLocale", () => {
         expect(lang.__("Welcome")).toBe("Bienvenido");
     });
 
+    it("keeps a loaded group that is a list an array", async () => {
+        const lang = createLang({
+            locale: "en",
+            load: () => ({ g: ["a", "b"] }),
+        });
+
+        expect(lang.__("g")).toEqual(["a", "b"]);
+    });
+
+    it("loads a group item key holding a dot as one key", async () => {
+        const lang = createLang({
+            locale: "en",
+            load: () => ({ g: { "a.b": "AB" } }),
+        });
+
+        expect(lang.__("g")).toEqual({ "a.b": "AB" });
+    });
+
     it("loads a locale again after its load failed", async () => {
         let attempts = 0;
         const lang = createLang({
@@ -291,6 +309,24 @@ describe("setLocale", () => {
 });
 
 describe("setFallback", () => {
+    it("lets the last call win", async () => {
+        const loader = createDeferredLoader();
+        const lang = createLang({
+            locale: "es",
+            lines: { es: LINES.es },
+            load: loader.load,
+        });
+        const toEn = lang.setFallback("en");
+        const toDe = lang.setFallback("de");
+
+        loader.settle("de");
+        await toDe;
+        loader.settle("en");
+        await toEn;
+
+        expect(lang.getFallback()).toBe("de");
+    });
+
     it("loads the fallback before reading it", async () => {
         const lang = createLang({
             locale: "es",

@@ -43,7 +43,7 @@ describe("LinesFromRegister", () => {
 
     it("falls back to the loose lines without a registration", () => {
         // The empty register is the case under test.
-         
+        // oxlint-disable-next-line typescript/no-empty-object-type
         expectTypeOf<LinesFromRegister<{}>>().toEqualTypeOf<LangLines>();
     });
 });

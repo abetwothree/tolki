@@ -3,6 +3,8 @@ import { Translator } from "@tolki/lang";
 import { InvalidArgumentException } from "@tolki/utils";
 import { describe, expect, it } from "vitest";
 
+import { mergeLocaleLines } from "../src/translator";
+
 class LangMoney {
     constructor(public cents: number) {}
 
@@ -1260,5 +1262,51 @@ describe("Translator", () => {
 
         expect(lines).toEqual(snapshot);
         expect(translator.get("g.a")).toBe("A");
+    });
+});
+
+describe("mergeLocaleLines", () => {
+    // JS-only: Laravel loads a locale's files whole; this is the runtime's way in.
+    it("replaces a top-level key and keeps the others", () => {
+        const translator = new Translator(
+            { en: { a: { x: "X", y: "Y" }, b: { z: "Z" } } },
+            "en",
+        );
+
+        mergeLocaleLines(translator, "en", { a: { x: "NEW" } });
+
+        expect(translator.get("a")).toEqual({ x: "NEW" });
+        expect(translator.get("b.z")).toBe("Z");
+    });
+
+    // JS-only: Laravel loads a locale's files whole; this is the runtime's way in.
+    it("adds lines to a locale the translator has none for", () => {
+        const translator = new Translator({}, "en");
+
+        mergeLocaleLines(translator, "es", { Hi: "Hola" });
+
+        expect(translator.get("Hi", {}, "es")).toBe("Hola");
+    });
+
+    // JS-only: Laravel loads a locale's files whole; this is the runtime's way in.
+    it("keeps an unsafe key as an own key", () => {
+        const translator = new Translator({}, "en");
+        const lines = Object.create(null) as Record<string, string>;
+
+        lines["__proto__"] = "polluted";
+        mergeLocaleLines(translator, "en", lines);
+
+        expect(translator.get("__proto__")).toBe("polluted");
+        expect(Object.getPrototypeOf({})).toBe(Object.prototype);
+    });
+
+    // JS-only: Laravel loads a locale's files whole; this is the runtime's way in.
+    it("never changes the lines it was given", () => {
+        const given = { en: { a: { x: "X" } } };
+        const translator = new Translator(given, "en");
+
+        mergeLocaleLines(translator, "en", { b: "B" });
+
+        expect(given).toEqual({ en: { a: { x: "X" } } });
     });
 });
