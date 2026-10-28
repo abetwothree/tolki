@@ -2,10 +2,11 @@
 "@tolki/lang": minor
 ---
 
-`@tolki/lang` can now load a Laravel app's lang files for you, and plugs into Vue, React and Svelte. Everything new is optional: `vue`, `react`, `svelte` and `vite` are optional peers, so you only need the one you use.
+`@tolki/lang` can now load a Laravel app's lang files for you, and plugs into Vue, React and Svelte.
 
-- `createLang` builds one app-wide lang from a locale, a fallback and either lines you already have or a `load` function that fetches a locale when it is first needed, and `bindLang` gives you `__`, `trans` and `transChoice` bound to it.
-- `htmlLocale` reads the locale from the page's `<html lang>` tag, in Laravel's spelling, so the first render never depends on `navigator.language`.
+- `createLang` builds a lang from a locale, a fallback and either lines you already have or a `load` function that fetches a locale when it is first needed. The lang gives you `__`, `trans` and `transChoice`.
+- `bindLang` wraps a lang's reads so each one reports to a tracker first; the Vue, React and Svelte entries are built on it.
+- `htmlLocale` reads the locale from the page's `<html lang>` tag and answers it in the spelling your locales use, so the first render never depends on `navigator.language`.
 - `@tolki/lang/vite-laravel` is a Vite plugin, `import laravelLangExport from "@tolki/lang/vite-laravel"`. It runs the `lang:export` command of the Composer package `abetwothree/laravel-lang-export`, serves the exported files to your app and re-runs the command when your lang files change.
 - `virtual:tolki-lang` is the module that plugin serves; add `@tolki/lang/client` to your `tsconfig` types so it is typed.
 - `@tolki/lang/vue` gives you `createLang` (a Vue plugin) and `useLang`.
