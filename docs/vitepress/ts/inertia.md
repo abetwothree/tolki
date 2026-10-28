@@ -21,6 +21,7 @@ With `inertia.enabled` on (the default), the package builds the file from your m
 - **API resources**: a resource or resource collection is typed as the response Inertia sends for it, as [API Resources in Props](#api-resources-in-props) describes.
 - **`EnumResource` props**: a prop that wraps an enum in `EnumResource`, such as `'role' => EnumResource::make(Role::Admin)`, becomes `AsEnum<typeof Role>` when `enums.use_tolki_package` is on (the default), the same as in [API Resources](./api-resources.md#enum-properties-with-enumresource). With it off, the key keeps the enum's type alias (`role: RoleType`). The change applies per key, so another key that reads the enum directly keeps `RoleType`.
 - **Enum cases**: a bare case, such as `'defaultStatus' => Status::Draft`, is typed as the enum's type alias (`defaultStatus: StatusType`), which matches the value Laravel sends for a backed enum. The file imports the alias for you.
+- **Classes with `#[TsType]`**: a value of a class that has or inherits a `#[TsType]` is typed as that type, with its import, in shared data and page props alike. See [Custom Types](./custom-types.md).
 - **`errors`**: left out. `@inertiajs/core` already types `page.props.errors` as `Errors & ErrorBag`, and [`errorValueType`](#anatomy-of-the-generated-file) sharpens it. A `#[TsCasts]` or `@return` docblock entry named `errors` still adds one if you want it.
 - **The output file**: the result is written to `inertia-config.d.ts`. Set `inertia.augmentation_filename` to change the name.
 

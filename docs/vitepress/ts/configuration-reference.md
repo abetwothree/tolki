@@ -216,6 +216,22 @@ See [Collected Files Manifest](./publishing.md#collected-files-manifest) for wha
 | `broadcast_events.echo_augmentation.output_directory` | `string`  | `''`                                         | Custom output directory for the Echo augmentation file. Empty uses `broadcast_events.output_directory`, then `output_directory`                                                                                       |
 | `broadcast_events.echo_augmentation.writer_class`     | `string`  | `BroadcastEventsEchoWriter`                  | Writes the Echo augmentation file                                                                                                                                                                                     |
 
+## Class Types (`class_types.*`)
+
+See [Custom Types](./custom-types.md#configuration) for which classes compose and when the package writes their modules. A config file published before class types existed has no `class_types` block, and every key then takes its default.
+
+| Config Key                           | Type     | Default                          | Description                                                                                                                                     |
+| ------------------------------------ | -------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `class_types.enabled`                | `bool`   | `true`                           | Compose the `#[TsType]` types a class inherits into one `{Basename}Type` interface. When `false`, each value publishes its class's nearest type |
+| `class_types.template`               | `string` | `laravel-ts-publish::class-type` | Blade template for each composed type's module                                                                                                  |
+| `class_types.additional_directories` | `array`  | `[]`                             | Directories to scan for composed classes, whose modules are written even when no value uses them. No directory is scanned by default            |
+| `class_types.included`               | `array`  | `[]`                             | Only these classes compose (empty = all)                                                                                                        |
+| `class_types.excluded`               | `array`  | `[]`                             | These classes never compose                                                                                                                     |
+| `class_types.collector_class`        | `string` | `ClassTypesCollector`            | Discovers composed classes in `additional_directories`                                                                                          |
+| `class_types.generator_class`        | `string` | `ClassTypeGenerator`             | Orchestrates transforming and writing                                                                                                           |
+| `class_types.transformer_class`      | `string` | `ClassTypeTransformer`           | Converts a composed class into TypeScript data                                                                                                  |
+| `class_types.writer_class`           | `string` | `ClassTypeWriter`                | Writes each composed type's module                                                                                                              |
+
 ## Inertia (`inertia.*`)
 
 | Config Key                        | Type      | Default               | Description                                                                                                                                    |

@@ -815,7 +815,7 @@ These values stay `unknown` when built in place:
 - A model
 - A class with no public property and no `__toString()`
 
-Type such a key with [`#[TsCasts]`](#overriding-property-types-with-tscasts).
+Type such a key with [`#[TsCasts]`](#overriding-property-types-with-tscasts), or give the class a [`#[TsType]`](./custom-types.md). A `new` of a class that has or inherits one publishes that type, unless the class is a model.
 
 `array_values()` keeps the element type and publishes a list. An `(object)` cast publishes the object `json_encode()` writes: a shape keeps its keys, a list becomes a `Record` keyed by its indexes, and `(object) []` publishes `Record<string, never>`. An `(array)` cast of an array keeps the array's type:
 
@@ -2799,7 +2799,7 @@ The package already types these shapes without an override:
 - A collection chain, `data_get()`, and `only([...])` on any model. See [Collection Pipelines](#collection-pipelines) and [Attribute Filters on Any Model](#attribute-filters-on-any-model).
 - A key that only some branches return, or one that a spread method's `@return` describes. See [Return Branches and `@return` Shapes](#return-branches-and-return-shapes).
 
-`#[TsCasts]` is the right tool when the frontend owns the type and it needs its own import, or when a shape is dynamic.
+`#[TsCasts]` is the right tool when the frontend owns the type and it needs its own import, or when a shape is dynamic. To type every value of a class that way, put [`#[TsType]`](./custom-types.md) on the class instead.
 :::
 
 Use `#[TsCasts]` to override a property's type, or to add a property that `toArray()` doesn't return:

@@ -46,7 +46,7 @@ php artisan ts:publish --source="app/Enums/Status.php"
 php artisan ts:publish --source="App\Http\Resources\UserResource"
 ```
 
-The class can be an enum, a model, an API resource, a controller with at least one registered route, a form request, or a broadcast event. On a large project, a single-class run is much faster than a full publish. The [Vite plugin](./vite-plugin.md#single-file-republishing) uses it during development to republish only the file that changed.
+The class can be an enum, a model, an API resource, a controller with at least one registered route, a form request, a broadcast event, or a class with a [composed type](./custom-types.md#composed-types). On a large project, a single-class run is much faster than a full publish. The [Vite plugin](./vite-plugin.md#single-file-republishing) uses it during development to republish only the file that changed.
 
 A single-class run differs from a full run in these ways:
 
@@ -160,6 +160,7 @@ Pass one `--only-*` flag to publish a single feature for one run:
 | `--only-form-requests`      | Form requests                                              |
 | `--only-broadcast-channels` | Broadcast channels                                         |
 | `--only-broadcast-events`   | Broadcast events                                           |
+| `--only-class-types`        | [Composed types](./custom-types.md#composed-types)         |
 | `--only-functional`         | Every enabled feature except model and resource interfaces |
 
 For example:
@@ -236,7 +237,7 @@ TypeScript sees these types only when your `tsconfig.json` includes the file.
 
 ### JSON Definitions File
 
-When `json.enabled` is `true`, the package also writes `laravel-ts-definitions.json`. It describes every published model, enum, resource, form request, and broadcast event as data, such as properties, cases, and methods, instead of TypeScript source:
+When `json.enabled` is `true`, the package also writes `laravel-ts-definitions.json`. It describes every published model, enum, resource, form request, broadcast event, and [composed type](./custom-types.md#composed-types) as data, such as properties, cases, and methods, instead of TypeScript source:
 
 ```php
 // config/ts-publish.php
@@ -247,7 +248,7 @@ When `json.enabled` is `true`, the package also writes `laravel-ts-definitions.j
 ],
 ```
 
-The file has one top-level object per feature: `models`, `enums`, `resources`, `formRequests`, and `broadcastEvents`. Each object is keyed by fully-qualified class name, and each entry has a `name` field that holds the short class name:
+The file has one top-level object per feature: `models`, `enums`, `resources`, `formRequests`, `broadcastEvents`, and `classTypes`. Each object is keyed by fully-qualified class name, and each entry has a `name` field that holds the short class name. A `classTypes` entry's `name` holds the composed type's name instead, such as `ChartType`, and its `extends` field lists the types that interface extends:
 
 ```json
 {

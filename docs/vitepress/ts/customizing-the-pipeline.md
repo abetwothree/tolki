@@ -40,6 +40,7 @@ Each stage has a config key named `{feature}.{stage}_class`, such as `models.col
 | `form_requests`      | `FormRequestsCollector`      | `FormRequestGenerator`    | `FormRequestTransformer`    | `FormRequestWriter`       |
 | `broadcast_channels` | `BroadcastChannelsCollector` | none                      | none                        | `BroadcastChannelsWriter` |
 | `broadcast_events`   | `BroadcastEventsCollector`   | `BroadcastEventGenerator` | `BroadcastEventTransformer` | `BroadcastEventWriter`    |
+| `class_types`        | `ClassTypesCollector`        | `ClassTypeGenerator`      | `ClassTypeTransformer`      | `ClassTypeWriter`         |
 
 The classes live in the `AbeTwoThree\LaravelTsPublish\Collectors`, `Generators`, `Transformers`, and `Writers` namespaces.
 
@@ -254,6 +255,7 @@ To use a template with a different name, point the feature's template key at it.
 | `broadcast_events.template`                   | `laravel-ts-publish::broadcast-event`        |
 | `broadcast_events.index_template`             | `laravel-ts-publish::broadcast-events-index` |
 | `broadcast_events.echo_augmentation.template` | `laravel-ts-publish::echo-broadcast-events`  |
+| `class_types.template`                        | `laravel-ts-publish::class-type`             |
 | `globals.template`                            | `laravel-ts-publish::globals`                |
 
 Inertia's `inertia-config.blade.php` and Vite env's `vite-env.blade.php` have no template key. Edit your published copies to change them.

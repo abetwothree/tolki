@@ -323,6 +323,8 @@ An entry publishes its type exactly as written, without the `Partial<>` a model 
 
 You can also put `#[TsCasts]` on `broadcastWith()`. It works the same way as on the class, and the class's entry wins when both name a key.
 
+To type every property that holds a given class, in every event, put [`#[TsType]`](./custom-types.md) on that class instead of an entry on each event.
+
 ## Extending Interfaces: Global Config vs. `#[TsExtends]`
 
 An event interface can extend shared interfaces through config, through an attribute, or through both at once.

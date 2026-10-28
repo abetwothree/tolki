@@ -1,6 +1,6 @@
 # Excluding Content
 
-Add the `#[TsExclude]` attribute to keep a class out of the TypeScript output, or to leave out one of its methods, accessors, relations, or controller actions. It works on enums, models, resources, form requests, broadcast events, and controllers. It's a PHP attribute only. It has no config key, and there's nothing to set up in `@tolki/ts`.
+Add the `#[TsExclude]` attribute to keep a class out of the TypeScript output, or to leave out one of its methods, accessors, relations, or controller actions. It works on enums, models, resources, form requests, broadcast events, and controllers. On a class with a [composed type](./custom-types.md#composed-types), it also stops the class composing. It's a PHP attribute only. It has no config key, and there's nothing to set up in `@tolki/ts`.
 
 ## `#[TsExclude]` Attribute
 

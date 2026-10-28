@@ -10,7 +10,7 @@ The `ts:publish` command publishes each model as follows:
 
 - **One file per model**: `App\Models\User` is written to `app/models/user.ts`, following the model's namespace. Each namespace directory also gets an `index.ts` barrel that re-exports its files (`export * from './user'`), the same as [enums](./enums.md#how-enums-are-generated).
 - **Split interfaces**: columns, accessors and relations go into separate interfaces by default. See [Model Templates](#model-templates).
-- **Column types**: a column's type comes from the first source that applies. In order, those are a [`#[TsCasts]`](#tscasts) entry, an accessor with the column's name, the model's cast in `casts()` or `$casts`, and the database column type. A custom cast class can set its own type with [`#[TsType]`](#tstype). When the result is still vague, such as `unknown[]`, a class-level `@property` tag refines it. The [Type Mapping Reference](#type-mapping-reference) lists the default types.
+- **Column types**: a column's type comes from the first source that applies. In order, those are a [`#[TsCasts]`](#tscasts) entry, an accessor with the column's name, the model's cast in `casts()` or `$casts`, and the database column type. A custom cast class can set its own type with [`#[TsType]`](./custom-types.md#model-attributes-and-casts). When the result is still vague, such as `unknown[]`, a class-level `@property` tag refines it. The [Type Mapping Reference](#type-mapping-reference) lists the default types.
 - **Accessors**: new-style `Attribute` accessors and old-style `get{Name}Attribute()` methods that aren't columns publish as mutators, typed from their return types, their docblocks or what their getters return.
 - **Relations**: each relation publishes, plus a `_count` and an `_exists` property for it.
 - **Metadata companions**: an opt-in feature writes a runtime `{model}_meta.ts` file beside the interface. See [Model Metadata](./model-metadata.md).
@@ -294,11 +294,11 @@ A relation's `_count` and `_exists` properties follow the same rule. When a colu
 
 All attributes live in the `AbeTwoThree\LaravelTsPublish\Attributes` namespace.
 
-| Attribute      | Target                                              | Description                                                          |
-| -------------- | --------------------------------------------------- | -------------------------------------------------------------------- |
-| `#[TsCasts]`   | `casts()` method, `$casts` property, or model class | Override or add TypeScript types for columns, mutators or relations. |
-| `#[TsType]`    | Custom cast class                                   | Set the TypeScript type used wherever this cast class is applied.    |
-| `#[TsExclude]` | Model class, accessor method, or relation method    | Exclude a whole model, or one accessor or relation.                  |
+| Attribute      | Target                                              | Description                                                                                 |
+| -------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `#[TsCasts]`   | `casts()` method, `$casts` property, or model class | Override or add TypeScript types for columns, mutators or relations.                        |
+| `#[TsType]`    | Any class, such as a custom cast class              | Set the TypeScript type of every value of the class, or of every column that uses the cast. |
+| `#[TsExclude]` | Model class, accessor method, or relation method    | Exclude a whole model, or one accessor or relation.                                         |
 
 ### `#[TsCasts]`
 
@@ -345,39 +345,7 @@ Put `#[TsCasts]` on `casts()` or `$casts`, so the TypeScript type sits next to t
 
 ### `#[TsType]`
 
-For a custom cast class you use on several models, put `#[TsType]` on the cast class once, instead of repeating `#[TsCasts]` everywhere you use it:
-
-```php
-use AbeTwoThree\LaravelTsPublish\Attributes\TsType;
-
-#[TsType(['type' => 'ProductDimensions', 'import' => '@js/types/product'])]
-class ProductDimensionsCast implements CastsAttributes
-{
-    public function get($model, string $key, $value, array $attributes) { /* ... */ }
-}
-
-class Product extends Model
-{
-    public function casts(): array
-    {
-        return ['dimensions' => ProductDimensionsCast::class];
-    }
-}
-```
-
-Every column that uses the cast publishes with that type:
-
-```typescript
-import type { ProductDimensions } from "@js/types/product";
-
-export interface Product {
-  dimensions: ProductDimensions;
-}
-```
-
-`#[TsType]` also takes a plain string, such as `#[TsType('{width: number, height: number}')]`, when the type needs no import. Without `#[TsType]`, a custom cast publishes the return type of its `get()` method. A cast class that implements `SerializesCastableAttributes`, including one a `Castable` value object names, publishes the return type of its `serialize()` method instead, because that's what Laravel sends when it converts the model to JSON.
-
-When `get()`'s native type is missing or vague, such as a bare `array`, the `@return` docblock sets the type, so `@return list<LegDto>` publishes a list of `LegDto`'s public properties, the shape `json_encode()` writes. A `@return` that names a model, such as `list<User>`, or another class that doesn't publish as an inline shape keeps `unknown[]`. A `get()` that declares neither publishes `unknown`.
+Put `#[TsType]` on a custom cast class, or on any class a column holds, to set the column's type. [Custom Types](./custom-types.md) describes the attribute.
 
 ## Laravel 13 Model Attributes
 
@@ -600,6 +568,12 @@ export interface ProjectMutators {
 
 PHPStan reads the `@use` tag for the same purpose, so static analysis checks the binding too.
 
+### Custom Cast Classes
+
+A custom cast without [`#[TsType]`](./custom-types.md) publishes the return type of its `get()` method. A cast class that implements `SerializesCastableAttributes`, including one a `Castable` value object names, publishes the return type of its `serialize()` method instead, because that's what Laravel sends when it converts the model to JSON.
+
+When `get()`'s native type is missing or vague, such as a bare `array`, the `@return` docblock sets the type, so `@return list<LegDto>` publishes a list of `LegDto`'s public properties, the shape `json_encode()` writes. A `@return` that names a model, such as `list<User>`, or another class that doesn't publish as an inline shape keeps `unknown[]`. A `get()` that declares neither publishes `unknown`.
+
 ### Typing Castable-With-Arguments Casts
 
 Laravel's built-in `Castable` classes carry their configuration after a colon in the cast string. `AsEnumCollection::of(DayOfWeek::class)`, `AsCollection::of(...)` and `AsCollection::using(...)` all build a `"ClassName:arg1,arg2"` cast string. The package types these with no extra configuration:
@@ -704,7 +678,7 @@ final readonly class ShippingOptions implements Arrayable
 }
 ```
 
-An accessor or cast that returns this DTO publishes as `{ carrier: string; insured: boolean; trackingUrl: string | null }`. Nullable properties keep their `| null`. Private, protected and static properties are left out, because `(array) $this` doesn't include them. A property typed as a class or an enum, such as a model, publishes as `unknown`, because the inline shape can't import it.
+An accessor or cast that returns this DTO publishes as `{ carrier: string; insured: boolean; trackingUrl: string | null }`. Nullable properties keep their `| null`. Private, protected and static properties are left out, because `(array) $this` doesn't include them. A property typed as a class or an enum, such as a model, publishes as `unknown`, because the inline shape can't import it. A property whose class has or inherits a [`#[TsType]`](./custom-types.md) publishes that type, with its import.
 
 Optional is separate from nullable. A property that is neither promoted nor given a default value publishes as an optional key. Add `public string $summary;` to the class body above, assigned in the constructor, and it publishes as `summary?: string`. PHP leaves an unassigned typed property out of `(array) $this`, and the package can't tell whether the constructor always assigns it. To keep the key required, promote the property, or give it a default value on a DTO that isn't `readonly`. A `@return array{...}` docblock on `toArray()` always wins, so add one when the properties don't tell the whole story.
 
@@ -825,7 +799,7 @@ To change how a type publishes everywhere, add it to `custom_ts_mappings`. Keys 
 To see which entry a cast, a column or a date follows, read [`custom_ts_mappings`](./configuration-reference.md#custom-ts-mappings) in the Configuration Reference.
 
 ::: tip
-To change one property instead of every column of a type, use [`#[TsCasts]`](#tscasts) or [`#[TsType]`](#tstype).
+To change one property instead of every column of a type, use [`#[TsCasts]`](#tscasts) or [`#[TsType]`](./custom-types.md).
 :::
 
 ## Type Mapping Reference
