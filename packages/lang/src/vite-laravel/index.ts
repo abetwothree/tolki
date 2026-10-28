@@ -61,6 +61,31 @@ export interface LaravelLangExportOptions extends ExportFlags {
 
 const DEFAULT_OUTPUT = "resources/js/lang";
 
+const WATCHED_EVENTS = ["add", "change", "unlink", "unlinkDir"];
+
+const EXPORTED_EXTENSIONS = [".php", ".json"];
+
+/**
+ * Check whether a path is a translation file the exporter reads.
+ *
+ * @param file - The path to check.
+ * @returns Whether it ends in `.php` or `.json`.
+ */
+function isTranslationFile(file: string): boolean {
+    return EXPORTED_EXTENSIONS.some((extension) => file.endsWith(extension));
+}
+
+/**
+ * Check whether a path sits under a directory, so `lang` never matches `lang-extra`.
+ *
+ * @param file - The normalized path.
+ * @param dir - The normalized directory.
+ * @returns Whether the path is inside the directory.
+ */
+function isInside(file: string, dir: string): boolean {
+    return file.startsWith(`${dir}/`);
+}
+
 /**
  * Vite plugin that runs `lang:export` before a build and when the dev server starts.
  *
@@ -100,6 +125,92 @@ export function laravelLangExport(
     let config: ResolvedConfig;
     let server: ViteDevServer | undefined;
     let runner: ExportRunner;
+    let manifestFile = "";
+    let watchDirs: string[] = [];
+
+    /**
+     * Run an export from the watcher, logging a failure that would otherwise go unhandled.
+     *
+     * @param run - Starts the export.
+     */
+    async function runFromWatcher(run: () => Promise<void>): Promise<void> {
+        try {
+            await run();
+        } catch (error) {
+            // The runner only ever rejects with the Error it builds.
+            config.logger.error((error as Error).message);
+        }
+    }
+
+    /**
+     * Re-read the manifest and watch the directories it lists.
+     */
+    async function refreshWatchDirs(): Promise<void> {
+        const manifest = await readManifest(manifestFile, config.logger);
+
+        if (manifest === null) {
+            return;
+        }
+
+        const root = normalizePath(config.root);
+        const dirs = manifest.watch.map((entry) =>
+            normalizePath(path.resolve(root, entry)),
+        );
+        const added = dirs.filter((dir) => !watchDirs.includes(dir));
+
+        watchDirs = dirs;
+
+        if (added.length > 0) {
+            server?.watcher.add(added);
+        }
+    }
+
+    /**
+     * Turn one watcher event into the export it needs, if any.
+     *
+     * @param event - The watcher event name.
+     * @param file - The path the event is about.
+     */
+    async function handleWatcherEvent(
+        event: string,
+        file: string,
+    ): Promise<void> {
+        const changed = normalizePath(file);
+
+        if (changed === manifestFile) {
+            await refreshWatchDirs();
+
+            return;
+        }
+
+        if (!watchDirs.some((dir) => isInside(changed, dir))) {
+            return;
+        }
+
+        if (!WATCHED_EVENTS.includes(event)) {
+            return;
+        }
+
+        if (event === "unlinkDir") {
+            await runFromWatcher(() => runner.full());
+
+            return;
+        }
+
+        if (!isTranslationFile(changed)) {
+            return;
+        }
+
+        const root = normalizePath(config.root);
+
+        await runFromWatcher(() =>
+            event === "unlink" || !isInside(changed, root)
+                ? runner.full()
+                : runner.source(
+                      normalizePath(path.relative(config.root, changed)),
+                  ),
+        );
+    }
 
     return {
         name: "@tolki/vite-plugin-laravel-lang-export",
@@ -135,6 +246,10 @@ export function laravelLangExport(
 
         configureServer(devServer) {
             server = devServer;
+
+            devServer.watcher.on("all", (event, file) => {
+                void handleWatcherEvent(event, file);
+            });
         },
 
         async buildStart() {
@@ -150,17 +265,15 @@ export function laravelLangExport(
                 await runner.full();
             }
 
-            // Warns early when the export left no usable manifest to watch.
-            await readManifest(
-                normalizePath(
-                    path.resolve(
-                        config.root,
-                        flags.output ?? DEFAULT_OUTPUT,
-                        "manifest.json",
-                    ),
+            manifestFile = normalizePath(
+                path.resolve(
+                    config.root,
+                    flags.output ?? DEFAULT_OUTPUT,
+                    "manifest.json",
                 ),
-                config.logger,
             );
+
+            await refreshWatchDirs();
         },
     };
 }
