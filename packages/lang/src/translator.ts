@@ -1,5 +1,4 @@
 import { dataGet, dataSet } from "@tolki/data";
-import { contains } from "@tolki/str";
 import type {
     ChoiceNumber,
     LangGroup,
@@ -34,6 +33,7 @@ import {
     phpTypeName,
 } from "@tolki/utils";
 
+import { assertLocale } from "./locale-guard";
 import { choose } from "./message-selector";
 import { makeReplacements } from "./replacements";
 
@@ -582,11 +582,7 @@ export class Translator<TLines extends LangLines = LangLines> {
      * @throws InvalidArgumentException when the locale holds `/`, `\`, `..` or a NUL byte
      */
     setLocale(locale: string): void {
-        if (contains(locale, ["/", "\\", "..", "\0"])) {
-            throw new InvalidArgumentException(
-                "Invalid characters present in locale.",
-            );
-        }
+        assertLocale(locale);
 
         this.#locale = locale;
     }
