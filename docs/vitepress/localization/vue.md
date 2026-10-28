@@ -39,7 +39,7 @@ createInertiaApp({
 
 Have Laravel put the locale in the `<html>` tag and share it with Inertia. If a locale in `<html lang>` is not one the exporter wrote, `htmlLocale` answers `null` and the `?? "en"` takes over.
 
-```php
+```blade
 // resources/views/app.blade.php
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 ```

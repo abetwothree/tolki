@@ -299,6 +299,45 @@ describe("stripVitepressSyntax", () => {
             stripVitepressSyntax("---\r\ntitle: X\r\n---\r\n# Hi"),
         ).not.toContain("title");
     });
+
+    it("strips a script setup block that starts a line", () => {
+        expect(
+            stripVitepressSyntax(
+                '# T\n\n<script setup>\nimport X from "x";\n</script>\n\nBody',
+            ),
+        ).toBe("## T\n\nBody");
+    });
+
+    it("keeps prose that mentions script setup mid-line", () => {
+        const prose =
+            "Use `<script setup>` or a plain block, then close with `</script>` here.";
+
+        expect(stripVitepressSyntax(prose)).toBe(prose);
+    });
+
+    it("strips a self-closing component tag inside a line", () => {
+        expect(
+            stripVitepressSyntax(
+                'Reads files <Badge type="info" text="JS only" /> and more.',
+            ),
+        ).toBe("Reads files and more.");
+    });
+
+    it("strips a component tag that ends a heading", () => {
+        expect(stripVitepressSyntax('# Title <Badge text="x" />\n\nBody')).toBe(
+            "## Title\n\nBody",
+        );
+    });
+
+    it("keeps component-like tags in fences and inline code", () => {
+        const text = "```tsx\n  <App {...props} />\n```\n\nUse `<App />` here.";
+
+        expect(stripVitepressSyntax(text)).toBe(text);
+    });
+
+    it("still strips a component tag that starts a line", () => {
+        expect(stripVitepressSyntax('<Badge text="x" />\nBody')).toBe("Body");
+    });
 });
 
 describe("githubSlug", () => {

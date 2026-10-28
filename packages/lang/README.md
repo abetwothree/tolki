@@ -240,7 +240,7 @@ php artisan lang:export
 
 That writes `resources/js/lang/en.json`, one file per locale, and a `manifest.json` that lists the locales and the directories the lines came from. Run the command yourself, or let the Vite plugin run it. The plugin exports before a build and when the dev server starts, re-exports a lang file when you save it, and serves the files as a module that `createLang` can load from. See [Vite Plugin](https://tolki.abe.dev/localization/vite.html).
 
-```js
+```ts
 // vite.config.ts
 import laravelLangExport from "@tolki/lang/vite-laravel";
 import { defineConfig } from "vite";
@@ -454,9 +454,11 @@ In `vite dev`, the plugin runs one full export when the server starts, then watc
 
 After a successful export, the dev server reloads the page.
 
+Changes inside the output directory never trigger an export, so the plugin does not loop on its own files. Keep the output directory outside every lang directory: the exporter refuses an output that is one, and an output that is a parent of one would hide that directory's changes.
+
 #### Sail
 
-When PHP runs in a Sail container, point `command` at Sail. The plugin passes paths relative to the Vite root, which `laravel-lang-export` can match inside the container, because it compares absolute paths as strings ([output contract](https://github.com/abetwothree/laravel-lang/blob/main/docs/output-contract.md#caller-obligations)).
+When PHP runs in a Sail container, point `command` at Sail. The plugin passes paths relative to the Vite root. `laravel-lang-export` compares absolute `--source` paths as normalized strings, so a host path never matches one inside the container, while a relative path resolves against the base path on both sides ([output contract](https://github.com/abetwothree/laravel-lang/blob/main/docs/output-contract.md#caller-obligations)).
 
 ```ts
 // vite.config.ts
@@ -576,7 +578,7 @@ createInertiaApp({
 
 Have Laravel put the locale in the `<html>` tag and share it with Inertia. If a locale in `<html lang>` is not one the exporter wrote, `htmlLocale` answers `null` and the `?? "en"` takes over.
 
-```php
+```blade
 // resources/views/app.blade.php
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 ```
@@ -1254,6 +1256,8 @@ Exported as `createLang` from `@tolki/lang`. The options are the starting `local
 - `setLocale(locale)` and `setFallback(locale)` load the locale before they switch, and the last call wins. A failed load rejects and changes nothing. `setFallback(null)` clears the fallback.
 - `load(locale)` fetches a locale without switching, and notifies subscribers only when it loaded something new.
 - `subscribe(listener)` calls the listener after each change and returns a function that stops the calls. `getVersion()` counts the changes.
+
+**Warning:** A listener that throws never stops a switch. Its error is rethrown in a microtask, which a browser reports as an uncaught error and Node treats as an uncaught exception, so a listener on a server must not throw.
 
 A loaded file replaces each top-level key it holds, a group, a `namespace::group` or a JSON line. Lines added earlier with `addLines()` under other keys survive. A locale that holds `/`, `\`, `..` or a NUL byte throws `InvalidArgumentException` from `createLang`, `setLocale`, `setFallback` and `load`, without calling the loader. A synchronous loader that throws makes `createLang` throw. See [Loading locales on demand](https://tolki.abe.dev/localization/index.html#loading-locales-on-demand).
 

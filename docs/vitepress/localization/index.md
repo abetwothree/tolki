@@ -240,7 +240,7 @@ php artisan lang:export
 
 That writes `resources/js/lang/en.json`, one file per locale, and a `manifest.json` that lists the locales and the directories the lines came from. Run the command yourself, or let the Vite plugin run it. The plugin exports before a build and when the dev server starts, re-exports a lang file when you save it, and serves the files as a module that `createLang` can load from. See [Vite Plugin](./vite.md).
 
-```js
+```ts
 // vite.config.ts
 import laravelLangExport from "@tolki/lang/vite-laravel";
 import { defineConfig } from "vite";

@@ -292,6 +292,43 @@ export function rewriteRelativeDocLinks(
 }
 
 /**
+ * Remove self-closing Vue components such as `<Badge />` from prose, with their leading space.
+ *
+ * @param content - Markdown content to clean.
+ * @returns Content without inline components; fenced code and inline code spans are left alone.
+ */
+function stripInlineComponents(content: string): string {
+    let inCodeFence = false;
+
+    return content
+        .split("\n")
+        .map((line) => {
+            if (/^ {0,3}(```|~~~)/.test(line)) {
+                inCodeFence = !inCodeFence;
+                return line;
+            }
+
+            if (inCodeFence) {
+                return line;
+            }
+
+            // Odd indexes are inline code spans, which stay as written.
+            return line
+                .split(/(`[^`]*`)/)
+                .map((part, index) =>
+                    index % 2 === 1
+                        ? part
+                        : part.replace(
+                              /[ \t]*<[A-Z][a-zA-Z]*(?:\s[^<>]*)?\/>/g,
+                              "",
+                          ),
+                )
+                .join("");
+        })
+        .join("\n");
+}
+
+/**
  * Strip VitePress-specific syntax from markdown content.
  *
  * @param content - Raw VitePress markdown content.
@@ -314,11 +351,13 @@ export function stripVitepressSyntax(content: string, docDir?: string): string {
     // Remove HTML div wrappers (common in VitePress docs)
     result = result.replace(/^<\/?div[^>]*>$/gm, "");
 
-    // Remove Vue <script setup> blocks
-    result = result.replace(/<script setup>[\s\S]*?<\/script>/g, "");
+    // Only a block that starts a line is a Vue script; the same text in prose or inline code is content.
+    result = result.replace(/^<script setup>[\s\S]*?<\/script>/gm, "");
 
     // Remove standalone Vue component tags (single-line or multi-line, e.g. <FnTry ... />)
     result = result.replace(/^<[A-Z][a-zA-Z]*[\s\S]*?\/>\n?/gm, "");
+
+    result = stripInlineComponents(result);
 
     // Nest imported docs under the package README heading hierarchy.
     result = increaseHeadingLevels(result);

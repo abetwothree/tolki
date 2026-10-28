@@ -225,6 +225,8 @@ Exported as `createLang` from `@tolki/lang`. The options are the starting `local
 - `load(locale)` fetches a locale without switching, and notifies subscribers only when it loaded something new.
 - `subscribe(listener)` calls the listener after each change and returns a function that stops the calls. `getVersion()` counts the changes.
 
+**Warning:** A listener that throws never stops a switch. Its error is rethrown in a microtask, which a browser reports as an uncaught error and Node treats as an uncaught exception, so a listener on a server must not throw.
+
 A loaded file replaces each top-level key it holds, a group, a `namespace::group` or a JSON line. Lines added earlier with `addLines()` under other keys survive. A locale that holds `/`, `\`, `..` or a NUL byte throws `InvalidArgumentException` from `createLang`, `setLocale`, `setFallback` and `load`, without calling the loader. A synchronous loader that throws makes `createLang` throw. See [Loading locales on demand](./index.md#loading-locales-on-demand).
 
 ```js

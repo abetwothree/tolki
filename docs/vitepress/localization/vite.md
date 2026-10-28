@@ -98,9 +98,11 @@ In `vite dev`, the plugin runs one full export when the server starts, then watc
 
 After a successful export, the dev server reloads the page.
 
+Changes inside the output directory never trigger an export, so the plugin does not loop on its own files. Keep the output directory outside every lang directory: the exporter refuses an output that is one, and an output that is a parent of one would hide that directory's changes.
+
 ### Sail
 
-When PHP runs in a Sail container, point `command` at Sail. The plugin passes paths relative to the Vite root, which `laravel-lang-export` can match inside the container, because it compares absolute paths as strings ([output contract](https://github.com/abetwothree/laravel-lang/blob/main/docs/output-contract.md#caller-obligations)).
+When PHP runs in a Sail container, point `command` at Sail. The plugin passes paths relative to the Vite root. `laravel-lang-export` compares absolute `--source` paths as normalized strings, so a host path never matches one inside the container, while a relative path resolves against the base path on both sides ([output contract](https://github.com/abetwothree/laravel-lang/blob/main/docs/output-contract.md#caller-obligations)).
 
 ```ts
 // vite.config.ts
