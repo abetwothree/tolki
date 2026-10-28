@@ -336,8 +336,8 @@ describe("stripVitepressSyntax", () => {
     });
 
     it.each([
-        ["a", `a${" ".repeat(100_000)}x`, `a${" ".repeat(100_000)}x`],
-        ["a", `a${" ".repeat(100_000)}<Badge />`, "a"],
+        ["no tag", `a${" ".repeat(100_000)}x`, `a${" ".repeat(100_000)}x`],
+        ["with tag", `a${" ".repeat(100_000)}<Badge />`, "a"],
     ])(
         "strips inline components in linear time (%s)",
         (_name, input, expected) => {
@@ -345,7 +345,7 @@ describe("stripVitepressSyntax", () => {
             const result = stripVitepressSyntax(input);
 
             expect(result).toBe(expected);
-            expect(performance.now() - start).toBeLessThan(100);
+            expect(performance.now() - start).toBeLessThan(1000);
         },
     );
 

@@ -964,12 +964,14 @@ describe("laravelLangExport", () => {
                 return Promise.reject(err);
             });
             server.watcher.add.mockClear();
+            mockReadFile.mockClear();
             server.emit("change", "/project/resources/js/lang/manifest.json");
             server.emit("change", "/project/resources/js/lang/manifest.json");
             await settle();
             resolvers[0]?.(JSON.stringify({ ...MANIFEST, watch: ["old"] }));
             await settle();
 
+            expect(mockReadFile).toHaveBeenCalledTimes(2);
             expect(server.watcher.add).not.toHaveBeenCalled();
 
             server.emit("change", "/project/lang/en/auth.php");
