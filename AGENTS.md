@@ -206,6 +206,7 @@ When using generics in parameter types, make sure to use the correct syntax for 
   - `defineKey(target, key, value)` - defines an own enumerable key without going through a setter
   - `looseEqual(value1, value2)` - checks if two values are loosely equal the way that PHP does it with `==`
   - `entriesKeyValue(variable)` - converts a key of an array or object to number if it should be a number, otherwise, returns the key as is. This is useful when iterating over arrays or objects and getting the keys from `Object.entries()` or similar methods.
+  - `escapeShellArg(value)` - wraps a value in POSIX single quotes so it is safe inside a shell command; every value interpolated into a command goes through it
 - Where a Laravel method follows a PHP rule, use the `@tolki/utils` helper that ports the rule rather than deriving it again:
   - `phpComputedKey(value, options)` - casts a key a method computed the way Laravel stores it (`true` becomes `1`, a float truncates), reading an `@tolki/enum` case or a `Stringable` object first when the options ask, and throwing PHP's `TypeError` for any other object
   - `arrayKeyExistsError()` - builds the `TypeError` Laravel's `array_key_exists` calls throw for a key `isIllegalOffset` flags
@@ -418,11 +419,19 @@ export function dataCollapse(data: unknown): unknown {
 
 - Ports Laravel's `Translator`, `MessageSelector` and the `__`, `trans` and `trans_choice` helpers
 - Stubs: `Translator.php`, `MessageSelector.php` and `NamespacedItemResolver.php` are the source of truth; `TranslatorTest.php` and `MessageSelectorTest.php` are the tests to adapt
-- The caller passes the lines, one object per locale: a top-level array or plain object is a group file, any other value a JSON line, and `ns::group` a package group. Loading lang files is out of scope
+- The caller passes the lines, one object per locale: a top-level array or plain object is a group file, any other value a JSON line, and `ns::group` a package group. `Translator` loads nothing; `createLang` and the Vite plugin do the loading
 - `MessageSelector` becomes the functions `choose` and `getPluralIndex`, in the stub's order; `Translator` stays a class because it holds the locale, the fallback and the lines
-- `normalizeLocale` is the one JS-only export: it turns a BCP 47 tag (`en-US`) into Laravel's spelling (`en_US`) with a small hand-written rule
+- `normalizeLocale` and `htmlLocale` are the JS-only locale helpers: `normalizeLocale` turns a BCP 47 tag (`en-US`) into Laravel's spelling (`en_US`) with a small hand-written rule, `htmlLocale` reads the locale from `<html lang>`
+- Entries (the main entry imports no framework, vite or `node:*` module; each framework entry imports only its own):
+  - `@tolki/lang` - `Translator`, the helper functions, `createLang` and `bindLang`
+  - `@tolki/lang/vite-laravel` - Vite plugin that runs `laravel-lang-export` and serves `virtual:tolki-lang`
+  - `@tolki/lang/vue` - `createLang` as a Vue plugin, plus `useLang`
+  - `@tolki/lang/react` - `createLang`, `LangProvider` and `useLang`
+  - `@tolki/lang/svelte` - `createLang`, `setLang`, `getLang` and `langContext`
+  - `@tolki/lang/client` - ambient types for `virtual:tolki-lang`
+  - `vue`, `react`, `svelte` and `vite` are optional peers
 - use `@tolki/str` for `Str::` calls, `@tolki/data`'s `dataGet` and `dataSet` for `Arr::get` and `Arr::set`, `@tolki/utils` for PHP rules
-- Types live in `@tolki/types` (`lang.d.ts`), re-exported by `@tolki/lang`; only `TranslationHelpers` stays in the package, because it names the `Translator` class.
+- Types live in `@tolki/types` (`lang.d.ts`), re-exported by `@tolki/lang`; only `TranslationHelpers`, `LangReader`, `Lang`, `LangRegister`, `LinesFromRegister` and `RegisteredLines` stay in the package, because they name the `Translator` class or are augmentation targets.
 
 ### @tolki/num
 
