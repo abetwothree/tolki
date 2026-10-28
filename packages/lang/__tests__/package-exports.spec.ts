@@ -15,6 +15,7 @@ interface LangPackageManifest {
     peerDependenciesMeta: {
         vue?: { optional?: boolean };
         react?: { optional?: boolean };
+        svelte?: { optional?: boolean };
     };
     publishConfig: {
         exports: Record<string, PackageExportTarget>;
@@ -65,6 +66,15 @@ describe("package exports", () => {
         });
     });
 
+    it("publishes the svelte subpath to the flat dist output", () => {
+        const manifest = readPackageManifest();
+
+        expect(manifest.publishConfig.exports["./svelte"]).toEqual({
+            import: "./dist/svelte.js",
+            types: "./dist/svelte.d.ts",
+        });
+    });
+
     it("keeps vue an optional peer", () => {
         const manifest = readPackageManifest();
 
@@ -75,5 +85,11 @@ describe("package exports", () => {
         const manifest = readPackageManifest();
 
         expect(manifest.peerDependenciesMeta.react?.optional).toBe(true);
+    });
+
+    it("keeps svelte an optional peer", () => {
+        const manifest = readPackageManifest();
+
+        expect(manifest.peerDependenciesMeta.svelte?.optional).toBe(true);
     });
 });
