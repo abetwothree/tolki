@@ -15,6 +15,10 @@
     },
     "type": "module",
     "main": "src/index.ts",
+    "exports": {
+        ".": "./src/index.ts",
+        "./*": "./src/*.ts"
+    },
     "scripts": {
         "build": "vite build",
         "readme:build": "ts-node ../../scripts/readme-build.ts --filter @tolki/lang",
@@ -29,7 +33,9 @@
         "pluralization",
         "laravel",
         "utils",
-        "utilities"
+        "utilities",
+        "vue",
+        "vue-plugin"
     ],
     "sideEffects": false,
     "packageManager": "pnpm@10.12.1",
@@ -38,6 +44,14 @@
         "@tolki/str": "workspace:^",
         "@tolki/types": "workspace:^",
         "@tolki/utils": "workspace:^"
+    },
+    "peerDependencies": {
+        "vue": "^3.5.0"
+    },
+    "peerDependenciesMeta": {
+        "vue": {
+            "optional": true
+        }
     },
     "files": [
         "dist"
@@ -75,6 +89,10 @@
             "./translator": {
                 "import": "./dist/translator.js",
                 "types": "./dist/translator.d.ts"
+            },
+            "./vue": {
+                "import": "./dist/vue.js",
+                "types": "./dist/vue.d.ts"
             }
         }
     },
@@ -84,5 +102,10 @@
             "localization/translator.md",
             "localization/differences.md"
         ]
+    },
+    "devDependencies": {
+        "@vitejs/plugin-vue": "^6.0.10",
+        "@vue/test-utils": "^2.5.1",
+        "vue": "^3.5.44"
     }
 }
