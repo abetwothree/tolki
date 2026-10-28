@@ -335,13 +335,19 @@ describe("stripVitepressSyntax", () => {
         expect(stripVitepressSyntax(text)).toBe(text);
     });
 
-    it("strips inline components in linear time on a long space run", () => {
-        const start = performance.now();
-        const result = stripVitepressSyntax(`${" ".repeat(100_000)}x`);
+    it.each([
+        ["a", `a${" ".repeat(100_000)}x`, `a${" ".repeat(100_000)}x`],
+        ["a", `a${" ".repeat(100_000)}<Badge />`, "a"],
+    ])(
+        "strips inline components in linear time (%s)",
+        (_name, input, expected) => {
+            const start = performance.now();
+            const result = stripVitepressSyntax(input);
 
-        expect(result).toBe("x");
-        expect(performance.now() - start).toBeLessThan(100);
-    });
+            expect(result).toBe(expected);
+            expect(performance.now() - start).toBeLessThan(100);
+        },
+    );
 
     it("leaves a component tag in an indented code block", () => {
         const text = "Text:\n\n    <App />\n\nAfter.";
