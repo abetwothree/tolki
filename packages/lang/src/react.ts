@@ -40,6 +40,9 @@ export interface ReactLang<
     readonly lang: Lang<TLines>;
 }
 
+/** Do nothing; the version snapshot tracks changes, so reads need no tracker. */
+function noop(): void {}
+
 const LangContext = createContext<Lang<LangLines> | null>(null);
 
 /**
@@ -76,11 +79,12 @@ export function useLang<
         lang.getVersion,
     );
 
+    // version is the invalidation key: a new snapshot hands memoized children a new __.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
     return useMemo(
         () =>
             ({
-                ...bindLang(lang, () => {}),
+                ...bindLang(lang, noop),
                 locale: lang.getLocale(),
                 setLocale: lang.setLocale,
                 lang,

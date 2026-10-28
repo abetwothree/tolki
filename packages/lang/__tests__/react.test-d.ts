@@ -1,3 +1,4 @@
+import type { Lang, TranslationValue } from "@tolki/lang";
 import type { LangProviderProps, ReactLang } from "@tolki/lang/react";
 import { createLang, LangProvider } from "@tolki/lang/react";
 import type { ReactElement } from "react";
@@ -15,12 +16,22 @@ describe("LangProvider", () => {
 });
 
 describe("useLang", () => {
-    it("types the reads from the lines", () => {
-        expectTypeOf<
-            ReactLang<typeof LINES>["locale"]
-        >().toEqualTypeOf<string>();
-        expectTypeOf<ReturnType<ReactLang<typeof LINES>["__"]>>().toExtend<
-            unknown
-        >();
+    it("types __ from the lines", () => {
+        const reader = {} as ReactLang<typeof LINES>;
+
+        expectTypeOf(reader.__("Welcome")).toEqualTypeOf<string>();
+    });
+
+    it("types __ as a translation value without lines", () => {
+        const reader = {} as ReactLang;
+
+        expectTypeOf(reader.__("anything")).toEqualTypeOf<TranslationValue>();
+    });
+
+    it("types setLocale and lang", () => {
+        const reader = {} as ReactLang<typeof LINES>;
+
+        expectTypeOf(reader.setLocale("en")).toEqualTypeOf<Promise<void>>();
+        expectTypeOf(reader.lang).toEqualTypeOf<Lang<typeof LINES>>();
     });
 });
