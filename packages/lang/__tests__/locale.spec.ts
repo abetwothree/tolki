@@ -65,6 +65,21 @@ describe("htmlLocale", () => {
     });
 
     // JS-only: the browser's <html lang> has no Laravel counterpart.
+    it.each([
+        ["sr-Latn", ["sr_Latn", "en"], "sr_Latn"],
+        ["zh-Hant", ["zh_Hant"], "zh_Hant"],
+        ["sr-Latn-ME", ["sr_Latn_ME"], "sr_Latn_ME"],
+        ["pt-br", ["pt-BR"], "pt-BR"],
+    ])(
+        "matches %s against the list's own spelling, ignoring case",
+        (tag, locales, expected) => {
+            document.documentElement.lang = tag;
+
+            expect(htmlLocale(locales)).toBe(expected);
+        },
+    );
+
+    // JS-only: the browser's <html lang> has no Laravel counterpart.
     it("answers null for an empty lang", () => {
         document.documentElement.lang = "";
 

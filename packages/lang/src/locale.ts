@@ -26,8 +26,8 @@ export function normalizeLocale(locale: string): string {
 /**
  * Read the locale the page declares on its `<html lang>`.
  *
- * @param locales - The locales the lines hold; the tag must be one of them in either spelling
- * @returns The locale, or null without a document, without a tag or when no listed locale matches
+ * @param locales - The locales the lines hold; the tag matches one ignoring case and `-` versus `_`
+ * @returns The listed locale's own spelling, or null without a document, without a tag or when none matches
  *
  * @example
  *
@@ -54,5 +54,11 @@ export function htmlLocale(locales?: readonly string[]): string | null {
         return tag;
     }
 
-    return locales.includes(normalized) ? normalized : null;
+    const wanted = normalized.toLowerCase();
+
+    return (
+        locales.find((locale) => {
+            return normalizeLocale(locale).toLowerCase() === wanted;
+        }) ?? null
+    );
 }

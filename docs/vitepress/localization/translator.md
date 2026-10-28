@@ -497,7 +497,7 @@ Read the locale the page declares on its `<html lang>`.
 
 <Badge type="info" text="JS only" />
 
-Exported as `htmlLocale` from `@tolki/lang`. Pass the locales your lines hold. The tag must be one of them, in either spelling: `<html lang="pt-BR">` answers `pt-BR` when the list holds it, else `pt_BR` when the list holds that. It answers `null` without a document, for an empty `lang`, or when no listed locale matches. Without a list, it answers the tag run through [`normalizeLocale`](#normalizelocale).
+Exported as `htmlLocale` from `@tolki/lang`. Pass the locales your lines hold. The tag must match one of them, ignoring case and treating `-` and `_` alike, and it answers the list's own spelling: `<html lang="pt-BR">` answers `pt_BR` when the list holds `pt_BR`, and `<html lang="sr-Latn">` answers `sr_Latn`. It answers `null` without a document, for an empty `lang`, or when no listed locale matches. Without a list, it answers the tag run through [`normalizeLocale`](#normalizelocale).
 
 It needs a document, so the example does not run in Node.
 
@@ -508,6 +508,9 @@ import { htmlLocale } from "@tolki/lang";
 htmlLocale(["pt_BR", "en"]); // "pt_BR"
 htmlLocale(["en", "es"]); // null
 htmlLocale(); // "pt_BR"
+
+// With <html lang="sr-Latn">:
+htmlLocale(["sr_Latn", "en"]); // "sr_Latn"
 ```
 
 ### locale
