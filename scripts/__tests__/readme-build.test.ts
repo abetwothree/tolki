@@ -366,6 +366,28 @@ describe("stripVitepressSyntax", () => {
     it("still strips a component tag that starts a line", () => {
         expect(stripVitepressSyntax('<Badge text="x" />\nBody')).toBe("Body");
     });
+
+    it("keeps a component tag that starts a line inside a fence", () => {
+        const text =
+            "```svelte\n<script>\n  setLang(lang);\n</script>\n\n<Greeting />\n```";
+
+        expect(stripVitepressSyntax(text)).toBe(text);
+    });
+
+    it("keeps a script setup block inside a fence", () => {
+        const text =
+            "```vue\n<script setup>\nconst a = 1;\n</script>\n\n<p>{{ a }}</p>\n```";
+
+        expect(stripVitepressSyntax(text)).toBe(text);
+    });
+
+    it("strips a multi-line component tag that starts a line after a fence", () => {
+        expect(
+            stripVitepressSyntax(
+                '```js\nx\n```\n\n<FnTry\n  name="a"\n/>\nBody',
+            ),
+        ).toBe("```js\nx\n```\n\nBody");
+    });
 });
 
 describe("githubSlug", () => {

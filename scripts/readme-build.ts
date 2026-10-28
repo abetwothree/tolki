@@ -292,54 +292,85 @@ export function rewriteRelativeDocLinks(
 }
 
 /**
- * Remove self-closing Vue components such as `<Badge />` from prose, with their leading space.
+ * Apply a transform to each run of lines outside fenced code, leaving every fence as written.
  *
- * @param content - Markdown content to clean.
- * @returns Content without inline components; fenced code and inline code spans are left alone.
+ * @param content - Markdown content.
+ * @param transform - The change to make to one unfenced run, which keeps its line breaks.
+ * @returns The content with each unfenced run transformed.
  */
-function stripInlineComponents(content: string): string {
+function mapUnfenced(
+    content: string,
+    transform: (text: string) => string,
+): string {
+    let result = "";
+    let run = "";
     let fence: { char: string; length: number } | null = null;
 
-    return content
-        .split("\n")
-        .map((line) => {
-            const marker = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+    for (const line of content.split(/(?<=\n)/)) {
+        const marker = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(
+            line.replace(/\n$/, ""),
+        );
 
-            if (fence !== null) {
-                if (
-                    marker !== null &&
-                    marker[1]?.[0] === fence.char &&
-                    (marker[1]?.length ?? 0) >= fence.length &&
-                    (marker[2] ?? "").trim() === ""
-                ) {
-                    fence = null;
-                }
+        if (fence === null) {
+            if (marker === null) {
+                run += line;
 
-                return line;
+                continue;
             }
 
-            if (marker !== null) {
-                fence = {
-                    char: marker[1]?.[0] as string,
-                    length: marker[1]?.length as number,
-                };
-                return line;
-            }
+            result += transform(run);
+            run = "";
+            fence = {
+                char: marker[1]?.[0] as string,
+                length: marker[1]?.length as number,
+            };
+        } else if (
+            marker !== null &&
+            marker[1]?.[0] === fence.char &&
+            (marker[1]?.length ?? 0) >= fence.length &&
+            (marker[2] ?? "").trim() === ""
+        ) {
+            fence = null;
+        }
 
-            // Four or more spaces of indent is an indented code block.
-            if (line.startsWith("    ")) {
-                return line;
-            }
+        result += line;
+    }
 
-            // Odd indexes are inline code spans, which stay as written.
-            return line
-                .split(/(`[^`]*`)/)
-                .map((part, index) =>
-                    index % 2 === 1 ? part : removeComponentTags(part),
-                )
-                .join("");
-        })
-        .join("\n");
+    return result + transform(run);
+}
+
+/**
+ * Remove Vue script blocks and self-closing components such as `<Badge />` from prose.
+ *
+ * @param content - Markdown content to clean.
+ * @returns Content without Vue blocks or components; fenced code and inline code spans are left alone.
+ */
+function stripComponents(content: string): string {
+    return mapUnfenced(content, (text) => {
+        return (
+            text
+                // Only a block that starts a line is a Vue script; the same text in prose or inline code is content.
+                .replace(/^<script setup>[\s\S]*?<\/script>/gm, "")
+                // Standalone component tags, single-line or multi-line, such as <FnTry ... />.
+                .replace(/^<[A-Z][a-zA-Z]*[\s\S]*?\/>\n?/gm, "")
+                .split("\n")
+                .map((line) => {
+                    // Four or more spaces of indent is an indented code block.
+                    if (line.startsWith("    ")) {
+                        return line;
+                    }
+
+                    // Odd indexes are inline code spans, which stay as written.
+                    return line
+                        .split(/(`[^`]*`)/)
+                        .map((part, index) =>
+                            index % 2 === 1 ? part : removeComponentTags(part),
+                        )
+                        .join("");
+                })
+                .join("\n")
+        );
+    });
 }
 
 /**
@@ -383,13 +414,7 @@ export function stripVitepressSyntax(content: string, docDir?: string): string {
     // Remove HTML div wrappers (common in VitePress docs)
     result = result.replace(/^<\/?div[^>]*>$/gm, "");
 
-    // Only a block that starts a line is a Vue script; the same text in prose or inline code is content.
-    result = result.replace(/^<script setup>[\s\S]*?<\/script>/gm, "");
-
-    // Remove standalone Vue component tags (single-line or multi-line, e.g. <FnTry ... />)
-    result = result.replace(/^<[A-Z][a-zA-Z]*[\s\S]*?\/>\n?/gm, "");
-
-    result = stripInlineComponents(result);
+    result = stripComponents(result);
 
     // Nest imported docs under the package README heading hierarchy.
     result = increaseHeadingLevels(result);

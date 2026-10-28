@@ -443,7 +443,7 @@ Pass a flag here, rather than in `command`, so the one-file export gets the same
 
 ### Dev and build
 
-In `vite build`, the plugin runs one full export before bundling. A failed export fails the build.
+In `vite build`, the plugin runs one full export before bundling. A failed export fails the build. Because the build runs the export, it needs PHP and the app's `vendor/` directory. A build stage that has only Node, such as a Docker stage, needs `runOnBuildStart: false` and the locale files committed or copied in.
 
 In `vite dev`, the plugin runs one full export when the server starts, then watches the directories the manifest lists under `watch`. It reads the list again whenever `manifest.json` changes.
 
@@ -488,7 +488,7 @@ const lang = createLang({ locale: "en", fallback: "en", load });
 await lang.ready;
 ```
 
-For the browser, `load` imports the locale's file with `import()`, so each locale becomes its own content-hashed chunk, and a visitor downloads only the locales they use. For the server build, the module imports every locale up front, so `load` answers at once and `createLang` needs no `await`. A locale the manifest does not list throws an `Error` that names the locales that were exported. A manifest locale that holds `/`, `\`, `..` or a NUL byte is left out.
+For the browser, `load` imports the locale's file with `import()`, so each locale becomes its own content-hashed chunk, and a visitor downloads only the locales they use. For the server build, the module imports every locale up front, so `load` answers at once and `createLang` needs no `await`. A locale the manifest does not list throws an `Error` that names the locales that were exported. A manifest locale that holds anything but ASCII letters, digits, `_` and `-` is left out, a dot included.
 
 When the manifest is missing or unreadable, the plugin warns and `locales` is empty.
 
@@ -545,12 +545,11 @@ const lang = createLang({
 
 ### Setup with Inertia
 
-Create the lang in `resources/js/app.ts`, read the starting locale from the page's `<html lang>`, and wait for `lang.ready` before you mount, so the first render already has its lines. `htmlLocale(locales)` answers the locale from `<html lang="pt-BR">` in the spelling the exporter wrote, `pt_BR`, and answers `null` when no listed locale matches. The locale never comes from `navigator.language`, so the client always starts in the locale the server rendered.
+Create the lang in `resources/js/app.ts` and wait for `lang.ready` before you mount, so the first render already has its lines. Read the starting locale from the Inertia page prop `props.initialPage.props.locale`, the value the server rendered with, and start in `"en"` when the exporter did not write that locale. The locale never comes from `navigator.language`.
 
 ```ts
 // resources/js/app.ts
 import { createInertiaApp } from "@inertiajs/vue3";
-import { htmlLocale } from "@tolki/lang";
 import { createLang } from "@tolki/lang/vue";
 import { load, locales } from "virtual:tolki-lang";
 import { createSSRApp, h } from "vue";
@@ -558,11 +557,9 @@ import { createSSRApp, h } from "vue";
 createInertiaApp({
   resolve: (name) => import(`./Pages/${name}.vue`),
   async setup({ el, App, props, plugin }) {
-    const lang = createLang({
-      locale: htmlLocale(locales) ?? "en",
-      fallback: "en",
-      load,
-    });
+    const wanted = props.initialPage.props.locale as string;
+    const locale = locales.includes(wanted) ? wanted : "en";
+    const lang = createLang({ locale, fallback: "en", load });
 
     await lang.ready;
 
@@ -574,12 +571,14 @@ createInertiaApp({
 });
 ```
 
+A page without Inertia has no page prop, so read the locale from its `<html lang>` with `htmlLocale(locales) ?? "en"`. `htmlLocale` from `@tolki/lang` matches `<html lang="pt-BR">` to the spelling the exporter wrote, `pt_BR`, and answers `null` when no listed locale matches.
+
 `createLang` from `@tolki/lang/vue` takes the same options as the core [`createLang`](https://tolki.abe.dev/localization/index.html#loading-locales-on-demand): the locale, a fallback, `lines` you already have, and `load`. What it returns is the lang itself and a Vue plugin, so `app.use(lang)` installs it and `lang.setLocale()` works anywhere. [The Vite plugin](https://tolki.abe.dev/localization/vite.html) supplies `load` and `locales`.
 
-Have Laravel put the locale in the `<html>` tag and share it with Inertia. If a locale in `<html lang>` is not one the exporter wrote, `htmlLocale` answers `null` and the `?? "en"` takes over.
+Share the locale with Inertia, and have Laravel put it in the `<html>` tag as well. If the shared locale is not one the exporter wrote, the guard starts the lang in `"en"`.
 
 ```blade
-// resources/views/app.blade.php
+{{-- resources/views/app.blade.php --}}
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 ```
 
@@ -596,7 +595,7 @@ public function share(Request $request): array
 
 #### Server-side rendering
 
-On the server, build one `createLang()` for each request, inside `setup`, and read the locale from `page.props.locale`. The module the Vite plugin serves to the server build loads every locale up front, so the lang has its lines at once and there is nothing to await.
+On the server, build one `createLang()` for each request, inside `setup`, and read the locale from `page.props.locale` with the same guard. The module the Vite plugin serves to the server build loads every locale up front, so the lang has its lines at once and there is nothing to await.
 
 ```ts
 // resources/js/ssr.ts
@@ -604,7 +603,7 @@ import { createInertiaApp } from "@inertiajs/vue3";
 import createServer from "@inertiajs/vue3/server";
 import { createLang } from "@tolki/lang/vue";
 import { renderToString } from "@vue/server-renderer";
-import { load } from "virtual:tolki-lang";
+import { load, locales } from "virtual:tolki-lang";
 import { createSSRApp, h } from "vue";
 
 createServer((page) =>
@@ -613,15 +612,12 @@ createServer((page) =>
     render: renderToString,
     resolve: (name) => import(`./Pages/${name}.vue`),
     setup({ App, props, plugin }) {
+      const wanted = page.props.locale as string;
+      const locale = locales.includes(wanted) ? wanted : "en";
+
       return createSSRApp({ render: () => h(App, props) })
         .use(plugin)
-        .use(
-          createLang({
-            locale: page.props.locale as string,
-            fallback: "en",
-            load,
-          }),
-        );
+        .use(createLang({ locale, fallback: "en", load }));
     },
   }),
 );
@@ -629,7 +625,7 @@ createServer((page) =>
 
 **Warning:** Never create the lang at module level on a server. The plugin subscribes once to each app it installs into, and it stops listening only when the app unmounts. A server-rendered app is never unmounted, so a `Lang` shared across requests would add a listener on every request and never remove it. It would also share one locale between requests that run at the same time. A `createLang()` inside `setup` has neither problem.
 
-The client has to start in the locale the server rendered, or hydration reports a mismatch. That is why `app.ts` reads `<html lang>`, which Laravel set from the same `app()->getLocale()` that the server rendered with.
+The client has to start in the locale the server rendered, or hydration reports a mismatch. Both sides read the same prop and apply the same guard because the server and the client must start in the same locale: on the server, `load` throws for a locale the exporter did not write, and the guard starts that request in `"en"` instead.
 
 ### In templates
 
@@ -698,9 +694,11 @@ An Inertia visit can change the locale, such as a language link that sets a cook
 
 ```ts
 import { router } from "@inertiajs/vue3";
+import { locales } from "virtual:tolki-lang";
 
 router.on("navigate", async (event) => {
-  const locale = event.detail.page.props.locale as string;
+  const wanted = event.detail.page.props.locale as string;
+  const locale = locales.includes(wanted) ? wanted : "en";
 
   if (!lang.isLocale(locale)) {
     await lang.setLocale(locale);
@@ -708,7 +706,7 @@ router.on("navigate", async (event) => {
 });
 ```
 
-Register it in `app.ts`, right after you create `lang`. A client app without server-side rendering uses `createApp` where the example uses `createSSRApp`. `setLocale` does not change `<html lang>`, so set `document.documentElement.lang` in the same handler if the page needs it.
+The guard is the one `setup` uses, so a visit to a locale the exporter did not write switches to `"en"` rather than leaving `setLocale` to reject. Register it in `app.ts`, right after you create `lang`. A client app without server-side rendering uses `createApp` where the example uses `createSSRApp`. `setLocale` does not change `<html lang>`, so set `document.documentElement.lang` in the same handler if the page needs it.
 
 ### Next
 
@@ -723,12 +721,11 @@ Register it in `app.ts`, right after you create `lang`. A client app without ser
 
 Create the lang outside the tree, once for the page on the client and once for each request on the server, then give it to `<LangProvider lang={lang}>`. `createLang` is the core function, re-exported from `@tolki/lang/react`, and takes the options of [`createLang`](https://tolki.abe.dev/localization/index.html#loading-locales-on-demand).
 
-On the client, read the starting locale from the page's `<html lang>` with `htmlLocale(locales)`, and wait for `lang.ready` before `hydrateRoot`, so the first render already has its lines and matches the server's markup. The locale never comes from `navigator.language`.
+On the client, read the starting locale from the Inertia page prop `props.initialPage.props.locale`, the value the server rendered with, and start in `"en"` when the exporter did not write that locale. Wait for `lang.ready` before `hydrateRoot`, so the first render already has its lines and matches the server's markup. The locale never comes from `navigator.language`.
 
 ```tsx
 // resources/js/app.tsx
 import { createInertiaApp } from "@inertiajs/react";
-import { htmlLocale } from "@tolki/lang";
 import { createLang, LangProvider } from "@tolki/lang/react";
 import { load, locales } from "virtual:tolki-lang";
 import { hydrateRoot } from "react-dom/client";
@@ -736,11 +733,9 @@ import { hydrateRoot } from "react-dom/client";
 createInertiaApp({
   resolve: (name) => import(`./Pages/${name}.tsx`),
   async setup({ el, App, props }) {
-    const lang = createLang({
-      locale: htmlLocale(locales) ?? "en",
-      fallback: "en",
-      load,
-    });
+    const wanted = props.initialPage.props.locale as string;
+    const locale = locales.includes(wanted) ? wanted : "en";
+    const lang = createLang({ locale, fallback: "en", load });
 
     await lang.ready;
 
@@ -754,11 +749,11 @@ createInertiaApp({
 });
 ```
 
-[The Vite plugin](https://tolki.abe.dev/localization/vite.html) supplies `load` and `locales`. Have Laravel put the locale in the `<html>` tag and share it with Inertia, as the [Vue page](https://tolki.abe.dev/localization/vue.html#setup-with-inertia) shows. A client app without server-side rendering uses `createRoot` where the example uses `hydrateRoot`.
+[The Vite plugin](https://tolki.abe.dev/localization/vite.html) supplies `load` and `locales`. A page without Inertia has no page prop, so read the locale from its `<html lang>` with `htmlLocale(locales) ?? "en"`, from `@tolki/lang`. Share the locale with Inertia, and have Laravel put it in the `<html>` tag as well, as the [Vue page](https://tolki.abe.dev/localization/vue.html#setup-with-inertia) shows. A client app without server-side rendering uses `createRoot` where the example uses `hydrateRoot`.
 
 #### Server-side rendering
 
-On the server, build one `createLang()` for each request, inside `setup`, from `page.props.locale`. The module the Vite plugin serves to the server build loads every locale up front, so the lang has its lines at once and there is nothing to await.
+On the server, build one `createLang()` for each request, inside `setup`, from `page.props.locale` with the same guard. The module the Vite plugin serves to the server build loads every locale up front, so the lang has its lines at once and there is nothing to await.
 
 ```tsx
 // resources/js/ssr.tsx
@@ -766,7 +761,7 @@ import { createInertiaApp } from "@inertiajs/react";
 import createServer from "@inertiajs/react/server";
 import { createLang, LangProvider } from "@tolki/lang/react";
 import { renderToString } from "react-dom/server";
-import { load } from "virtual:tolki-lang";
+import { load, locales } from "virtual:tolki-lang";
 
 createServer((page) =>
   createInertiaApp({
@@ -774,11 +769,9 @@ createServer((page) =>
     render: renderToString,
     resolve: (name) => import(`./Pages/${name}.tsx`),
     setup: ({ App, props }) => {
-      const lang = createLang({
-        locale: page.props.locale as string,
-        fallback: "en",
-        load,
-      });
+      const wanted = page.props.locale as string;
+      const locale = locales.includes(wanted) ? wanted : "en";
+      const lang = createLang({ locale, fallback: "en", load });
 
       return (
         <LangProvider lang={lang}>
@@ -792,7 +785,7 @@ createServer((page) =>
 
 **Warning:** Never create the lang at module level on a server. One `Lang` shared across requests would share its locale between requests that run at the same time. Create it inside `setup`, so each request has its own.
 
-The client has to start in the locale the server rendered, or hydration reports a mismatch.
+The client has to start in the locale the server rendered, or hydration reports a mismatch. Both sides read the same prop and apply the same guard because the server and the client must start in the same locale: on the server, `load` throws for a locale the exporter did not write, and the guard starts that request in `"en"` instead.
 
 ### useLang
 
@@ -862,9 +855,11 @@ An Inertia visit can change the locale. Inertia has no part in the lang, so list
 
 ```ts
 import { router } from "@inertiajs/react";
+import { locales } from "virtual:tolki-lang";
 
 router.on("navigate", async (event) => {
-  const locale = event.detail.page.props.locale as string;
+  const wanted = event.detail.page.props.locale as string;
+  const locale = locales.includes(wanted) ? wanted : "en";
 
   if (!lang.isLocale(locale)) {
     await lang.setLocale(locale);
@@ -872,7 +867,7 @@ router.on("navigate", async (event) => {
 });
 ```
 
-Register it in `app.tsx`, right after you create `lang`. `setLocale` does not change `<html lang>`, so set `document.documentElement.lang` in the same handler if the page needs it.
+The guard is the one `setup` uses, so a visit to a locale the exporter did not write switches to `"en"` rather than leaving `setLocale` to reject. Register it in `app.tsx`, right after you create `lang`. `setLocale` does not change `<html lang>`, so set `document.documentElement.lang` in the same handler if the page needs it.
 
 ### Next
 
@@ -887,12 +882,11 @@ Register it in `app.tsx`, right after you create `lang`. `setLocale` does not ch
 
 Inertia owns the root component, so hand the lang over as context. `createLang` is the core function, re-exported from `@tolki/lang/svelte`, and takes the options of [`createLang`](https://tolki.abe.dev/localization/index.html#loading-locales-on-demand). `langContext(lang)` builds the context map that `getLang()` finds.
 
-On the client, read the starting locale from the page's `<html lang>` with `htmlLocale(locales)`, and wait for `lang.ready` before `hydrate`, so the first render already has its lines and matches the server's markup. The locale never comes from `navigator.language`.
+On the client, read the starting locale from the Inertia page prop `props.initialPage.props.locale`, the value the server rendered with, and start in `"en"` when the exporter did not write that locale. Wait for `lang.ready` before `hydrate`, so the first render already has its lines and matches the server's markup. The locale never comes from `navigator.language`.
 
 ```ts
 // resources/js/app.ts
 import { createInertiaApp } from "@inertiajs/svelte";
-import { htmlLocale } from "@tolki/lang";
 import { createLang, langContext } from "@tolki/lang/svelte";
 import { load, locales } from "virtual:tolki-lang";
 import { hydrate } from "svelte";
@@ -900,11 +894,9 @@ import { hydrate } from "svelte";
 createInertiaApp({
   resolve: (name) => import(`./Pages/${name}.svelte`),
   async setup({ el, App, props }) {
-    const lang = createLang({
-      locale: htmlLocale(locales) ?? "en",
-      fallback: "en",
-      load,
-    });
+    const wanted = props.initialPage.props.locale as string;
+    const locale = locales.includes(wanted) ? wanted : "en";
+    const lang = createLang({ locale, fallback: "en", load });
 
     await lang.ready;
 
@@ -913,18 +905,18 @@ createInertiaApp({
 });
 ```
 
-[The Vite plugin](https://tolki.abe.dev/localization/vite.html) supplies `load` and `locales`. Have Laravel put the locale in the `<html>` tag and share it with Inertia, as the [Vue page](https://tolki.abe.dev/localization/vue.html#setup-with-inertia) shows. A client app without server-side rendering uses `mount` where the example uses `hydrate`.
+[The Vite plugin](https://tolki.abe.dev/localization/vite.html) supplies `load` and `locales`. A page without Inertia has no page prop, so read the locale from its `<html lang>` with `htmlLocale(locales) ?? "en"`, from `@tolki/lang`. Share the locale with Inertia, and have Laravel put it in the `<html>` tag as well, as the [Vue page](https://tolki.abe.dev/localization/vue.html#setup-with-inertia) shows. A client app without server-side rendering uses `mount` where the example uses `hydrate`.
 
 #### Server-side rendering
 
-On the server, build one `createLang()` for each request, inside `setup`, from `page.props.locale`, and pass its context to `render`. The module the Vite plugin serves to the server build loads every locale up front, so the lang has its lines at once and there is nothing to await.
+On the server, build one `createLang()` for each request, inside `setup`, from `page.props.locale` with the same guard, and pass its context to `render`. The module the Vite plugin serves to the server build loads every locale up front, so the lang has its lines at once and there is nothing to await.
 
 ```ts
 // resources/js/ssr.ts
 import { createInertiaApp } from "@inertiajs/svelte";
 import createServer from "@inertiajs/svelte/server";
 import { createLang, langContext } from "@tolki/lang/svelte";
-import { load } from "virtual:tolki-lang";
+import { load, locales } from "virtual:tolki-lang";
 import { render } from "svelte/server";
 
 createServer((page) =>
@@ -932,11 +924,9 @@ createServer((page) =>
     page,
     resolve: (name) => import(`./Pages/${name}.svelte`),
     setup({ App, props }) {
-      const lang = createLang({
-        locale: page.props.locale as string,
-        fallback: "en",
-        load,
-      });
+      const wanted = page.props.locale as string;
+      const locale = locales.includes(wanted) ? wanted : "en";
+      const lang = createLang({ locale, fallback: "en", load });
 
       return render(App, { props, context: langContext(lang) });
     },
@@ -946,7 +936,7 @@ createServer((page) =>
 
 **Warning:** Never create the lang at module level on a server. One `Lang` shared across requests would share its locale between requests that run at the same time. Create it inside `setup`, so each request has its own.
 
-The client has to start in the locale the server rendered, or hydration reports a mismatch.
+The client has to start in the locale the server rendered, or hydration reports a mismatch. Both sides read the same prop and apply the same guard because the server and the client must start in the same locale: on the server, `load` throws for a locale the exporter did not write, and the guard starts that request in `"en"` instead.
 
 ### Your own root component
 
@@ -964,6 +954,7 @@ When your app owns the root, skip the context and call `setLang()` while the roo
   setLang(lang);
 </script>
 
+<Greeting />
 ```
 
 `setLang()` reads the lang once, when the component initializes, as a provider reads its prop. It returns the same object `getLang()` does.
@@ -1021,9 +1012,11 @@ An Inertia visit can change the locale. Inertia has no part in the lang, so list
 
 ```ts
 import { router } from "@inertiajs/svelte";
+import { locales } from "virtual:tolki-lang";
 
 router.on("navigate", async (event) => {
-  const locale = event.detail.page.props.locale as string;
+  const wanted = event.detail.page.props.locale as string;
+  const locale = locales.includes(wanted) ? wanted : "en";
 
   if (!lang.isLocale(locale)) {
     await lang.setLocale(locale);
@@ -1031,7 +1024,7 @@ router.on("navigate", async (event) => {
 });
 ```
 
-Register it in `app.ts`, right after you create `lang`. `setLocale` does not change `<html lang>`, so set `document.documentElement.lang` in the same handler if the page needs it.
+The guard is the one `setup` uses, so a visit to a locale the exporter did not write switches to `"en"` rather than leaving `setLocale` to reject. Register it in `app.ts`, right after you create `lang`. `setLocale` does not change `<html lang>`, so set `document.documentElement.lang` in the same handler if the page needs it.
 
 ### Next
 
@@ -1527,7 +1520,7 @@ translator.hasForLocale("g.b");
 
 Read the locale the page declares on its `<html lang>`.
 
-Exported as `htmlLocale` from `@tolki/lang`. Pass the locales your lines hold. The tag must be one of them, in either spelling: `<html lang="pt-BR">` answers `pt-BR` when the list holds it, else `pt_BR` when the list holds that. It answers `null` without a document, for an empty `lang`, or when no listed locale matches. Without a list, it answers the tag run through [`normalizeLocale`](#normalizelocale).
+Exported as `htmlLocale` from `@tolki/lang`. Pass the locales your lines hold. The tag must match one of them, ignoring case and treating `-` and `_` alike, and it answers the list's own spelling: `<html lang="pt-BR">` answers `pt_BR` when the list holds `pt_BR`, and `<html lang="sr-Latn">` answers `sr_Latn`. It answers `null` without a document, for an empty `lang`, or when no listed locale matches. Without a list, it answers the tag run through [`normalizeLocale`](#normalizelocale).
 
 It needs a document, so the example does not run in Node.
 
@@ -1538,6 +1531,9 @@ import { htmlLocale } from "@tolki/lang";
 htmlLocale(["pt_BR", "en"]); // "pt_BR"
 htmlLocale(["en", "es"]); // null
 htmlLocale(); // "pt_BR"
+
+// With <html lang="sr-Latn">:
+htmlLocale(["sr_Latn", "en"]); // "sr_Latn"
 ```
 
 #### locale
