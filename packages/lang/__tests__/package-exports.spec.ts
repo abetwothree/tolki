@@ -12,7 +12,10 @@ interface PackageExportTarget {
 
 interface LangPackageManifest {
     exports: Record<string, string>;
-    peerDependenciesMeta: { vue?: { optional?: boolean } };
+    peerDependenciesMeta: {
+        vue?: { optional?: boolean };
+        react?: { optional?: boolean };
+    };
     publishConfig: {
         exports: Record<string, PackageExportTarget>;
     };
@@ -53,9 +56,24 @@ describe("package exports", () => {
         });
     });
 
+    it("publishes the react subpath to the flat dist output", () => {
+        const manifest = readPackageManifest();
+
+        expect(manifest.publishConfig.exports["./react"]).toEqual({
+            import: "./dist/react.js",
+            types: "./dist/react.d.ts",
+        });
+    });
+
     it("keeps vue an optional peer", () => {
         const manifest = readPackageManifest();
 
         expect(manifest.peerDependenciesMeta.vue?.optional).toBe(true);
+    });
+
+    it("keeps react an optional peer", () => {
+        const manifest = readPackageManifest();
+
+        expect(manifest.peerDependenciesMeta.react?.optional).toBe(true);
     });
 });

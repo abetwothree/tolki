@@ -15,7 +15,7 @@ export default defineConfig(
                 name: "Lang",
             },
             rollupOptions: {
-                external: ["vue", /^node:/],
+                external: ["vue", "react", "react-dom", /^node:/],
             },
         },
     }),
