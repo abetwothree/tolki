@@ -321,4 +321,38 @@ describe("createExportRunner", () => {
         finish(1);
         await second;
     });
+
+    it("rejects the covered requests when sourceCommand throws, then accepts more", async () => {
+        const { runner } = setup({
+            sourceCommand: () => {
+                throw new Error("bad template");
+            },
+        });
+
+        await expect(runner.source("lang/en/a.php")).rejects.toThrow(
+            "bad template",
+        );
+        expect(mockExec).not.toHaveBeenCalled();
+
+        const run = runner.full();
+        await vi.waitFor(() => expect(mockExec).toHaveBeenCalledTimes(1));
+        finish(0);
+        await run;
+    });
+
+    it("rejects with the onSuccess error, not a command failure", async () => {
+        const { runner, logger } = setup({
+            onSuccess: () => {
+                throw new Error("reload broke");
+            },
+        });
+
+        const run = runner.full();
+        const assertion = expect(run).rejects.toThrow(/^reload broke$/);
+
+        await vi.waitFor(() => expect(mockExec).toHaveBeenCalledTimes(1));
+        finish(0);
+        await assertion;
+        expect(logger.error).not.toHaveBeenCalled();
+    });
 });

@@ -96,8 +96,6 @@ export function createExportRunner(options: ExportRunnerOptions): ExportRunner {
         try {
             logger.info(`${LABEL} Running: ${command}`, { timestamp: true });
             await execAsync(command, { cwd });
-            logger.info(`${LABEL} Lang files exported`, { timestamp: true });
-            onSuccess();
         } catch (error) {
             const message = failureMessage(error);
 
@@ -106,30 +104,53 @@ export function createExportRunner(options: ExportRunnerOptions): ExportRunner {
             }
 
             logger.error(message);
+
+            return;
         }
+
+        logger.info(`${LABEL} Lang files exported`, { timestamp: true });
+        onSuccess();
     }
 
     /**
-     * Take everything queued and pick the one command that covers it.
+     * Take everything queued, leaving the queue empty.
      *
-     * @returns The command with the requests it settles.
+     * @returns The requested files, whether a full export was asked for, and the requests to settle.
      */
-    function takeBatch(): { command: string; waiters: Waiter[] } {
-        const [only, ...rest] = pendingFiles;
-        const command =
-            sourceCommand === null ||
-            pendingFull ||
-            only === undefined ||
-            rest.length > 0
-                ? fullCommand
-                : sourceCommand(only);
-        const waiters = pendingWaiters;
+    function takeBatch(): {
+        files: string[];
+        full: boolean;
+        waiters: Waiter[];
+    } {
+        const batch = {
+            files: [...pendingFiles],
+            full: pendingFull,
+            waiters: pendingWaiters,
+        };
 
         pendingFull = false;
         pendingFiles = new Set();
         pendingWaiters = [];
 
-        return { command, waiters };
+        return batch;
+    }
+
+    /**
+     * Pick the one command that covers a batch.
+     *
+     * @param files - The changed files in the batch.
+     * @param full - Whether the batch holds a full request.
+     * @returns The shell command.
+     */
+    function commandFor(files: string[], full: boolean): string {
+        const [only, ...rest] = files;
+
+        return sourceCommand === null ||
+            full ||
+            only === undefined ||
+            rest.length > 0
+            ? fullCommand
+            : sourceCommand(only);
     }
 
     /**
@@ -137,10 +158,10 @@ export function createExportRunner(options: ExportRunnerOptions): ExportRunner {
      */
     async function drain(): Promise<void> {
         do {
-            const { command, waiters } = takeBatch();
+            const { files, full, waiters } = takeBatch();
 
             try {
-                await execute(command);
+                await execute(commandFor(files, full));
 
                 for (const waiter of waiters) {
                     waiter.resolve();

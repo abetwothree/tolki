@@ -15,12 +15,14 @@ export interface ExportFlags {
  * Append the exporter flags to a command, `--quiet` last and only once.
  *
  * @param command - The command to extend.
+ * @param base - The part of the command that may already hold `--quiet`.
  * @param flags - The flags that shape the export.
  * @param quiet - Whether to silence the exporter's console output.
  * @returns The command with its flags.
  */
 function withFlags(
     command: string,
+    base: string,
     flags: ExportFlags,
     quiet: boolean,
 ): string {
@@ -42,7 +44,7 @@ function withFlags(
         result += ` --except=${escapeShellArg(pattern)}`;
     }
 
-    if (quiet && !command.includes("--quiet")) {
+    if (quiet && !base.includes("--quiet")) {
         result += " --quiet";
     }
 
@@ -62,7 +64,7 @@ export function exportCommand(
     flags: ExportFlags,
     quiet: boolean,
 ): string {
-    return withFlags(base, flags, quiet);
+    return withFlags(base, base, flags, quiet);
 }
 
 /**
@@ -80,8 +82,10 @@ export function sourceExportCommand(
     flags: ExportFlags,
     quiet: boolean,
 ): string {
+    // A function replacer keeps `$&` and friends in the path literal; the template decides --quiet.
     return withFlags(
-        template.replaceAll("{file}", escapeShellArg(file)),
+        template.replaceAll("{file}", () => escapeShellArg(file)),
+        template,
         flags,
         quiet,
     );

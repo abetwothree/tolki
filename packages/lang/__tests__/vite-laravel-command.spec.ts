@@ -55,4 +55,39 @@ describe("sourceExportCommand", () => {
             "php artisan lang:export --source='lang/en/my auth.php' --locale=en --quiet",
         );
     });
+
+    it.each([
+        ["$&", "'lang/$&.php'"],
+        ["$'", "'lang/$'\\''.php'"],
+        ["$$", "'lang/$$.php'"],
+        ["$`", "'lang/$`.php'"],
+    ])("substitutes %s in the file name literally", (name, escaped) => {
+        const file = name === "$'" ? "lang/$'.php" : `lang/${name}.php`;
+
+        expect(
+            sourceExportCommand("x --source={file} y", file, {}, false),
+        ).toBe(`x --source=${escaped} y`);
+    });
+
+    it("still adds --quiet when the file name contains it", () => {
+        expect(
+            sourceExportCommand(
+                "php artisan lang:export --source={file}",
+                "lang/en/--quiet.php",
+                {},
+                true,
+            ),
+        ).toBe("php artisan lang:export --source=lang/en/--quiet.php --quiet");
+    });
+
+    it("skips --quiet when the template holds it", () => {
+        expect(
+            sourceExportCommand(
+                "php artisan lang:export --quiet --source={file}",
+                "lang/en/auth.php",
+                {},
+                true,
+            ),
+        ).toBe("php artisan lang:export --quiet --source=lang/en/auth.php");
+    });
 });
