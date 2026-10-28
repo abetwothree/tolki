@@ -23,7 +23,10 @@ export function svelteFixtures(): Plugin {
             }
 
             if (file.endsWith(".svelte.js")) {
-                const { js } = compileModule(code, { filename: file, generate });
+                const { js } = compileModule(code, {
+                    filename: file,
+                    generate,
+                });
 
                 return { code: js.code, map: js.map };
             }
