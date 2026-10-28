@@ -298,17 +298,36 @@ export function rewriteRelativeDocLinks(
  * @returns Content without inline components; fenced code and inline code spans are left alone.
  */
 function stripInlineComponents(content: string): string {
-    let inCodeFence = false;
+    let fence: { char: string; length: number } | null = null;
 
     return content
         .split("\n")
         .map((line) => {
-            if (/^ {0,3}(```|~~~)/.test(line)) {
-                inCodeFence = !inCodeFence;
+            const marker = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+
+            if (fence !== null) {
+                if (
+                    marker !== null &&
+                    marker[1]?.[0] === fence.char &&
+                    (marker[1]?.length ?? 0) >= fence.length &&
+                    (marker[2] ?? "").trim() === ""
+                ) {
+                    fence = null;
+                }
+
                 return line;
             }
 
-            if (inCodeFence) {
+            if (marker !== null) {
+                fence = {
+                    char: marker[1]?.[0] as string,
+                    length: marker[1]?.length as number,
+                };
+                return line;
+            }
+
+            // Four or more spaces of indent is an indented code block.
+            if (line.startsWith("    ")) {
                 return line;
             }
 
@@ -316,16 +335,29 @@ function stripInlineComponents(content: string): string {
             return line
                 .split(/(`[^`]*`)/)
                 .map((part, index) =>
-                    index % 2 === 1
-                        ? part
-                        : part.replace(
-                              /[ \t]*<[A-Z][a-zA-Z]*(?:\s[^<>]*)?\/>/g,
-                              "",
-                          ),
+                    index % 2 === 1 ? part : removeComponentTags(part),
                 )
                 .join("");
         })
         .join("\n");
+}
+
+/**
+ * Remove self-closing component tags from one text span, trimming the space before each.
+ *
+ * @param text - A span of prose that holds no inline code.
+ * @returns The span without component tags.
+ */
+function removeComponentTags(text: string): string {
+    let result = "";
+    let last = 0;
+
+    for (const match of text.matchAll(/<[A-Z][a-zA-Z]*(?:\s[^<>]*)?\/>/g)) {
+        result += text.slice(last, match.index).trimEnd();
+        last = match.index + match[0].length;
+    }
+
+    return result + text.slice(last);
 }
 
 /**

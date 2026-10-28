@@ -335,6 +335,28 @@ describe("stripVitepressSyntax", () => {
         expect(stripVitepressSyntax(text)).toBe(text);
     });
 
+    it("strips inline components in linear time on a long space run", () => {
+        const start = performance.now();
+        const result = stripVitepressSyntax(`${" ".repeat(100_000)}x`);
+
+        expect(result).toBe("x");
+        expect(performance.now() - start).toBeLessThan(100);
+    });
+
+    it("leaves a component tag in an indented code block", () => {
+        const text = "Text:\n\n    <App />\n\nAfter.";
+
+        expect(stripVitepressSyntax(text)).toBe(text);
+    });
+
+    it("keeps a fence open until a matching marker closes it", () => {
+        const text = "```tsx\n~~~\n  <App />\n```\n\nTitle <Badge />";
+
+        expect(stripVitepressSyntax(text)).toBe(
+            "```tsx\n~~~\n  <App />\n```\n\nTitle",
+        );
+    });
+
     it("still strips a component tag that starts a line", () => {
         expect(stripVitepressSyntax('<Badge text="x" />\nBody')).toBe("Body");
     });
