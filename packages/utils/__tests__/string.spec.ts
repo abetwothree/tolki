@@ -49,4 +49,26 @@ describe("Utils", () => {
             expect(Utils.upperFirst("")).toBe("");
         });
     });
+
+    describe("escapeShellArg", () => {
+        it("should return empty quoted string for empty input", () => {
+            expect(Utils.escapeShellArg("")).toBe("''");
+        });
+
+        it("should pass through safe strings unchanged", () => {
+            expect(Utils.escapeShellArg("app/Models/User.php")).toBe(
+                "app/Models/User.php",
+            );
+        });
+
+        it("should single-quote strings with spaces", () => {
+            expect(Utils.escapeShellArg("my file.php")).toBe("'my file.php'");
+        });
+
+        it("should escape single quotes within the value", () => {
+            expect(Utils.escapeShellArg("it's a file.php")).toBe(
+                "'it'\\''s a file.php'",
+            );
+        });
+    });
 });

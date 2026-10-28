@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
+import { escapeShellArg } from "@tolki/utils";
 import {
     normalizePath,
     type Plugin,
@@ -12,26 +13,7 @@ import {
 
 const execAsync = promisify(exec);
 
-/**
- * Escape a value for safe interpolation into a shell command string.
- *
- * Uses POSIX single-quote wrapping: the only character that requires
- * escaping inside single quotes is the single quote itself.
- *
- * @param value - The raw string to escape.
- * @returns A shell-safe string.
- */
-export function escapeShellArg(value: string): string {
-    if (value === "") {
-        return "''";
-    }
-
-    if (/^[\w@%+=:,./-]+$/.test(value)) {
-        return value;
-    }
-
-    return "'" + value.replace(/'/g, "'\\''") + "'";
-}
+export { escapeShellArg };
 
 export interface LaravelTsPublishOptions {
     /**
