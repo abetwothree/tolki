@@ -1,5 +1,15 @@
 # @tolki/enum
 
+## 1.1.4
+
+### Patch Changes
+
+- 8a6b429: Make vite an optional peer dependency for the `@tolki/enum` and `@tolki/ts` packages.
+- Updated dependencies [c647f7c]
+- Updated dependencies [c647f7c]
+  - @tolki/types@1.11.0
+  - @tolki/utils@1.6.2
+
 ## 1.1.3
 
 ### Patch Changes
