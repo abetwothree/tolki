@@ -128,8 +128,8 @@ importers:
         specifier: ^7.3.7
         version: 7.3.7(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1)
       vite-plugin-dts:
-        specifier: ^4.5.4
-        version: 4.5.4(@types/node@26.6.6)(rollup@4.66.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
+        specifier: ^5.1.2
+        version: 5.1.2(@microsoft/api-extractor@7.60.0(@types/node@26.6.6))(esbuild@0.28.2)(rollup@4.66.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
       vitepress:
         specifier: 2.0.0-alpha.17
         version: 2.0.0-alpha.17(@types/node@26.6.6)(jiti@2.7.0)(postcss@8.5.32)(typescript@5.9.3)(yaml@2.9.1)
@@ -2928,12 +2928,6 @@ packages:
         integrity: sha512-xr5gb1JVHlfXJwSlRz1FeP6uxoazdzHuMTVLE7up+4Vrqxk219CvxLPxD9NXBt47yvZW7+p4DXfyp4O1fkByIA==,
       }
 
-  "@vue/compiler-vue2@2.7.16":
-    resolution:
-      {
-        integrity: sha512-qYC3Psj9S/mfu9uVi5WvNZIzq+xnXMhOwbTFKKDD7b1lhpnn71jXSFdTQ+WsIEk0ONCd7VV2IMm7ONl6tbQ86A==,
-      }
-
   "@vue/devtools-api@8.2.1":
     resolution:
       {
@@ -2951,17 +2945,6 @@ packages:
       {
         integrity: sha512-Fkac7lUdGReh6pVOi3AYPRGe82LQqRmAfThW7RRligOAP0ZA/Z1z9XLHDM9dv34pV2HRc79DK8uKPeG2fLnA/g==,
       }
-
-  "@vue/language-core@2.2.0":
-    resolution:
-      {
-        integrity: sha512-O1ZZFaaBGkKbsRfnVH1ifOK1/1BUkyK+3SQsfnh6PmMmD4qJcTU8godCeA96jjDRTL6zgnK7YzCHfaUlH2r0Mw==,
-      }
-    peerDependencies:
-      typescript: "*"
-    peerDependenciesMeta:
-      typescript:
-        optional: true
 
   "@vue/reactivity@3.5.44":
     resolution:
@@ -3143,12 +3126,6 @@ packages:
         integrity: sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==,
       }
 
-  alien-signals@0.4.14:
-    resolution:
-      {
-        integrity: sha512-itUAVzhczTmP2U5yX67xVpsbbOiquusbWVyA9N+sy6+r6YVbFkahXvNCeEPWEOMhwDYwbVbGHFkVL03N9I5g+Q==,
-      }
-
   ansi-regex@5.0.1:
     resolution:
       {
@@ -3235,12 +3212,6 @@ packages:
         integrity: sha512-0xO6mYd7JB2YesxDKplafRpsiOzPt9V02ddPCLbY1xYGPOX24NTyN50qnUxgCPcSoYMhKpAuBTjQoRZCAkUDRw==,
       }
 
-  balanced-match@1.0.2:
-    resolution:
-      {
-        integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==,
-      }
-
   balanced-match@4.0.4:
     resolution:
       {
@@ -3266,12 +3237,6 @@ packages:
     resolution:
       {
         integrity: sha512-KrayHS5pBi69Xi9JmvoqrIgYGDkD6mcSe/i6YKi3w5kekCLzrX4+nawcXqrj2tIp50Kw/mT/s3p+GVK0A0sKxw==,
-      }
-
-  brace-expansion@2.1.7:
-    resolution:
-      {
-        integrity: sha512-uZbew1NqdmPDTMJ8ah1y+b+9QEJrfkXFk3RcTQw3X0jW/xRUvFKsg1CfQdSYGdTbXZWExtU3J3ccxtnfw1Fi0g==,
       }
 
   brace-expansion@5.0.12:
@@ -3455,12 +3420,6 @@ packages:
         integrity: sha512-JQUCCK+/CAGbGGx618PlFZMXH81Jtj7t73CHv9dd/zVWvxgGT2zLFRjnKb+Ng46GIwcy+f7f88qd4duqllK+WQ==,
       }
     engines: { node: ^22.14.0 || >=24.0.0 }
-
-  de-indent@1.0.2:
-    resolution:
-      {
-        integrity: sha512-e/1zu3xH5MQryN2zdVaF0OrdNLUbvWxzMbi+iNA6Bky7l1RoP8a2fIbRocyHclXt/arDrrR6lL3TqFD9pMQTsg==,
-      }
 
   debug@4.4.3:
     resolution:
@@ -3936,6 +3895,12 @@ packages:
       }
     engines: { node: ">=10.13.0" }
 
+  glob-to-regexp@0.4.1:
+    resolution:
+      {
+        integrity: sha512-lkX1HJXwyMcprw/5YUZc2s7DrpAiHB21/V+E1rHUrVNokkvB6bqMzT0VfV6/86ZNabt1k14YOIaT7nDvOX3Iiw==,
+      }
+
   glob@13.0.6:
     resolution:
       {
@@ -3995,13 +3960,6 @@ packages:
       {
         integrity: sha512-88JUN06ipLwsnv+dVn+OIYOvAuvBMy/Qoi6O7mQHxdPXpjy+Cd6xRkWwux7DKO+4sYILtLBRIKgsdpS2gQc7qw==,
       }
-
-  he@1.2.0:
-    resolution:
-      {
-        integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==,
-      }
-    hasBin: true
 
   hookable@5.5.3:
     resolution:
@@ -4744,13 +4702,6 @@ packages:
       }
     engines: { node: 18 || 20 || >=22 }
 
-  minimatch@9.0.9:
-    resolution:
-      {
-        integrity: sha512-OBwBN9AL4dqmETlpS2zasx+vTeWclWzkblfZk7KTA5j3jeOONz/tRCnZomUyvNg83wL5Zv9Ss6HMJXAgL8R2Yg==,
-      }
-    engines: { node: ">=16 || 14 >=14.17" }
-
   minipass@7.1.3:
     resolution:
       {
@@ -4781,12 +4732,6 @@ packages:
     resolution:
       {
         integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==,
-      }
-
-  muggle-string@0.4.1:
-    resolution:
-      {
-        integrity: sha512-VNTrAak/KhO2i8dqqnqnAHOa3cYBwXEZe9h+D5h/1ZqFSTEFHdM65lR7RoIqq3tBBYavsOXV84NoHXZ0AkPyqQ==,
       }
 
   nanoid@3.3.11:
@@ -5648,6 +5593,46 @@ packages:
       }
     engines: { node: ">= 10.0.0" }
 
+  unplugin-dts@1.1.2:
+    resolution:
+      {
+        integrity: sha512-RDqy90XUmFj6rz4U5YoTMdYdaCJe2ZnQZaWIjkWS4952Gv0zBTQyqWtlGgVMPYHa982dURvyoc+sUOFIcDFv+w==,
+      }
+    peerDependencies:
+      "@microsoft/api-extractor": ">=7"
+      "@rspack/core": ^1
+      "@vue/language-core": ^3.1.5
+      esbuild: "*"
+      rolldown: "*"
+      rollup: ">=3"
+      typescript: ">=4"
+      vite: ">=3"
+      webpack: ^4 || ^5
+    peerDependenciesMeta:
+      "@microsoft/api-extractor":
+        optional: true
+      "@rspack/core":
+        optional: true
+      "@vue/language-core":
+        optional: true
+      esbuild:
+        optional: true
+      rolldown:
+        optional: true
+      rollup:
+        optional: true
+      vite:
+        optional: true
+      webpack:
+        optional: true
+
+  unplugin@2.3.11:
+    resolution:
+      {
+        integrity: sha512-5uKD0nqiYVzlmCRs01Fhs2BdkEgBS3SAVP6ndrBsuK42iC2+JHyxM05Rm9G8+5mkmRtzMZGY8Ct5+mliZxU/Ww==,
+      }
+    engines: { node: ">=18.12.0" }
+
   update-browserslist-db@1.3.4:
     resolution:
       {
@@ -5701,15 +5686,20 @@ packages:
         integrity: sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==,
       }
 
-  vite-plugin-dts@4.5.4:
+  vite-plugin-dts@5.1.2:
     resolution:
       {
-        integrity: sha512-d4sOM8M/8z7vRXHHq/ebbblfaxENjogAAekcfcDCCwAyvGqnPrc7f4NZbvItS+g4WTgerW0xDwSz5qz11JT3vg==,
+        integrity: sha512-1bXUz836sWq6ewEMQre3ZtNFVfZk/92DppgCCKP8tWx/NWwV2wHuXlRHb2TztHjbikPxvyAGLGu7hVh94Plwww==,
       }
     peerDependencies:
-      typescript: "*"
-      vite: "*"
+      "@microsoft/api-extractor": ">=7"
+      rollup: ">=3"
+      vite: ">=3"
     peerDependenciesMeta:
+      "@microsoft/api-extractor":
+        optional: true
+      rollup:
+        optional: true
       vite:
         optional: true
 
@@ -5940,6 +5930,12 @@ packages:
         integrity: sha512-BMhLD/Sw+GbJC21C/UgyaZX41nPt8bUTg+jWyDeg7e7YN4xOM05YPSIXceACnXVtqyEw/LMClUQMtMZ+PGGpqQ==,
       }
     engines: { node: ">=20" }
+
+  webpack-virtual-modules@0.6.2:
+    resolution:
+      {
+        integrity: sha512-66/V2i5hQanC51vBQKPH4aI8NMAcBW59FVBs+rC7eGHupMyfn34q7rZIE+ETlJ+XTevqfUhVVBgSUNSW2flEUQ==,
+      }
 
   whatwg-mimetype@5.0.0:
     resolution:
@@ -6682,6 +6678,7 @@ snapshots:
       "@rushstack/node-core-library": 5.25.1(@types/node@26.6.6)
     transitivePeerDependencies:
       - "@types/node"
+    optional: true
 
   "@microsoft/api-extractor@7.60.0(@types/node@26.6.6)":
     dependencies:
@@ -6700,6 +6697,7 @@ snapshots:
       typescript: 6.0.3
     transitivePeerDependencies:
       - "@types/node"
+    optional: true
 
   "@microsoft/tsdoc-config@0.18.3":
     dependencies:
@@ -6707,8 +6705,10 @@ snapshots:
       ajv: 8.18.0
       jju: 1.4.0
       resolve: 1.22.13
+    optional: true
 
-  "@microsoft/tsdoc@0.17.1": {}
+  "@microsoft/tsdoc@0.17.1":
+    optional: true
 
   "@napi-rs/lzma-linux-x64-gnu@1.5.1":
     optional: true
@@ -7017,15 +7017,18 @@ snapshots:
       semver: 7.7.4
     optionalDependencies:
       "@types/node": 26.6.6
+    optional: true
 
   "@rushstack/problem-matcher@0.2.1(@types/node@26.6.6)":
     optionalDependencies:
       "@types/node": 26.6.6
+    optional: true
 
   "@rushstack/rig-package@0.7.4":
     dependencies:
       jju: 1.4.0
       resolve: 1.22.13
+    optional: true
 
   "@rushstack/terminal@0.24.7(@types/node@26.6.6)":
     dependencies:
@@ -7034,6 +7037,7 @@ snapshots:
       supports-color: 8.1.1
     optionalDependencies:
       "@types/node": 26.6.6
+    optional: true
 
   "@rushstack/ts-command-line@5.3.17(@types/node@26.6.6)":
     dependencies:
@@ -7043,6 +7047,7 @@ snapshots:
       string-argv: 0.3.2
     transitivePeerDependencies:
       - "@types/node"
+    optional: true
 
   "@shikijs/core@3.23.0":
     dependencies:
@@ -7128,7 +7133,8 @@ snapshots:
 
   "@tsconfig/node16@1.0.4": {}
 
-  "@types/argparse@1.0.38": {}
+  "@types/argparse@1.0.38":
+    optional: true
 
   "@types/aria-query@5.0.4": {}
 
@@ -7417,11 +7423,6 @@ snapshots:
       "@vue/compiler-dom": 3.5.44
       "@vue/shared": 3.5.44
 
-  "@vue/compiler-vue2@2.7.16":
-    dependencies:
-      de-indent: 1.0.2
-      he: 1.2.0
-
   "@vue/devtools-api@8.2.1":
     dependencies:
       "@vue/devtools-kit": 8.2.1
@@ -7434,19 +7435,6 @@ snapshots:
       perfect-debounce: 2.1.0
 
   "@vue/devtools-shared@8.2.1": {}
-
-  "@vue/language-core@2.2.0(typescript@5.9.3)":
-    dependencies:
-      "@volar/language-core": 2.4.30
-      "@vue/compiler-dom": 3.5.44
-      "@vue/compiler-vue2": 2.7.16
-      "@vue/shared": 3.5.44
-      alien-signals: 0.4.14
-      minimatch: 9.0.9
-      muggle-string: 0.4.1
-      path-browserify: 1.0.1
-    optionalDependencies:
-      typescript: 5.9.3
 
   "@vue/reactivity@3.5.44":
     dependencies:
@@ -7517,10 +7505,12 @@ snapshots:
   ajv-draft-04@1.0.0(ajv@8.20.0):
     optionalDependencies:
       ajv: 8.20.0
+    optional: true
 
   ajv-formats@3.0.1(ajv@8.20.0):
     optionalDependencies:
       ajv: 8.20.0
+    optional: true
 
   ajv@6.15.0:
     dependencies:
@@ -7535,6 +7525,7 @@ snapshots:
       fast-uri: 3.1.9
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
+    optional: true
 
   ajv@8.20.0:
     dependencies:
@@ -7542,8 +7533,7 @@ snapshots:
       fast-uri: 3.1.9
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
-
-  alien-signals@0.4.14: {}
+    optional: true
 
   ansi-regex@5.0.1: {}
 
@@ -7562,6 +7552,7 @@ snapshots:
   argparse@1.0.10:
     dependencies:
       sprintf-js: 1.0.3
+    optional: true
 
   argparse@2.0.1: {}
 
@@ -7577,8 +7568,6 @@ snapshots:
 
   bail@2.0.2: {}
 
-  balanced-match@1.0.2: {}
-
   balanced-match@4.0.4: {}
 
   baseline-browser-mapping@2.11.34: {}
@@ -7588,10 +7577,6 @@ snapshots:
       require-from-string: 2.0.2
 
   birpc@2.9.0: {}
-
-  brace-expansion@2.1.7:
-    dependencies:
-      balanced-match: 1.0.2
 
   brace-expansion@5.0.12:
     dependencies:
@@ -7684,8 +7669,6 @@ snapshots:
     transitivePeerDependencies:
       - "@noble/hashes"
 
-  de-indent@1.0.2: {}
-
   debug@4.4.3:
     dependencies:
       ms: 2.1.3
@@ -7708,7 +7691,8 @@ snapshots:
 
   diff@4.0.4: {}
 
-  diff@8.0.4: {}
+  diff@8.0.4:
+    optional: true
 
   dom-accessibility-api@0.5.16: {}
 
@@ -7733,7 +7717,8 @@ snapshots:
 
   entities@8.1.0: {}
 
-  es-errors@1.3.0: {}
+  es-errors@1.3.0:
+    optional: true
 
   es-module-lexer@2.3.2: {}
 
@@ -7912,7 +7897,8 @@ snapshots:
     dependencies:
       fast-string-truncated-width: 3.0.3
 
-  fast-uri@3.1.9: {}
+  fast-uri@3.1.9:
+    optional: true
 
   fast-wrap-ansi@0.2.2:
     dependencies:
@@ -7962,11 +7948,13 @@ snapshots:
       graceful-fs: 4.2.11
       jsonfile: 6.2.1
       universalify: 2.0.1
+    optional: true
 
   fsevents@2.3.3:
     optional: true
 
-  function-bind@1.1.2: {}
+  function-bind@1.1.2:
+    optional: true
 
   gensync@1.0.0-beta.2: {}
 
@@ -7977,6 +7965,8 @@ snapshots:
   glob-parent@6.0.2:
     dependencies:
       is-glob: 4.0.3
+
+  glob-to-regexp@0.4.1: {}
 
   glob@13.0.6:
     dependencies:
@@ -7992,9 +7982,11 @@ snapshots:
 
   globals@17.13.0: {}
 
-  graceful-fs@4.2.11: {}
+  graceful-fs@4.2.11:
+    optional: true
 
-  has-flag@4.0.0: {}
+  has-flag@4.0.0:
+    optional: true
 
   hashery@1.5.1:
     dependencies:
@@ -8003,6 +7995,7 @@ snapshots:
   hasown@2.0.4:
     dependencies:
       function-bind: 1.1.2
+    optional: true
 
   hast-util-to-html@9.0.5:
     dependencies:
@@ -8021,8 +8014,6 @@ snapshots:
   hast-util-whitespace@3.0.0:
     dependencies:
       "@types/hast": 3.0.5
-
-  he@1.2.0: {}
 
   hookable@5.5.3: {}
 
@@ -8044,7 +8035,8 @@ snapshots:
 
   ignore@7.0.14: {}
 
-  import-lazy@4.0.0: {}
+  import-lazy@4.0.0:
+    optional: true
 
   import-meta-resolve@4.2.0: {}
 
@@ -8057,6 +8049,7 @@ snapshots:
   is-core-module@2.17.0:
     dependencies:
       hasown: 2.0.4
+    optional: true
 
   is-extendable@0.1.1: {}
 
@@ -8133,7 +8126,8 @@ snapshots:
 
   json-schema-traverse@0.4.1: {}
 
-  json-schema-traverse@1.0.0: {}
+  json-schema-traverse@1.0.0:
+    optional: true
 
   json-stable-stringify-without-jsonify@1.0.1: {}
 
@@ -8146,6 +8140,7 @@ snapshots:
       universalify: 2.0.1
     optionalDependencies:
       graceful-fs: 4.2.11
+    optional: true
 
   katex@0.16.47:
     dependencies:
@@ -8599,6 +8594,7 @@ snapshots:
   minimatch@10.2.3:
     dependencies:
       brace-expansion: 5.0.12
+    optional: true
 
   minimatch@10.2.6:
     dependencies:
@@ -8608,10 +8604,6 @@ snapshots:
     dependencies:
       "@isaacs/nonrecursive-glob-match": 1.0.3
       brace-expansion: 5.0.12
-
-  minimatch@9.0.9:
-    dependencies:
-      brace-expansion: 2.1.7
 
   minipass@7.1.3: {}
 
@@ -8627,8 +8619,6 @@ snapshots:
   mrmime@2.0.1: {}
 
   ms@2.1.3: {}
-
-  muggle-string@0.4.1: {}
 
   nanoid@3.3.11: {}
 
@@ -8742,7 +8732,8 @@ snapshots:
 
   path-key@3.1.1: {}
 
-  path-parse@1.0.7: {}
+  path-parse@1.0.7:
+    optional: true
 
   path-scurry@2.0.2:
     dependencies:
@@ -8894,6 +8885,7 @@ snapshots:
       is-core-module: 2.17.0
       path-parse: 1.0.7
       supports-preserve-symlinks-flag: 1.0.0
+    optional: true
 
   rollup@4.60.1:
     dependencies:
@@ -8969,7 +8961,8 @@ snapshots:
       extend-shallow: 2.0.1
       kind-of: 6.0.3
 
-  semver@7.7.4: {}
+  semver@7.7.4:
+    optional: true
 
   semver@7.8.5: {}
 
@@ -9004,15 +8997,18 @@ snapshots:
 
   source-map-js@1.2.2: {}
 
-  source-map@0.6.1: {}
+  source-map@0.6.1:
+    optional: true
 
   space-separated-tokens@2.0.2: {}
 
-  sprintf-js@1.0.3: {}
+  sprintf-js@1.0.3:
+    optional: true
 
   std-env@4.3.0: {}
 
-  string-argv@0.3.2: {}
+  string-argv@0.3.2:
+    optional: true
 
   string-width@4.2.3:
     dependencies:
@@ -9032,8 +9028,10 @@ snapshots:
   supports-color@8.1.1:
     dependencies:
       has-flag: 4.0.0
+    optional: true
 
-  supports-preserve-symlinks-flag@1.0.0: {}
+  supports-preserve-symlinks-flag@1.0.0:
+    optional: true
 
   svelte@5.57.3(@typescript-eslint/types@8.72.1):
     dependencies:
@@ -9138,7 +9136,8 @@ snapshots:
 
   typescript@5.9.3: {}
 
-  typescript@6.0.3: {}
+  typescript@6.0.3:
+    optional: true
 
   uc.micro@2.1.0: {}
 
@@ -9194,7 +9193,35 @@ snapshots:
       unist-util-is: 6.0.1
       unist-util-visit-parents: 6.1.0
 
-  universalify@2.0.1: {}
+  universalify@2.0.1:
+    optional: true
+
+  unplugin-dts@1.1.2(@microsoft/api-extractor@7.60.0(@types/node@26.6.6))(esbuild@0.28.2)(rollup@4.66.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1)):
+    dependencies:
+      "@rollup/pluginutils": 5.5.1(rollup@4.66.0)
+      "@volar/typescript": 2.4.30(typescript@5.9.3)
+      compare-versions: 6.1.1
+      debug: 4.4.3
+      glob-to-regexp: 0.4.1
+      kolorist: 1.8.0
+      local-pkg: 1.2.1
+      magic-string: 0.30.21
+      typescript: 5.9.3
+      unplugin: 2.3.11
+    optionalDependencies:
+      "@microsoft/api-extractor": 7.60.0(@types/node@26.6.6)
+      esbuild: 0.28.2
+      rollup: 4.66.0
+      vite: 7.3.7(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1)
+    transitivePeerDependencies:
+      - supports-color
+
+  unplugin@2.3.11:
+    dependencies:
+      "@jridgewell/remapping": 2.3.5
+      acorn: 8.19.0
+      picomatch: 4.0.7
+      webpack-virtual-modules: 0.6.2
 
   update-browserslist-db@1.3.4(browserslist@4.29.5):
     dependencies:
@@ -9226,24 +9253,21 @@ snapshots:
       "@types/unist": 3.0.3
       vfile-message: 4.0.3
 
-  vite-plugin-dts@4.5.4(@types/node@26.6.6)(rollup@4.66.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1)):
+  vite-plugin-dts@5.1.2(@microsoft/api-extractor@7.60.0(@types/node@26.6.6))(esbuild@0.28.2)(rollup@4.66.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1)):
     dependencies:
-      "@microsoft/api-extractor": 7.60.0(@types/node@26.6.6)
-      "@rollup/pluginutils": 5.5.1(rollup@4.66.0)
-      "@volar/typescript": 2.4.30(typescript@5.9.3)
-      "@vue/language-core": 2.2.0(typescript@5.9.3)
-      compare-versions: 6.1.1
-      debug: 4.4.3
-      kolorist: 1.8.0
-      local-pkg: 1.2.1
-      magic-string: 0.30.21
-      typescript: 5.9.3
+      unplugin-dts: 1.1.2(@microsoft/api-extractor@7.60.0(@types/node@26.6.6))(esbuild@0.28.2)(rollup@4.66.0)(typescript@5.9.3)(vite@7.3.7(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
     optionalDependencies:
+      "@microsoft/api-extractor": 7.60.0(@types/node@26.6.6)
+      rollup: 4.66.0
       vite: 7.3.7(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1)
     transitivePeerDependencies:
-      - "@types/node"
-      - rollup
+      - "@rspack/core"
+      - "@vue/language-core"
+      - esbuild
+      - rolldown
       - supports-color
+      - typescript
+      - webpack
 
   vite@7.3.2(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1):
     dependencies:
@@ -9403,6 +9427,8 @@ snapshots:
       xml-name-validator: 5.0.0
 
   webidl-conversions@8.0.1: {}
+
+  webpack-virtual-modules@0.6.2: {}
 
   whatwg-mimetype@5.0.0: {}
 

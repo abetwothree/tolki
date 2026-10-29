@@ -7,8 +7,10 @@ import dts from "vite-plugin-dts";
 export default defineConfig({
     plugins: [
         dts({
-            outDir: "dist",
+            outDirs: "dist",
             entryRoot: "src",
+            // The plugin regex-escapes the root tsconfig's relative `include`, which then matches nothing in a package.
+            include: ["src"],
             staticImport: true,
             tsconfigPath: path.resolve(__dirname, "tsconfig.json"),
             exclude: ["**/*.spec.ts", "**/__tests__/**"],
