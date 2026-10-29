@@ -47,6 +47,7 @@ export default defineConfig({
                 "ulid",
                 "uuid",
                 "to-words",
+                /^to-words\//,
             ],
         },
     },

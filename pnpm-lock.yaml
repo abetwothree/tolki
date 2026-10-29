@@ -115,9 +115,6 @@ importers:
       prettier:
         specifier: 3.8.1
         version: 3.8.1
-      to-words:
-        specifier: ^5.7.0
-        version: 5.7.0
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@26.6.6)(typescript@5.9.3)
@@ -5954,14 +5951,6 @@ packages:
       }
     engines: { node: ">=20.0.0" }
 
-  to-words@5.7.0:
-    resolution:
-      {
-        integrity: sha512-D6Scrd19yCs/GZC70U/5ClQwcn9heojeFyvghQIXgqHK8YVGrbByjEshvLm9aHqzsCRxBAW0VTFm4tR+UQl9EQ==,
-      }
-    engines: { node: ">=20.0.0" }
-    hasBin: true
-
   tokenx@1.6.0:
     resolution:
       {
@@ -9931,8 +9920,6 @@ snapshots:
       tldts-core: 7.4.20
 
   to-words@5.1.0: {}
-
-  to-words@5.7.0: {}
 
   tokenx@1.6.0: {}
 
