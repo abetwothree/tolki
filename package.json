@@ -69,7 +69,6 @@
         "@eslint/css": "^2.0.1",
         "@eslint/js": "^10.0.1",
         "@eslint/json": "^2.1.1",
-        "@eslint/markdown": "^8.0.3",
         "@oxlint/migrate": "^1.90.0",
         "@tolki/all": "workspace:^",
         "@tolki/arr": "workspace:^",
