@@ -26,7 +26,7 @@ export type NonObjectItems =
 /**
  * `NonObjectItems` without the Map, for an obj helper's empty-result row, so `Map | string[]` is not typed as empty.
  *
- * @remarks A Map keyed by `unknown`, `any` or an object type still fits the `WeakMap` member, so a union
+ * @remarks A Map keyed by `any` or an object type still fits the `WeakMap` member, so a union
  * holding it beside another of these values is typed as empty, though its Map is walked.
  */
 export type NonKeyedItems = Exclude<

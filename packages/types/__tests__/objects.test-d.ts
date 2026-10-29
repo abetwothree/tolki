@@ -192,21 +192,21 @@ describe("object helper types", () => {
             expectTypeOf<NonKeyedItems>().toExtend<NonObjectItems>();
         });
 
-        it("does not take a Map keyed by PHP array keys, or a ReadonlyMap", () => {
+        it("does not take a Map keyed by PHP array keys or unknown, or a ReadonlyMap", () => {
             expectTypeOf<Map<string, number>>().not.toExtend<NonKeyedItems>();
             expectTypeOf<
                 Map<number | boolean, number>
             >().not.toExtend<NonKeyedItems>();
+            expectTypeOf<Map<unknown, string>>().not.toExtend<NonKeyedItems>();
             expectTypeOf<
                 ReadonlyMap<unknown, unknown>
             >().not.toExtend<NonKeyedItems>();
         });
 
-        it("still takes a Map keyed by objects or unknown, through the WeakMap member", () => {
+        it("still takes a Map keyed by objects, through the WeakMap member", () => {
             // The documented limit: such a Map has every member a WeakMap declares. On its own it
             // is claimed by each helper's Map row first; only inside a union does it reach this.
             expectTypeOf<Map<object, string>>().toExtend<NonKeyedItems>();
-            expectTypeOf<Map<unknown, string>>().toExtend<NonKeyedItems>();
         });
     });
 
