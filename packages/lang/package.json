@@ -1,6 +1,6 @@
 {
     "name": "@tolki/lang",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Laravel's translator for JavaScript: placeholder replacements, trans_choice plural forms and dot-key lookups, with a Vite plugin and Vue, React and Svelte bindings.",
     "author": "Abraham Arango <https://github.com/abetwothree>",
     "license": "MIT",
