@@ -48,6 +48,11 @@
     "peerDependencies": {
         "vite": "^8.0.0||^7.0.0"
     },
+    "peerDependenciesMeta": {
+        "vite": { 
+            "optional": true 
+        }
+    },
     "sideEffects": false,
     "packageManager": "pnpm@10.12.1",
     "files": [
