@@ -136,5 +136,8 @@
             "ts/analyzer-api.md",
             "ts/configuration-reference.md"
         ]
+    },
+    "devDependencies": {
+        "vite": "^8.3.5"
     }
 }

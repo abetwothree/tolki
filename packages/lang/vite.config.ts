@@ -19,7 +19,7 @@ export default defineConfig(
                 entry: entries,
                 name: "Lang",
             },
-            rollupOptions: {
+            rolldownOptions: {
                 external: [
                     "vue",
                     "react",

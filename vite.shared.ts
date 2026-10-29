@@ -24,7 +24,7 @@ export default defineConfig({
         },
         emptyOutDir: true,
         outDir: "dist",
-        rollupOptions: {
+        rolldownOptions: {
             external: [
                 "@tolki/all",
                 "@tolki/arr",

@@ -37,7 +37,7 @@ async function buildFixture(
             ? { write: false, ssr: ENTRY }
             : {
                   write: false,
-                  rollupOptions: {
+                  rolldownOptions: {
                       input: path.join(root, ENTRY),
                       preserveEntrySignatures: "exports-only",
                   },

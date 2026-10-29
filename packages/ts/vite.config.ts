@@ -12,7 +12,7 @@ export default defineConfig(
                 entry: entries,
                 name: "TypeScript",
             },
-            rollupOptions: {
+            rolldownOptions: {
                 external: ["vite", /^node:/],
             },
         },
