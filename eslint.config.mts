@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+
 import css from "@eslint/css";
 import js from "@eslint/js";
 import json from "@eslint/json";
@@ -8,6 +10,8 @@ import oxlint from "eslint-plugin-oxlint";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import globals from "globals";
 import tseslint from "typescript-eslint";
+
+const oxlintConfigFile = "./.oxlintrc.json";
 
 export default defineConfig([
     {
@@ -103,5 +107,8 @@ export default defineConfig([
         },
     },
 
-    ...oxlint.buildFromOxlintConfigFile("./.oxlintrc.json"),
+    // lint:migrate deletes this file before regenerating it from this config, and the plugin throws on a missing file.
+    ...(existsSync(oxlintConfigFile)
+        ? await oxlint.buildFromConfigFile(oxlintConfigFile)
+        : []),
 ]);
