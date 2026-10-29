@@ -31,7 +31,7 @@ jobs:
         with:
           node-version-file: ".node-version"
           cache: "pnpm"
-          registry-url: 'https://registry.npmjs.org'
+          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -47,7 +47,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Possibly tag release commit
+      - name: Display pnpm publish summary
         run: |
           if [ ! -f pnpm-publish-summary.json ]; then
             echo "No pnpm-publish-summary.json found, skipping tagging"
@@ -55,15 +55,6 @@ jobs:
           fi
           echo "pnpm-publish-summary.json contents:"
           cat pnpm-publish-summary.json
-          tags=$(jq -r '.publishedPackages[] | "\(.name)@\(.version)"' pnpm-publish-summary.json)
-          if [ -z "$tags" ]; then
-            echo "No published packages found, skipping tagging"
-            exit 0
-          fi
-          for tag in $tags; do
-            echo "Creating release: $tag"
-            gh release create "$tag" --title "$tag" --generate-notes --target master
-          done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -16,7 +16,8 @@
     "main": "src/index.ts",
     "scripts": {
         "build": "vite build",
-        "prepack": "pnpm run build"
+        "prepack": "pnpm run build",
+        "postpublish": "sh ../../scripts/github-release.sh"
     },
     "dependencies": {
         "@tolki/types": "workspace:^"

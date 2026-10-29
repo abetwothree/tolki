@@ -17,7 +17,8 @@
     "types": "src/index.d.ts",
     "scripts": {
         "readme:build": "ts-node ../../scripts/readme-build.ts --filter @tolki/types",
-        "prepack": "pnpm run readme:build"
+        "prepack": "pnpm run readme:build",
+        "postpublish": "sh ../../scripts/github-release.sh"
     },
     "keywords": [
         "typescript",

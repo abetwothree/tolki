@@ -18,7 +18,8 @@
     "scripts": {
         "build": "vite build",
         "readme:build": "ts-node ../../scripts/readme-build.ts --filter @tolki/num",
-        "prepack": "pnpm run readme:build && pnpm run build"
+        "prepack": "pnpm run readme:build && pnpm run build",
+        "postpublish": "sh ../../scripts/github-release.sh"
     },
     "keywords": [
         "number",
