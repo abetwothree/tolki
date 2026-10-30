@@ -1,5 +1,18 @@
 # @tolki/lang
 
+## 0.2.1
+
+### Patch Changes
+
+- 4f2ec6a: Fix export paths to include a default pseudo require import
+- Updated dependencies [5a9be1d]
+- Updated dependencies [c2d0ebc]
+- Updated dependencies [5a9be1d]
+- Updated dependencies [5a9be1d]
+  - @tolki/data@1.0.2
+  - @tolki/str@1.7.1
+  - @tolki/utils@1.6.3
+
 ## 0.2.0
 
 ### Minor Changes

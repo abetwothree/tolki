@@ -1,6 +1,6 @@
 {
     "name": "@tolki/arr",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "A utility for working with arrays.",
     "author": "Abraham Arango <https://github.com/abetwothree>",
     "license": "MIT",

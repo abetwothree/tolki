@@ -1,5 +1,14 @@
 # @tolki/num
 
+## 2.2.5
+
+### Patch Changes
+
+- ca6b4e3: `@tolki/num` no longer bundles its own copy of to-words' English locale. `spell()` and `spellOrdinal()` now load it from the installed `to-words` package, like every other locale.
+- 5a9be1d: `@tolki/num/num` and `@tolki/num/speller` now load in tools that resolve imports with `require` conditions, such as a Vite config that loads as CommonJS. The exports had only an `import` condition, so those tools failed with "This package is ESM only but it was tried to load by `require`".
+- Updated dependencies [5a9be1d]
+  - @tolki/utils@1.6.3
+
 ## 2.2.4
 
 ### Patch Changes
