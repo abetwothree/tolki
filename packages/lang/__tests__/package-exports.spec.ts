@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 interface PackageExportTarget {
     import?: string;
     require?: string;
+    default?: string;
     types?: string;
 }
 
@@ -65,6 +66,7 @@ describe("package exports", () => {
 
         expect(manifest.publishConfig.exports["./vite-laravel"]).toEqual({
             import: "./dist/vite-laravel/index.js",
+            default: "./dist/vite-laravel/index.js",
             types: "./dist/vite-laravel/index.d.ts",
         });
     });
@@ -81,8 +83,21 @@ describe("package exports", () => {
         ]) {
             expect(publishConfig.exports[`./${subpath}`]).toEqual({
                 import: `./dist/${subpath}.js`,
+                default: `./dist/${subpath}.js`,
                 types: `./dist/${subpath}.d.ts`,
             });
+        }
+    });
+
+    it("gives every runtime subpath a default for require-based loaders", () => {
+        const { publishConfig } = readPackageManifest();
+
+        for (const [subpath, target] of Object.entries(publishConfig.exports)) {
+            if (typeof target === "object" && target.import) {
+                expect(target.default ?? target.require, subpath).toBe(
+                    target.import,
+                );
+            }
         }
     });
 
@@ -136,6 +151,7 @@ describe("package exports", () => {
 
         expect(manifest.publishConfig.exports["./vue"]).toEqual({
             import: "./dist/vue.js",
+            default: "./dist/vue.js",
             types: "./dist/vue.d.ts",
         });
     });
@@ -145,6 +161,7 @@ describe("package exports", () => {
 
         expect(manifest.publishConfig.exports["./react"]).toEqual({
             import: "./dist/react.js",
+            default: "./dist/react.js",
             types: "./dist/react.d.ts",
         });
     });
@@ -154,6 +171,7 @@ describe("package exports", () => {
 
         expect(manifest.publishConfig.exports["./svelte"]).toEqual({
             import: "./dist/svelte.js",
+            default: "./dist/svelte.js",
             types: "./dist/svelte.d.ts",
         });
     });
