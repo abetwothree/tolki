@@ -118,40 +118,49 @@
                 "types": "./dist/*"
             },
             "./helpers": {
+                "types": "./dist/helpers.d.ts",
                 "import": "./dist/helpers.js",
-                "types": "./dist/helpers.d.ts"
+                "default": "./dist/helpers.js"
             },
             "./locale": {
+                "types": "./dist/locale.d.ts",
                 "import": "./dist/locale.js",
-                "types": "./dist/locale.d.ts"
+                "default": "./dist/locale.js"
             },
             "./message-selector": {
+                "types": "./dist/message-selector.d.ts",
                 "import": "./dist/message-selector.js",
-                "types": "./dist/message-selector.d.ts"
+                "default": "./dist/message-selector.js"
             },
             "./replacements": {
+                "types": "./dist/replacements.d.ts",
                 "import": "./dist/replacements.js",
-                "types": "./dist/replacements.d.ts"
+                "default": "./dist/replacements.js"
             },
             "./translator": {
+                "types": "./dist/translator.d.ts",
                 "import": "./dist/translator.js",
-                "types": "./dist/translator.d.ts"
+                "default": "./dist/translator.js"
             },
             "./vue": {
+                "types": "./dist/vue.d.ts",
                 "import": "./dist/vue.js",
-                "types": "./dist/vue.d.ts"
+                "default": "./dist/vue.js"
             },
             "./react": {
+                "types": "./dist/react.d.ts",
                 "import": "./dist/react.js",
-                "types": "./dist/react.d.ts"
+                "default": "./dist/react.js"
             },
             "./svelte": {
+                "types": "./dist/svelte.d.ts",
                 "import": "./dist/svelte.js",
-                "types": "./dist/svelte.d.ts"
+                "default": "./dist/svelte.js"
             },
             "./vite-laravel": {
+                "types": "./dist/vite-laravel/index.d.ts",
                 "import": "./dist/vite-laravel/index.js",
-                "types": "./dist/vite-laravel/index.d.ts"
+                "default": "./dist/vite-laravel/index.js"
             },
             "./client": {
                 "types": "./client.d.ts"
