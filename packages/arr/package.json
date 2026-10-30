@@ -51,8 +51,9 @@
                 "types": "./dist/index.d.ts"
             },
             "./arr": {
+                "types": "./dist/arr.d.ts",
                 "import": "./dist/arr.js",
-                "types": "./dist/arr.d.ts"
+                "default": "./dist/arr.js"
             }
         }
     },

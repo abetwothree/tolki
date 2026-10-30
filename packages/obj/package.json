@@ -53,8 +53,9 @@
                 "types": "./dist/index.d.ts"
             },
             "./obj": {
+                "types": "./dist/obj.d.ts",
                 "import": "./dist/obj.js",
-                "types": "./dist/obj.d.ts"
+                "default": "./dist/obj.js"
             }
         }
     },

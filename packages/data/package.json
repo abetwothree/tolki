@@ -49,8 +49,9 @@
                 "types": "./dist/index.d.ts"
             },
             "./data": {
+                "types": "./dist/data.d.ts",
                 "import": "./dist/data.js",
-                "types": "./dist/data.d.ts"
+                "default": "./dist/data.js"
             }
         }
     },

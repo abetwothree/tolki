@@ -53,12 +53,14 @@
                 "types": "./dist/*"
             },
             "./num": {
+                "types": "./dist/num.d.ts",
                 "import": "./dist/num.js",
-                "types": "./dist/num.d.ts"
+                "default": "./dist/num.js"
             },
             "./speller": {
+                "types": "./dist/speller/index.d.ts",
                 "import": "./dist/speller/index.js",
-                "types": "./dist/speller/index.d.ts"
+                "default": "./dist/speller/index.js"
             }
         }
     },

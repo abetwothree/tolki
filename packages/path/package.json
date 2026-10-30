@@ -45,12 +45,14 @@
                 "types": "./dist/index.d.ts"
             },
             "./path": {
+                "types": "./dist/path.d.ts",
                 "import": "./dist/path.js",
-                "types": "./dist/path.d.ts"
+                "default": "./dist/path.js"
             },
             "./pluck": {
+                "types": "./dist/pluck.d.ts",
                 "import": "./dist/pluck.js",
-                "types": "./dist/pluck.d.ts"
+                "default": "./dist/pluck.js"
             }
         }
     }

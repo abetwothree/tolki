@@ -64,56 +64,69 @@
                 "types": "./dist/*"
             },
             "./ascii": {
+                "types": "./dist/ascii/index.d.ts",
                 "import": "./dist/ascii/index.js",
-                "types": "./dist/ascii/index.d.ts"
+                "default": "./dist/ascii/index.js"
             },
             "./base64": {
+                "types": "./dist/base64/index.d.ts",
                 "import": "./dist/base64/index.js",
-                "types": "./dist/base64/index.d.ts"
+                "default": "./dist/base64/index.js"
             },
             "./convertcase": {
+                "types": "./dist/convertcase/index.d.ts",
                 "import": "./dist/convertcase/index.js",
-                "types": "./dist/convertcase/index.d.ts"
+                "default": "./dist/convertcase/index.js"
             },
             "./markdown": {
+                "types": "./dist/markdown/index.d.ts",
                 "import": "./dist/markdown/index.js",
-                "types": "./dist/markdown/index.d.ts"
+                "default": "./dist/markdown/index.js"
             },
             "./pluralizer": {
+                "types": "./dist/pluralizer/index.d.ts",
                 "import": "./dist/pluralizer/index.js",
-                "types": "./dist/pluralizer/index.d.ts"
+                "default": "./dist/pluralizer/index.js"
             },
             "./random": {
+                "types": "./dist/random/index.d.ts",
                 "import": "./dist/random/index.js",
-                "types": "./dist/random/index.d.ts"
+                "default": "./dist/random/index.js"
             },
             "./replacer": {
+                "types": "./dist/replacer/index.d.ts",
                 "import": "./dist/replacer/index.js",
-                "types": "./dist/replacer/index.d.ts"
+                "default": "./dist/replacer/index.js"
             },
             "./str": {
+                "types": "./dist/str.d.ts",
                 "import": "./dist/str.js",
-                "types": "./dist/str.d.ts"
+                "default": "./dist/str.js"
             },
             "./stringable": {
+                "types": "./dist/stringable/index.d.ts",
                 "import": "./dist/stringable/index.js",
-                "types": "./dist/stringable/index.d.ts"
+                "default": "./dist/stringable/index.js"
             },
             "./transliterate": {
+                "types": "./dist/transliterate/index.d.ts",
                 "import": "./dist/transliterate/index.js",
-                "types": "./dist/transliterate/index.d.ts"
+                "default": "./dist/transliterate/index.js"
             },
             "./trimmer": {
+                "types": "./dist/trimmer/index.d.ts",
                 "import": "./dist/trimmer/index.js",
-                "types": "./dist/trimmer/index.d.ts"
+                "default": "./dist/trimmer/index.js"
             },
             "./ulid": {
+                "types": "./dist/ulid/index.d.ts",
                 "import": "./dist/ulid/index.js",
-                "types": "./dist/ulid/index.d.ts"
+                "default": "./dist/ulid/index.js"
             },
             "./uuid": {
+                "types": "./dist/uuid/index.d.ts",
                 "import": "./dist/uuid/index.js",
-                "types": "./dist/uuid/index.d.ts"
+                "default": "./dist/uuid/index.js"
             }
         }
     },

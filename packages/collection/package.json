@@ -53,8 +53,9 @@
                 "types": "./dist/index.d.ts"
             },
             "./collection": {
+                "types": "./dist/collection.d.ts",
                 "import": "./dist/collection.js",
-                "types": "./dist/collection.d.ts"
+                "default": "./dist/collection.js"
             }
         }
     },
