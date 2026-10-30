@@ -138,7 +138,7 @@ status: StatusType;
 
 `$this->resource->name` reads the same attribute, so it publishes the same type. A property you declare on the resource class itself, such as a promoted constructor parameter, takes its type from that declaration. It wins over a model attribute with the same name, as it does in PHP.
 
-An untyped property that nothing in the class, its parents, or its traits writes takes its default's type, so `protected $stage = Status::Draft;` publishes `StatusType`. A protected or private one declared without a value, such as `protected $name;`, publishes `null`.
+An untyped property publishes its default's type joined with each value the resource, its parents, its traits, or its children write to it, so `protected $stage = Status::Draft;` publishes `StatusType`, and a protected or private one declared without a value, such as `protected $name;`, publishes `null`. Writes include element writes and writes inside a closure, typed by the closure's parameters and `use` imports, so `protected $sizes = ['small' => 1];` extended by `$this->sizes['large'] = 2;` publishes `{ small: number; large?: number }`. A write in a trait method the resource overrides doesn't count. The property publishes `unknown` when a write is a value from an untyped parameter, a by-reference call such as `sort($this->sizes)`, or an `unset()` of the whole property.
 
 ### Conditional Methods
 
@@ -1057,7 +1057,7 @@ JsonResource::macro('label', function (): string {
 'model_label' => $this->resource->label(), // model_label: number
 ```
 
-`$this->resource->label()` calls the model directly, so it keeps the model's type. `$this?->label()`, `static::label()`, `self::label()` and `$this::label()` reach the macro, as `$this->label()` does. A method the resource declares or inherits, such as `whenLoaded()`, runs before any macro with its name, so a macro never changes it.
+`$this->resource->label()` calls the model directly, so it keeps the model's type. `$this?->label()`, `static::label()`, `self::label()` and `$this::label()` reach the macro, as `$this->label()` does. A method the resource declares or inherits, such as `whenLoaded()`, runs before any macro with its name, so a macro doesn't change it. In a parent resource's body, `self::label()` looks only at that parent: if the parent doesn't declare `label()`, the macro runs even when the child declares one, and the key publishes the macro's type.
 
 The package types a macro from its native return type, then its `@return` docblock, then its body. It reads the body without the values the call passes, so a body whose result depends on its arguments publishes `unknown`. It doesn't read the body of a closure declared outside a class method, such as in `bootstrap/app.php`. To type such a macro, give the closure a return type. A `@return` docblock works only on a closure declared inside a class, such as in a service provider's `boot()` method.
 
@@ -1343,6 +1343,7 @@ The annotation's type counts only when it's built from these forms, and when eve
 
 - Scalars: `int`, `string`, `bool`, `float`, `null`, `true`, and `false`
 - A class, interface, or enum that the file imports or writes in full
+- `self`, `static`, and `parent`, which name the classes `self::`, `static::`, and `parent::` reach in that method, as in an [inherited `toArray()`](#inheriting-a-parent-toarray). The variable may hold a subclass, so a read of a method or property a subclass can override takes its declared type, and publishes `unknown` where it has none. A closure parameter typed `self` or `parent` reads the same way.
 - `list<X>`, `array<int, X>`, `array<string, X>`, and `array<'a'|'b', X>`
 - `array{...}` and `object{...}` shapes with plain or quoted keys, and `list{...}` tuples
 - `Collection<K, X>`, for both Laravel's support collection and its Eloquent collection
@@ -1503,7 +1504,7 @@ The nearest class up the parent chain that declares a `toArray()` provides the s
 The package reads the inherited body as PHP runs it for the child:
 
 - `$this->` and `static::` reach the child, so a method, constant, or property the child overrides publishes the child's type. That includes a helper that `toArray()` spreads.
-- `self::` reaches the class that declares the body, and `parent::` reaches that class's parent.
+- `self::` reaches the class that declares the body, and `parent::` reaches that class's parent. Spreads follow the same rule: `...parent::extra()` adds the keys of the parent's `extra()`, as `...self::extra()` and `...static::extra()` add those of the method each reaches. A private or abstract parent method adds none because PHP throws on that call, and neither does one whose body the package can't read in full.
 - A `private` member stays the one in the class that declares `toArray()`, because PHP never overrides one.
 
 ```php
