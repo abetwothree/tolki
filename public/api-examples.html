@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Runtime API Examples | Tolki JS</title>
+    <meta name="description" content="Use the PHP Laravel framework support utilities in your JavaScript codebase">
+    <meta name="generator" content="VitePress v2.0.0-alpha.21">
+    
+    <link rel="preload stylesheet" href="/assets/style.BR_WSOB-.css" as="style">
+    <link rel="preload stylesheet" href="/assets/vp-icons.139f4833.css" as="style">
+    <script type="module" src="/assets/chunks/metadata.bd91b265.js"></script>
+    <script type="module" src="/assets/app.BcARvgpU.js"></script>
+    <link rel="preload" href="/assets/inter-roman-latin.BGqfVNJZ.woff2" as="font" type="font/woff2" crossorigin="">
+    <link rel="modulepreload" href="/assets/chunks/framework.CcbqhlXh.js">
+    <link rel="modulepreload" href="/assets/chunks/theme.BbB4OVQg.js">
+    <link rel="modulepreload" href="/assets/api-examples.md.DBYTpIQI.lean.js">
+    <link rel="icon" type="image/svg+xml" href="/tolki-logo-mark.svg">
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-F63Z0VMJJK"></script>
+    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag(`js`,new Date),gtag(`config`,`G-F63Z0VMJJK`);</script>
+    <script id="check-dark-mode">(()=>{let e=localStorage.getItem(`vitepress-theme-appearance`)||`auto`,t=window.matchMedia(`(prefers-color-scheme: dark)`).matches;(!e||e===`auto`?t:e===`dark`)&&document.documentElement.classList.add(`dark`)})();</script>
+    <script id="check-mac-os">document.documentElement.classList.toggle(`mac`,/Mac|iPhone|iPod|iPad/i.test(navigator.platform));</script>
+    <link href="/api-examples.md" rel="alternate" type="text/markdown">
+    <link href="/llms.txt" rel="describedby">
+  </head>
+  <body>
+    <div id="app"><div class="Layout" data-v-3502e29e><!--[--><!--]--><!--[--><span tabindex="-1" data-v-69547898></span><a href="#VPContent" class="VPSkipLink visually-hidden" data-v-69547898>Skip to content</a><!--]--><!----><header class="VPNav" data-v-3502e29e data-v-68f2790d><div class="VPNavBar has-sidebar top" data-v-68f2790d data-v-2169a2c0><div class="wrapper" data-v-2169a2c0><div class="container" data-v-2169a2c0><div class="title" data-v-2169a2c0><div class="VPNavBarTitle has-sidebar" data-v-2169a2c0 data-v-00b6aef0><a class="title" href="/" title="Tolki JS" data-v-00b6aef0><!--[--><!--]--><!--[--><img class="VPImage logo" src="/tolki-logo-mark.svg" alt data-v-74bd89bb><!--]--><span data-v-00b6aef0>Tolki JS</span><!--[--><!--]--></a></div></div><div class="content" data-v-2169a2c0><div class="content-body" data-v-2169a2c0><!--[--><!--]--><div class="VPNavBarSearch search" data-v-2169a2c0 data-v-8bfe8b47><!--[--><button type="button" class="VPNavBarSearchButton" aria-label="Search" aria-keyshortcuts="/ control+k meta+k" data-v-8bfe8b47 data-v-36c3f756><span class="vpi-search" aria-hidden="true" data-v-36c3f756></span><span class="text" data-v-36c3f756>Search</span><span class="keys" aria-hidden="true" data-v-36c3f756><kbd class="key-mod" data-v-36c3f756></kbd><kbd class="key-k" data-v-36c3f756></kbd></span></button><!----><!--]--></div><nav aria-label="Main Navigation" class="VPNavMenu VPNavBarMenu menu" data-v-2169a2c0 data-v-05ad8b4e><ul class="list" data-v-05ad8b4e><!--[--><li class="" data-v-05ad8b4e><a class="VPLink link VPNavMenuLink VPNavBarMenuLink" href="/" data-v-05ad8b4e data-v-94b914ae data-v-d2bab93d><!--[--><span dir="auto" data-v-94b914ae>Home</span><!--]--></a></li><li class="" data-v-05ad8b4e><a class="VPLink link VPNavMenuLink VPNavBarMenuLink" href="/packages.html" data-v-05ad8b4e data-v-94b914ae data-v-d2bab93d><!--[--><span dir="auto" data-v-94b914ae>Packages</span><!--]--></a></li><li class="" data-v-05ad8b4e><div class="VPFlyout VPNavMenuGroup VPNavBarMenuGroup" data-v-05ad8b4e data-v-a9ce1896 data-v-cfdc0223><button type="button" class="button" aria-expanded="false" aria-controls="v-1" data-v-cfdc0223><span class="text" data-v-cfdc0223><!----><span dir="auto" data-v-cfdc0223>Utilities</span><span class="vpi-chevron-down text-icon" aria-hidden="true" data-v-cfdc0223></span></span></button><div class="menu" id="v-1" data-v-cfdc0223><div class="VPMenu" data-v-cfdc0223 data-v-c8fe8a2f><ul class="items" data-v-c8fe8a2f><!--[--><!--[--><li class="VPMenuLink" data-v-c8fe8a2f data-v-ed6fe152><a class="VPLink link" href="/strings/" data-v-ed6fe152 data-v-d2bab93d><!--[--><span dir="auto" data-v-ed6fe152>Strings</span><!--]--></a></li><!--]--><!--[--><li class="VPMenuLink" data-v-c8fe8a2f data-v-ed6fe152><a class="VPLink link" href="/numbers/" data-v-ed6fe152 data-v-d2bab93d><!--[--><span dir="auto" data-v-ed6fe152>Numbers</span><!--]--></a></li><!--]--><!--[--><li class="VPMenuLink" data-v-c8fe8a2f data-v-ed6fe152><a class="VPLink link" href="/arrays-objects/" data-v-ed6fe152 data-v-d2bab93d><!--[--><span dir="auto" data-v-ed6fe152>Arrays & Objects</span><!--]--></a></li><!--]--><!--[--><li class="VPMenuLink" data-v-c8fe8a2f data-v-ed6fe152><a class="VPLink link" href="/collections/" data-v-ed6fe152 data-v-d2bab93d><!--[--><span dir="auto" data-v-ed6fe152>Collections</span><!--]--></a></li><!--]--><!--[--><li class="VPMenuLink" data-v-c8fe8a2f data-v-ed6fe152><a class="VPLink link" href="/localization/" data-v-ed6fe152 data-v-d2bab93d><!--[--><span dir="auto" data-v-ed6fe152>Localization</span><!--]--></a></li><!--]--><!--]--></ul><!--[--><!--]--></div></div></div></li><li class="" data-v-05ad8b4e><a class="VPLink link VPNavMenuLink VPNavBarMenuLink" href="/typescript/" data-v-05ad8b4e data-v-94b914ae data-v-d2bab93d><!--[--><span dir="auto" data-v-94b914ae>TS Types</span><!--]--></a></li><li class="" data-v-05ad8b4e><a class="VPLink link VPNavMenuLink VPNavBarMenuLink" href="/ts/" data-v-05ad8b4e data-v-94b914ae data-v-d2bab93d><!--[--><span dir="auto" data-v-94b914ae>TS & Laravel</span><!--]--></a></li><!--]--></ul></nav><!----><div class="VPNavAppearance VPNavBarAppearance appearance" data-v-2169a2c0 data-v-11093f7c><!----><button class="VPSwitch VPSwitchAppearance" type="button" role="switch" title aria-label="Appearance" aria-checked="false" data-v-11093f7c data-v-57caf213 data-v-69f8e497><span class="check" data-v-69f8e497><span class="icon" data-v-69f8e497><!--[--><span class="vpi-sun sun" aria-hidden="true" data-v-57caf213></span><span class="vpi-moon moon" aria-hidden="true" data-v-57caf213></span><!--]--></span></span></button></div><ul class="VPSocialLinks VPNavSocialLinks VPNavBarSocialLinks social-links" data-v-2169a2c0 data-v-d40fbbc1 data-v-8403c10a><!--[--><li data-v-8403c10a><a class="VPSocialLink no-icon" href="https://github.com/abetwothree/tolki" aria-label="github" target="_blank" rel="me noopener" data-v-8403c10a data-v-a0a220c3><span class="vpi-simple-icons-github" data-v-a0a220c3 data-v-4637e8a0></span></a></li><!--]--></ul><!----><!--[--><!--]--><button type="button" class="VPNavBarHamburger hamburger" aria-label="Menu" aria-expanded="false" data-v-2169a2c0 data-v-73b169f5><span class="container" aria-hidden="true" data-v-73b169f5><span class="top" data-v-73b169f5></span><span class="middle" data-v-73b169f5></span><span class="bottom" data-v-73b169f5></span></span></button></div></div></div></div><div class="divider" data-v-2169a2c0><div class="divider-line" data-v-2169a2c0></div></div></div><!----></header><div class="VPLocalNav has-sidebar empty" data-v-3502e29e data-v-381d49f7><div class="container" data-v-381d49f7><button type="button" class="menu" aria-expanded="false" aria-controls="VPSidebarNav" data-v-381d49f7><span class="vpi-text-align-start menu-icon" aria-hidden="true" data-v-381d49f7></span><span class="menu-text" data-v-381d49f7>Menu</span></button><div class="VPLocalNavOutlineDropdown" style="--vp-vh:0px;" data-allow-mismatch="style" data-v-381d49f7 data-v-e4759fe2><button type="button" data-v-e4759fe2>Return to top</button><!----></div></div></div><aside class="VPSidebar" data-v-3502e29e data-v-c8986a0c><div class="curtain" data-v-c8986a0c></div><nav class="nav" id="VPSidebarNav" aria-labelledby="sidebar-aria-label" tabindex="-1" data-v-c8986a0c><span class="visually-hidden" id="sidebar-aria-label" data-v-c8986a0c> Sidebar Navigation </span><!--[--><!--]--><!--[--><div class="no-transition group" data-v-20f5c6d8><section class="VPSidebarItem level-0" data-v-20f5c6d8 data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><h2 class="text" data-v-cd396662><bdi data-v-cd396662>Introduction</bdi></h2><!----></div><ul class="items" data-v-cd396662><li data-v-cd396662><!--[--><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/why-tolki-js.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Why Tolki JS?</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/packages.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Packages</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/what-is-tolki.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>What is Tolki?</bdi></p><!--]--></a><!----></div><!----></div><!--]--></li></ul></section></div><div class="no-transition group" data-v-20f5c6d8><section class="VPSidebarItem level-0" data-v-20f5c6d8 data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><h2 class="text" data-v-cd396662><bdi data-v-cd396662>Numbers</bdi></h2><!----></div><ul class="items" data-v-cd396662><li data-v-cd396662><!--[--><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/numbers/" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Installation & Usage</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/numbers/number-utilities-list.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Number Utilities List</bdi></p><!--]--></a><!----></div><!----></div><!--]--></li></ul></section></div><div class="no-transition group" data-v-20f5c6d8><section class="VPSidebarItem level-0" data-v-20f5c6d8 data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><h2 class="text" data-v-cd396662><bdi data-v-cd396662>Strings</bdi></h2><!----></div><ul class="items" data-v-cd396662><li data-v-cd396662><!--[--><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/strings/" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Installation & Usage</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/strings/string-utilities-list.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>String Utilities List</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/strings/stringable-utilities-list.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Stringable Utilities List</bdi></p><!--]--></a><!----></div><!----></div><!--]--></li></ul></section></div><div class="no-transition group" data-v-20f5c6d8><section class="VPSidebarItem level-0" data-v-20f5c6d8 data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><h2 class="text" data-v-cd396662><bdi data-v-cd396662>Arrays & Objects</bdi></h2><!----></div><ul class="items" data-v-cd396662><li data-v-cd396662><!--[--><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/arrays-objects/" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Installation & Usage</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/arrays-objects/utilities-list.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Utilities List</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/arrays-objects/dot-notation.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Dot Notation</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/arrays-objects/php-semantics.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>PHP Semantics</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/arrays-objects/differences.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Differences from Laravel</bdi></p><!--]--></a><!----></div><!----></div><!--]--></li></ul></section></div><div class="no-transition group" data-v-20f5c6d8><section class="VPSidebarItem level-0" data-v-20f5c6d8 data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><h2 class="text" data-v-cd396662><bdi data-v-cd396662>Collections</bdi></h2><!----></div><ul class="items" data-v-cd396662><li data-v-cd396662><!--[--><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/collections/" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Installation & Usage</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/collections/methods-list.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Methods List</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/collections/differences.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Differences from Laravel</bdi></p><!--]--></a><!----></div><!----></div><!--]--></li></ul></section></div><div class="no-transition group" data-v-20f5c6d8><section class="VPSidebarItem level-0" data-v-20f5c6d8 data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><h2 class="text" data-v-cd396662><bdi data-v-cd396662>Localization</bdi></h2><!----></div><ul class="items" data-v-cd396662><li data-v-cd396662><!--[--><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/localization/" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Installation & Usage</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/localization/vite.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Vite Plugin</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/localization/vue.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Vue</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/localization/react.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>React</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/localization/svelte.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Svelte</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/localization/translator.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Translator Reference</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/localization/differences.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Differences from Laravel</bdi></p><!--]--></a><!----></div><!----></div><!--]--></li></ul></section></div><div class="no-transition group" data-v-20f5c6d8><section class="VPSidebarItem level-0" data-v-20f5c6d8 data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><h2 class="text" data-v-cd396662><bdi data-v-cd396662>TypeScript Type Utilities</bdi></h2><!----></div><ul class="items" data-v-cd396662><li data-v-cd396662><!--[--><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/typescript/" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Installation & Usage</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/typescript/typescript-utilities-list.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>TypeScript Type Utilities List</bdi></p><!--]--></a><!----></div><!----></div><!--]--></li></ul></section></div><div class="no-transition group" data-v-20f5c6d8><section class="VPSidebarItem level-0" data-v-20f5c6d8 data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><h2 class="text" data-v-cd396662><bdi data-v-cd396662>TypeScript & Laravel</bdi></h2><!----></div><ul class="items" data-v-cd396662><li data-v-cd396662><!--[--><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Installation & Usage</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/publishing.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Publishing Types</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/enums.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Enums</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/models.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Models</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/model-metadata.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Model Metadata</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/api-resources.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>API Resources</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/routing.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Routing</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/form-requests.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Form Requests</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/broadcast-channels.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Broadcast Channels</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/broadcast-events.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Broadcast Events</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/inertia.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Inertia</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/vite-env.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Vite Env</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/custom-types.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Custom Types</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/extending-interfaces.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Extending Interfaces</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/excluding-content.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Excluding Content</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/casing-configuration.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Casing Configurations</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/enum-api-resource.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Enum API Resource</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/modular-publishing.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Modular Publishing</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/customizing-the-pipeline.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Customizing the Pipeline</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/analyzer-api.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Analyzer API</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/pre-command-hook.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Pre-Command Hook</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/generating-cache.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Cache Generation</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/configuration-reference.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Configuration Reference</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/vite-plugin.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Vite Plugin</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/troubleshooting-types.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Troubleshooting Types</bdi></p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-cd396662><div class="item" data-v-cd396662><div class="indicator" data-v-cd396662></div><a class="VPLink link link" href="/ts/upgrade-guide.html" data-v-cd396662 data-v-d2bab93d><!--[--><p class="text" data-v-cd396662><bdi data-v-cd396662>Upgrade Guide</bdi></p><!--]--></a><!----></div><!----></div><!--]--></li></ul></section></div><!--]--><!--[--><!--]--></nav></aside><div class="VPContent has-sidebar" id="VPContent" data-v-3502e29e data-v-e7ad4760><div class="VPDoc has-sidebar has-aside" data-v-e7ad4760 data-v-35462b76><!--[--><!--]--><div class="container" data-v-35462b76><div class="aside" data-v-35462b76><div class="aside-curtain" data-v-35462b76></div><div class="aside-container" data-v-35462b76><div class="aside-content" data-v-35462b76><div class="VPDocAside" data-v-35462b76 data-v-5cac1527><!--[--><!--]--><!--[--><!--]--><nav aria-labelledby="doc-outline-aria-label" class="VPDocAsideOutline" data-v-5cac1527 data-v-104d6459><div class="content" data-v-104d6459><div class="outline-marker" data-v-104d6459></div><div aria-level="2" class="outline-title" id="doc-outline-aria-label" role="heading" data-v-104d6459>On this page</div><ul class="VPDocOutlineItem root" data-v-104d6459 data-v-d771c615><!--[--><!--]--></ul></div></nav><!--[--><!--]--><div class="spacer" data-v-5cac1527></div><!--[--><!--]--><!----><!--[--><!--]--><!--[--><!--]--></div></div></div></div><div class="content" data-v-35462b76><div class="content-container" data-v-35462b76><!--[--><!--]--><main class="main" data-v-35462b76><div style="position:relative;" class="vp-doc _api-examples" data-v-35462b76><div><h1 id="runtime-api-examples" tabindex="-1">Runtime API Examples <a class="header-anchor" href="#runtime-api-examples" aria-label="Permalink to “Runtime API Examples”">​</a></h1><div class="markdown-copy-buttons" data-v-9eb4293e><div class="markdown-copy-buttons-inner" data-v-9eb4293e><div class="dropdown-container" data-v-9eb4293e><div class="dropdown-trigger" data-v-9eb4293e><button class="copy-page" data-v-9eb4293e><span class="icon" data-v-9eb4293e><svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span><span class="label" data-v-9eb4293e>Copy page</span></button><span class="divider" data-v-9eb4293e></span><button class="chevron-wrapper" data-v-9eb4293e><span class="icon chevron" data-v-9eb4293e><svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-chevron-down-icon lucide-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span></button></div><!----></div><button class="download-btn" data-v-9eb4293e><span class="icon" data-v-9eb4293e><svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-file-down-icon lucide-file-down" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5m-8 10v-6m-3 3 3 3 3-3"/></svg></span></button></div></div><p>This page demonstrates usage of some of the runtime APIs provided by VitePress.</p><p>The main <code>useData()</code> API can be used to access site, theme, and page data for the current page. It works in both <code>.md</code> and <code>.vue</code> files:</p><div class="language-md" dir="ltr"><button title="Copy code" data-copied="Copied" class="copy"></button><span class="lang">md</span><pre class="shiki shiki-themes github-light github-dark" style="--shiki-light:#24292e;--shiki-dark:#e1e4e8;--shiki-light-bg:#fff;--shiki-dark-bg:#24292e;" tabindex="0" dir="ltr"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#11782a;--shiki-dark:#85E89D;">script</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> setup</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&gt;</span></span>
+<span class="line"><span style="--shiki-light:#c62739;--shiki-dark:#F97583;">import</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> { useData } </span><span style="--shiki-light:#c62739;--shiki-dark:#F97583;">from</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> &#39;vitepress&#39;</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#c62739;--shiki-dark:#F97583;">const</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> { </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">theme</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">page</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">frontmatter</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> } </span><span style="--shiki-light:#c62739;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> useData</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">()</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;/</span><span style="--shiki-light:#11782a;--shiki-dark:#85E89D;">script</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&gt;</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-light-font-weight:bold;--shiki-dark:#79B8FF;--shiki-dark-font-weight:bold;">## Results</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-light-font-weight:bold;--shiki-dark:#79B8FF;--shiki-dark-font-weight:bold;">### Theme Data</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#11782a;--shiki-dark:#85E89D;">pre</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&gt;{{ theme }}&lt;/</span><span style="--shiki-light:#11782a;--shiki-dark:#85E89D;">pre</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&gt;</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">### Page Data</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#11782a;--shiki-dark:#85E89D;">pre</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&gt;{{ page }}&lt;/</span><span style="--shiki-light:#11782a;--shiki-dark:#85E89D;">pre</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&gt;</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">### Page Frontmatter</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&lt;</span><span style="--shiki-light:#11782a;--shiki-dark:#85E89D;">pre</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&gt;{{ frontmatter }}&lt;/</span><span style="--shiki-light:#11782a;--shiki-dark:#85E89D;">pre</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">&gt;</span></span></code></pre></div><h2 id="results" tabindex="-1">Results <a class="header-anchor" href="#results" aria-label="Permalink to “Results”">​</a></h2><h3 id="theme-data" tabindex="-1">Theme Data <a class="header-anchor" href="#theme-data" aria-label="Permalink to “Theme Data”">​</a></h3><pre>{
+  &quot;logo&quot;: &quot;/tolki-logo-mark.svg&quot;,
+  &quot;search&quot;: {
+    &quot;provider&quot;: &quot;local&quot;
+  },
+  &quot;outline&quot;: {
+    &quot;level&quot;: [
+      2,
+      3
+    ],
+    &quot;label&quot;: &quot;On this page&quot;
+  },
+  &quot;nav&quot;: [
+    {
+      &quot;text&quot;: &quot;Home&quot;,
+      &quot;link&quot;: &quot;/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Packages&quot;,
+      &quot;link&quot;: &quot;/packages&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Utilities&quot;,
+      &quot;activeMatch&quot;: &quot;^/(strings|numbers|arrays-objects|collections|localization)/&quot;,
+      &quot;items&quot;: [
+        {
+          &quot;text&quot;: &quot;Strings&quot;,
+          &quot;link&quot;: &quot;/strings/&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Numbers&quot;,
+          &quot;link&quot;: &quot;/numbers/&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Arrays &amp; Objects&quot;,
+          &quot;link&quot;: &quot;/arrays-objects/&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Collections&quot;,
+          &quot;link&quot;: &quot;/collections/&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Localization&quot;,
+          &quot;link&quot;: &quot;/localization/&quot;
+        }
+      ]
+    },
+    {
+      &quot;text&quot;: &quot;TS Types&quot;,
+      &quot;link&quot;: &quot;/typescript/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;TS &amp; Laravel&quot;,
+      &quot;link&quot;: &quot;/ts/&quot;
+    }
+  ],
+  &quot;sidebar&quot;: [
+    {
+      &quot;text&quot;: &quot;Introduction&quot;,
+      &quot;items&quot;: [
+        {
+          &quot;text&quot;: &quot;Why Tolki JS?&quot;,
+          &quot;link&quot;: &quot;/why-tolki-js&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Packages&quot;,
+          &quot;link&quot;: &quot;/packages&quot;
+        },
+        {
+          &quot;text&quot;: &quot;What is Tolki?&quot;,
+          &quot;link&quot;: &quot;/what-is-tolki&quot;
+        }
+      ]
+    },
+    {
+      &quot;text&quot;: &quot;Numbers&quot;,
+      &quot;items&quot;: [
+        {
+          &quot;text&quot;: &quot;Installation &amp; Usage&quot;,
+          &quot;link&quot;: &quot;/numbers/&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Number Utilities List&quot;,
+          &quot;link&quot;: &quot;/numbers/number-utilities-list&quot;
+        }
+      ]
+    },
+    {
+      &quot;text&quot;: &quot;Strings&quot;,
+      &quot;items&quot;: [
+        {
+          &quot;text&quot;: &quot;Installation &amp; Usage&quot;,
+          &quot;link&quot;: &quot;/strings/&quot;
+        },
+        {
+          &quot;text&quot;: &quot;String Utilities List&quot;,
+          &quot;link&quot;: &quot;/strings/string-utilities-list&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Stringable Utilities List&quot;,
+          &quot;link&quot;: &quot;/strings/stringable-utilities-list&quot;
+        }
+      ]
+    },
+    {
+      &quot;text&quot;: &quot;Arrays &amp; Objects&quot;,
+      &quot;items&quot;: [
+        {
+          &quot;text&quot;: &quot;Installation &amp; Usage&quot;,
+          &quot;link&quot;: &quot;/arrays-objects/&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Utilities List&quot;,
+          &quot;link&quot;: &quot;/arrays-objects/utilities-list&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Dot Notation&quot;,
+          &quot;link&quot;: &quot;/arrays-objects/dot-notation&quot;
+        },
+        {
+          &quot;text&quot;: &quot;PHP Semantics&quot;,
+          &quot;link&quot;: &quot;/arrays-objects/php-semantics&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Differences from Laravel&quot;,
+          &quot;link&quot;: &quot;/arrays-objects/differences&quot;
+        }
+      ]
+    },
+    {
+      &quot;text&quot;: &quot;Collections&quot;,
+      &quot;items&quot;: [
+        {
+          &quot;text&quot;: &quot;Installation &amp; Usage&quot;,
+          &quot;link&quot;: &quot;/collections/&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Methods List&quot;,
+          &quot;link&quot;: &quot;/collections/methods-list&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Differences from Laravel&quot;,
+          &quot;link&quot;: &quot;/collections/differences&quot;
+        }
+      ]
+    },
+    {
+      &quot;text&quot;: &quot;Localization&quot;,
+      &quot;items&quot;: [
+        {
+          &quot;text&quot;: &quot;Installation &amp; Usage&quot;,
+          &quot;link&quot;: &quot;/localization/&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Vite Plugin&quot;,
+          &quot;link&quot;: &quot;/localization/vite&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Vue&quot;,
+          &quot;link&quot;: &quot;/localization/vue&quot;
+        },
+        {
+          &quot;text&quot;: &quot;React&quot;,
+          &quot;link&quot;: &quot;/localization/react&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Svelte&quot;,
+          &quot;link&quot;: &quot;/localization/svelte&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Translator Reference&quot;,
+          &quot;link&quot;: &quot;/localization/translator&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Differences from Laravel&quot;,
+          &quot;link&quot;: &quot;/localization/differences&quot;
+        }
+      ]
+    },
+    {
+      &quot;text&quot;: &quot;TypeScript Type Utilities&quot;,
+      &quot;items&quot;: [
+        {
+          &quot;text&quot;: &quot;Installation &amp; Usage&quot;,
+          &quot;link&quot;: &quot;/typescript/&quot;
+        },
+        {
+          &quot;text&quot;: &quot;TypeScript Type Utilities List&quot;,
+          &quot;link&quot;: &quot;/typescript/typescript-utilities-list&quot;
+        }
+      ]
+    },
+    {
+      &quot;text&quot;: &quot;TypeScript &amp; Laravel&quot;,
+      &quot;items&quot;: [
+        {
+          &quot;text&quot;: &quot;Installation &amp; Usage&quot;,
+          &quot;link&quot;: &quot;/ts/&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Publishing Types&quot;,
+          &quot;link&quot;: &quot;/ts/publishing&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Enums&quot;,
+          &quot;link&quot;: &quot;/ts/enums&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Models&quot;,
+          &quot;link&quot;: &quot;/ts/models&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Model Metadata&quot;,
+          &quot;link&quot;: &quot;/ts/model-metadata&quot;
+        },
+        {
+          &quot;text&quot;: &quot;API Resources&quot;,
+          &quot;link&quot;: &quot;/ts/api-resources&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Routing&quot;,
+          &quot;link&quot;: &quot;/ts/routing&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Form Requests&quot;,
+          &quot;link&quot;: &quot;/ts/form-requests&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Broadcast Channels&quot;,
+          &quot;link&quot;: &quot;/ts/broadcast-channels&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Broadcast Events&quot;,
+          &quot;link&quot;: &quot;/ts/broadcast-events&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Inertia&quot;,
+          &quot;link&quot;: &quot;/ts/inertia&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Vite Env&quot;,
+          &quot;link&quot;: &quot;/ts/vite-env&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Custom Types&quot;,
+          &quot;link&quot;: &quot;/ts/custom-types&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Extending Interfaces&quot;,
+          &quot;link&quot;: &quot;/ts/extending-interfaces&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Excluding Content&quot;,
+          &quot;link&quot;: &quot;/ts/excluding-content&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Casing Configurations&quot;,
+          &quot;link&quot;: &quot;/ts/casing-configuration&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Enum API Resource&quot;,
+          &quot;link&quot;: &quot;/ts/enum-api-resource&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Modular Publishing&quot;,
+          &quot;link&quot;: &quot;/ts/modular-publishing&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Customizing the Pipeline&quot;,
+          &quot;link&quot;: &quot;/ts/customizing-the-pipeline&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Analyzer API&quot;,
+          &quot;link&quot;: &quot;/ts/analyzer-api&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Pre-Command Hook&quot;,
+          &quot;link&quot;: &quot;/ts/pre-command-hook&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Cache Generation&quot;,
+          &quot;link&quot;: &quot;/ts/generating-cache&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Configuration Reference&quot;,
+          &quot;link&quot;: &quot;/ts/configuration-reference&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Vite Plugin&quot;,
+          &quot;link&quot;: &quot;/ts/vite-plugin&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Troubleshooting Types&quot;,
+          &quot;link&quot;: &quot;/ts/troubleshooting-types&quot;
+        },
+        {
+          &quot;text&quot;: &quot;Upgrade Guide&quot;,
+          &quot;link&quot;: &quot;/ts/upgrade-guide&quot;
+        }
+      ]
+    }
+  ],
+  &quot;socialLinks&quot;: [
+    {
+      &quot;icon&quot;: &quot;github&quot;,
+      &quot;link&quot;: &quot;https://github.com/abetwothree/tolki&quot;
+    }
+  ],
+  &quot;editLink&quot;: {
+    &quot;pattern&quot;: &quot;https://github.com/abetwothree/tolki/edit/master/docs/vitepress/:path&quot;,
+    &quot;text&quot;: &quot;Edit this page on GitHub&quot;
+  },
+  &quot;footer&quot;: {
+    &quot;message&quot;: &quot;Released under the MIT License.&quot;,
+    &quot;copyright&quot;: &quot;Copyright © 2024–present Abraham Arango&quot;
+  }
+}</pre><h3 id="page-data" tabindex="-1">Page Data <a class="header-anchor" href="#page-data" aria-label="Permalink to “Page Data”">​</a></h3><pre>{
+  &quot;title&quot;: &quot;Runtime API Examples&quot;,
+  &quot;description&quot;: &quot;&quot;,
+  &quot;frontmatter&quot;: {
+    &quot;outline&quot;: &quot;deep&quot;
+  },
+  &quot;headers&quot;: [],
+  &quot;relativePath&quot;: &quot;api-examples.md&quot;,
+  &quot;filePath&quot;: &quot;api-examples.md&quot;,
+  &quot;lastUpdated&quot;: 1771086999000
+}</pre><h3 id="page-frontmatter" tabindex="-1">Page Frontmatter <a class="header-anchor" href="#page-frontmatter" aria-label="Permalink to “Page Frontmatter”">​</a></h3><pre>{
+  &quot;outline&quot;: &quot;deep&quot;
+}</pre><h2 id="more" tabindex="-1">More <a class="header-anchor" href="#more" aria-label="Permalink to “More”">​</a></h2><p>Check out the documentation for the <a href="https://vitepress.dev/reference/runtime-api#usedata" target="_blank" rel="noreferrer">full list of runtime APIs</a>.</p></div></div></main><footer class="VPDocFooter" data-v-35462b76 data-v-e8bb06c6><!--[--><!--]--><div class="edit-info" data-v-e8bb06c6><div class="edit-link" data-v-e8bb06c6><a class="VPLink link vp-external-link-icon no-icon edit-link-button" href="https://github.com/abetwothree/tolki/edit/master/docs/vitepress/api-examples.md" target="_blank" rel="noreferrer" data-v-e8bb06c6 data-v-d2bab93d><!--[--><span class="vpi-square-pen edit-link-icon" data-v-e8bb06c6></span> Edit this page on GitHub<!--]--></a></div><div class="last-updated" data-v-e8bb06c6><p class="VPLastUpdated" data-v-e8bb06c6 data-v-6def419f><bdi data-v-6def419f>Last updated:</bdi><time dir="auto" datetime="2026-02-14T16:36:39.000Z" data-v-6def419f></time></p></div></div><nav class="prev-next" aria-labelledby="doc-footer-aria-label" data-v-e8bb06c6><span class="visually-hidden" id="doc-footer-aria-label" data-v-e8bb06c6>Pager</span><div class="pager" data-v-e8bb06c6><!----></div><div class="pager" data-v-e8bb06c6><a class="VPLink link pager-link next" href="/why-tolki-js.html" data-v-e8bb06c6 data-v-d2bab93d><!--[--><span class="desc" data-v-e8bb06c6>Next page</span><span class="title" data-v-e8bb06c6><bdi data-v-e8bb06c6>Why Tolki JS?</bdi></span><!--]--></a></div></nav></footer><!--[--><!--]--></div></div></div><!--[--><!--]--></div></div><footer class="VPFooter has-sidebar" data-v-3502e29e data-v-a4e8a3d4><div class="container" data-v-a4e8a3d4><p class="message" data-v-a4e8a3d4><bdi data-v-a4e8a3d4>Released under the MIT License.</bdi></p><p class="copyright" data-v-a4e8a3d4><bdi data-v-a4e8a3d4>Copyright © 2024–present Abraham Arango</bdi></p></div></footer><!--[--><!--]--></div></div>
+    
+    
+  </body>
+</html>
