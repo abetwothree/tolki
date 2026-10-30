@@ -35,16 +35,16 @@
     "dependencies": {
         "@tolki/num": "workspace:^",
         "@tolki/utils": "workspace:^",
-        "@types/markdown-it": "^14.1.2",
+        "@types/markdown-it": "^14.2.0",
         "@types/pluralize": "^0.0.33",
         "any-ascii": "^0.3.3",
-        "markdown-it": "^14.1.0",
-        "markdown-it-anchor": "^9.2.0",
+        "markdown-it": "^14.3.3",
+        "markdown-it-anchor": "^10.0.0",
         "markdown-it-task-lists": "^2.1.1",
         "pluralize": "^8.0.0",
-        "transliteration": "^2.6.0",
-        "ulid": "^2.4.0",
-        "uuid": "^11.1.0"
+        "transliteration": "^2.7.0",
+        "ulid": "^3.0.2",
+        "uuid": "^14.0.3"
     },
     "files": [
         "dist"

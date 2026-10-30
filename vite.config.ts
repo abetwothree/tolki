@@ -1,108 +1,58 @@
-import path from "node:path";
-
-import { defineConfig } from "vite";
-import dts from "vite-plugin-dts";
+import { defineConfig, mergeConfig } from "vite";
 import { configDefaults } from "vitest/config";
 
-export default defineConfig({
-    plugins: [
-        dts({
-            outDir: "dist",
-            entryRoot: "src",
-            staticImport: true,
-            tsconfigPath: path.resolve(__dirname, "tsconfig.json"),
-            exclude: ["**/*.spec.ts", "**/__tests__/**"],
-            aliasesExclude: [/^@tolki\//],
-        }),
-    ],
-    build: {
-        lib: {
-            entry: path.resolve(__dirname, "src/index.ts"),
-            formats: ["es"],
-        },
-        emptyOutDir: true,
-        outDir: "dist",
-        rollupOptions: {
-            external: [
-                "@tolki/all",
-                "@tolki/arr",
-                "@tolki/collection",
-                "@tolki/data",
-                "@tolki/enum",
-                "@tolki/lang",
-                "@tolki/num",
-                "@tolki/obj",
-                "@tolki/path",
-                "@tolki/str",
-                "@tolki/ts",
-                "@tolki/types",
-                "@tolki/utils",
-                "@types/pluralize",
-                "any-ascii",
-                "markdown-it",
-                "markdown-it-anchor",
-                "markdown-it-task-lists",
-                "pluralize",
-                "transliteration",
-                "ulid",
-                "uuid",
-                "to-words",
-            ],
-        },
-    },
-    test: {
-        environment: "jsdom",
-        globals: true,
-        typecheck: {
-            enabled: true,
-            checker: "tsc",
-            include: ["**/*.test-d.ts"],
-        },
-        coverage: {
-            provider: "istanbul",
-            reporter: [
-                "text",
-                "text-summary",
-                ...(process.env.CI ? ["json-summary", "json"] : ["lcov"]),
-                ...(process.argv.includes("--ui") ? ["html"] : []),
-            ],
-            reportOnFailure: true,
-            exclude: [
-                ...configDefaults.exclude,
-                "./scripts/**",
-                "./docs/**",
-                "./packages/**/__tests__/**",
-            ],
-            thresholds: {
-                autoUpdate: true,
-                statements: 100,
-                branches: 100,
-                functions: 100,
-                lines: 100,
-            },
-        },
-        projects: [
-            "packages/*",
-            // Svelte's client runtime needs the browser condition, so its jsdom spec runs apart from the lang project.
-            "packages/lang/vitest.svelte-client.config.ts",
-            // scripts/ sits outside packages/*; without this project entry `pnpm test` never collects it.
-            {
-                extends: true,
-                test: {
-                    name: "scripts",
-                    root: "./scripts",
-                    environment: "node",
+import sharedConfig from "./vite.shared";
+
+export default mergeConfig(
+    sharedConfig,
+    defineConfig({
+        test: {
+            coverage: {
+                provider: "istanbul",
+                reporter: [
+                    "text",
+                    "text-summary",
+                    ...(process.env.CI ? ["json-summary", "json"] : ["lcov"]),
+                    ...(process.argv.includes("--ui") ? ["html"] : []),
+                ],
+                reportOnFailure: true,
+                exclude: [
+                    ...configDefaults.exclude,
+                    "./scripts/**",
+                    "./docs/**",
+                    "./packages/**/__tests__/**",
+                ],
+                thresholds: {
+                    autoUpdate: true,
+                    statements: 100,
+                    branches: 100,
+                    functions: 100,
+                    lines: 100,
                 },
             },
-            // The VitePress theme sits outside packages/*; its helpers need their own project to be collected.
-            {
-                extends: true,
-                test: {
-                    name: "docs",
-                    root: "./docs/vitepress/.vitepress/theme",
-                    environment: "jsdom",
+            projects: [
+                "packages/*",
+                // Svelte's client runtime needs the browser condition, so its jsdom spec runs apart from the lang project.
+                "packages/lang/vitest.svelte-client.config.ts",
+                // scripts/ sits outside packages/*; without this project entry `pnpm test` never collects it.
+                {
+                    extends: true,
+                    test: {
+                        name: "scripts",
+                        root: "./scripts",
+                        environment: "node",
+                    },
                 },
-            },
-        ],
-    },
-});
+                // The VitePress theme sits outside packages/*; its helpers need their own project to be collected.
+                {
+                    extends: true,
+                    test: {
+                        name: "docs",
+                        root: "./docs/vitepress/.vitepress/theme",
+                        environment: "jsdom",
+                    },
+                },
+            ],
+        },
+    }),
+);

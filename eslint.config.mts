@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import css from "@eslint/css";
 import js from "@eslint/js";
 import json from "@eslint/json";
-// TODO: re-enable when @eslint/markdown fixes getLoc() compatibility with @eslint/plugin-kit 0.4.x
+// TODO: reinstall @eslint/markdown and re-enable once eslint/markdown#619 (bracketed GFM autolink crash) is fixed.
 // import markdown from "@eslint/markdown";
 import { defineConfig } from "eslint/config";
 import oxlint from "eslint-plugin-oxlint";
@@ -68,7 +68,7 @@ export default defineConfig([
         language: "json/json5",
         extends: ["json/recommended"],
     },
-    // TODO: re-enable when @eslint/markdown fixes getLoc() compatibility with @eslint/plugin-kit 0.4.x
+    // TODO: reinstall @eslint/markdown and re-enable once eslint/markdown#619 (bracketed GFM autolink crash) is fixed.
     // {
     //     files: ["**/*.md"],
     //     plugins: { markdown },
