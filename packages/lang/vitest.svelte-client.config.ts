@@ -1,7 +1,7 @@
 import { svelteTesting } from "@testing-library/svelte/vite";
 import { defineConfig, mergeConfig } from "vite";
 
-import baseViteConfig from "../../vite.config";
+import baseViteConfig from "../../vite.shared";
 import { svelteFixtures } from "./__tests__/svelte-fixtures-plugin";
 
 export default defineConfig(

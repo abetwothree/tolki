@@ -94,11 +94,10 @@ describe("collection foundation type tests", () => {
         });
 
         it("types a list of differently shaped items as their union, not a tuple", () => {
-            // TypeScript gives each object literal in an array the other literals' keys, as optional undefined.
+            // TypeScript gives each object literal in an array the other literals' keys, as optional never.
             expectTypeOf(collect([{ foo: 1 }, { try: 5 }])).toEqualTypeOf<
                 Collection<
-                    | { foo: number; try?: undefined }
-                    | { try: number; foo?: undefined },
+                    { foo: number; try?: never } | { try: number; foo?: never },
                     number,
                     "list"
                 >

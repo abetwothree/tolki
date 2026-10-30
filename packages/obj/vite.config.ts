@@ -1,7 +1,7 @@
 import { defineConfig, mergeConfig } from "vite";
 
 import { buildPackageEntries } from "../../scripts/entries";
-import baseViteConfig from "../../vite.config";
+import baseViteConfig from "../../vite.shared";
 
 const entries = buildPackageEntries("src/**/*.ts", import.meta.url);
 
