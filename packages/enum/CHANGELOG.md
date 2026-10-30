@@ -1,5 +1,13 @@
 # @tolki/enum
 
+## 1.1.5
+
+### Patch Changes
+
+- 666c535: The type declarations of the PHP enum helpers now import from `@tolki/enum` itself instead of `@tolki/ts`, which `@tolki/enum` does not depend on.
+- Updated dependencies [5a9be1d]
+  - @tolki/utils@1.6.3
+
 ## 1.1.4
 
 ### Patch Changes

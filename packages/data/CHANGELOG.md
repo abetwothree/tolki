@@ -1,5 +1,17 @@
 # @tolki/data
 
+## 1.0.2
+
+### Patch Changes
+
+- 5a9be1d: `@tolki/data/data` now loads in tools that resolve imports with `require` conditions, such as a Vite config that loads as CommonJS. The export had only an `import` condition, so those tools failed with "This package is ESM only but it was tried to load by `require`".
+- Updated dependencies [5a9be1d]
+- Updated dependencies [5a9be1d]
+- Updated dependencies [5a9be1d]
+  - @tolki/arr@1.0.1
+  - @tolki/obj@1.0.1
+  - @tolki/utils@1.6.3
+
 ## 1.0.1
 
 ### Patch Changes

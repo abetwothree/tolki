@@ -1,6 +1,6 @@
 {
     "name": "@tolki/path",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Utilities for working with path-based operations across arrays/objects.",
     "author": "Abraham Arango <https://github.com/abetwothree>",
     "license": "MIT",

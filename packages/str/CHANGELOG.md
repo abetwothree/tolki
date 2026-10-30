@@ -1,5 +1,19 @@
 # @tolki/str
 
+## 1.7.1
+
+### Patch Changes
+
+- c2d0ebc: Updates `uuid` to 14, `ulid` to 3, `markdown-it-anchor` to 10 and `markdown-it` to 14.3, the 14.x line that still gets security fixes. Output is unchanged.
+  - `uuid()`, `uuid7()` and `ulid()` now need a global `crypto`, which Node 20+ and every current browser provide.
+
+- 5a9be1d: The `@tolki/str` subpaths `ascii`, `base64`, `convertcase`, `markdown`, `pluralizer`, `random`, `replacer`, `str`, `stringable`, `transliterate`, `trimmer`, `ulid` and `uuid` now load in tools that resolve imports with `require` conditions, such as a Vite config that loads as CommonJS. The exports had only an `import` condition, so those tools failed with "This package is ESM only but it was tried to load by `require`".
+- Updated dependencies [ca6b4e3]
+- Updated dependencies [5a9be1d]
+- Updated dependencies [5a9be1d]
+  - @tolki/num@2.2.5
+  - @tolki/utils@1.6.3
+
 ## 1.7.0
 
 ### Minor Changes
