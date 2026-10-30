@@ -13,7 +13,7 @@ Create the lang in `resources/js/app.ts` and wait for `lang.ready` before you mo
 import { createInertiaApp } from "@inertiajs/vue3";
 import { createLang } from "@tolki/lang/vue";
 import { load, locales } from "virtual:tolki-lang";
-import { createSSRApp, h } from "vue";
+import { createApp, h } from "vue";
 
 createInertiaApp({
   resolve: (name) => import(`./Pages/${name}.vue`),
@@ -24,7 +24,7 @@ createInertiaApp({
 
     await lang.ready;
 
-    createSSRApp({ render: () => h(App, props) })
+    createApp({ render: () => h(App, props) })
       .use(plugin)
       .use(lang)
       .mount(el);
