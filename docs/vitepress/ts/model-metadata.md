@@ -157,7 +157,7 @@ Each returned key's TypeScript type comes from the first of these that applies:
 
 Marking a key optional decides whether the payload has to return it, not how the key is written once it's returned. The `satisfies` type lists exactly the keys the payload returned, each one required.
 
-An enum that the docblock names is imported from the generated enums, and so is one that a `#[TsCasts]` entry with no `import` names for a value that holds it. Two kinds of value still need a `#[TsCasts]` entry with an `import`. The first is any other class named in the docblock, because a docblock string carries no import path. The second is any value typed as a model or a resource. A metadata value doesn't have to match either interface, so the package never imports one for it.
+An enum named in the docblock is imported from the generated enums. So is one named in a `#[TsCasts]` entry with no `import`, when the key's value holds that enum. Two kinds of value still need a `#[TsCasts]` entry with an `import`. The first is any other class named in the docblock, because a docblock string carries no import path. The second is any value typed as a model or a resource. A metadata value doesn't have to match either interface, so the package never imports one for it.
 
 Every returned key must end up with a type, and every required key must be returned. Otherwise the companion fails, and the error names the model and the keys.
 

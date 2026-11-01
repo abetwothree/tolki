@@ -361,7 +361,7 @@ An enum the [filters](#filtering-excluding-enums) leave out publishes the litera
 
 A helper method's array that a resource uses as a value can't import the alias, so the property publishes the literal union there. A spread of the same helper keeps the aliases, as [Methods Declared as a Bare `array`](./api-resources.md#methods-declared-as-a-bare-array) shows.
 
-Two enums with the same class name, such as `App\Enums\Status` and `App\Crm\Enums\Status`, are imported under aliases in a [route file](./routing.md), the [Inertia shared data](./inertia.md) file and a [model metadata](./model-metadata.md) companion, as in `StatusKind as CrmStatusKind`, the same as in a resource.
+As in a resource, two enums with the same class name, such as `App\Enums\Status` and `App\Crm\Enums\Status`, are imported under aliases in a [route file](./routing.md), the [Inertia shared data](./inertia.md) file and a [model metadata](./model-metadata.md) companion, as in `StatusKind as CrmStatusKind`.
 
 ## Metadata & the `defineEnum()` Wrapper
 

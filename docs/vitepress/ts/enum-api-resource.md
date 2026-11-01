@@ -47,7 +47,7 @@ Inside another resource, `EnumResource::make($this->status)` and `new EnumResour
 The same rewrite applies to [Inertia shared data](./inertia.md). With `enums.use_tolki_package` on (the default), an `EnumResource::make()` returned from your middleware's `share()` publishes as `AsEnum<typeof Role>` in `inertia-config.d.ts`, with `import { type AsEnum } from '@tolki/ts'` and an import of the `Role` const above the declarations. Route page props are rewritten the same way. See the `EnumResource` notes in [How the Augmentation File Is Generated](./inertia.md#how-the-augmentation-file-is-generated).
 :::
 
-`EnumResource` turns off Laravel's resource wrapping (`public static $wrap = ''`), so the response is the flat object shown below, not wrapped in a `data` key. When the enum is `null`, the resource returns `null` instead of an object. As an Inertia page prop or shared value, it's sent as `[]`, so the prop publishes `AsEnum<typeof Status> | never[]`.
+`EnumResource` turns off Laravel's resource wrapping (`public static $wrap = ''`), so the response is the flat object shown below, not wrapped in a `data` key. When the enum is `null`, the resource returns `null` instead of an object. As an Inertia page prop or shared value, Inertia sends `[]` instead, so the prop publishes `AsEnum<typeof Status> | never[]`.
 
 ## Response Shape
 

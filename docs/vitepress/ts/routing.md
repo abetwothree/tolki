@@ -355,27 +355,42 @@ export type ShowPageProps = Inertia.SharedData & {
 };
 ```
 
-These expressions are typed:
+Eloquent finders and collections are typed step by step from the model the chain starts at:
 
-- **Eloquent finders and collections**, typed step by step from the model the chain starts at. `find()`, `first()` and `firstWhere()` are `Model | null`, and `find()` with a list of keys is `Model[]`. `findOrFail()`, `firstOrFail()`, `sole()`, `create()`, `make()`, `firstOrCreate()`, `firstOrNew()` and `updateOrCreate()` are `Model`. `all()`, `get()`, `cursor()` and `findMany()` are `Model[]`. `pluck('title')` is a list of the column's type, and `value('title')` is the column's type or `null`. `count()` is `number` and `exists()` is `boolean`. A relation step moves the chain to the related model, so `Post::find(1)->comments()->get()` is `Comment[]`. A read past a finder is typed too, so `Post::find(1)?->title` is `string | null`.
+| Call                                                                                                                   | Type                         |
+| ---------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `find()`, `first()`, `firstWhere()`                                                                                    | `Model \| null`              |
+| `findOrFail()`, `firstOrFail()`, `sole()`, `create()`, `make()`, `firstOrCreate()`, `firstOrNew()`, `updateOrCreate()` | `Model`                      |
+| `all()`, `get()`, `cursor()`, `findMany()`, and `find()` with a list of keys                                           | `Model[]`                    |
+| `pluck('title')`                                                                                                       | A list of the column's type  |
+| `value('title')`                                                                                                       | The column's type, or `null` |
+| `count()`                                                                                                              | `number`                     |
+| `exists()`                                                                                                             | `boolean`                    |
+
+A relation step moves the chain to the related model, so `Post::find(1)->comments()->get()` is `Comment[]`. A read past a finder is typed too, so `Post::find(1)?->title` is `string | null`.
+
+These expressions are typed too:
+
 - **Paginators**: `paginate()`, `simplePaginate()` and `cursorPaginate()` are `LengthAwarePaginator<Model>`, `SimplePaginator<Model>` and `CursorPaginator<Model>`, imported from `@tolki/types`. A call that hands back the same paginator, such as `withQueryString()` or `appends()`, keeps that type, and `through()` types the items as its callback returns them.
 - **Route-bound model parameters**: a `Post $post` parameter is `Post` wherever a prop uses it, and a relation read on it is typed by the models the relation loads, so `$post->author` is `User` and `$post->comments` is `Comment[]`.
-- **`load()` and `loadMissing()`**: the model with the relations the call loads, such as `Post & { author: User }`, or a list of that on a collection. A column list publishes a `Pick`, as the example shows, and a dotted path nests, so `load('author.posts')` is `Post & { author: User & { posts: Post[] } }`. A to-one relation adds `| null` where a closure may filter it out, or where a column list leaves out the key Laravel matches it by. The relations ride only the call's own value, so call `load()` inside the prop. `$post->load('author');` on its own line, followed by `'post' => $post`, publishes `Post`.
+- **`load()` and `loadMissing()`**: the model with the relations the call loads, such as `Post & { author: User }`, or a list of that on a collection. A column list publishes a `Pick`, as the example shows, and a dotted path nests, so `load('author.posts')` is `Post & { author: User & { posts: Post[] } }`. A to-one relation adds `| null` where a closure may filter it out, or where a column list leaves out the key Laravel matches it by. Only the value the call returns carries the relations, so call `load()` inside the prop: `$post->load('author');` on its own line, followed by `'post' => $post`, publishes `Post`.
 - **PHP enums**: a prop holding an enum is the enum's `{Name}Type` alias, imported from the generated [enums](./enums.md). That includes a bare case, such as `'status' => Status::Active`. A rename with [`#[TsEnum]`](./enums.md#tsenum) carries over, so `#[TsEnum(name: 'Size')] enum ShirtSize` gives you `size: SizeType`. Two enums with the same class name in different namespaces are imported under aliases, such as `StatusType as CrmStatusType`. An `EnumResource` prop publishes `AsEnum<typeof Status>`, as it does in [shared data](./inertia.md#how-the-augmentation-file-is-generated).
-- **The signed-in user**: `$request->user()`, `auth()->user()`, `Auth::user()` and `request()->user()`, and reads past them such as `auth()->user()?->name`, typed through your `auth` config the same way [shared data](./inertia.md#how-the-augmentation-file-is-generated) is. A named guard, or guards that name more than one user model, can leave some of these `unknown`, as that page describes. The typed `Request` reads, such as `integer()`, `boolean()`, `string()` and `url()`, are typed too.
+- **The signed-in user**: `$request->user()`, `auth()->user()`, `Auth::user()` and `request()->user()`, and reads past them such as `auth()->user()?->name`, typed through your `auth` config the same way [shared data](./inertia.md#how-the-augmentation-file-is-generated) is. A named guard, or guards that name more than one user model, can leave some of these `unknown`, as that page describes. `Request` reads such as `integer()`, `boolean()`, `string()` and `url()` are typed too.
 - **`compact()` and `array_merge()`**: passed as the whole props argument, as in `Inertia::render('Posts/Show', compact('post', 'comments'))` or `array_merge($base, [...])`, each types the same as the array literal it builds.
 - **Inertia v2 prop wrappers**: `defer()`, `optional()` and `lazy()` type as the value they wrap and make the key optional, since a partial reload can leave it out. `always()`, `merge()` and `deepMerge()` type as the value they wrap. A prop class you construct, such as `new OptionalProp(fn () => …)`, types the same as its factory.
 - **API resources and resource collections**, typed as the response Inertia sends for each, such as `{ data: PostResource }` for a single resource and `JsonResourceSimplePaginator<PostResource>` over `simplePaginate()`, including a `#[PreserveKeys]` collection's keyed `data` member, the keys `with()` and `additional()` add, and the resources nested in a resource you call `->resolve()` on. See [API Resources in Props](./inertia.md#api-resources-in-props).
-- **A props array in a local variable**, read from its writes before the render call. The local can be assigned from a ternary, set one key at a time, assigned in each arm of an `if`, or built with `$base + [...]`. A key written after the render call isn't published, because the call has already copied the array, and keys a loop writes under an interpolated name publish an index signature.
+- **A props array in a local variable**, typed from what your code writes to it before the render call. The local can be assigned from a ternary, set one key at a time, assigned in each arm of an `if`, or built with `$base + [...]`. A key written after the render call isn't published, because the call has already copied the array, and keys a loop writes under an interpolated name publish an index signature.
 - **Props a helper builds**: props built whole by a controller helper method or by a method on an injected service, as in `Inertia::render('Posts/Show', $this->service->build())`, are typed the same way, closures and API resources included.
 - **Closures and first-class callables**: Inertia calls a callable prop, so `fn () => $this->label()` and `$this->label(...)` are both typed from what the call returns.
 
 A prop the package can't read is typed `unknown`, and the run carries on. Use [`#[TsCasts]`](#overriding-props-with-tscasts) to set its type. A few shapes the package doesn't follow:
 
-- A props local that a `+=` writes, or one written inside a `switch`, a `try`, or a loop that exits through `continue` or `break`, publishes only `Inertia.SharedData`. Build it as an array literal instead.
-- A first-class callable that a constructor stores in a property, as in `$this->stamp = now(...)`, publishes `Record<string, never>`, and `ts:publish` warns, though Inertia calls it.
+- A props local that a `+=` writes, or one written inside a `switch`, a `try`, or a loop that exits through `continue` or `break`, publishes none of its keys, so the page's type is only `Inertia.SharedData`. Build the props as an array literal instead.
+- A first-class callable that a constructor stores in a property, as in `$this->stamp = now(...)`, publishes `Record<string, never>`, and `ts:publish` warns, though Inertia calls it and sends what it returns. Set that prop's type with `#[TsCasts]`.
 
-Inertia unpacks a top-level dotted key into nested objects, so `'filters.page' => $request->integer('page')` publishes `filters: { page: number }`. When the props already hold a `filters` array, the key is added to it. A page key with the same name as a shared-data key publishes both types intersected, though Inertia sends the page's value, so give page keys their own names.
+Inertia unpacks a top-level dotted key into nested objects, so `'filters.page' => $request->integer('page')` publishes `filters: { page: number }`. When the props also hold a `filters` array, `page` is added to it.
+
+A page key with the same name as a shared-data key publishes both types intersected, though Inertia sends only the page's value. Give page keys names that shared data doesn't use.
 
 Inertia merges shared data and page props with `array_merge()`, which renumbers integer keys from `0`. A top-level `42 => …` key therefore publishes as `"0"`, and `ts:publish` warns that you probably meant a string key. A render call that can send one of several arrays, such as the arms of a ternary, numbers each array on its own. Nested keys keep theirs.
 
@@ -447,7 +462,7 @@ export type IndexPageProps = Inertia.SharedData & {
 };
 ```
 
-A table is one more prop, so the render call's other props keep their types, and the action's [`#[TsCasts]`](#overriding-props-with-tscasts) applies as on any page. `new PostTable`, a table held in a local variable, one in props that a service method builds, and one in [shared data](./inertia.md) are typed the same way.
+A table is one prop like any other: the render call's other props keep their types, and the action's [`#[TsCasts]`](#overriding-props-with-tscasts) applies. `new PostTable`, a table held in a local variable, one in props a service method builds, and one in [shared data](./inertia.md) are typed the same way.
 
 `TableResource` is imported from whichever Inertia UI Table package your `package.json` lists, `@inertiaui/table-vue` or `@inertiaui/table-react`. If neither is listed, the import uses `@inertiaui/table-vue`. To force a package, or to use an alias, set `inertia.ui_table_package` in `config/ts-publish.php`.
 
