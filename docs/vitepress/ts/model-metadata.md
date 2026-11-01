@@ -150,14 +150,14 @@ Each returned key's TypeScript type comes from the first of these that applies:
 3. **The method body**: the package reads the returned array literal, with `$model` typed as its declared class. These need no annotation:
    - Scalars, casts such as `(string) …`, and nested inline arrays
    - Calls on `$model` whose Laravel signature or docblock declares a return type, such as `getTable()`, `getKeyName()`, `getRouteKeyName()` and `getMorphClass()`, which all publish as `string`
-   - Enum values, including a case written inline such as `'status' => Status::Active`, which import their `{Name}Type` alias from the generated enums, the same as a `#[TsCasts]` import would
+   - Enum values, including a case written inline such as `'status' => Status::Active`, which import their `{Name}Type` alias from the generated enums, the same as a `#[TsCasts]` import would. Two enums with the same class name are imported under aliases, such as `StatusType as CrmStatusType`, and so are their `{Name}Kind` aliases
    - An `instanceof` test on `$model`, which narrows it where the test holds, and relation calls that the query answers, as in `$model instanceof Post ? $model->comments()->count() : null`, which publishes `number | null`
 
    When the body's type for a key still contains `unknown`, the package ignores it, and the key needs a docblock or `#[TsCasts]` type. A helper with no declared return type, such as `private function tableFor($model)`, is that case. Inside a ternary or another union, a value the body can't type is left out instead, as in an API resource. See [Values Left Out of a Union](./api-resources.md#values-left-out-of-a-union).
 
 Marking a key optional decides whether the payload has to return it, not how the key is written once it's returned. The `satisfies` type lists exactly the keys the payload returned, each one required.
 
-Two kinds of value always need `#[TsCasts]`. The first is a class or enum named in the docblock, because a docblock string carries no import path. The second is any value typed as a model or a resource. A metadata value doesn't have to match either interface, so the package never imports one for it.
+An enum that the docblock names is imported from the generated enums, and so is one that a `#[TsCasts]` entry with no `import` names for a value that holds it. Two kinds of value still need a `#[TsCasts]` entry with an `import`. The first is any other class named in the docblock, because a docblock string carries no import path. The second is any value typed as a model or a resource. A metadata value doesn't have to match either interface, so the package never imports one for it.
 
 Every returned key must end up with a type, and every required key must be returned. Otherwise the companion fails, and the error names the model and the keys.
 

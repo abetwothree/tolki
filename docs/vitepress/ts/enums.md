@@ -359,10 +359,9 @@ The property uses the alias only when `ts:publish` publishes the enum, and when 
 
 An enum the [filters](#filtering-excluding-enums) leave out publishes the literal union too, and so does every enum while `enums.enabled` is off. For the `Status` enum in the [`#[TsCase]`](#tscase) example, `->value` publishes `1 | 0` and `->name` publishes `'Active' | 'Inactive'`. An int-backed enum with a case outside JavaScript's safe integer range (±2⁵³−1) publishes `number` for `->value`.
 
-In two cases the alias can't be imported, so the property publishes the literal union:
+A helper method's array that a resource uses as a value can't import the alias, so the property publishes the literal union there. A spread of the same helper keeps the aliases, as [Methods Declared as a Bare `array`](./api-resources.md#methods-declared-as-a-bare-array) shows.
 
-- A helper method's array that a resource uses as a value. A spread of the same helper keeps the aliases, as [Methods Declared as a Bare `array`](./api-resources.md#methods-declared-as-a-bare-array) shows.
-- A [route file](./routing.md), the [Inertia shared data](./inertia.md) file or a [model metadata](./model-metadata.md) companion that reads the `->name` of two enums with the same class name, such as `App\Enums\Status` and `App\Crm\Enums\Status`. These files can't import two names that clash, so each read publishes its case names.
+Two enums with the same class name, such as `App\Enums\Status` and `App\Crm\Enums\Status`, are imported under aliases in a [route file](./routing.md), the [Inertia shared data](./inertia.md) file and a [model metadata](./model-metadata.md) companion, as in `StatusKind as CrmStatusKind`, the same as in a resource.
 
 ## Metadata & the `defineEnum()` Wrapper
 

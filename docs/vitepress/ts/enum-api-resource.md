@@ -44,10 +44,10 @@ class UserResource extends JsonResource
 ::: tip
 Inside another resource, `EnumResource::make($this->status)` and `new EnumResource($this->status)` both publish the property as `AsEnum<typeof Status>`. See [Enum Properties With `EnumResource`](./api-resources.md#enum-properties-with-enumresource) on the API Resources page.
 
-The same rewrite applies to [Inertia shared data](./inertia.md). With `enums.use_tolki_package` on (the default), an `EnumResource::make()` returned from your middleware's `share()` publishes as `AsEnum<typeof Role>` in `inertia-config.d.ts`, with `import { type AsEnum } from '@tolki/ts'` and an import of the `Role` const above the declarations. A shared key whose ternary picks between two different enums isn't rewritten. It publishes as `RoleType | StatusType` with neither enum imported, so TypeScript reports both names as missing (`TS2304`). Give both arms the same enum. See the `EnumResource` note in [How the Augmentation File Is Generated](./inertia.md#how-the-augmentation-file-is-generated).
+The same rewrite applies to [Inertia shared data](./inertia.md). With `enums.use_tolki_package` on (the default), an `EnumResource::make()` returned from your middleware's `share()` publishes as `AsEnum<typeof Role>` in `inertia-config.d.ts`, with `import { type AsEnum } from '@tolki/ts'` and an import of the `Role` const above the declarations. Route page props are rewritten the same way. See the `EnumResource` notes in [How the Augmentation File Is Generated](./inertia.md#how-the-augmentation-file-is-generated).
 :::
 
-`EnumResource` turns off Laravel's resource wrapping (`public static $wrap = ''`), so the response is the flat object shown below, not wrapped in a `data` key. When the enum is `null`, the resource returns `null` instead of an object.
+`EnumResource` turns off Laravel's resource wrapping (`public static $wrap = ''`), so the response is the flat object shown below, not wrapped in a `data` key. When the enum is `null`, the resource returns `null` instead of an object. As an Inertia page prop or shared value, it's sent as `[]`, so the prop publishes `AsEnum<typeof Status> | never[]`.
 
 ## Response Shape
 

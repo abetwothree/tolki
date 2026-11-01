@@ -9,17 +9,19 @@ This page covers shared data, and the API resources that shared data and a route
 With `inertia.enabled` on (the default), the package builds the file from your middleware:
 
 - **Finding the middleware**: the package searches `inertia.inertia_middleware_path`, or `app_path()` when that isn't set, for a class that extends `Inertia\Middleware`. If it finds none, it writes no file. If your app has more than one such class, point `inertia.inertia_middleware_path` at the directory that holds the one you want.
-- **Reading `share()`**: every key's value is typed from your code, without handling a real request. A `share()` that a trait supplies is read too, and so is one that builds its array in a variable and returns it. A key that the variable gets on only some paths, such as inside an `if`, is optional.
-- **Parent middleware**: a `...parent::share($request)` spread and `array_merge(parent::share($request), [...])` are both read, all the way up your middleware's parent classes. A later key overrides an earlier one and keeps the earlier one's position, as PHP does.
+- **Reading `share()`**: every key's value is typed from your code, without handling a real request. A `share()` that a trait supplies is read too, even under an alias such as `use SharesProps { base as share; }`, and so is one that builds its array in a variable and returns it. A key that the variable gets on only some paths, such as inside an `if`, is optional.
+- **Parent middleware**: a `...parent::share($request)` spread and `array_merge(parent::share($request), [...])` are both read, all the way up your middleware's parent classes. A later key overrides an earlier one and keeps the earlier one's position, as PHP does. A parent's `#[TsCasts]` applies too, as [Type Resolution Priority](#type-resolution-priority) describes.
+- **Dotted keys**: Inertia unpacks a top-level dotted key into nested objects, so `'auth.name' => $request->user()?->name` publishes `auth: { name: string | null }`. When the array already holds an `auth` array, the key is added to it.
 - **Integer keys**: Inertia merges shared data and page props with `array_merge()`, which renumbers integer keys from `0`. A top-level `42 => …` key therefore publishes as `"0"`, and `ts:publish` warns that you probably meant a string key. Nested keys keep theirs.
-- **`$request->user()`**: typed through your live auth config, from `auth.defaults.guard` to that guard's provider to the provider's `model`. The prop becomes `User | null`, and the file imports the model's type for you. `auth()->user()`, `auth()->id()`, `Auth::user()` and `Auth::id()` resolve the same way.
+- **The signed-in user**: `$request->user()` is typed through your live auth config, from `auth.defaults.guard` to that guard's provider to the provider's `model`. The prop becomes `User | null`, and the file imports the model's type for you. `auth()->user()`, `Auth::user()`, `request()->user()` and `Auth::guard()->user()` resolve the same way, and so does a read past any of them, such as `auth()->user()?->name`, which publishes `string | null`. `auth()->id()` and `Auth::id()` publish the user's key, as described below.
 - **Request helpers**: `$request->url()`, `fullUrl()`, `path()`, `integer()`, `boolean()`, `string()`, `cookie()` and `hasCookie()` are typed from Laravel's own signatures.
 - **`config()`**: `config('some.key')` with a literal key is typed from the live config value, since the package runs inside your booted app. A computed key stays `unknown`.
 - **Value helpers**: `now()` and `today()` are typed as `string`, or `Date` under [`timestamps_as_date`](./models.md#timestamps-as-date-objects). `str($value)` is typed as `string`, and `str()` with no argument as `Record<string, never>`. `url($path)` is typed as `string` when the path can't be `null`, and stays `unknown` when it can or has no type. `collect([...])` and a bare array literal are both typed as the list or object the array encodes as, such as `string[]` for `['a', 'b']`. `+` on two arrays is typed as PHP's array union, where the left side's keys win.
-- **Closures and first-class callables**: Inertia calls a callable prop before it sends it, so closures and first-class callables, such as `fn () => $request->url()` and `now(...)`, are typed from what the call returns.
-- **Inertia v2 prop wrappers**: `Inertia::defer()`, `optional()`, `lazy()`, `always()`, `merge()` and `deepMerge()` type as the value they wrap. The three a partial reload can leave out, `defer`, `optional` and `lazy`, make the key optional.
+- **Closures and first-class callables**: Inertia calls a callable prop before it sends it, so closures and first-class callables, such as `fn () => $request->url()` and `now(...)`, are typed from what the call returns. That includes one inside an array that a helper method builds.
+- **Inertia v2 prop wrappers**: `Inertia::defer()`, `optional()`, `lazy()`, `always()`, `merge()` and `deepMerge()` type as the value they wrap, and so does a prop class you construct, such as `new OptionalProp(fn () => …)`. The three a partial reload can leave out, `defer`, `optional` and `lazy`, make the key optional.
 - **API resources**: a resource or resource collection is typed as the response Inertia sends for it, as [API Resources in Props](#api-resources-in-props) describes.
 - **`EnumResource` props**: a prop that wraps an enum in `EnumResource`, such as `'role' => EnumResource::make(Role::Admin)`, becomes `AsEnum<typeof Role>` when `enums.use_tolki_package` is on (the default), the same as in [API Resources](./api-resources.md#enum-properties-with-enumresource). With it off, the key keeps the enum's type alias (`role: RoleType`). The change applies per key, so another key that reads the enum directly keeps `RoleType`.
+- **`EnumResource` ternaries and `null`**: each arm of a ternary is typed as Laravel sends it. Wraps of two enums publish `AsEnum<typeof Role> | AsEnum<typeof Status>`, and a wrap beside a bare case of the same enum publishes `AsEnum<typeof Status> | StatusType`. A wrap around an enum that may be `null` publishes `AsEnum<typeof Status> | never[]`, because Inertia sends `[]` for it, not `null`. Tell the two apart with `Array.isArray()`.
 - **Enum cases**: a bare case, such as `'defaultStatus' => Status::Draft`, is typed as the enum's type alias (`defaultStatus: StatusType`), which matches the value Laravel sends for a backed enum. The file imports the alias for you.
 - **Classes with `#[TsType]`**: a value of a class that has or inherits a `#[TsType]` is typed as that type, with its import, in shared data and page props alike. See [Custom Types](./custom-types.md).
 - **`errors`**: left out. `@inertiajs/core` already types `page.props.errors` as `Errors & ErrorBag`, and [`errorValueType`](#anatomy-of-the-generated-file) sharpens it. A `#[TsCasts]` or `@return` docblock entry named `errors` still adds one if you want it.
@@ -29,10 +31,12 @@ With `inertia.enabled` on (the default), the package builds the file from your m
 
 When the package can't create an instance of the model, it reads the key type from the class, and publishes `unknown` if code works the key out. A `getAuthIdentifierName()` that works the column out in code, such as from config, publishes `unknown` too, and so does an override of `getAuthIdentifier()`, since only running your app shows which value the ID holds.
 
+Every read of the signed-in user uses the default guard. A named guard, such as `auth('admin')->user()` or `Auth::guard('admin')->user()`, publishes `unknown`. When your guards' providers name more than one user model, a route's guard middleware can sign in either one. In that case `request()->user()`, `Auth::guard()->user()` and a read past `auth()->user()`, `Auth::user()` or `request()->user()` publish `unknown` too. `$request->user()`, a bare `auth()->user()` or `Auth::user()`, `auth()->id()` and `Auth::id()` keep the default guard's model. Type such a key with [`#[TsCasts]`](#type-resolution-priority).
+
 In a route's [page props](./routing.md#inertia-integration), `getKey()` on a route-bound model publishes the model's key type with no `| null`, because Laravel binds only a saved row. With a `Post $post` action parameter, `'post_id' => $post->getKey()` publishes `post_id: number`. A relation read on the parameter is typed by the models it loads, so `'comments' => $post->comments` publishes `comments: Comment[]`.
 
-::: warning A Ternary Between Two Different Enums
-A key whose ternary arms wrap different enums, such as `$cond ? EnumResource::make(Role::Admin) : EnumResource::make(Status::Draft)`, renders as `RoleType | StatusType` with no import for either name. Your build then fails with a `TS2304` error for each. Give both arms the same enum, or override that key with a `#[TsCasts]` entry that has an `import`.
+::: warning Some `EnumResource` Mixes
+A few mixes of `EnumResource` arms still publish the wrong shape. Two examples are a wrap beside a bare case of another enum, and a nested ternary over the wraps of three enums. The second can leave a type alias unimported, which fails your build with `TS2304`. Override such a key with a `#[TsCasts]` entry that has an `import`.
 :::
 
 ## Anatomy of the Generated File
@@ -90,13 +94,13 @@ export {};
 
 Each part of the file does one job:
 
-- **`import type { User } from "./app/models";`**: every model, resource or enum that a prop type names gets an import at the top, with a path relative to the output root. An `EnumResource` prop is the exception under the default `enums.use_tolki_package`. It renders as `AsEnum<typeof Role>`, so the enum's const is imported as a value (`import { Role } from './app/enums';`), under an `import { type AsEnum } from '@tolki/ts';` line, and both come before the `import type` lines. Imports from an `import` key in `#[TsCasts]` join the `import type` lines.
+- **`import type { User } from "./app/models";`**: every model, resource or enum that a prop type names gets an import at the top, with a path relative to the output root. An `EnumResource` prop is the exception under the default `enums.use_tolki_package`. It renders as `AsEnum<typeof Role>`, so the enum's const is imported as a value (`import { Role } from './app/enums';`), under an `import { type AsEnum } from '@tolki/ts';` line, and both come before the `import type` lines. Imports from an `import` key in `#[TsCasts]` join the `import type` lines. Two classes with the same name from different namespaces, such as `App\Enums\Status` and `App\Crm\Enums\Status`, are imported under aliases, such as `StatusType as CrmStatusType`.
 - **`declare global { namespace Inertia { type SharedData = ...; } }`**: makes `Inertia.SharedData` available by name in any `.ts` file in your project. That includes the generated route files, which combine it with each page's props, as [Inertia Integration](./routing.md#inertia-integration) shows.
 - **`declare module '@inertiajs/core' { ... }`**: augments Inertia's own `InertiaConfig`, so `usePage().props` is typed across your frontend without you writing the augmentation.
 - **`errorValueType: string[]`**: added only when the middleware sets `protected $withAllErrors = true;`. It matches the shape Inertia uses for its validation errors in that mode.
 - **`export {};`**: TypeScript accepts a `declare global` block only in a module, a file with at least one top-level `import` or `export`. This line makes the file a module even when it has no imports.
 
-The file imports only the names its types use. A key you override with `#[TsCasts]` drops the import its inferred type needed.
+The file imports only the names its types use. A key you override with `#[TsCasts]` drops the imports its inferred type needed, except for a class the override names that the key's value holds. With `'owner' => 'User | null'` over `$request->user()`, the file still imports `User`, with no `import` key.
 
 A key that isn't a plain identifier, such as `'can-edit'` or `42`, is quoted, as in `"can-edit": boolean`. Route files quote a page prop's key the same way.
 
@@ -106,8 +110,8 @@ A value the package can't read stays `unknown`. `'flash' => ['success' => fn () 
 
 Each key from `share()` takes its type from the first of these that covers it:
 
-1. **`#[TsCasts]`** on the middleware class or on its `share()` method. When both name a key, the method's entry wins, even when the two spell an index signature's name differently. It's the same attribute [models](./models.md#tscasts), [API resources](./api-resources.md#overriding-property-types-with-tscasts) and [broadcast events](./broadcast-events.md#overriding-property-types-with-tscasts) use.
-2. **A `@return array{...}` docblock** on `share()`. You write the shape by hand, for a key the package can't infer, such as a method call whose return type says nothing. A `key?:` entry makes that key optional.
+1. **`#[TsCasts]`** on the middleware class or on its `share()` method. When both name a key, the method's entry wins, even when the two spell an index signature's name differently. A parent middleware's entries apply too when your middleware inherits the parent's `share()` or reads it through `parent::share()`, and your class's entries win over the parent's. It's the same attribute [models](./models.md#tscasts), [API resources](./api-resources.md#overriding-property-types-with-tscasts) and [broadcast events](./broadcast-events.md#overriding-property-types-with-tscasts) use.
+2. **A `@return array{...}` docblock** on `share()`. You write the shape by hand, for a key the package can't infer, such as a method call whose return type says nothing. A `key?:` entry makes that key optional. A model or enum that a top-level key names, as in `owner: User`, is imported for you.
 3. **Inference from your code**, the default. It covers plain values, nested arrays, conditionals, closures, spreads, `array_merge()`, `config()`, the request and auth helpers, and Inertia's prop wrappers.
 
 A key that `#[TsCasts]` or the docblock names but `share()` doesn't return is added to the type.
@@ -140,7 +144,7 @@ Here `appName` takes its type from `#[TsCasts]` and `flash` takes its type from 
 
 ## API Resources in Props
 
-Inertia sends an API resource prop as the resource's whole response, the same JSON a route that returns the resource sends. That holds at any depth of a route's page props and in `share()`, so each prop publishes that response:
+Inertia sends an API resource prop as the resource's whole response, the same JSON a route that returns the resource sends. That holds at any depth of a route's page props and in `share()`, including props that a helper method or another class's method builds, as in `Inertia::render('Posts/Show', $this->props->build())`. Each prop publishes that response:
 
 ```php
 return Inertia::render('Posts/Show', [
@@ -166,10 +170,34 @@ Each kind of prop follows its own rule:
 - **`Resource::collection()`** publishes `AnonymousResourceCollection<CommentResource>` from `@tolki/types`, which is `{ data: CommentResource[] }`.
 - **A named collection** publishes its own interface, which already holds its wrap key. One whose `toArray()` returns no wrap key publishes `{ data: TagCollection }`, because Laravel nests that body under `data`.
 - **`->toResourceCollection()`** with no argument publishes the collection Laravel guesses. Over an empty collection, Laravel skips the guess and sends `{ data: [] }`, so the prop also publishes that empty response, such as `UserCollection | { data: never[] }` or, over `paginate()`, `| JsonResourcePaginator<never>`. A guessed collection whose response is only its `data` list already fits it and gets no extra type.
+- **Keys beside `data`**: the keys that a resource's `with()` method or an `->additional([...])` call adds are published beside the body. A single resource merges them into its object, as in `{ data: PostResource; meta: { total: number } }`, and any other response is intersected with them, as in `AnonymousResourceCollection<CommentResource> & { meta: { total: number } }`. A `with()` key that a `when()` call may leave out arrives as `[]`, so it publishes `T | never[]`.
+- **A resolved resource**, from `->resolve()`, publishes the resource's own type, with no `data` key. Inertia still sends each API resource inside the resolved body as a response, so a key that holds one is restated, as the example below shows. `Resource::collection(...)->resolve()` publishes a list of the same.
 
-The wrap key is the one your app sets by the time `ts:publish` runs, as [The Wrap Key Your App Sets](./api-resources.md#the-wrap-key-your-app-sets) describes. After `JsonResource::withoutWrapping()`, a single resource publishes the bare `PostResource`, and `Resource::collection()` over items that aren't paginated publishes `CommentResource[]`. Over a paginator, Laravel keeps the `data` key. After `JsonResource::wrap('items')`, a single resource publishes `{ items: PostResource }`.
+Here `PostCardResource` returns `'author' => UserCardResource::make($this->author)` among its keys:
 
-Some props publish less than Inertia sends. The keys that `additional()` or a resource's `with()` method add beside `data` aren't published, and after `JsonResource::withoutWrapping()` those keys still make Laravel nest the resource under `data`, while the package publishes it bare. `Resource::collection(...)->additional(...)` publishes `unknown`. Props that another class's method builds, as in `Inertia::render('Posts/Show', $this->props->build())`, publish each API resource inside them bare, though Inertia sends it under `data`. Type such a prop with [`#[TsCasts]`](./routing.md#overriding-props-with-tscasts).
+```php
+return Inertia::render('Posts/Show', [
+    'post' => PostResource::make($post)->additional([
+        'meta' => ['total' => $post->comments()->count()],
+    ]),
+    'card' => PostCardResource::make($post)->resolve(),
+]);
+```
+
+Both props publish what Inertia sends:
+
+```typescript
+export type ShowPageProps = Inertia.SharedData & {
+  post: { data: PostResource; meta: { total: number } };
+  card: Omit<PostCardResource, "author"> & {
+    author: { data: UserCardResource };
+  };
+};
+```
+
+A resource collection class with its own `toArray()` still publishes its items bare after `->resolve()`, though Inertia sends each one under `data`. Pass the collection itself, or type the prop with [`#[TsCasts]`](./routing.md#overriding-props-with-tscasts).
+
+The wrap key is the one your app sets by the time `ts:publish` runs, as [The Wrap Key Your App Sets](./api-resources.md#the-wrap-key-your-app-sets) describes. After `JsonResource::withoutWrapping()`, a single resource publishes the bare `PostResource`, and `Resource::collection()` over items that aren't paginated publishes `CommentResource[]`. Over a paginator, Laravel keeps the `data` key. Keys from `with()` or `additional()` also make Laravel nest the resource under `data`, and the prop publishes it that way. After `JsonResource::wrap('items')`, a single resource publishes `{ items: PostResource }`.
 
 ### JSON:API Resources in Props
 
@@ -244,7 +272,7 @@ export type IndexPageProps = Inertia.SharedData & {
 };
 ```
 
-`paginate()`, `simplePaginate()`, and `cursorPaginate()` are all recognized, in the `new SomeCollection(...)`, `SomeResource::collection(...)`, and `->toResourceCollection()` forms.
+`paginate()`, `simplePaginate()`, and `cursorPaginate()` are all recognized, in the `new SomeCollection(...)`, `SomeResource::collection(...)`, and `->toResourceCollection()` forms. The paginator can also come from a query builder held in a variable, or from a controller method or a method of an injected service, through the method's return type or its body. A call that hands back the same paginator, such as `withQueryString()`, `appends()` or `onEachSide()`, keeps its kind.
 
 Each paginator sends its own `meta` block, so each gets its own type from `@tolki/types`. A named collection adds the pagination type to its own interface. An anonymous collection, from `SomeResource::collection(...)`, publishes the paginator's whole response, and so does a collection with `$wrap = null`, because Laravel sends it under `data` over a paginator. In this list, the named form comes first, and `R` is the collected resource:
 
@@ -255,17 +283,16 @@ Each paginator sends its own `meta` block, so each gets its own type from `@tolk
 A prop that can hold more than one paginator kind, such as a ternary over `paginate()` and `simplePaginate()`, publishes `TeamCollection & (ResourceSimplePagination | ResourcePagination)`. One that can hold a plain collection or a paginator publishes both shapes, `TeamCollection | (TeamCollection & ResourcePagination)`. A collection that `share()` returns is typed the same way.
 
 ::: warning A Missed Paginator Gives a Wrong Type
-When the package doesn't see a paginator, the prop doesn't lose its type. It gets the collection's type without the pagination part, which is wrong rather than missing. The package sees a paginator that a query chain starting at the model returns, such as `Post::query()->simplePaginate(10)`, or one held in a local variable assigned that way. It doesn't follow a paginator from a query builder held in a variable, from a controller method such as `$this->page()`, or from a method of an injected service:
+When the package can't tell which paginator a payload holds, the prop doesn't lose its type. It gets the collection's type without the pagination part, which is wrong rather than missing. That happens with a method declared to return the `Paginator` contract, which more than one paginator kind implements, or one with no return type and a body the package can't read:
 
 ```php
-$q = Post::query();
-
+// page() is declared to return the Paginator contract
 return Inertia::render('Posts/Index', [
-    'posts' => new PostCollection($q->paginate(10)), // not detected
+    'posts' => new PostCollection($this->posts->page()),
 ]);
 ```
 
-Here `posts` types as `PostCollection`, without `& ResourcePagination`, and the same paginator passed without a resource publishes `unknown`. Build the paginator in the props, or type the prop with [`#[TsCasts]`](./routing.md#overriding-props-with-tscasts).
+Here `posts` types as `PostCollection`, without `& ResourcePagination`. A paginator passed without a resource is typed only from a query chain that starts at a model, or a method that returns one. From a query builder held in a variable, it publishes `unknown`. Declare the paginator class the method returns, such as `LengthAwarePaginator`, or type the prop with [`#[TsCasts]`](./routing.md#overriding-props-with-tscasts).
 :::
 
 ## Output Location
