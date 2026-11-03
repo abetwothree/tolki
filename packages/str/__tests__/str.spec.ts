@@ -4,6 +4,19 @@ import type MarkdownIt from "markdown-it";
 import type { PluginSimple, PluginWithOptions } from "markdown-it";
 import { describe, expect, it } from "vitest";
 
+/** Stands in for a @tolki/collection Collection: all() holds the items, and iterating yields their values. */
+class FakeCollection<T> {
+    constructor(private readonly items: T[] | Record<string, T>) {}
+
+    all(): T[] | Record<string, T> {
+        return this.items;
+    }
+
+    *[Symbol.iterator](): Generator<T> {
+        yield* Object.values(this.items);
+    }
+}
+
 describe("Str tests", () => {
     describe("of", () => {
         it("Laravel tests", () => {
@@ -2489,6 +2502,52 @@ describe("Str tests", () => {
                 "bbb",
             ]);
         });
+
+        it("keeps a keyed subject's keys", () => {
+            // docs/php-parity/Str/replace.json, "replace-keyed-subjects"
+            // A Map stands for the integer-keyed array, whose key order a plain object cannot keep.
+            const replaced = Str.replace(
+                "o",
+                "0",
+                new Map([
+                    [2, "Foo"],
+                    [0, "Boo"],
+                ]),
+            );
+            expect(replaced).toBeInstanceOf(Map);
+            expect([...replaced.entries()]).toStrictEqual([
+                [2, "F00"],
+                [0, "B00"],
+            ]);
+            expect(
+                Str.replace("O", "0", new FakeCollection({ x: "Foo" }), false),
+            ).toStrictEqual({ x: "F00" });
+            expect(
+                Str.replace(
+                    ["o", "a"],
+                    ["0", "4"],
+                    new FakeCollection({ x: "Foobar" }),
+                ),
+            ).toStrictEqual({ x: "F00b4r" });
+            expect(Str.replace("o", "0", { x: "Foo" })).toStrictEqual({
+                x: "F00",
+            });
+        });
+
+        it("reads a one-shot search iterable once, for every item of the subject", () => {
+            // JS-only: a generator can be read only once, so its terms are read before the subject's items.
+            const searches = function* (): Generator<string> {
+                yield "o";
+            };
+
+            expect(Str.replace(searches(), "0", ["Foo", "Boo"])).toStrictEqual([
+                "F00",
+                "B00",
+            ]);
+            expect(
+                Str.replace(searches(), "0", ["FOO", "BOO"], false),
+            ).toStrictEqual(["F00", "B00"]);
+        });
     });
 
     describe("replaceFirst", () => {
@@ -3135,6 +3194,27 @@ describe("Str tests", () => {
             // Unicode-aware case-insensitive removal
             expect(Str.remove("ž", "Žltý", false)).toBe("ltý");
             expect(Str.remove("KÔŇ", "žltý kôň", false)).toBe("žltý ");
+
+            // docs/php-parity/Str/remove.json, "remove-laravel-iterable-subjects"
+            expect(Str.remove("o", ["Foobar", "Boar"])).toStrictEqual([
+                "Fbar",
+                "Bar",
+            ]);
+            expect(
+                Str.remove("o", new FakeCollection(["Foobar", "Boar"])),
+            ).toStrictEqual(["Fbar", "Bar"]);
+            expect(
+                Str.remove(
+                    new FakeCollection(["o", "a"]),
+                    new FakeCollection(["Foobar", "Boar"]),
+                ),
+            ).toStrictEqual(["Fbr", "Br"]);
+            expect(
+                Str.remove("b", new FakeCollection(["Foobar", "Boar"]), false),
+            ).toStrictEqual(["Fooar", "oar"]);
+            expect(
+                Str.remove("ž", new FakeCollection(["Žltý", "žito"]), false),
+            ).toStrictEqual(["ltý", "ito"]);
         });
 
         it("removes needles case-insensitively from an iterable subject", () => {
@@ -3142,6 +3222,100 @@ describe("Str tests", () => {
                 "ltý",
                 "kôň",
             ]);
+        });
+
+        it("keeps a keyed subject's keys", () => {
+            // docs/php-parity/Str/remove.json, "remove-keyed-subjects"
+            expect(Str.remove("o", { x: "Foo", y: "Boo" })).toStrictEqual({
+                x: "F",
+                y: "B",
+            });
+            expect(
+                Str.remove("o", new FakeCollection({ x: "Foo", y: "Boo" })),
+            ).toStrictEqual({ x: "F", y: "B" });
+            expect(
+                Str.remove(
+                    "O",
+                    new FakeCollection({ x: "Foo", y: "Boo" }),
+                    false,
+                ),
+            ).toStrictEqual({ x: "F", y: "B" });
+
+            // A Map stands for the integer-keyed array, whose key order a plain object cannot keep.
+            const removed = Str.remove(
+                "o",
+                new Map([
+                    [2, "Foo"],
+                    [0, "Boo"],
+                ]),
+            );
+            expect(removed).toBeInstanceOf(Map);
+            expect([...removed.entries()]).toStrictEqual([
+                [2, "F"],
+                [0, "B"],
+            ]);
+        });
+
+        it("reads a plain object with its own all key as data", () => {
+            // JS-only: a plain object models a PHP array, so its all key is an item, even one holding a function.
+            expect(Str.remove("o", { all: "Foo" })).toStrictEqual({ all: "F" });
+
+            const items = {
+                all: (): string[] => ["Foo"],
+                x: "Foo",
+            } as unknown as Record<string, string>;
+            const removed = Str.remove("o", items);
+            expect(Object.keys(removed)).toStrictEqual(["all", "x"]);
+            expect(removed["x"]).toBe("F");
+        });
+
+        it("reads a Set and a generator as lists", () => {
+            expect(Str.remove("o", new Set(["Foo", "Boo"]))).toStrictEqual([
+                "F",
+                "B",
+            ]);
+
+            // docs/php-parity/Str/remove.json, "remove-generator-keys"
+            // JS-only: a JavaScript generator yields no keys, so its result is a list
+            const items = function* (): Generator<string> {
+                yield "Foo";
+                yield "Boo";
+            };
+            expect(Str.remove("o", items())).toStrictEqual(["F", "B"]);
+        });
+
+        it("casts null and number items as PHP does, and keeps an empty subject empty", () => {
+            // docs/php-parity/Str/remove.json, "remove-empty-and-scalar-items"
+            expect(
+                Str.remove("o", ["Foo", null, 5] as unknown as string[]),
+            ).toStrictEqual(["F", "", "5"]);
+            expect(Str.remove("o", [])).toStrictEqual([]);
+        });
+
+        it("casts a number or null subject to a string as PHP does", () => {
+            // docs/php-parity/Str/remove.json, "remove-scalar-subjects"
+            const remove = (...args: unknown[]): unknown =>
+                Reflect.apply(Str.remove, undefined, args);
+
+            expect(remove("o", 5)).toBe("5");
+            expect(remove("o", null)).toBe("");
+        });
+
+        it("reads a class instance that is neither iterable nor a collection by its own keys", () => {
+            // JS-only: PHP's str_replace() throws a TypeError for an object that is not Traversable.
+            class Labels {
+                title = "Foo";
+            }
+
+            expect(Str.remove("o", new Labels())).toStrictEqual({ title: "F" });
+        });
+
+        it("returns a new object, leaving the subject as it was", () => {
+            const subject = { x: "Foo" };
+            const removed = Str.remove("o", subject);
+
+            expect(removed).not.toBe(subject);
+            expect(subject).toStrictEqual({ x: "Foo" });
         });
     });
 

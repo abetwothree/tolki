@@ -1,0 +1,36 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.39.0-43-gb20bf7f442"
+    },
+    "probes": [
+        {
+            "label": "replace-keyed-subjects",
+            "php": "shown() of replace('o', '0', [2 => 'Foo', 0 => 'Boo']), replace('O', '0', new Collection(['x' => 'Foo']), false) and replace(['o', 'a'], ['0', '4'], new Collection(['x' => 'Foobar']))",
+            "value": [
+                [
+                    [
+                        2,
+                        "F00"
+                    ],
+                    [
+                        0,
+                        "B00"
+                    ]
+                ],
+                [
+                    [
+                        "x",
+                        "F00"
+                    ]
+                ],
+                [
+                    [
+                        "x",
+                        "F00b4r"
+                    ]
+                ]
+            ]
+        }
+    ]
+}

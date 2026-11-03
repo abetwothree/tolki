@@ -1,6 +1,7 @@
 import * as Arr from "@tolki/arr";
 import { collect, Collection, type CollectionShape } from "@tolki/collection";
 import { defineEnum, SortDirection } from "@tolki/enum";
+import * as Str from "@tolki/str";
 import { Stringable } from "@tolki/str";
 import type { DataItems } from "@tolki/types";
 import {
@@ -26698,4 +26699,16 @@ describe("prototype objects as write targets", () => {
             expect(({} as { PWNED?: unknown }).PWNED).toBeUndefined();
         },
     );
+});
+
+describe("Str interop", () => {
+    it("hands Str.remove a keyed collection's keys", () => {
+        // docs/php-parity/Str/remove.json, "remove-keyed-subjects"
+        expect(Str.remove("o", collect({ x: "Foo", y: "Boo" }))).toStrictEqual({
+            x: "F",
+            y: "B",
+        });
+        // docs/php-parity/Str/remove.json, "remove-laravel-iterable-subjects"
+        expect(Str.remove("o", collect(["Foo"]))).toStrictEqual(["F"]);
+    });
 });
