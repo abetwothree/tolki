@@ -44,6 +44,33 @@
                 2,
                 4
             ]
+        },
+        {
+            "label": "whereBetween-laravel-collection-bounds",
+            "php": "CollectionTest::testBetween's whereBetween('v', new Collection([2, 3]))",
+            "value": [
+                {
+                    "v": 2
+                },
+                {
+                    "v": 3
+                },
+                {
+                    "v": "3"
+                }
+            ]
+        },
+        {
+            "label": "whereBetween-keyed-collection-bounds",
+            "php": "whereBetween('v', new Collection(['lo' => 2, 'hi' => 3])) over v = 1..3",
+            "value": [
+                {
+                    "v": 2
+                },
+                {
+                    "v": 3
+                }
+            ]
         }
     ]
 }

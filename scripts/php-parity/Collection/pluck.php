@@ -38,5 +38,6 @@ probe('C32-E-pluck-tostring-key', "(new Collection([['v' => 1]]))->pluck('v', fn
 probe('C32-E-pluck-closure-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => fn () => 1)", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => fn () => 1)->all());
 probe('C32-E-pluck-anonymous-subclass-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => new class extends C32AParent {})", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => new class extends C32AParent {})->all());
 probe('C32-E-pluck-nested-array-row', "(new Collection([['n' => 1]]))->pluck('n') and ->pluck('*')", fn () => ['path' => (new Collection([['n' => 1]]))->pluck('n')->all(), 'wildcard' => (new Collection([['n' => 1]]))->pluck('*')->all()]);
+probe('pluck-closure-and-int-values', "->pluck(fn (\$i) => \$i['a'] * 10) over [['a' => 1], ['a' => 2]], and ->pluck(1) over [[10, 20], [30, 40]]", fn () => [(new Collection([['a' => 1], ['a' => 2]]))->pluck(fn ($i) => $i['a'] * 10)->all(), (new Collection([[10, 20], [30, 40]]))->pluck(1)->all()]);
 
 emit();

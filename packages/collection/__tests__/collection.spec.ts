@@ -6725,6 +6725,23 @@ describe("Collection", () => {
             },
         );
 
+        it("plucks with a closure or an integer key as the value", () => {
+            // docs/php-parity/Collection/pluck.json, "pluck-closure-and-int-values"
+            expect(
+                collect([{ a: 1 }, { a: 2 }])
+                    .pluck((i) => i.a * 10)
+                    .all(),
+            ).toEqual([10, 20]);
+            expect(
+                collect([
+                    [10, 20],
+                    [30, 40],
+                ])
+                    .pluck(1)
+                    .all(),
+            ).toEqual([20, 40]);
+        });
+
         it("lists the values without a key and keys them with one, as its type declares", () => {
             // JS-only: the type declares the shape, which the backing all() hands out must match
             expectShape(collect([{ id: 0, name: "a" }]).pluck("name"), "list");
@@ -12547,6 +12564,17 @@ describe("Collection", () => {
                     name: "MultipleItemsFoundException",
                     message: "3 items were found.",
                 }),
+            );
+        });
+
+        it("treats a null key as no filter", () => {
+            // docs/php-parity/Collection/sole.json, "sole-null-key"
+            expect(collect([5]).sole(null)).toBe(5);
+            expect(() => collect([5, 6]).sole(null)).toThrowError(
+                MultipleItemsFoundException,
+            );
+            expect(() => collect([5, 6]).sole(null)).toThrowError(
+                expect.objectContaining({ message: "2 items were found." }),
             );
         });
 
@@ -20039,6 +20067,14 @@ describe("Collection", () => {
                     { v: 3 },
                     { v: "3" },
                 ]);
+
+                // docs/php-parity/Collection/whereBetween.json, "whereBetween-laravel-collection-bounds"
+                expect(
+                    c
+                        .whereBetween("v", collect([2, 3]))
+                        .values()
+                        .all(),
+                ).toEqual([{ v: 2 }, { v: 3 }, { v: "3" }]);
             });
         });
 
@@ -20074,7 +20110,6 @@ describe("Collection", () => {
         });
 
         it("takes a Collection's values as the bounds", () => {
-            // JS-only: PHP 8.5 deprecates reset() and end() on an object, so its call keeps no item
             // docs/php-parity/Collection/whereBetween.json, "C32-D-whereBetween-collection-values"
             expect(
                 collect([0, 1, 2, 3, 4].map((v) => ({ v })))
@@ -20082,6 +20117,16 @@ describe("Collection", () => {
                     .pluck("v")
                     .all(),
             ).toEqual([1, 2, 3]);
+        });
+
+        it("reads a keyed collection's first and last values as the bounds", () => {
+            // docs/php-parity/Collection/whereBetween.json, "whereBetween-keyed-collection-bounds"
+            expect(
+                collect([{ v: 1 }, { v: 2 }, { v: 3 }])
+                    .whereBetween("v", collect({ lo: 2, hi: 3 }))
+                    .values()
+                    .all(),
+            ).toEqual([{ v: 2 }, { v: 3 }]);
         });
 
         it("keeps a list's shape and a keyed one's, as its type declares", () => {
@@ -20125,6 +20170,14 @@ describe("Collection", () => {
                     { v: 2 },
                     { v: 4 },
                 ]);
+
+                // docs/php-parity/Collection/whereNotBetween.json, "whereNotBetween-laravel-collection-bounds"
+                expect(
+                    c
+                        .whereNotBetween("v", collect([2, 3]))
+                        .values()
+                        .all(),
+                ).toEqual([{ v: 1 }, { v: 4 }]);
             });
         });
 
@@ -20159,7 +20212,6 @@ describe("Collection", () => {
         });
 
         it("takes a Collection's values as the bounds", () => {
-            // JS-only: PHP 8.5 deprecates reset() and end() on an object, so its call keeps every item
             // docs/php-parity/Collection/whereNotBetween.json, "C32-D-whereNotBetween-collection-values"
             expect(
                 collect([0, 1, 2, 3, 4].map((v) => ({ v })))
@@ -20167,6 +20219,16 @@ describe("Collection", () => {
                     .pluck("v")
                     .all(),
             ).toEqual([0, 4]);
+        });
+
+        it("reads a keyed collection's first and last values as the bounds", () => {
+            // docs/php-parity/Collection/whereNotBetween.json, "whereNotBetween-keyed-collection-bounds"
+            expect(
+                collect([{ v: 1 }, { v: 2 }, { v: 3 }])
+                    .whereNotBetween("v", collect({ lo: 2, hi: 3 }))
+                    .values()
+                    .all(),
+            ).toEqual([{ v: 1 }]);
         });
 
         it("reads its bounds once, however many items it filters", () => {

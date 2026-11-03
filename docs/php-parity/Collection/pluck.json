@@ -178,6 +178,20 @@
                     ]
                 ]
             }
+        },
+        {
+            "label": "pluck-closure-and-int-values",
+            "php": "->pluck(fn ($i) => $i['a'] * 10) over [['a' => 1], ['a' => 2]], and ->pluck(1) over [[10, 20], [30, 40]]",
+            "value": [
+                [
+                    10,
+                    20
+                ],
+                [
+                    20,
+                    40
+                ]
+            ]
         }
     ]
 }
