@@ -106,6 +106,7 @@ import {
     isMap,
     isNull,
     isNumber,
+    isPhpInt,
     isObject,
     isPhpAccessible,
     isPhpArrayKey,
@@ -1145,7 +1146,8 @@ export class Collection<
     /**
      * Get the mode of a given key.
      *
-     * Null items are skipped, and each value is counted under the key PHP would store it as.
+     * Null items are skipped. Each value is counted under the key PHP would store it as, and a float under the string
+     * PHP casts it to, so it comes back as the float.
      *
      * @param key - The key or path of segments to calculate the mode for, or null for the values themselves
      * @returns The most frequent values in the order first seen, or null when no non-null value remains
@@ -1154,6 +1156,7 @@ export class Collection<
      *
      * new Collection([1, 2, 2, 3, 3, 3]).mode(); -> [3]
      * new Collection([1, 1, 2, 2, 3, 3]).mode(); -> [1, 2, 3]
+     * new Collection([1.5, 1.5, 2.5]).mode(); -> [1.5]
      * new Collection([{value: 1}, {value: 2}, {value: 2}, {value: 3}, {value: 3}, {value: 3}]).mode('value'); -> [3]
      * new Collection([{foo: 5}, {foo: null}, {foo: null}]).mode('foo'); -> [5]
      * new Collection([null, null]).mode(); -> null
@@ -1163,6 +1166,7 @@ export class Collection<
     ): Array<string | number> | null {
         const values = isNull(key) ? this.values() : this.values().pluck(key);
         const counts = new Map<string | number, number>();
+        const floats = new Map<string, number>();
 
         values.each((value) => {
             // JS-only: undefined stands in for a value PHP does not have, so it is skipped with null.
@@ -1170,7 +1174,16 @@ export class Collection<
                 return;
             }
 
-            const countKey = phpComputedKey(value, { invalid: issetOffset });
+            let countKey: string | number;
+
+            if ((isNumber(value) || Number.isNaN(value)) && !isPhpInt(value)) {
+                const printed = toPhpKeyString(value);
+
+                floats.set(printed, Number(value));
+                countKey = phpArrayKey(printed);
+            } else {
+                countKey = phpComputedKey(value, { invalid: issetOffset });
+            }
 
             counts.set(countKey, (counts.get(countKey) ?? 0) + 1);
         });
@@ -1186,7 +1199,11 @@ export class Collection<
 
         return [...counts]
             .filter(([, count]) => count === highestCount)
-            .map(([countKey]) => countKey);
+            .map(([countKey]) =>
+                isString(countKey)
+                    ? (floats.get(countKey) ?? countKey)
+                    : countKey,
+            );
     }
 
     /**

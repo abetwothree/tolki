@@ -955,6 +955,48 @@ describe("Collection", () => {
     });
 
     describe("mode", () => {
+        it("keeps a float, counting it under the string PHP casts it to", () => {
+            // CollectionTest::testModeOnCollectionWithFloats
+            // docs/php-parity/Collection/mode.json, "mode-floats" and "mode-key-floats"
+            expect(collect([1.5, 1.5, 2.5]).mode()).toEqual([1.5]);
+            expect(
+                collect([{ foo: 0.5 }, { foo: 0.7 }, { foo: 0.7 }]).mode("foo"),
+            ).toEqual([0.7]);
+        });
+
+        it("shares a count between a float and the numeric string it prints as", () => {
+            // docs/php-parity/Collection/mode.json, "mode-float-and-numeric-string"
+            expect(collect(["1.5", 1.5, 2]).mode()).toEqual([1.5]);
+            expect(collect([1.5, "1.5", 2]).mode()).toEqual([1.5]);
+            expect(collect(["1.5", "1.5", 2]).mode()).toEqual(["1.5"]);
+        });
+
+        it("counts floats PHP prints alike as one value and keeps the last one seen", () => {
+            // docs/php-parity/Collection/mode.json, "mode-float-precision"
+            expect(collect([0.1 + 0.2, 0.3, 1]).mode()).toEqual([0.3]);
+            expect(collect([0.3, 0.1 + 0.2, 1]).mode()).toEqual([
+                0.30000000000000004,
+            ]);
+            expect(collect([1.00000000000001, 1, 2]).mode()).toEqual([1]);
+        });
+
+        it("keeps -0, the infinities, NaN and a float past PHP's int range", () => {
+            // docs/php-parity/Collection/mode.json, "mode-float-specials"
+            // JS-only: JavaScript has no int/float split, so -0 and 1e20 are read as the floats PHP holds them as.
+            expect(collect([-0, 0, -0]).mode()).toEqual([-0]);
+            expect(collect([Infinity, Infinity, -Infinity]).mode()).toEqual([
+                Infinity,
+            ]);
+            expect(collect([NaN, NaN, 1]).mode()).toEqual([NaN]);
+            expect(collect([1e20, 1e20, 1]).mode()).toEqual([1e20]);
+        });
+
+        it("lists a bool's integer key and a float in the order first seen", () => {
+            // docs/php-parity/Collection/mode.json, "mode-floats-with-bools-and-ties"
+            expect(collect([true, 1.5, 1.5, true]).mode()).toEqual([1, 1.5]);
+            expect(collect([2.5, 1.5, 2.5, 1.5]).mode()).toEqual([2.5, 1.5]);
+        });
+
         it("Laravel Tests", () => {
             // CollectionTest::testModeOnNullCollection, CollectionTest::testMode, CollectionTest::testModeValueByKey
             // and CollectionTest::testWithMultipleModeValues
@@ -25113,10 +25155,10 @@ describe("Collection", () => {
                 [1],
             ],
             [
-                "mode truncates a float",
+                "mode keeps each float",
                 // docs/php-parity/Collection/mode.json, "C32-H-mode-float-items"
                 () => collect([1.5, 1.7, 2.5]).mode(),
-                [1],
+                [1.5, 1.7, 2.5],
             ],
             [
                 "mode counts a unit enum case by its name",
