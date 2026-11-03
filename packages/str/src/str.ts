@@ -1,5 +1,6 @@
 import type { StringSubject, StringSubjectResult } from "@tolki/types";
 import {
+    hasOwnToString,
     isArray,
     isFunction,
     isIterable,
@@ -1695,6 +1696,11 @@ function mapSubject(
 
     if (isIterable(subject)) {
         return Array.from(subject, (item) => transform(stringifyValue(item)));
+    }
+
+    // PHP casts a Stringable subject that is not Traversable to a string
+    if (hasOwnToString(subject)) {
+        return transform(String(subject));
     }
 
     if (isObject(subject)) {

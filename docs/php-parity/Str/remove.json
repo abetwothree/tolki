@@ -109,6 +109,18 @@
                 "5",
                 ""
             ]
+        },
+        {
+            "label": "remove-stringable-subjects",
+            "php": "Str::remove('o', Str::of('Foo')), ('o', new StringableProbe('Boo')) and what ('o', new D4Point(1)) throws",
+            "value": [
+                "F",
+                "B",
+                [
+                    "TypeError",
+                    "str_replace(): Argument #3 ($subject) must be of type array|string, D4Point given"
+                ]
+            ]
         }
     ]
 }

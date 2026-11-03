@@ -18,5 +18,7 @@ probe('remove-keyed-subjects', "shown() of remove('o', ['x' => 'Foo', 'y' => 'Bo
 probe('remove-generator-keys', "shown(Str::remove('o', a generator yielding 'k1' => 'Foo', 'k2' => 'Boo'))", fn () => shown(Str::remove('o', (function () { yield 'k1' => 'Foo'; yield 'k2' => 'Boo'; })())));
 probe('remove-empty-and-scalar-items', "Str::remove('o', []) and @Str::remove('o', ['Foo', null, 5])", fn () => [Str::remove('o', []), @Str::remove('o', ['Foo', null, 5])]);
 probe('remove-scalar-subjects', "Str::remove('o', 5) and @Str::remove('o', null)", fn () => [Str::remove('o', 5), @Str::remove('o', null)]);
+// str_replace() casts a Stringable subject to a string, and throws for one neither Traversable nor Stringable.
+probe('remove-stringable-subjects', "Str::remove('o', Str::of('Foo')), ('o', new StringableProbe('Boo')) and what ('o', new D4Point(1)) throws", fn () => [Str::remove('o', Str::of('Foo')), Str::remove('o', new StringableProbe('Boo')), c32c_outcome(fn () => Str::remove('o', new D4Point(1)))]);
 
 emit();

@@ -3301,8 +3301,25 @@ describe("Str tests", () => {
             expect(remove("o", null)).toBe("");
         });
 
+        it("casts a Stringable subject to a string as PHP does", () => {
+            // docs/php-parity/Str/remove.json, "remove-stringable-subjects"
+            // The types take only strings, so a Stringable subject goes through Reflect.apply.
+            const remove = (...args: unknown[]): unknown =>
+                Reflect.apply(Str.remove, undefined, args);
+
+            class Name {
+                toString(): string {
+                    return "Boo";
+                }
+            }
+
+            expect(remove("o", Str.of("Foo"))).toBe("F");
+            expect(remove("o", new Name())).toBe("B");
+        });
+
         it("reads a class instance that is neither iterable nor a collection by its own keys", () => {
-            // JS-only: PHP's str_replace() throws a TypeError for an object that is not Traversable.
+            // JS-only: PHP's str_replace() throws a TypeError for an object neither Traversable nor Stringable
+            // (docs/php-parity/Str/remove.json, "remove-stringable-subjects").
             class Labels {
                 title = "Foo";
             }
