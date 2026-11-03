@@ -2158,6 +2158,8 @@ const result = substrCount(
 // result is 2
 ```
 
+Offsets and lengths count characters, so an emoji counts as one. An empty needle throws, as it does in PHP. <!-- docs/php-parity/Str/substrCount.json, "substrCount-laravel-multibyte", "substrCount-empty-needle" -->
+
 <FnTry
   :fn="substrCount"
   :args="[
