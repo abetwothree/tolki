@@ -73,6 +73,8 @@ export const Color = defineEnum({
 
 export type ColorType = "red" | "green" | "blue";
 export type ColorKind = "Red" | "Green" | "Blue";
+
+export type Color = ColorType;
 ```
 
 Each part of the file does one job:
@@ -81,7 +83,7 @@ Each part of the file does one job:
 - **`backed`**: whether the PHP enum is backed. [`EnumResource`](./enum-api-resource.md) responses include the same key, and [`AsEnum`](#type-reference) types it.
 - **`hex`**: an instance method published with [`#[TsEnumMethod]`](#tsenummethod), with one value per case.
 - **`_cases`, `_methods` and `_static`**: the lists the `@tolki/ts` functions read to build a PHP-like instance. See [Runtime Utilities](#runtime-utilities).
-- **`ColorType` and `ColorKind`**: type aliases for the case values and the case names. See [Value & Key Types](#value-key-types).
+- **`ColorType`, `ColorKind` and `Color`**: type aliases for the case values and the case names. The `Color` type is another name for `ColorType`, so `Color` is both the enum object and the type of its values. See [Value & Key Types](#value-key-types).
 
 ## Enum Attributes
 
@@ -142,6 +144,8 @@ The attribute takes these parameters:
 | `name`        | `string` | Method name | The key name in the output. [`enums.method_case`](#casing) applies to it too.                                       |
 | `description` | `string` | `''`        | A JSDoc comment above the property.                                                                                 |
 | `params`      | `array`  | `[]`        | Named arguments to call the method with. See [Methods With Required Parameters](#methods-with-required-parameters). |
+
+The method must be public. A private or protected method with the attribute isn't published, and `ts:publish` warns about it.
 
 #### Methods With Required Parameters
 
@@ -208,7 +212,7 @@ export const Status = defineEnum({
 } as const);
 ```
 
-A static method with required parameters is skipped unless you pass `params`, the same as with `#[TsEnumMethod]`.
+The same rules apply as with `#[TsEnumMethod]`: the method must be public, and a method with required parameters is skipped unless you pass `params`.
 
 ### `#[TsEnum]`
 
@@ -237,6 +241,8 @@ export const UserStatus = defineEnum({
 
 export type UserStatusType = "active" | "inactive";
 export type UserStatusKind = "Active" | "Inactive";
+
+export type UserStatus = UserStatusType;
 ```
 
 The file takes the new name too (`user-status.ts`), and models that use the enum refer to it as `UserStatusType`. The attribute takes these parameters:
@@ -246,8 +252,8 @@ The file takes the new name too (`user-status.ts`), and models that use the enum
 | `name`        | `string` | The TypeScript const name. Use it when two enums in one namespace publish the same name, or when a [route file](./routing.md#what-the-props-expression-can-be) uses two same-named enums from different namespaces. |
 | `description` | `string` | A JSDoc comment. It takes priority over any PHPDoc description.                                                                                                                                                     |
 
-::: warning An Enum Named Like Another Enum's Type
-An enum `Role` publishes the type `RoleType`. A second enum named `RoleType` in the same namespace publishes a const with that name, and the two can't share a barrel file or a global namespace. `ts:publish` warns when it finds such a pair. Rename one of them with `#[TsEnum]`. In two different namespaces this pair is fine, because a file that imports both gets an alias for one.
+::: warning Two Classes That Publish One Name
+When two classes in one namespace publish the same name, their barrel file and the global declaration file can't export both. For example, an enum `Role` publishes the type `RoleType`, so a second enum named `RoleType` in the same namespace clashes with it. `ts:publish` warns about any such pair, whether the classes are enums, models, resources, form requests, broadcast events or [composed types](./custom-types.md#composed-types). Move one of them to a namespace of its own, or rename it. An enum takes a new name with `#[TsEnum]`. In two different namespaces the pair is fine, because a file that imports both gets an alias for one. Two kinds of class in one directory, such as an enum `App\Models\Status` beside the models, drop each other's barrel exports, so keep each kind of class in a namespace of its own.
 :::
 
 ### `#[TsCase]`
@@ -279,7 +285,11 @@ export const Status = defineEnum({
 
 export type StatusType = "enabled" | "disabled";
 export type StatusKind = "Enabled" | "Disabled";
+
+export type Status = StatusType;
 ```
+
+A published [instance method](#tsenummethod) keys its values by the new case names too. `Status.from("enabled")` resolves each method to its value for `Status::Active`, and [`EnumResource`](./enum-api-resource.md) sends the same values.
 
 The attribute takes these parameters:
 
@@ -302,6 +312,8 @@ export type StatusType = "active" | "inactive";
 export type StatusKind = "Active" | "Inactive"; // backed enums only
 ```
 
+An enum with no cases publishes `never` for each alias.
+
 Use the aliases to type a raw value or a case name:
 
 ```typescript
@@ -310,6 +322,18 @@ import type { StatusType, StatusKind } from "@js/types/data/app/enums";
 function setStatus(status: StatusType) {} // only 'active' | 'inactive'
 function setStatusByKey(status: StatusKind) {} // only 'Active' | 'Inactive'
 ```
+
+The enum's own name is also a type, an alias of its `{Name}Type`, so for a unit enum it's the union of its case names. One import gives you the enum object and the type of its values, as a native TypeScript `enum` does:
+
+```typescript
+import { Color } from "@js/types/data/app/enums";
+
+let color: Color = Color.Red; // only 'red' | 'green' | 'blue'
+
+Color.from(color).hex; // '#EF4444'
+```
+
+Use `import type { Color }` when you need only the type. Every enum file has this alias, with or without metadata and the `defineEnum()` wrapper.
 
 To list the values or the names at runtime, call [`values`](#values) or [`keys`](#keys).
 
