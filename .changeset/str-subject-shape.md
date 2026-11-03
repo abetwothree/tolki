@@ -6,3 +6,4 @@
 
 - **Breaking:** a keyed collection subject now returns an object keyed like it, instead of an array of its values. Wrap the result in `Object.values()` to keep a list.
 - A `Map` subject no longer turns each entry into a `"key,value"` string, and a plain-object subject no longer returns an empty array.
+- The new `StringSubject` and `StringSubjectResult` types can be imported from `@tolki/str` to type a subject and its result.

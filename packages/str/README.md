@@ -1182,7 +1182,7 @@ const result = remove(
 // result is "Ptr Pipr pickd a pck of pickld ppprs."
 ```
 
-The subject can also be a list, an object, a `Map` or a collection of strings, and the result keeps its shape and keys:
+The subject can also be a list, an object or a `Map` of strings, and the result keeps its shape and keys. A collection gives back what its `all()` holds, and any other iterable gives a list:
 
 ```javascript
 import { remove } from "@tolki/str";
@@ -1231,7 +1231,7 @@ const result = replace(
 // result is "Laravel Framework for Web Artisans"
 ```
 
-The subject can also be a list, an object, a `Map` or a collection of strings, and the result keeps its shape and keys:
+The subject can also be a list, an object or a `Map` of strings, and the result keeps its shape and keys. A collection gives back what its `all()` holds, and any other iterable gives a list:
 
 ```javascript
 import { replace } from "@tolki/str";
