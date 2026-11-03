@@ -4458,7 +4458,7 @@ export class Collection<
         }
 
         // Laravel seeds this with a fresh stdClass, so only an ABSENT item can
-        // equal it and a stored null stays a found item (Collection.php:1515).
+        // equal it and a stored null stays a found item (Collection.php:1525).
         const placeholder = Symbol("firstOrFail");
 
         // `first` answers `| null` only for its no-default form; this call always hands
@@ -4539,7 +4539,7 @@ export class Collection<
      * The callback's third argument is the chunk built so far, as a collection, so `chunk.last()` works
      * exactly as it does in Laravel.
      *
-     * @see Collection::chunkWhile — `packages/collection/stubs/Collection.php:1554`, which delegates to
+     * @see Collection::chunkWhile — `packages/collection/stubs/Collection.php:1564`, which delegates to
      *      `LazyCollection::chunkWhile`.
      *
      * @param callback - Receives the value, its key and the chunk so far; return true to keep appending
@@ -4577,7 +4577,7 @@ export class Collection<
     /**
      * Chunk the collection into chunks by comparing adjacent values using the given key or callback.
      *
-     * @see EnumeratesValues::chunkBy — `packages/collection/stubs/EnumeratesValues.php:939`.
+     * @see EnumeratesValues::chunkBy — `packages/collection/stubs/EnumeratesValues.php:941`.
      *      Adjacent values compare with PHP's `==`, so `1` and `"1"` share a chunk.
      *
      * @param key - A path into each item, or a callback receiving the value and its key

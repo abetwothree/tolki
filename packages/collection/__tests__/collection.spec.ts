@@ -10408,7 +10408,7 @@ describe("Collection", () => {
         });
 
         it("replaces without mutating, either backing", () => {
-            // Collection.php:1185 ends in newInstance(...), so neither the array-backed
+            // Collection.php:1195 ends in newInstance(...), so neither the array-backed
             // nor the object-backed source collection's items may change.
             const fromArray = new Collection([1, 2]);
             const fromObject = new Collection({ a: 1, b: 2 });
@@ -14745,7 +14745,7 @@ describe("Collection", () => {
         });
 
         it("splices to the end with a single argument, either backing", () => {
-            // PHP branches on func_num_args === 1 (Collection.php:1770) — the one-arg
+            // PHP branches on func_num_args === 1 (Collection.php:1780) — the one-arg
             // form removes offset -> end for both backings, not nothing.
             const fromArray = new Collection(["f", "z"]);
             const fromObject = new Collection({ foo: "f", baz: "z" });

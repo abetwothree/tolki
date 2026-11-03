@@ -13,7 +13,7 @@ use Illuminate\Support\Collection;
 
 // ==== Group 0 (carried in from the D1-D3 review): two Collection rows the port gets wrong.
 
-// Collection.php:1515 seeds firstOrFail with a fresh stdClass precisely so that a STORED
+// Collection.php:1525 seeds firstOrFail with a fresh stdClass precisely so that a STORED
 // null is a found item. Only an absent item can equal that placeholder.
 probe('firstOrFail-stored-null-list', "(new Collection([null]))->firstOrFail()", fn () => (new Collection([null]))->firstOrFail());
 probe('firstOrFail-stored-null-assoc', "(new Collection(['a' => null]))->firstOrFail()", fn () => (new Collection(['a' => null]))->firstOrFail());
