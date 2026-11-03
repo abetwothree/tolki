@@ -804,6 +804,13 @@ describe("Stringable basic delegation", () => {
                 Str.of("laravelPHPFramework").substrCount("a"),
             );
         });
+
+        it("throws for an empty needle", () => {
+            // docs/php-parity/Str/substrCount.json, "substrCount-empty-needle"
+            expect(() => Str.of("abc").substrCount("")).toThrow(
+                "substr_count(): Argument #2 ($needle) must not be empty",
+            );
+        });
     });
 
     describe("substrReplace", () => {

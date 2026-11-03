@@ -35,6 +35,7 @@ export function substr(
  * @param offset - The starting position for the search. If negative, it starts that many characters from the end of the string.
  * @param length - The length of the segment to search within. If omitted or null, searches to the end of the string. If negative, omits that many characters from the end.
  * @returns The number of occurrences of the substring within the specified segment.
+ * @throws Error for an empty needle, as PHP's substr_count() throws its ValueError
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#substrcount
  */
@@ -45,7 +46,9 @@ export function substrCount(
     length: number | null = null,
 ): number {
     if (needle === "") {
-        return 0; // safe behavior for empty needle
+        throw new Error(
+            "substr_count(): Argument #2 ($needle) must not be empty",
+        );
     }
 
     const chars = Array.from(haystack);

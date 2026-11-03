@@ -83,7 +83,27 @@ describe("Str/Replacer", () => {
             expect(substrCount("laravelPHPFramework", "a", 1, 2)).toBe(1);
             expect(substrCount("laravelPHPFramework", "a", 1, -2)).toBe(3);
             expect(substrCount("laravelPHPFramework", "a", -10, -3)).toBe(1);
-            expect(substrCount("laravelPHPFramework", "")).toBe(0);
+            expect(() => substrCount("laravelPHPFramework", "")).toThrow(
+                "substr_count(): Argument #2 ($needle) must not be empty",
+            );
+
+            // docs/php-parity/Str/substrCount.json, "substrCount-laravel-multibyte"
+            expect(substrCount("سلام سلام سلام", "سلام")).toBe(3);
+            expect(substrCount("سلام سلام سلام", "سلام", 5)).toBe(2);
+            expect(substrCount("سلام سلام سلام", "سلام", 0, 14)).toBe(3);
+            expect(substrCount("سلام سلام سلام", "سلام", 5, 4)).toBe(1);
+            expect(substrCount("سلام سلام سلام", "سلام", -4)).toBe(1);
+            expect(substrCount("ab🙂cd🙂ef", "🙂", 0, 6)).toBe(2);
+            expect(substrCount("ab🙂cd🙂ef", "🙂", 3)).toBe(1);
+            expect(substrCount("ab🙂cd🙂ef", "🙂", 1, -1)).toBe(2);
+        });
+
+        it("counts nothing outside the string, and never overlaps a match", () => {
+            // docs/php-parity/Str/substrCount.json, "substrCount-offset-bounds"
+            expect(substrCount("abc", "a", 10)).toBe(0);
+            expect(substrCount("abc", "a", -10)).toBe(1);
+            expect(substrCount("abc", "a", 1, -5)).toBe(0);
+            expect(substrCount("aaa", "aa")).toBe(1);
         });
 
         it("counts occurrences of substring", () => {
@@ -92,8 +112,14 @@ describe("Str/Replacer", () => {
             expect(substrCount("aaaa", "a")).toBe(4);
         });
 
-        it("returns zero for empty needle", () => {
-            expect(substrCount("hello", "")).toBe(0);
+        it("throws for an empty needle, as PHP's substr_count() does", () => {
+            // docs/php-parity/Str/substrCount.json, "substrCount-empty-needle"
+            expect(() => substrCount("hello", "")).toThrow(
+                "substr_count(): Argument #2 ($needle) must not be empty",
+            );
+            expect(() => substrCount("abc", "", 10)).toThrow(
+                "substr_count(): Argument #2 ($needle) must not be empty",
+            );
         });
 
         it("returns zero when needle not found", () => {
