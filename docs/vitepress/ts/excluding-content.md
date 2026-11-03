@@ -148,6 +148,8 @@ export const ExcludableEnum = defineEnum({
 
 export type ExcludableEnumType = "alpha" | "beta";
 export type ExcludableEnumKind = "Alpha" | "Beta";
+
+export type ExcludableEnum = ExcludableEnumType;
 ```
 
 `overridden()` and `overriddenStatic()` have attributes that would include them whatever the auto-include settings, but `#[TsExclude]` removes them. `label()` and `secret()` are missing because auto-include is off. Turn on `enums.auto_include_methods`, and `label()` publishes while `secret()` stays out. See [Auto-Including All Enum Methods](./enums.md#auto-including-all-enum-methods) for which methods auto-include adds.
