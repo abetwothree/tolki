@@ -21,4 +21,7 @@ probe('remove-scalar-subjects', "Str::remove('o', 5) and @Str::remove('o', null)
 // str_replace() casts a Stringable subject to a string, and throws for one neither Traversable nor Stringable.
 probe('remove-stringable-subjects', "Str::remove('o', Str::of('Foo')), ('o', new StringableProbe('Boo')) and what ('o', new D4Point(1)) throws", fn () => [Str::remove('o', Str::of('Foo')), Str::remove('o', new StringableProbe('Boo')), c32c_outcome(fn () => Str::remove('o', new D4Point(1)))]);
 
+// A string key such as __proto__ is an ordinary key in a PHP array.
+probe('remove-proto-key', "shown(Str::remove('o', ['__proto__' => 'Foo', 'x' => 'Boo']))", fn () => shown(Str::remove('o', ['__proto__' => 'Foo', 'x' => 'Boo'])));
+
 emit();

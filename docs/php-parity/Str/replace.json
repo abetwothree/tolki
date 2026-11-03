@@ -31,6 +31,20 @@
                     ]
                 ]
             ]
+        },
+        {
+            "label": "replace-generator-search",
+            "php": "Str::replace((function () { yield 'o'; })(), '0', ['Foo', 'Boo']) and the same with ['FOO', 'BOO'] and caseSensitive false",
+            "value": [
+                [
+                    "F00",
+                    "B00"
+                ],
+                [
+                    "F00",
+                    "B00"
+                ]
+            ]
         }
     ]
 }

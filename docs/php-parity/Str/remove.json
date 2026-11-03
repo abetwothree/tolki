@@ -121,6 +121,20 @@
                     "str_replace(): Argument #3 ($subject) must be of type array|string, D4Point given"
                 ]
             ]
+        },
+        {
+            "label": "remove-proto-key",
+            "php": "shown(Str::remove('o', ['__proto__' => 'Foo', 'x' => 'Boo']))",
+            "value": [
+                [
+                    "__proto__",
+                    "F"
+                ],
+                [
+                    "x",
+                    "B"
+                ]
+            ]
         }
     ]
 }

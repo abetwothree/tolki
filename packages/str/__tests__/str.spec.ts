@@ -2535,7 +2535,7 @@ describe("Str tests", () => {
         });
 
         it("reads a one-shot search iterable once, for every item of the subject", () => {
-            // JS-only: a generator can be read only once, so its terms are read before the subject's items.
+            // docs/php-parity/Str/replace.json, "replace-generator-search"
             const searches = function* (): Generator<string> {
                 yield "o";
             };
@@ -3254,6 +3254,20 @@ describe("Str tests", () => {
                 [2, "F"],
                 [0, "B"],
             ]);
+        });
+
+        it("keeps a __proto__ key as an own key, as PHP keeps any string key", () => {
+            // docs/php-parity/Str/remove.json, "remove-proto-key"
+            const subject = JSON.parse(
+                '{"__proto__":"Foo","x":"Boo"}',
+            ) as Record<string, string>;
+            const removed = Str.remove("o", subject);
+
+            expect(Object.keys(removed)).toStrictEqual(["__proto__", "x"]);
+            expect(
+                Object.getOwnPropertyDescriptor(removed, "__proto__")?.value,
+            ).toBe("F");
+            expect(Object.getPrototypeOf(removed)).toBe(Object.prototype);
         });
 
         it("reads a plain object with its own all key as data", () => {
