@@ -200,6 +200,12 @@ describe("values", () => {
             readonly ("Ascending" | "Descending")[]
         >();
     });
+
+    it("types an enum without _cases as an empty array", () => {
+        expectTypeOf(Enum.values(Stubs.NoCases)).toEqualTypeOf<
+            readonly never[]
+        >();
+    });
 });
 
 describe("keys", () => {
@@ -221,6 +227,12 @@ describe("keys", () => {
         >();
         expectTypeOf(Enum.keys(Enum.SortDirection)).toEqualTypeOf<
             readonly ("Ascending" | "Descending")[]
+        >();
+    });
+
+    it("types an enum without _cases as an empty array", () => {
+        expectTypeOf(Enum.keys(Stubs.NoCases)).toEqualTypeOf<
+            readonly never[]
         >();
     });
 });
