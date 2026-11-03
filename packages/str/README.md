@@ -1182,6 +1182,16 @@ const result = remove(
 // result is "Ptr Pipr pickd a pck of pickld ppprs."
 ```
 
+The subject can also be a list, an object, a `Map` or a collection of strings, and the result keeps its shape and keys:
+
+```javascript
+import { remove } from "@tolki/str";
+
+const result = remove("o", { first: "Foo", last: "Boo" });
+
+// result is { first: "F", last: "B" }
+```
+
 #### repeat
 
 Repeat the given string.
@@ -1219,6 +1229,16 @@ const result = replace(
 );
 
 // result is "Laravel Framework for Web Artisans"
+```
+
+The subject can also be a list, an object, a `Map` or a collection of strings, and the result keeps its shape and keys:
+
+```javascript
+import { replace } from "@tolki/str";
+
+const result = replace("o", "0", { first: "Foo", last: "Boo" });
+
+// result is { first: "F00", last: "B00" }
 ```
 
 #### replaceArray
