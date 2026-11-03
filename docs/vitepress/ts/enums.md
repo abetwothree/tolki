@@ -522,6 +522,8 @@ import { Color } from "@js/types/data/app/enums";
 keys(Color); // ['Red', 'Green', 'Blue']
 ```
 
+Like `values`, `keys` reads the `_cases` list and returns an empty array without `enums.metadata_enabled`.
+
 ### `tryFrom`
 
 Like PHP's [tryFrom](https://www.php.net/manual/en/backedenum.tryfrom.php), `tryFrom` works like `from` but returns `null` for a value that matches no case:
@@ -547,7 +549,7 @@ values(Color); // ['red', 'green', 'blue']
 
 A unit enum publishes each case name as its value, so `values` returns its case names. PHP's `array_column()` returns an empty array for a unit enum.
 
-`values` and `keys` read the `_cases` list, so they need `enums.metadata_enabled` and return an empty array without it. `defineEnum()` doesn't bind them to the enum, so an enum that publishes its own `values()` or `keys()` static method keeps it: the enum's `values` property is still the published array.
+`values` and `keys` read the `_cases` list, so they need `enums.metadata_enabled` and return an empty array without it. `defineEnum()` doesn't add `values` or `keys` to the enum. An enum that publishes its own `values()` or `keys()` static method keeps that published value under the name, so `Status.values` is the static method's published output while `values(Status)` returns the case values.
 
 ## Vite Plugin
 
