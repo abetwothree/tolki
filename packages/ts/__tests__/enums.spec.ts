@@ -9,14 +9,18 @@ describe("enum re-exports", () => {
         expect(Ts.tryFrom).toBe(Enum.tryFrom);
         expect(Ts.cases).toBe(Enum.cases);
         expect(Ts.defineEnum).toBe(Enum.defineEnum);
+        expect(Ts.values).toBe(Enum.values);
+        expect(Ts.keys).toBe(Enum.keys);
     });
 
-    it("exports exactly the four enum functions from the enums subpath", () => {
+    it("exports exactly the six enum functions from the enums subpath", () => {
         expect(Object.keys(TsEnums).sort()).toEqual([
             "cases",
             "defineEnum",
             "from",
+            "keys",
             "tryFrom",
+            "values",
         ]);
         expect(TsEnums.defineEnum).toBe(Enum.defineEnum);
     });

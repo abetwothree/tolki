@@ -311,6 +311,8 @@ function setStatus(status: StatusType) {} // only 'active' | 'inactive'
 function setStatusByKey(status: StatusKind) {} // only 'Active' | 'Inactive'
 ```
 
+To list the values or the names at runtime, call [`values`](#values) or [`keys`](#keys).
+
 ### Reading `->value` and `->name`
 
 Read an enum's `->value` or `->name` in an API resource, an Inertia page prop, a broadcast event, or anything else the package types, and the property publishes the enum's alias. The file imports the alias for you. Here a `PostSummaryResource` reads a `Post` model that casts `status` to the int-backed `PostStatus` enum and `visibility` to the unit enum `Visibility`:
@@ -374,7 +376,7 @@ const instance = Status.from("active");
 // { name: 'Active', value: 'active', backed: true, label: 'Active User', options: [...] }
 ```
 
-An instance method resolves to its value for the matched case (`label`), and a static method passes through as it is (`options`). See [Runtime Utilities](#runtime-utilities) for every function.
+An instance method resolves to its value for the matched case (`label`), and a static method passes through as it is (`options`). See [Runtime Utilities](#runtime-utilities) for every function. [`values`](#values) and [`keys`](#keys) read `_cases` too.
 
 ### Disabling Metadata or the `@tolki/ts` Wrapper
 
@@ -458,11 +460,11 @@ Enums use the same include and exclude settings as models, resources and the oth
 
 ## Runtime Utilities
 
-`@tolki/ts` exports these functions, which give `defineEnum()` its PHP-like behavior. You normally call them through the published enum (`Status.from(...)`) instead of importing them.
+`@tolki/ts` exports these functions. `from`, `tryFrom` and `cases` give `defineEnum()` its PHP-like behavior, and you normally call them through the published enum (`Status.from(...)`). `values` and `keys` aren't bound to the enum, so you import them.
 
 <div class="collection-method-list" markdown="1">
 
-[cases](#cases) [defineEnum](#defineenum) [from](#from) [tryFrom](#tryfrom)
+[cases](#cases) [defineEnum](#defineenum) [from](#from) [keys](#keys) [tryFrom](#tryfrom) [values](#values)
 
 </div>
 
@@ -509,6 +511,19 @@ const result = from(Status, "active");
 from(Status, "non-valid-key"); // throws
 ```
 
+### `keys`
+
+Like `array_column(Color::cases(), 'name')` in PHP, `keys` returns the enum's case names in case order, typed as a union of those names:
+
+```typescript
+import { keys } from "@tolki/ts";
+import { Color } from "@js/types/data/app/enums";
+
+keys(Color); // ['Red', 'Green', 'Blue']
+```
+
+Like `values`, `keys` reads the `_cases` list and returns an empty array without `enums.metadata_enabled`.
+
 ### `tryFrom`
 
 Like PHP's [tryFrom](https://www.php.net/manual/en/backedenum.tryfrom.php), `tryFrom` works like `from` but returns `null` for a value that matches no case:
@@ -520,6 +535,21 @@ import { Status } from "@js/types/data/app/enums";
 const result = tryFrom(Status, "active");
 const missing = tryFrom(Status, "non-valid-key"); // null
 ```
+
+### `values`
+
+Like `array_column(Color::cases(), 'value')` in PHP, `values` returns the enum's case values in case order, typed as its `{Name}Type` union:
+
+```typescript
+import { values } from "@tolki/ts";
+import { Color } from "@js/types/data/app/enums";
+
+values(Color); // ['red', 'green', 'blue']
+```
+
+A unit enum publishes each case name as its value, so `values` returns its case names. PHP's `array_column()` returns an empty array for a unit enum.
+
+`values` and `keys` read the `_cases` list, so they need `enums.metadata_enabled` and return an empty array without it. `defineEnum()` doesn't add `values` or `keys` to the enum. An enum that publishes its own `values()` or `keys()` static method keeps that published value under the name, so `Status.values` is the static method's published output while `values(Status)` returns the case values.
 
 ## Vite Plugin
 
@@ -537,6 +567,7 @@ The runtime functions come from `@tolki/ts`. The types come from `@tolki/types`,
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `defineEnum()`                    | Wraps a raw enum const with bound `from`, `tryFrom` and `cases` helpers.                                                                                                                                        |
 | `from()`, `tryFrom()`, `cases()`  | Standalone versions that take the enum object as their first argument.                                                                                                                                          |
+| `values()`, `keys()`              | The case values, or the case names, in case order.                                                                                                                                                              |
 | `EnumConst`                       | The base shape every generated enum const satisfies.                                                                                                                                                            |
 | `CaseKeys<T>` / `CaseValue<T>`    | The union of case key names, or of case values, for an enum const.                                                                                                                                              |
 | `MethodKeys<T>` / `StaticKeys<T>` | The union of instance method key names, or of static method key names.                                                                                                                                          |
