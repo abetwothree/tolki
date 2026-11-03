@@ -173,6 +173,58 @@ describe("cases", () => {
     });
 });
 
+describe("values", () => {
+    it("types the result as a readonly array of the case values", () => {
+        expectTypeOf(Enum.values(Stubs.Status)).toEqualTypeOf<
+            readonly (0 | 1)[]
+        >();
+        expectTypeOf(Enum.values(Stubs.Visibility)).toEqualTypeOf<
+            readonly Stubs.VisibilityType[]
+        >();
+        expectTypeOf(Enum.values(Stubs.PaymentMethod)).toEqualTypeOf<
+            readonly Stubs.PaymentMethodType[]
+        >();
+    });
+
+    it("ignores a published values static", () => {
+        expectTypeOf(Enum.values(Stubs.Tier)).toEqualTypeOf<
+            readonly ("gold" | "bronze" | "silver")[]
+        >();
+    });
+
+    it("types a defineEnum result and a unit enum", () => {
+        expectTypeOf(Enum.values(Enum.defineEnum(Stubs.Status))).toEqualTypeOf<
+            readonly (0 | 1)[]
+        >();
+        expectTypeOf(Enum.values(Enum.SortDirection)).toEqualTypeOf<
+            readonly ("Ascending" | "Descending")[]
+        >();
+    });
+});
+
+describe("keys", () => {
+    it("types the result as a readonly array of the case names", () => {
+        expectTypeOf(Enum.keys(Stubs.Status)).toEqualTypeOf<
+            readonly Stubs.StatusKind[]
+        >();
+        expectTypeOf(Enum.keys(Stubs.Priority)).toEqualTypeOf<
+            readonly Stubs.PriorityKind[]
+        >();
+        expectTypeOf(Enum.keys(Stubs.Tier)).toEqualTypeOf<
+            readonly ("Gold" | "Bronze" | "Silver")[]
+        >();
+    });
+
+    it("types a defineEnum result and a unit enum", () => {
+        expectTypeOf(Enum.keys(Enum.defineEnum(Stubs.Status))).toEqualTypeOf<
+            readonly Stubs.StatusKind[]
+        >();
+        expectTypeOf(Enum.keys(Enum.SortDirection)).toEqualTypeOf<
+            readonly ("Ascending" | "Descending")[]
+        >();
+    });
+});
+
 describe("defineEnum", () => {
     it("returns DefineEnumResult type", () => {
         const StatusEnum = Enum.defineEnum(Stubs.Status);
@@ -240,6 +292,12 @@ describe("defineEnum", () => {
         expectTypeOf(result.value).toEqualTypeOf<"Public">();
         expectTypeOf(result.is_public).toEqualTypeOf<true>();
         expectTypeOf(result.description).toEqualTypeOf<"Visible to everyone">();
+    });
+
+    it("keeps the type of a published values static", () => {
+        expectTypeOf(Enum.defineEnum(Stubs.Tier).values).toEqualTypeOf(
+            Stubs.Tier.values,
+        );
     });
 });
 

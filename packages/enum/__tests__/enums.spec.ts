@@ -145,6 +145,79 @@ describe("cases", () => {
     });
 });
 
+describe("values", () => {
+    it("returns the backing values in case order", () => {
+        expect(Enum.values(Stubs.Status)).toEqual([0, 1]);
+        expect(Enum.values(Stubs.Priority)).toEqual([0, 1, 2, 3]);
+        expect(Enum.values(Stubs.PaymentMethod)).toEqual([
+            "credit_card",
+            "debit_card",
+            "paypal",
+            "bank_transfer",
+            "cash_on_delivery",
+            "crypto",
+            "apple_pay",
+            "google_pay",
+        ]);
+    });
+
+    it("follows _cases order and ignores a published values static", () => {
+        expect(Enum.values(Stubs.Tier)).toEqual(["bronze", "silver", "gold"]);
+    });
+
+    it("returns the case names of a unit enum", () => {
+        // JS-only: PHP's array_column() gives [] here, but a unit enum publishes its names as its values.
+        expect(Enum.values(Enum.SortDirection)).toEqual([
+            "Ascending",
+            "Descending",
+        ]);
+    });
+
+    it("reads a defineEnum result like the raw enum", () => {
+        expect(Enum.values(Enum.defineEnum(Stubs.Status))).toEqual([0, 1]);
+    });
+
+    it("returns an empty array when _cases is not defined", () => {
+        expect(Enum.values(Stubs.NoCases as never)).toEqual([]);
+    });
+});
+
+describe("keys", () => {
+    it("returns the case names in case order", () => {
+        expect(Enum.keys(Stubs.Status)).toEqual(["Draft", "Published"]);
+        expect(Enum.keys(Stubs.Tier)).toEqual(["Bronze", "Silver", "Gold"]);
+    });
+
+    it("returns the case names of a unit enum", () => {
+        expect(Enum.keys(Enum.SortDirection)).toEqual([
+            "Ascending",
+            "Descending",
+        ]);
+    });
+
+    it("reads a defineEnum result like the raw enum", () => {
+        expect(Enum.keys(Enum.defineEnum(Stubs.Priority))).toEqual([
+            "Low",
+            "Medium",
+            "High",
+            "Critical",
+        ]);
+    });
+
+    it("returns a copy that does not share the enum's _cases", () => {
+        const result = Enum.keys(Stubs.Status);
+        Reflect.apply(Array.prototype.push, result, ["Archived"]);
+
+        expect(result).not.toBe(Stubs.Status._cases);
+        expect(Stubs.Status._cases).toEqual(["Draft", "Published"]);
+        expect(Enum.keys(Stubs.Status)).toEqual(["Draft", "Published"]);
+    });
+
+    it("returns an empty array when _cases is not defined", () => {
+        expect(Enum.keys(Stubs.NoCases as never)).toEqual([]);
+    });
+});
+
 describe("defineEnum", () => {
     it("returns an object with from, tryFrom, and cases methods", () => {
         const StatusEnum = Enum.defineEnum(Stubs.Status);
@@ -231,6 +304,15 @@ describe("defineEnum", () => {
         expect(result).not.toHaveProperty("from");
         expect(result.value).toBe(2);
         expect(result.label).toBe("High Priority");
+    });
+
+    it("keeps a published values or keys static instead of binding helpers", () => {
+        const TierEnum = Enum.defineEnum(Stubs.Tier);
+
+        expect(TierEnum.values).toEqual(["published-values"]);
+        expect(TierEnum.keys).toEqual(["published-keys"]);
+        expect(TierEnum._helpers).toEqual(["from", "tryFrom", "cases"]);
+        expect(TierEnum.from("gold").values).toEqual(["published-values"]);
     });
 });
 

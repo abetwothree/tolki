@@ -1,5 +1,6 @@
 import type {
     AsEnum,
+    CaseKeys,
     CaseValue,
     DefineEnumResult,
     EnumConst,
@@ -115,6 +116,40 @@ export function cases<TEnum extends EnumConst>(
     return (enumObj._cases ?? []).map((caseKey) =>
         from(enumObj, enumObj[caseKey] as CaseValue<TEnum>),
     );
+}
+
+/**
+ * Returns the backing values of all enum cases, in case order.
+ *
+ * Mirrors PHP's `array_column(Enum::cases(), 'value')`. A unit enum's values are its case names.
+ *
+ * @see https://tolki.abe.dev/ts/enums.html#values
+ *
+ * @param enumObj - The enum const object to read the case values from.
+ * @returns A new array with one value per case, or an empty array when the enum has no `_cases`.
+ */
+export function values<TEnum extends EnumConst>(
+    enumObj: TEnum,
+): ReadonlyArray<CaseValue<TEnum>> {
+    return (enumObj._cases ?? []).map(
+        (caseKey) => enumObj[caseKey] as CaseValue<TEnum>,
+    );
+}
+
+/**
+ * Returns the names of all enum cases, in case order.
+ *
+ * Mirrors PHP's `array_column(Enum::cases(), 'name')`.
+ *
+ * @see https://tolki.abe.dev/ts/enums.html#keys
+ *
+ * @param enumObj - The enum const object to read the case names from.
+ * @returns A new array with one name per case, or an empty array when the enum has no `_cases`.
+ */
+export function keys<TEnum extends EnumConst>(
+    enumObj: TEnum,
+): ReadonlyArray<CaseKeys<TEnum>> {
+    return [...(enumObj._cases ?? [])] as Array<CaseKeys<TEnum>>;
 }
 
 /**
