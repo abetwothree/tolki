@@ -34,5 +34,11 @@ describe("enum re-exports", () => {
 
     it("keeps the standalone functions' inference", () => {
         expectTypeOf(Ts.from(Color, "green").name).toEqualTypeOf<"Green">();
+        expectTypeOf(Ts.values(Color)).toEqualTypeOf<
+            readonly ("red" | "green")[]
+        >();
+        expectTypeOf(Ts.keys(Color)).toEqualTypeOf<
+            readonly ("Red" | "Green")[]
+        >();
     });
 });
