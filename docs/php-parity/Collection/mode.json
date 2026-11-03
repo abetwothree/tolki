@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.36.0-32-g6d2eefbb14"
+        "laravel": "v13.39.0-43-gb20bf7f442"
     },
     "probes": [
         {
@@ -154,7 +154,9 @@
             "label": "C32-H-mode-float-items",
             "php": "@(new Collection([1.5, 1.7, 2.5]))->mode()",
             "value": [
-                1
+                1.5,
+                1.7,
+                2.5
             ]
         }
     ]
