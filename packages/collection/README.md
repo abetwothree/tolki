@@ -2186,7 +2186,7 @@ Get the value that appears most often, or the values at a key.
 
 Laravel: [`mode()`](https://laravel.com/docs/collections#method-mode)
 
-The answer is always an array, because several values can tie. Tied values come in the order they first appear. `null` items are skipped, and a collection with nothing left gives `null`.
+The answer is always an array, because several values can tie. Tied values come in the order they first appear. `null` items are skipped, and a collection with nothing left gives `null`. A float comes back as itself. <!-- docs/php-parity/Collection/mode.json, "mode-floats" -->
 
 ```js
 import { collect } from "@tolki/collection";
@@ -2202,6 +2202,9 @@ collect([1, 1, 2, 2]).mode();
 
 collect([2, 2, 1, 1]).mode();
 // => [2, 1]
+
+collect([1.5, 1.5, 2.5]).mode();
+// => [1.5]
 
 collect([]).mode();
 // => null
