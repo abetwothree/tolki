@@ -103,7 +103,7 @@ $asc = [['age' => 10], ['age' => 2]];
 probe('direction tuple [age,"asc"] — string form', 'Arr::sort($u, [["age","asc"]])', fn () => array_values(Arr::sort($asc, [['age', 'asc']])));
 probe('direction tuple [age,SortDirection::Ascending]', 'Arr::sort($u, [["age",SortDirection::Ascending]])', fn () => array_values(Arr::sort($asc, [['age', SortDirection::Ascending]])));
 
-// Collection.php:1656-1657 — Arr::wrap($comparison) then is_callable($prop), so a
+// Collection.php:1656-1667 — Arr::wrap($comparison) then is_callable($prop), so a
 // comparator nested in a one-element descriptor runs as a comparator
 $rows = [['age' => 3], ['age' => 1], ['age' => 2]];
 $byAge = fn ($a, $b) => $a['age'] <=> $b['age'];

@@ -101,7 +101,7 @@ probe('sortByMany treats 1 and "1" as a tie', 'collect([["a"=>1,"b"=>2],["a"=>"1
 $mixed = [['item' => '1'], ['item' => '10'], ['item' => 5], ['item' => 20]];
 probe('sortByMany orders mixed numeric strings and ints numerically', 'collect($mixed)->sortBy(["item"])->pluck("item")', fn () => collect($mixed)->sortBy(['item'])->pluck('item')->all());
 
-// Collection.php:1656-1657 — Arr::wrap($comparison) then is_callable($prop), so a
+// Collection.php:1656-1667 — Arr::wrap($comparison) then is_callable($prop), so a
 // comparator nested in a one-element descriptor runs as a comparator
 $rows = [['age' => 3], ['age' => 1], ['age' => 2]];
 $byAge = fn ($a, $b) => $a['age'] <=> $b['age'];

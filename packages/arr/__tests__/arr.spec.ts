@@ -4104,7 +4104,7 @@ describe("Arr", () => {
         });
 
         it("reads the item itself for a null key and takes a callable key whole", () => {
-            // EnumeratesValues.php:1142-1157 — a callable key is the predicate, and
+            // EnumeratesValues.php:1142-1159 — a callable key is the predicate, and
             // `data_get($item, null)` answers the item.
             expect(Arr.contains([1, 2, 3], null, ">", 2)).toBe(true);
             expect(Arr.contains([1, 2, 3], null, ">", 9)).toBe(false);
@@ -7547,7 +7547,7 @@ describe("Arr", () => {
         });
 
         it("sorts descending using per-key directions", () => {
-            // Mirrors Collection::sortByDesc (Collection.php:1706-1706): every
+            // Mirrors Collection::sortByDesc (Collection.php:1706-1716): every
             // descriptor's direction is forced to descending, overriding
             // whatever was specified — `["meta.key", true]`'s "ascending" is
             // discarded, not negated. With every key forced descending this

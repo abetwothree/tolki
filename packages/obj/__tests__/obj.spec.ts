@@ -4583,7 +4583,7 @@ describe("Obj", () => {
         });
 
         it("reads the entry itself for a null key and takes a callable key whole", () => {
-            // EnumeratesValues.php:1142-1157 — a callable key is the predicate, and
+            // EnumeratesValues.php:1142-1159 — a callable key is the predicate, and
             // `data_get($item, null)` answers the item.
             expect(Obj.contains({ a: 1, b: 2 }, null, ">", 1)).toBe(true);
             expect(Obj.contains({ a: 1, b: 2 }, null, ">", 9)).toBe(false);
@@ -10226,7 +10226,7 @@ describe("Obj", () => {
 
         describe("multi-key descriptors", () => {
             it("reverses every descriptor's own direction", () => {
-                // Mirrors Collection::sortByDesc (Collection.php:1706-1706): every
+                // Mirrors Collection::sortByDesc (Collection.php:1706-1716): every
                 // key/tuple descriptor's direction is overridden to descending,
                 // regardless of what it specified.
                 const unsorted = {
