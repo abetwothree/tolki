@@ -1,6 +1,7 @@
 import * as Arr from "@tolki/arr";
 import { collect, Collection, type CollectionShape } from "@tolki/collection";
 import { defineEnum, SortDirection } from "@tolki/enum";
+import * as Str from "@tolki/str";
 import { Stringable } from "@tolki/str";
 import type { DataItems } from "@tolki/types";
 import {
@@ -955,6 +956,48 @@ describe("Collection", () => {
     });
 
     describe("mode", () => {
+        it("keeps a float, counting it under the string PHP casts it to", () => {
+            // CollectionTest::testModeOnCollectionWithFloats
+            // docs/php-parity/Collection/mode.json, "mode-floats" and "mode-key-floats"
+            expect(collect([1.5, 1.5, 2.5]).mode()).toEqual([1.5]);
+            expect(
+                collect([{ foo: 0.5 }, { foo: 0.7 }, { foo: 0.7 }]).mode("foo"),
+            ).toEqual([0.7]);
+        });
+
+        it("shares a count between a float and the numeric string it prints as", () => {
+            // docs/php-parity/Collection/mode.json, "mode-float-and-numeric-string"
+            expect(collect(["1.5", 1.5, 2]).mode()).toEqual([1.5]);
+            expect(collect([1.5, "1.5", 2]).mode()).toEqual([1.5]);
+            expect(collect(["1.5", "1.5", 2]).mode()).toEqual(["1.5"]);
+        });
+
+        it("counts floats PHP prints alike as one value and keeps the last one seen", () => {
+            // docs/php-parity/Collection/mode.json, "mode-float-precision"
+            expect(collect([0.1 + 0.2, 0.3, 1]).mode()).toEqual([0.3]);
+            expect(collect([0.3, 0.1 + 0.2, 1]).mode()).toEqual([
+                0.30000000000000004,
+            ]);
+            expect(collect([1.00000000000001, 1, 2]).mode()).toEqual([1]);
+        });
+
+        it("keeps -0, the infinities, NaN and a float past PHP's int range", () => {
+            // docs/php-parity/Collection/mode.json, "mode-float-specials"
+            // JS-only: JavaScript has no int/float split, so -0 and 1e20 are read as the floats PHP holds them as.
+            expect(collect([-0, 0, -0]).mode()).toEqual([-0]);
+            expect(collect([Infinity, Infinity, -Infinity]).mode()).toEqual([
+                Infinity,
+            ]);
+            expect(collect([NaN, NaN, 1]).mode()).toEqual([NaN]);
+            expect(collect([1e20, 1e20, 1]).mode()).toEqual([1e20]);
+        });
+
+        it("lists a bool's integer key and a float in the order first seen", () => {
+            // docs/php-parity/Collection/mode.json, "mode-floats-with-bools-and-ties"
+            expect(collect([true, 1.5, 1.5, true]).mode()).toEqual([1, 1.5]);
+            expect(collect([2.5, 1.5, 2.5, 1.5]).mode()).toEqual([2.5, 1.5]);
+        });
+
         it("Laravel Tests", () => {
             // CollectionTest::testModeOnNullCollection, CollectionTest::testMode, CollectionTest::testModeValueByKey
             // and CollectionTest::testWithMultipleModeValues
@@ -6683,6 +6726,23 @@ describe("Collection", () => {
             },
         );
 
+        it("plucks with a closure or an integer key as the value", () => {
+            // docs/php-parity/Collection/pluck.json, "pluck-closure-and-int-values"
+            expect(
+                collect([{ a: 1 }, { a: 2 }])
+                    .pluck((i) => i.a * 10)
+                    .all(),
+            ).toEqual([10, 20]);
+            expect(
+                collect([
+                    [10, 20],
+                    [30, 40],
+                ])
+                    .pluck(1)
+                    .all(),
+            ).toEqual([20, 40]);
+        });
+
         it("lists the values without a key and keys them with one, as its type declares", () => {
             // JS-only: the type declares the shape, which the backing all() hands out must match
             expectShape(collect([{ id: 0, name: "a" }]).pluck("name"), "list");
@@ -10408,7 +10468,7 @@ describe("Collection", () => {
         });
 
         it("replaces without mutating, either backing", () => {
-            // Collection.php:1185 ends in newInstance(...), so neither the array-backed
+            // Collection.php:1195 ends in newInstance(...), so neither the array-backed
             // nor the object-backed source collection's items may change.
             const fromArray = new Collection([1, 2]);
             const fromObject = new Collection({ a: 1, b: 2 });
@@ -12505,6 +12565,17 @@ describe("Collection", () => {
                     name: "MultipleItemsFoundException",
                     message: "3 items were found.",
                 }),
+            );
+        });
+
+        it("treats a null key as no filter", () => {
+            // docs/php-parity/Collection/sole.json, "sole-null-key"
+            expect(collect([5]).sole(null)).toBe(5);
+            expect(() => collect([5, 6]).sole(null)).toThrowError(
+                MultipleItemsFoundException,
+            );
+            expect(() => collect([5, 6]).sole(null)).toThrowError(
+                expect.objectContaining({ message: "2 items were found." }),
             );
         });
 
@@ -14745,7 +14816,7 @@ describe("Collection", () => {
         });
 
         it("splices to the end with a single argument, either backing", () => {
-            // PHP branches on func_num_args === 1 (Collection.php:1770) — the one-arg
+            // PHP branches on func_num_args === 1 (Collection.php:1780) — the one-arg
             // form removes offset -> end for both backings, not nothing.
             const fromArray = new Collection(["f", "z"]);
             const fromObject = new Collection({ foo: "f", baz: "z" });
@@ -19997,6 +20068,14 @@ describe("Collection", () => {
                     { v: 3 },
                     { v: "3" },
                 ]);
+
+                // docs/php-parity/Collection/whereBetween.json, "whereBetween-laravel-collection-bounds"
+                expect(
+                    c
+                        .whereBetween("v", collect([2, 3]))
+                        .values()
+                        .all(),
+                ).toEqual([{ v: 2 }, { v: 3 }, { v: "3" }]);
             });
         });
 
@@ -20032,7 +20111,6 @@ describe("Collection", () => {
         });
 
         it("takes a Collection's values as the bounds", () => {
-            // JS-only: PHP 8.5 deprecates reset() and end() on an object, so its call keeps no item
             // docs/php-parity/Collection/whereBetween.json, "C32-D-whereBetween-collection-values"
             expect(
                 collect([0, 1, 2, 3, 4].map((v) => ({ v })))
@@ -20040,6 +20118,16 @@ describe("Collection", () => {
                     .pluck("v")
                     .all(),
             ).toEqual([1, 2, 3]);
+        });
+
+        it("reads a keyed collection's first and last values as the bounds", () => {
+            // docs/php-parity/Collection/whereBetween.json, "whereBetween-keyed-collection-bounds"
+            expect(
+                collect([{ v: 1 }, { v: 2 }, { v: 3 }])
+                    .whereBetween("v", collect({ lo: 2, hi: 3 }))
+                    .values()
+                    .all(),
+            ).toEqual([{ v: 2 }, { v: 3 }]);
         });
 
         it("keeps a list's shape and a keyed one's, as its type declares", () => {
@@ -20083,6 +20171,14 @@ describe("Collection", () => {
                     { v: 2 },
                     { v: 4 },
                 ]);
+
+                // docs/php-parity/Collection/whereNotBetween.json, "whereNotBetween-laravel-collection-bounds"
+                expect(
+                    c
+                        .whereNotBetween("v", collect([2, 3]))
+                        .values()
+                        .all(),
+                ).toEqual([{ v: 1 }, { v: 4 }]);
             });
         });
 
@@ -20117,7 +20213,6 @@ describe("Collection", () => {
         });
 
         it("takes a Collection's values as the bounds", () => {
-            // JS-only: PHP 8.5 deprecates reset() and end() on an object, so its call keeps every item
             // docs/php-parity/Collection/whereNotBetween.json, "C32-D-whereNotBetween-collection-values"
             expect(
                 collect([0, 1, 2, 3, 4].map((v) => ({ v })))
@@ -20125,6 +20220,16 @@ describe("Collection", () => {
                     .pluck("v")
                     .all(),
             ).toEqual([0, 4]);
+        });
+
+        it("reads a keyed collection's first and last values as the bounds", () => {
+            // docs/php-parity/Collection/whereNotBetween.json, "whereNotBetween-keyed-collection-bounds"
+            expect(
+                collect([{ v: 1 }, { v: 2 }, { v: 3 }])
+                    .whereNotBetween("v", collect({ lo: 2, hi: 3 }))
+                    .values()
+                    .all(),
+            ).toEqual([{ v: 1 }]);
         });
 
         it("reads its bounds once, however many items it filters", () => {
@@ -25113,10 +25218,10 @@ describe("Collection", () => {
                 [1],
             ],
             [
-                "mode truncates a float",
+                "mode keeps each float",
                 // docs/php-parity/Collection/mode.json, "C32-H-mode-float-items"
                 () => collect([1.5, 1.7, 2.5]).mode(),
-                [1],
+                [1.5, 1.7, 2.5],
             ],
             [
                 "mode counts a unit enum case by its name",
@@ -26594,4 +26699,16 @@ describe("prototype objects as write targets", () => {
             expect(({} as { PWNED?: unknown }).PWNED).toBeUndefined();
         },
     );
+});
+
+describe("Str interop", () => {
+    it("hands Str.remove a keyed collection's keys", () => {
+        // docs/php-parity/Str/remove.json, "remove-keyed-subjects"
+        expect(Str.remove("o", collect({ x: "Foo", y: "Boo" }))).toStrictEqual({
+            x: "F",
+            y: "B",
+        });
+        // docs/php-parity/Str/remove.json, "remove-laravel-iterable-subjects"
+        expect(Str.remove("o", collect(["Foo"]))).toStrictEqual(["F"]);
+    });
 });

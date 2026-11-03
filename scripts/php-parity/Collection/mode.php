@@ -66,5 +66,13 @@ probe('C32-H-mode-tostring-items', "(new Collection([\$o, \$o]))->mode(), \$o an
     return (new Collection([$o, $o]))->mode();
 });
 probe('C32-H-mode-float-items', "@(new Collection([1.5, 1.7, 2.5]))->mode()", fn () => @(new Collection([1.5, 1.7, 2.5]))->mode());
+// mode() counts a float under its string cast and hands the float back (laravel/framework#62063).
+probe('mode-floats', '(new Collection([1.5, 1.5, 2.5]))->mode()', fn () => (new Collection([1.5, 1.5, 2.5]))->mode());
+probe('mode-key-floats', "(new Collection([(object) ['foo' => 0.5], (object) ['foo' => 0.7], (object) ['foo' => 0.7]]))->mode('foo')", fn () => (new Collection([(object) ['foo' => 0.5], (object) ['foo' => 0.7], (object) ['foo' => 0.7]]))->mode('foo'));
+probe('mode-float-and-numeric-string', "mode() over ['1.5', 1.5, 2], [1.5, '1.5', 2] and ['1.5', '1.5', 2]", fn () => array_map(fn ($items) => (new Collection($items))->mode(), [['1.5', 1.5, 2], [1.5, '1.5', 2], ['1.5', '1.5', 2]]));
+probe('mode-float-precision', 'mode() over [0.1 + 0.2, 0.3, 1], [0.3, 0.1 + 0.2, 1] and [1.00000000000001, 1, 2]', fn () => array_map(fn ($items) => (new Collection($items))->mode(), [[0.1 + 0.2, 0.3, 1], [0.3, 0.1 + 0.2, 1], [1.00000000000001, 1, 2]]));
+// JSON holds no -0.0, INF or NAN, so each answer is recorded as var_export() prints it.
+probe('mode-float-specials', 'mode() over [-0.0, 0, -0.0], [INF, INF, -INF], [NAN, NAN, 1] and [1e20, 1e20, 1], each value var_export()ed', fn () => array_map(fn ($items) => array_map(fn ($v) => var_export($v, true), @(new Collection($items))->mode()), [[-0.0, 0, -0.0], [INF, INF, -INF], [NAN, NAN, 1], [1e20, 1e20, 1]]));
+probe('mode-floats-with-bools-and-ties', 'mode() over [true, 1.5, 1.5, true] and [2.5, 1.5, 2.5, 1.5]', fn () => array_map(fn ($items) => (new Collection($items))->mode(), [[true, 1.5, 1.5, true], [2.5, 1.5, 2.5, 1.5]]));
 
 emit();

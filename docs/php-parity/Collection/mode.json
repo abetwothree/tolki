@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.36.0-32-g6d2eefbb14"
+        "laravel": "v13.39.0-43-gb20bf7f442"
     },
     "probes": [
         {
@@ -154,7 +154,85 @@
             "label": "C32-H-mode-float-items",
             "php": "@(new Collection([1.5, 1.7, 2.5]))->mode()",
             "value": [
-                1
+                1.5,
+                1.7,
+                2.5
+            ]
+        },
+        {
+            "label": "mode-floats",
+            "php": "(new Collection([1.5, 1.5, 2.5]))->mode()",
+            "value": [
+                1.5
+            ]
+        },
+        {
+            "label": "mode-key-floats",
+            "php": "(new Collection([(object) ['foo' => 0.5], (object) ['foo' => 0.7], (object) ['foo' => 0.7]]))->mode('foo')",
+            "value": [
+                0.7
+            ]
+        },
+        {
+            "label": "mode-float-and-numeric-string",
+            "php": "mode() over ['1.5', 1.5, 2], [1.5, '1.5', 2] and ['1.5', '1.5', 2]",
+            "value": [
+                [
+                    1.5
+                ],
+                [
+                    1.5
+                ],
+                [
+                    "1.5"
+                ]
+            ]
+        },
+        {
+            "label": "mode-float-precision",
+            "php": "mode() over [0.1 + 0.2, 0.3, 1], [0.3, 0.1 + 0.2, 1] and [1.00000000000001, 1, 2]",
+            "value": [
+                [
+                    0.3
+                ],
+                [
+                    0.30000000000000004
+                ],
+                [
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "mode-float-specials",
+            "php": "mode() over [-0.0, 0, -0.0], [INF, INF, -INF], [NAN, NAN, 1] and [1e20, 1e20, 1], each value var_export()ed",
+            "value": [
+                [
+                    "-0.0"
+                ],
+                [
+                    "INF"
+                ],
+                [
+                    "NAN"
+                ],
+                [
+                    "1.0E+20"
+                ]
+            ]
+        },
+        {
+            "label": "mode-floats-with-bools-and-ties",
+            "php": "mode() over [true, 1.5, 1.5, true] and [2.5, 1.5, 2.5, 1.5]",
+            "value": [
+                [
+                    1,
+                    1.5
+                ],
+                [
+                    2.5,
+                    1.5
+                ]
             ]
         }
     ]

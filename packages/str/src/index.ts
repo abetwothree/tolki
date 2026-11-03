@@ -11,3 +11,4 @@ export * from "./transliterate";
 export * from "./trimmer";
 export * from "./ulid";
 export * from "./uuid";
+export type { StringSubject, StringSubjectResult } from "@tolki/types";

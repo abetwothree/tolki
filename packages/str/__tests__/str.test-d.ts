@@ -1,6 +1,22 @@
 import * as Str from "@tolki/str";
 import { describe, expectTypeOf, it } from "vitest";
 
+/** Stands in for a @tolki/collection Collection: all() holds the items, and iterating yields their values. */
+declare class FakeCollection<T> {
+    constructor(items: T[] | Record<string, T>);
+    all(): T[] | Record<string, T>;
+    [Symbol.iterator](): Generator<T>;
+}
+
+interface Labels {
+    title: string;
+}
+
+interface Mixed {
+    x: string;
+    y: number;
+}
+
 describe("str type tests", () => {
     describe("replace", () => {
         describe("String subject returns string", () => {
@@ -217,6 +233,126 @@ describe("str type tests", () => {
                     "c",
                     false,
                 );
+            });
+        });
+
+        describe("subject shapes", () => {
+            it("returns a Map for a Map", () => {
+                expectTypeOf(
+                    Str.replace("o", "0", new Map([["x", "Foo"]])),
+                ).toEqualTypeOf<Map<string, string>>();
+            });
+
+            it("returns an object with the same keys for a plain object", () => {
+                expectTypeOf(
+                    Str.replace("o", "0", { x: "Foo", y: "Boo" }),
+                ).toEqualTypeOf<{ x: string; y: string }>();
+            });
+
+            it("returns an object with the same keys for an interface value", () => {
+                const labels: Labels = { title: "Foo" };
+                expectTypeOf(Str.replace("o", "0", labels)).toEqualTypeOf<{
+                    title: string;
+                }>();
+            });
+
+            it("returns a list for a readonly list", () => {
+                expectTypeOf(
+                    Str.replace("o", "0", ["a"] as readonly string[]),
+                ).toEqualTypeOf<string[]>();
+            });
+
+            it("returns a list for a Set", () => {
+                expectTypeOf(
+                    Str.replace("o", "0", new Set(["a"])),
+                ).toEqualTypeOf<string[]>();
+            });
+
+            it("returns a string or a list for a string or a list", () => {
+                const subject: string | string[] =
+                    Math.random() > 0.5 ? "foo" : ["foo"];
+                expectTypeOf(Str.replace("o", "0", subject)).toEqualTypeOf<
+                    string | string[]
+                >();
+            });
+
+            it("returns what all() holds for a collection", () => {
+                expectTypeOf(
+                    Str.replace("o", "0", new FakeCollection(["a"])),
+                ).toEqualTypeOf<string[] | { [x: string]: string }>();
+            });
+
+            it("rejects a subject that holds anything but strings", () => {
+                // @ts-expect-error - a number is no subject
+                Str.replace("o", "0", 5);
+                // @ts-expect-error - a list of numbers is no subject
+                Str.replace("o", "0", [1, 2]);
+                // @ts-expect-error - a Map of numbers is no subject
+                Str.replace("o", "0", new Map([["x", 1]]));
+                const mixed: Mixed = { x: "Foo", y: 1 };
+                // @ts-expect-error - an object with a number value is no subject
+                Str.replace("o", "0", mixed);
+            });
+        });
+    });
+
+    describe("remove", () => {
+        describe("subject shapes", () => {
+            it("returns a Map for a Map", () => {
+                expectTypeOf(
+                    Str.remove("o", new Map([["x", "Foo"]])),
+                ).toEqualTypeOf<Map<string, string>>();
+            });
+
+            it("returns an object with the same keys for a plain object", () => {
+                expectTypeOf(
+                    Str.remove("o", { x: "Foo", y: "Boo" }),
+                ).toEqualTypeOf<{ x: string; y: string }>();
+            });
+
+            it("returns an object with the same keys for an interface value", () => {
+                const labels: Labels = { title: "Foo" };
+                expectTypeOf(Str.remove("o", labels)).toEqualTypeOf<{
+                    title: string;
+                }>();
+            });
+
+            it("returns a list for a readonly list", () => {
+                expectTypeOf(
+                    Str.remove("o", ["a"] as readonly string[]),
+                ).toEqualTypeOf<string[]>();
+            });
+
+            it("returns a list for a Set", () => {
+                expectTypeOf(Str.remove("o", new Set(["a"]))).toEqualTypeOf<
+                    string[]
+                >();
+            });
+
+            it("returns a string or a list for a string or a list", () => {
+                const subject: string | string[] =
+                    Math.random() > 0.5 ? "foo" : ["foo"];
+                expectTypeOf(Str.remove("o", subject)).toEqualTypeOf<
+                    string | string[]
+                >();
+            });
+
+            it("returns what all() holds for a collection", () => {
+                expectTypeOf(
+                    Str.remove("o", new FakeCollection(["a"])),
+                ).toEqualTypeOf<string[] | { [x: string]: string }>();
+            });
+
+            it("rejects a subject that holds anything but strings", () => {
+                // @ts-expect-error - a number is no subject
+                Str.remove("o", 5);
+                // @ts-expect-error - a list of numbers is no subject
+                Str.remove("o", [1, 2]);
+                // @ts-expect-error - a Map of numbers is no subject
+                Str.remove("o", new Map([["x", 1]]));
+                const mixed: Mixed = { x: "Foo", y: 1 };
+                // @ts-expect-error - an object with a number value is no subject
+                Str.remove("o", mixed);
             });
         });
     });

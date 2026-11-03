@@ -1,8 +1,14 @@
+import type { StringSubject, StringSubjectResult } from "@tolki/types";
 import {
+    hasOwnToString,
     isArray,
     isFunction,
+    isIterable,
+    isMap,
     isNull,
     isNumber,
+    isObject,
+    isPlainObject,
     isString,
     isUndefined,
     phpStringCast,
@@ -1564,35 +1570,24 @@ export function toStringOr(value: unknown, fallback: string): string {
  *
  * @param search - The value or values to search for
  * @param replacement - The value or values to replace with
- * @param subject - The string or array of strings to perform replacements on
+ * @param subject - The string, or the strings in a list, object, Map, collection or iterable
  * @param caseSensitive - Whether the search should be case-sensitive (default: true)
- * @returns The resulting string or array of strings after replacements
+ * @returns The resulting string, or the strings in the subject's shape: a list for a list or iterable, an object for an
+ * object, a Map for a Map, and what all() holds for a collection
  * @throws TypeError when the search term is a string but the replacement is a list, mirroring PHP's str_replace
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#replace
  */
-export function replace<T extends string | Iterable<string>>(
+export function replace<TSubject extends StringSubject<TSubject>>(
     search: string | Iterable<string>,
     replacement: string | Iterable<string>,
-    subject: T,
+    subject: TSubject,
     caseSensitive = true,
-): T extends string ? string : string[] {
+): StringSubjectResult<TSubject> {
     if (isString(search) && !isString(replacement)) {
         throw new TypeError(
             "The replacement must be a string when the search term is a string.",
         );
-    }
-
-    const subjects = isString(subject)
-        ? subject
-        : Array.from(subject, (s) => stringifyValue(s));
-
-    if (!caseSensitive) {
-        return replaceWhileIgnoringCase(
-            search,
-            replacement,
-            subjects,
-        ) as T extends string ? string : string[];
     }
 
     const searches = isString(search)
@@ -1603,6 +1598,10 @@ export function replace<T extends string | Iterable<string>>(
         : Array.from(replacement, (r) => stringifyValue(r));
 
     const apply = (input: string): string => {
+        if (!caseSensitive) {
+            return replaceWhileIgnoringCase(searches, replacements, input);
+        }
+
         return searches.reduce((acc, s, i) => {
             if (s === "") {
                 return acc; // skip empty needles (PHP str_replace behavior)
@@ -1612,9 +1611,7 @@ export function replace<T extends string | Iterable<string>>(
         }, input);
     };
 
-    return (
-        isString(subjects) ? apply(subjects) : subjects.map(apply)
-    ) as T extends string ? string : string[];
+    return mapSubject(subject, apply) as StringSubjectResult<TSubject>;
 }
 
 /**
@@ -1623,45 +1620,94 @@ export function replace<T extends string | Iterable<string>>(
  * ASCII search terms only match ASCII case variants, while non-ASCII search
  * terms use Unicode case-insensitive matching, mirroring Laravel's behavior.
  *
- * @param search - The value or values to search for
- * @param replacement - The value or values to replace with
- * @param subject - The string or array of strings to perform replacements on
- * @returns The resulting string or array of strings after replacements
+ * @param searches - The values to search for
+ * @param replacements - The values to replace them with, by position
+ * @param subject - The string to perform replacements on
+ * @returns The resulting string after replacements
  */
 function replaceWhileIgnoringCase(
-    search: string | Iterable<string>,
-    replacement: string | Iterable<string>,
-    subject: string | string[],
-): string | string[] {
-    const searches = isString(search)
-        ? [search]
-        : Array.from(search, (s) => stringifyValue(s));
-    const replacements = isString(replacement)
-        ? searches.map(() => replacement)
-        : Array.from(replacement, (r) => stringifyValue(r));
-
+    searches: string[],
+    replacements: string[],
+    subject: string,
+): string {
     const escapeRegExp = (s: string) =>
         s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-    const apply = (input: string): string => {
-        return searches.reduce((acc, term, i) => {
-            if (term === "") {
-                return acc; // skip empty needles (PHP str_ireplace behavior)
-            }
+    return searches.reduce((acc, term, i) => {
+        if (term === "") {
+            return acc; // skip empty needles (PHP str_ireplace behavior)
+        }
 
-            const r = replacements[i] ?? "";
-            // ASCII terms avoid the "u" flag so Unicode case folding does not
-            // match ASCII letters to lookalikes (e.g. "s" must not match "ſ")
-            const re = new RegExp(
-                escapeRegExp(term),
-                isAscii(term) ? "gi" : "giu",
-            );
+        const r = replacements[i] ?? "";
+        // ASCII terms avoid the "u" flag so Unicode case folding does not
+        // match ASCII letters to lookalikes (e.g. "s" must not match "ſ")
+        const re = new RegExp(escapeRegExp(term), isAscii(term) ? "gi" : "giu");
 
-            return acc.replace(re, () => r);
-        }, input);
+        return acc.replace(re, () => r);
+    }, subject);
+}
+
+/**
+ * Apply a string transform to a subject's strings, keeping the subject's shape.
+ *
+ * @param subject - The string, or the strings in a list, object, Map, collection or iterable
+ * @param transform - The transform to apply to each string
+ * @returns The transformed string, or the transformed strings in the subject's shape
+ */
+function mapSubject(
+    subject: unknown,
+    transform: (value: string) => string,
+): unknown {
+    const mapOwnValues = (items: object): Record<string, string> => {
+        // fromEntries defines a __proto__ key as an own key, where assigning it would set the prototype
+        return Object.fromEntries(
+            Object.entries(items).map(([key, item]) => [
+                key,
+                transform(stringifyValue(item)),
+            ]),
+        );
     };
 
-    return isString(subject) ? apply(subject) : subject.map(apply);
+    if (isString(subject)) {
+        return transform(subject);
+    }
+
+    if (isArray(subject)) {
+        return subject.map((item) => transform(stringifyValue(item)));
+    }
+
+    if (isMap(subject)) {
+        return new Map(
+            Array.from(subject, ([key, item]): [unknown, string] => [
+                key,
+                transform(stringifyValue(item)),
+            ]),
+        );
+    }
+
+    // A plain object models a PHP array, so an all key in it is data, not a collection's method
+    if (isPlainObject(subject)) {
+        return mapOwnValues(subject);
+    }
+
+    if (isObject(subject) && isFunction(subject["all"])) {
+        return mapSubject(subject["all"](), transform);
+    }
+
+    if (isIterable(subject)) {
+        return Array.from(subject, (item) => transform(stringifyValue(item)));
+    }
+
+    // PHP casts a Stringable subject that is not Traversable to a string
+    if (hasOwnToString(subject)) {
+        return transform(String(subject));
+    }
+
+    if (isObject(subject)) {
+        return mapOwnValues(subject);
+    }
+
+    return transform(stringifyValue(subject));
 }
 
 /**
@@ -2033,61 +2079,19 @@ export function stripTags(value: string): string {
  * mirroring Laravel's behavior.
  *
  * @param search - The string or strings to remove
- * @param subject - The string or strings to process
+ * @param subject - The string, or the strings in a list, object, Map, collection or iterable
  * @param caseSensitive - Whether the search should be case-sensitive (default: true)
- * @returns The resulting string or array of strings after removal
+ * @returns The resulting string, or the strings in the subject's shape: a list for a list or iterable, an object for an
+ * object, a Map for a Map, and what all() holds for a collection
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#remove
  */
-export function remove(
+export function remove<TSubject extends StringSubject<TSubject>>(
     search: string | Iterable<string>,
-    subject: string,
-    caseSensitive?: boolean,
-): string;
-export function remove(
-    search: string | Iterable<string>,
-    subject: Iterable<string>,
-    caseSensitive?: boolean,
-): string[];
-export function remove(
-    search: string | Iterable<string>,
-    subject: string | Iterable<string>,
-    caseSensitive?: boolean,
-): string | string[];
-export function remove(
-    search: string | Iterable<string>,
-    subject: string | Iterable<string>,
+    subject: TSubject,
     caseSensitive = true,
-): string | string[] {
-    const subjects = isString(subject)
-        ? subject
-        : Array.from(subject, (s) => stringifyValue(s));
-
-    if (!caseSensitive) {
-        return replaceWhileIgnoringCase(search, "", subjects);
-    }
-
-    const searches: string[] = isString(search)
-        ? [search]
-        : Array.from(search, (s) => stringifyValue(s));
-
-    const removeFrom = (value: string): string => {
-        let result = value;
-        for (const needle of searches) {
-            if (needle === "") {
-                continue; // mimic PHP str_replace behavior for empty needle
-            }
-
-            result = result.split(needle).join("");
-        }
-        return result;
-    };
-
-    if (isString(subjects)) {
-        return removeFrom(subjects);
-    }
-
-    return subjects.map(removeFrom);
+): StringSubjectResult<TSubject> {
+    return replace(search, "", subject, caseSensitive);
 }
 
 /**

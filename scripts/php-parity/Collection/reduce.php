@@ -20,7 +20,7 @@ use Illuminate\Tests\Support\TestJsonableObject;
 use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
 use Symfony\Component\VarDumper\VarDumper;
 
-// EnumeratesValues.php:845 starts reduce at $initial and never throws; an empty backing
+// EnumeratesValues.php:847 starts reduce at $initial and never throws; an empty backing
 // with no initial value simply hands $initial (null) straight back.
 probe('reduce-empty-no-initial', "(new Collection([]))->reduce(fn (\$c, \$v) => \$c + \$v) and the assoc backing", fn () => [
     'list' => (new Collection([]))->reduce(fn ($c, $v) => $c + $v),

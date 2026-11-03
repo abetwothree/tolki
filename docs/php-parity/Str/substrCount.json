@@ -1,0 +1,118 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.39.0-43-gb20bf7f442"
+    },
+    "probes": [
+        {
+            "label": "substrCount-laravel-multibyte",
+            "php": "StrTest::testSubstrCount's eight Persian and emoji cases, recorded as [haystack, needle, offset, length, result]",
+            "value": [
+                [
+                    "\u0633\u0644\u0627\u0645 \u0633\u0644\u0627\u0645 \u0633\u0644\u0627\u0645",
+                    "\u0633\u0644\u0627\u0645",
+                    0,
+                    null,
+                    3
+                ],
+                [
+                    "\u0633\u0644\u0627\u0645 \u0633\u0644\u0627\u0645 \u0633\u0644\u0627\u0645",
+                    "\u0633\u0644\u0627\u0645",
+                    5,
+                    null,
+                    2
+                ],
+                [
+                    "\u0633\u0644\u0627\u0645 \u0633\u0644\u0627\u0645 \u0633\u0644\u0627\u0645",
+                    "\u0633\u0644\u0627\u0645",
+                    0,
+                    14,
+                    3
+                ],
+                [
+                    "\u0633\u0644\u0627\u0645 \u0633\u0644\u0627\u0645 \u0633\u0644\u0627\u0645",
+                    "\u0633\u0644\u0627\u0645",
+                    5,
+                    4,
+                    1
+                ],
+                [
+                    "\u0633\u0644\u0627\u0645 \u0633\u0644\u0627\u0645 \u0633\u0644\u0627\u0645",
+                    "\u0633\u0644\u0627\u0645",
+                    -4,
+                    null,
+                    1
+                ],
+                [
+                    "ab\ud83d\ude42cd\ud83d\ude42ef",
+                    "\ud83d\ude42",
+                    0,
+                    6,
+                    2
+                ],
+                [
+                    "ab\ud83d\ude42cd\ud83d\ude42ef",
+                    "\ud83d\ude42",
+                    3,
+                    null,
+                    1
+                ],
+                [
+                    "ab\ud83d\ude42cd\ud83d\ude42ef",
+                    "\ud83d\ude42",
+                    1,
+                    -1,
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "substrCount-offset-bounds",
+            "php": "an offset past the end, one before the start, a length that ends before the offset, and an overlapping needle",
+            "value": [
+                [
+                    "abc",
+                    "a",
+                    10,
+                    null,
+                    0
+                ],
+                [
+                    "abc",
+                    "a",
+                    -10,
+                    null,
+                    1
+                ],
+                [
+                    "abc",
+                    "a",
+                    1,
+                    -5,
+                    0
+                ],
+                [
+                    "aaa",
+                    "aa",
+                    0,
+                    null,
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "substrCount-empty-needle",
+            "php": "Str::substrCount('abc', '') and Str::substrCount('abc', '', 10)",
+            "value": [
+                [
+                    "ValueError",
+                    "substr_count(): Argument #2 ($needle) must not be empty"
+                ],
+                [
+                    "ValueError",
+                    "substr_count(): Argument #2 ($needle) must not be empty"
+                ]
+            ]
+        }
+    ]
+}

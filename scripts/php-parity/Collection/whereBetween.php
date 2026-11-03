@@ -32,5 +32,7 @@ probe('C32-D-whereBetween-three-values', "whereBetween('v', [1, 5, 3]) over v = 
 probe('C32-D-whereBetween-keyed-values', "whereBetween('v', ['max' => 3, 'min' => 1]) over v = 0..4", fn () => $vs([0, 1, 2, 3, 4])->whereBetween('v', ['max' => 3, 'min' => 1])->keys()->all());
 probe('C32-D-whereBetween-collection-values', "whereBetween('v', new Collection([1, 3])) over v = 0..4", fn () => $vs([0, 1, 2, 3, 4])->whereBetween('v', new Collection([1, 3]))->keys()->all());
 probe('C32-D-whereBetween-null-item', "whereBetween('v', [0, 2]) over v = null, 0, 1, '', false", fn () => $vs([null, 0, 1, '', false])->whereBetween('v', [0, 2])->keys()->all());
+probe('whereBetween-laravel-collection-bounds', "CollectionTest::testBetween's whereBetween('v', new Collection([2, 3]))", fn () => (new Collection([['v' => 1], ['v' => 2], ['v' => 3], ['v' => '3'], ['v' => 4]]))->whereBetween('v', new Collection([2, 3]))->values()->all());
+probe('whereBetween-keyed-collection-bounds', "whereBetween('v', new Collection(['lo' => 2, 'hi' => 3])) over v = 1..3", fn () => (new Collection([['v' => 1], ['v' => 2], ['v' => 3]]))->whereBetween('v', new Collection(['lo' => 2, 'hi' => 3]))->values()->all());
 
 emit();

@@ -1,0 +1,140 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.39.0-43-gb20bf7f442"
+    },
+    "probes": [
+        {
+            "label": "remove-laravel-iterable-subjects",
+            "php": "StrTest::testRemove's five array and collection subjects",
+            "value": [
+                [
+                    "Fbar",
+                    "Bar"
+                ],
+                [
+                    "Fbar",
+                    "Bar"
+                ],
+                [
+                    "Fbr",
+                    "Br"
+                ],
+                [
+                    "Fooar",
+                    "oar"
+                ],
+                [
+                    "lt\u00fd",
+                    "ito"
+                ]
+            ]
+        },
+        {
+            "label": "remove-keyed-subjects",
+            "php": "shown() of remove('o', ['x' => 'Foo', 'y' => 'Boo']), ([2 => 'Foo', 0 => 'Boo']), (new Collection(['x' => 'Foo', 'y' => 'Boo'])) and remove('O', that collection, false)",
+            "value": [
+                [
+                    [
+                        "x",
+                        "F"
+                    ],
+                    [
+                        "y",
+                        "B"
+                    ]
+                ],
+                [
+                    [
+                        2,
+                        "F"
+                    ],
+                    [
+                        0,
+                        "B"
+                    ]
+                ],
+                [
+                    [
+                        "x",
+                        "F"
+                    ],
+                    [
+                        "y",
+                        "B"
+                    ]
+                ],
+                [
+                    [
+                        "x",
+                        "F"
+                    ],
+                    [
+                        "y",
+                        "B"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "remove-generator-keys",
+            "php": "shown(Str::remove('o', a generator yielding 'k1' => 'Foo', 'k2' => 'Boo'))",
+            "value": [
+                [
+                    "k1",
+                    "F"
+                ],
+                [
+                    "k2",
+                    "B"
+                ]
+            ]
+        },
+        {
+            "label": "remove-empty-and-scalar-items",
+            "php": "Str::remove('o', []) and @Str::remove('o', ['Foo', null, 5])",
+            "value": [
+                [],
+                [
+                    "F",
+                    "",
+                    "5"
+                ]
+            ]
+        },
+        {
+            "label": "remove-scalar-subjects",
+            "php": "Str::remove('o', 5) and @Str::remove('o', null)",
+            "value": [
+                "5",
+                ""
+            ]
+        },
+        {
+            "label": "remove-stringable-subjects",
+            "php": "Str::remove('o', Str::of('Foo')), ('o', new StringableProbe('Boo')) and what ('o', new D4Point(1)) throws",
+            "value": [
+                "F",
+                "B",
+                [
+                    "TypeError",
+                    "str_replace(): Argument #3 ($subject) must be of type array|string, D4Point given"
+                ]
+            ]
+        },
+        {
+            "label": "remove-proto-key",
+            "php": "shown(Str::remove('o', ['__proto__' => 'Foo', 'x' => 'Boo']))",
+            "value": [
+                [
+                    "__proto__",
+                    "F"
+                ],
+                [
+                    "x",
+                    "B"
+                ]
+            ]
+        }
+    ]
+}

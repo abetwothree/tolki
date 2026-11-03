@@ -66,6 +66,17 @@
                 "firstOrFail": "Illuminate\\Support\\Collection::first(): Argument #1 ($callback) must be of type ?callable, string given",
                 "firstOrFail-int": "Illuminate\\Support\\Collection::first(): Argument #1 ($callback) must be of type ?callable, int given"
             }
+        },
+        {
+            "label": "sole-null-key",
+            "php": "(new Collection([5]))->sole(null) and (new Collection([5, 6]))->sole(null)",
+            "value": [
+                5,
+                [
+                    "Illuminate\\Support\\MultipleItemsFoundException",
+                    "2 items were found."
+                ]
+            ]
         }
     ]
 }
