@@ -19,8 +19,8 @@ export type { AsEnum, CaseValue, DefineEnumResult, EnumConst, FromResult };
  *
  * The enumObj is the published enum from the Laravel TypeScript Publish package.
  *
- * @see https://github.com/abetwothree/laravel-ts-publish#enum-metadata--tolki-enum-package
- * @see https://tolki.abe.dev/enums/enum-utilities-list.html#from
+ * @see https://tolki.abe.dev/ts/enums.html#metadata-the-defineenum-wrapper
+ * @see https://tolki.abe.dev/ts/enums.html#from
  *
  * @param enumObj - The enum const object to resolve from.
  * @param value - The case value to resolve. Must be one of the values defined in the enum const's cases.
@@ -83,7 +83,7 @@ export function from<
  *
  * Mirrors PHP's `BackedEnum::tryFrom()`.
  *
- * @see https://tolki.abe.dev/enums/enum-utilities-list.html#tryfrom
+ * @see https://tolki.abe.dev/ts/enums.html#tryfrom
  *
  * @param enumObj - The enum const object to resolve from.
  * @param value - The case value to resolve.
@@ -105,7 +105,7 @@ export function tryFrom<
  *
  * Mirrors PHP's `BackedEnum::cases()`, returning one resolved instance per case defined in the enum const.
  *
- * @see https://tolki.abe.dev/enums/enum-utilities-list.html#cases
+ * @see https://tolki.abe.dev/ts/enums.html#cases
  *
  * @param enumObj - The enum const object to resolve all cases from.
  * @returns An array of resolved enum instances, one for each case.
@@ -161,7 +161,7 @@ export function keys<TEnum extends EnumConst>(
  *
  * The original enum data is preserved and the PHP like enum methods are attached directly to the returned object.
  *
- * @see https://tolki.abe.dev/enums/enum-utilities-list.html#defineenum
+ * @see https://tolki.abe.dev/ts/enums.html#defineenum
  *
  * @param enumObj - The raw enum const object to enrich.
  * @returns The enum object with `from`, `tryFrom`, and `cases` methods bound to it.

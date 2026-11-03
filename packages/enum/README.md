@@ -6,7 +6,7 @@ This package provides enum utility functions similar to a PHP enum class.
 
 ## Documentation
 
-The full documentation for the enum utilities can be found at [https://tolki.abe.dev](https://tolki.abe.dev/enums/).
+The full documentation for the enum utilities can be found at [https://tolki.abe.dev/ts/enums.html](https://tolki.abe.dev/ts/enums.html).
 
 <!-- AUTO-GENERATED-DOCS:START -->
 
