@@ -376,7 +376,7 @@ Most columns and accessors type themselves. When one publishes `unknown` or `unk
 2. A class-level `@property` or `@property-read` tag, including one that uses a `@phpstan-type` or `@phpstan-import-type` alias.
 3. A `@return MorphTo<A|B, $this>` generic on a `morphTo()` relation.
 
-PHPStan and Larastan read all of them, so the annotation that fixes your TypeScript is also checked by static analysis, and the package reads them with no configuration. `#[TsCasts]` is still the right tool when a shape's keys are built at runtime, or when the type belongs to the frontend and needs its own import. The [Annotation Checklist](#annotation-checklist) lists each case by symptom.
+PHPStan and Larastan read all of them, so the annotation that fixes your TypeScript is also checked by static analysis, and the package reads them with no configuration. When a docblock has more than one tag of a kind, the package reads them in PHPStan's order: `@phpstan-return`, then `@psalm-return`, then `@return`, and the same for `@var`, `@param`, `@property` and `@use`. A prefixed tag that's vague, such as `@phpstan-return array<string, mixed>`, yields to a precise plain tag. `#[TsCasts]` is still the right tool when a shape's keys are built at runtime, or when the type belongs to the frontend and needs its own import. The [Annotation Checklist](#annotation-checklist) lists each case by symptom.
 
 ### Accessor Getter Bodies
 
@@ -430,6 +430,8 @@ A specific return type or `Attribute<Get, Set>` generic is always read first, so
 
 The `null` case keeps a getter from publishing a type that's plainly wrong: `fn ($value, array $attributes) => $attributes['title'] ?? null` publishes `unknown`, not `null`, because its real value is the title.
 
+A getter closure with no native return type takes its type from a `@return` docblock written just before it, so `Attribute::get(/** @return int */ fn () => json_decode($this->stats_json))` publishes `number`. The package reads that docblock only when it can't type what the getter returns, and ignores a vague one, such as `@return mixed`.
+
 ### Typing `array` Casts With `@property`
 
 A column cast to `'array'`, or to any cast with no more specific type, publishes as `unknown[]`. Instead of `#[TsCasts]`, add a class-level `@property` or `@property-read` tag with the real shape. It's the same tag PHPStan and Larastan read:
@@ -452,7 +454,7 @@ A tag applies only when the column's own type is vague. It never overrides a spe
 
 A tag that is still partly vague is used when it's more specific than the type it replaces. `@property array<string, mixed>|null $settings` turns a plain `'array'` cast into `Record<string, unknown> | null`: the type still names `unknown`, but it beats `unknown[] | null`. A tag that is exactly as vague as the original is ignored: `unknown`, `unknown[]`, `object`, or the `unknown[] | Record<string, unknown>` of a bare collection.
 
-The package also reads `@property` tags on the traits the model and its parents use, and on the traits those traits use. A trait that supplies an accessor can document it that way. The `$`-less form some packages use, `@property string[] labels`, works as long as nothing follows the property name.
+The package also reads `@property` tags on the traits the model and its parents use, and on the traits those traits use. A trait that supplies an accessor can document it that way. A class a trait's docblocks name resolves through the trait file's imports, not the model's, and so does the `@var` of a property the trait declares. The `$`-less form some packages use, `@property string[] labels`, works as long as nothing follows the property name.
 
 ### Typing JSON Columns With `@phpstan-type` Aliases
 
@@ -527,16 +529,18 @@ A docblock intersection resolves each member and joins them with `&`:
 protected function assignedUsers(): Attribute
 ```
 
-`User` keeps its import, but `pivot` publishes as `unknown`:
+Both classes keep their types, and the file imports both:
 
 ```typescript
+import type { TaskAssignment, User } from ".";
+
 export interface ProjectMutators {
-  assigned_users: (User & { pivot: unknown })[];
+  assigned_users: (User & { pivot: TaskAssignment })[];
   // …
 }
 ```
 
-A class named inside an `object{...}` shape always publishes as `unknown`, which is why `TaskAssignment` is lost here. A member that can't be resolved is dropped from the intersection, instead of turning the whole type into `unknown`, since `A & B` is assignable to `A`.
+A model or an enum inside a docblock shape keeps its type at any depth, as `TaskAssignment` does here. Two kinds of shape publish each model and enum in them as `unknown`: one that also names another class, such as an API resource, and one that spells a class's name as a string literal or a key, as in `array{kind: 'User', owner: User}`. A member that can't be resolved is dropped from the intersection, instead of turning the whole type into `unknown`, since `A & B` is assignable to `A`.
 
 ### Trait `@template` Bindings
 
@@ -566,7 +570,7 @@ export interface ProjectMutators {
 }
 ```
 
-PHPStan reads the `@use` tag for the same purpose, so static analysis checks the binding too.
+PHPStan reads the `@use` tag for the same purpose, so static analysis checks the binding too. The trait's name in the tag resolves through the file's imports, then the model's namespace, so a trait declared beside the model needs no `use` import.
 
 ### Custom Cast Classes
 
@@ -679,6 +683,8 @@ final readonly class ShippingOptions implements Arrayable
 ```
 
 An accessor or cast that returns this DTO publishes as `{ carrier: string; insured: boolean; trackingUrl: string | null }`. Nullable properties keep their `| null`. Private, protected and static properties are left out, because `(array) $this` doesn't include them. A property typed as a class or an enum, such as a model, publishes as `unknown`, because the inline shape can't import it. A property whose class has or inherits a [`#[TsType]`](./custom-types.md) publishes that type, with its import.
+
+A promoted property with no `@var` takes its type from the constructor's `@param`, as PHPStan reads it. So a constructor documented `@param list<string> $stops` publishes its promoted `public array $stops` as `stops: string[]` instead of `unknown[]`.
 
 Optional is separate from nullable. A property that is neither promoted nor given a default value publishes as an optional key. Add `public string $summary;` to the class body above, assigned in the constructor, and it publishes as `summary?: string`. PHP leaves an unassigned typed property out of `(array) $this`, and the package can't tell whether the constructor always assigns it. To keep the key required, promote the property, or give it a default value on a DTO that isn't `readonly`. A `@return array{...}` docblock on `toArray()` always wins, so add one when the properties don't tell the whole story.
 

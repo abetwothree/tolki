@@ -136,7 +136,7 @@ name: string;
 status: StatusType;
 ```
 
-`$this->resource->name` reads the same attribute, so it publishes the same type. A property you declare on the resource class itself, such as a promoted constructor parameter, takes its type from that declaration. It wins over a model attribute with the same name, as it does in PHP.
+`$this->resource->name` reads the same attribute, so it publishes the same type. A property you declare on the resource class itself, such as a promoted constructor parameter, takes its type from that declaration. It wins over a model attribute with the same name, as it does in PHP. A `@var` docblock on the property names classes through the imports of the file that declares it, so a property a trait declares uses the trait's imports. A promoted property with no `@var` takes its type from the constructor's `@param`, as PHPStan reads it.
 
 An untyped property publishes its default's type joined with each value the resource, its parents, its traits, or its children write to it, so `protected $stage = Status::Draft;` publishes `StatusType`, and a protected or private one declared without a value, such as `protected $name;`, publishes `null`. Writes include element writes and writes inside a closure, typed by the closure's parameters and `use` imports, so `protected $sizes = ['small' => 1];` extended by `$this->sizes['large'] = 2;` publishes `{ small: number; large?: number }`. A write in a trait method the resource overrides doesn't count. The property publishes `unknown` when a write is a value from an untyped parameter, a by-reference call such as `sort($this->sizes)`, or an `unset()` of the whole property.
 
@@ -274,7 +274,17 @@ export interface PostResource {
 }
 ```
 
-When the package can't type the value of `whenHas()` or `whenAppended()`, the property publishes `unknown`, not the attribute's type, because the value replaces the attribute in the response. `json_decode()` returns `mixed`, and a plain title decodes to `null`, so `title_unresolvable` is `unknown`. To type it, give the closure a native return type: `fn ($title): ?string => json_decode($title)` publishes `string | null`. A `@return` docblock on the closure doesn't type it.
+When the package can't type the value of `whenHas()` or `whenAppended()`, the property publishes `unknown`, not the attribute's type, because the value replaces the attribute in the response. `json_decode()` returns `mixed`, and a plain title decodes to `null`, so `title_unresolvable` is `unknown`. To type it, give the closure a native return type, or a `@return` docblock written just before the closure:
+
+```php
+'title_typed' => $this->whenHas('title', fn ($title): ?string => json_decode($title)),
+'title_documented' => $this->whenHas('title',
+    /** @return string|null */
+    fn ($title) => json_decode($title),
+),
+```
+
+Both properties publish `string | null`, and both stay optional. The package reads the docblock only on a closure with no native return type, and ignores a vague one, such as `@return mixed`. A docblock written before the whole call, or above the array item, describes the call's value rather than the closure, so it isn't read. To type the key itself, use [`#[TsCasts]`](#overriding-property-types-with-tscasts).
 
 `whenExistsLoaded()` keeps `boolean` for a value it can't type. Without a value argument, `whenHas('phone')` types from its column, and `whenExistsLoaded('user')` publishes `boolean`.
 
@@ -620,7 +630,7 @@ A closure or an arrow function in value position is typed from what it returns:
 }),
 ```
 
-This works wherever a value goes, including `when()`, `whenLoaded()`, `whenNotNull()`, `merge()`, and `mergeWhen()`.
+This works wherever a value goes, including `when()`, `whenLoaded()`, `whenNotNull()`, `merge()`, and `mergeWhen()`. When the package can't type what a closure returns, the closure's native return type types the value, and so does a `@return` docblock on a closure with no native return type, as [`whenHas()`, `whenAppended()`, and `whenExistsLoaded()`](#whenhas-whenappended-and-whenexistsloaded-type-from-the-value-you-pass) shows.
 
 A closure that builds an array in a variable and returns it publishes the keys its writes set, as [Building the Array in a Variable](#building-the-array-in-a-variable) describes:
 
@@ -699,7 +709,7 @@ Values you compute in `toArray()` get types too: method calls, property reads on
 
 ### Method Return Types
 
-A method call takes its type from the called method's signature: its native return type, or its `@return` docblock when the native type is missing or vague. This works for calls on enum casts, date casts, models, Eloquent collections, value objects, and services resolved from the container:
+A method call takes its type from the called method's signature: its native return type, or its `@return` docblock when the native type is missing or vague. When a method has more than one of `@phpstan-return`, `@psalm-return`, and `@return`, the package reads them in that order, as PHPStan does, and a vague one, such as `array<string, mixed>`, yields to a precise one. This works for calls on enum casts, date casts, models, Eloquent collections, value objects, and services resolved from the container:
 
 ```php
 public function toArray(Request $request): array
@@ -732,6 +742,8 @@ export interface PostResource {
 ```
 
 A property read works the same way. Once `$post` holds a `Post`, `$post?->author?->name` publishes `string | null`. A value object's public property takes its declared type, so `$this->stats?->views` publishes `number | null`. A `?->` adds `| null` to the result once, however many steps use it.
+
+A model or an enum named in a `@return` shape keeps its type at any depth, and the file imports it. A method documented `@return array{owner: User, count: int}` publishes `{ owner: User; count: number }`, whether you call it on the resource, on a service, or statically. Two kinds of shape publish each model and enum in them as `unknown`: one that also names another class, such as an API resource, and one that spells a class's name as a string literal or a key, as in `array{kind: 'User', owner: User}`.
 
 When the declaration says too little, as with no return type, `mixed`, or a bare `array`, the method's own `return` statements set the type:
 
@@ -980,67 +992,51 @@ private function summary(Request $request): array
 
 If one `return` can't be typed, or the method yields, the property publishes `unknown`.
 
-When you use the method's result as a value, a value in the array that is an enum or a model publishes `unknown`, because a method body can't supply the import it needs. The rest of the shape keeps its types, and an enum's `->value` or `->name` publishes the literal union of its values or names, as [Reading `->value` and `->name`](./enums.md#reading-value-and-name) describes. Spreading the same method keeps an enum's type. To type that value, build the array in `toArray()` itself, or override the property with [`#[TsCasts]`](#overriding-property-types-with-tscasts) and a type your frontend exports, as in `['type' => 'StatusPayload', 'import' => '@/types/payloads']`. An entry imports only a type it names whole, so a type named inside a shape you write in the entry isn't imported.
+When you use the method's result as a value, its array publishes what the same expressions publish in `toArray()`. That includes models, API resources, and enums, and the file imports what they name. One value differs. A backed enum case you write out, such as `PostStatus::Draft`, publishes the value it sends, `0`, instead of the enum's alias. A list of such cases publishes a list of their values, such as `(0 | 1)[]`.
 
-Here a `Post` casts `status` to the int-backed `PostStatus` enum, whose cases are `Draft = 0` and `Published = 1`. The resource uses `statusLabel()` as a value, then spreads it:
+Here a `Post` casts `status` to the int-backed `PostStatus` enum, whose cases are `Draft = 0` and `Published = 1`, and `author` is a `BelongsTo` relation whose foreign key isn't nullable. The resource uses `card()` as a value:
 
 ```php
 public function toArray(Request $request): array
 {
     return [
-        'label' => $this->statusLabel($this->status),
-        ...$this->statusLabel($this->status),
+        'card' => $this->card(),
     ];
 }
 
-private function statusLabel(PostStatus $status): array
-{
-    return ['name' => $status->name, 'value' => $status->value];
-}
-```
-
-`label` publishes the literal unions, and the spread keys publish the enum's aliases:
-
-```typescript
-import type { PostStatusKind, PostStatusType } from "../../enums";
-
-export interface PostLabelResource {
-  label: { name: "Draft" | "Published"; value: 0 | 1 };
-  name: PostStatusKind;
-  value: PostStatusType;
-}
-```
-
-A model's own `toArray()`, called as a value, publishes `Record<string, unknown>`, because the relations it includes depend on what's loaded at runtime. A relation's collection, as in `$this->comments->toArray()`, publishes `Record<string, unknown>[]`. To publish the model's keys, spread it instead, as [Model `toArray()` Spread](#model-toarray-spread) shows.
-
-An `only()` or `except()` call names no class, so its result keeps its shape:
-
-- A literal key list publishes its inline shape, with any enum- or model-typed member left `unknown`.
-- A runtime key list publishes `Record<string, unknown>`.
-- A to-many relation publishes `unknown[]`.
-
-The same applies when the method reads an accessor whose getter calls `only()` or `except()`. A model that overrides `only()` or `except()` with a declared return type publishes that type instead. A model return, such as `: static`, becomes an object with the model's columns and appended accessors, narrowed to the literal keys. An enum or other class return leaves the value `unknown`.
-
-This `Comment` method shows each case:
-
-```php
-// On Comment, read from a resource as 'summary' => $this->relationSummary()
-public function relationSummary(): array
+private function card(): array
 {
     return [
-        'id' => $this->id,
-        'author' => $this->user->only(['id', 'name']),
-        'author_role' => $this->user?->only(['id', 'role']),
-        'replies' => $this->replies->only([1, 2]),
+        'author' => $this->author,
+        'status' => $this->status,
+        'status_resource' => EnumResource::make($this->status),
+        'first_status' => PostStatus::Draft,
     ];
 }
 ```
 
-The `role` column is an enum, so it's left `unknown`, and the to-many `replies` publishes `unknown[]`:
+Each member keeps its type, and `first_status` publishes the case's value:
 
 ```typescript
-summary: { id: number; author: { id: number; name: string }; author_role: { id: number; role: unknown } | null; replies: unknown[] };
+import { type AsEnum } from "@tolki/ts";
+
+import { PostStatus } from "../../enums";
+import type { PostStatusType } from "../../enums";
+import type { User } from "../../models";
+
+export interface PostCardResource {
+  card: {
+    author: User;
+    status: PostStatusType;
+    status_resource: AsEnum<typeof PostStatus>;
+    first_status: 0;
+  };
+}
 ```
+
+Written in `toArray()` itself, or spread with `...$this->card()`, `first_status` publishes `PostStatusType`.
+
+A model's own `toArray()`, called as a value, publishes `Record<string, unknown>`, because the relations it includes depend on what's loaded at runtime. A relation's collection, as in `$this->comments->toArray()`, publishes `Record<string, unknown>[]`. To publish the model's keys, spread it instead, as [Model `toArray()` Spread](#model-toarray-spread) shows.
 
 #### Resource Macros
 
@@ -1329,7 +1325,7 @@ $picked = $this->id > 0 ? json_decode('"x"') : null; // string | null
 
 The annotation follows these rules:
 
-- **Placement**: it sits on a `$x = ...;` statement anywhere in the method or closure body, including inside an `if` or a loop. It names the variable, as in `/** @var CartTotals $totals */`, or names none, as in `/** @var CartTotals */`.
+- **Placement**: it sits on a `$x = ...;` statement anywhere in the method or closure body, including inside an `if` or a loop. It names the variable, as in `/** @var CartTotals $totals */`, or names none, as in `/** @var CartTotals */`. A `@phpstan-var` or `@psalm-var` tag wins over a plain `@var`, as in PHPStan.
 - **Span**: it types the reads after that statement, up to the next statement that writes the variable. A loop that writes the variable ends the span where the loop starts. So an annotation also types a variable you reassign, until its next write. Inside a block, it types the reads after it in that block. Past the block, where the variable held a value before it, the annotated type joins that value. Where the variable held none, reads past the block aren't typed. With `$post = null;` before an `if` whose annotated assignment reads `/** @var Post|null $post */`, `$post?->title` after the `if` publishes `string | null`.
 - **Precedence**: it applies only where the package's own reading of the value is `unknown`, or is only the `null` left after an arm it can't type was dropped. Any other reading stands, whatever the annotation says: `/** @var int $n */ $n = $this->title;` still publishes `string`. To override a type the package got wrong, use [`#[TsCasts]`](#overriding-property-types-with-tscasts).
 
@@ -1342,7 +1338,7 @@ A write the package can't type keeps a model parameter's model, so after `$autho
 The annotation's type counts only when it's built from these forms, and when every part of it resolves:
 
 - Scalars: `int`, `string`, `bool`, `float`, `null`, `true`, and `false`
-- A class, interface, or enum that the file imports or writes in full
+- A class, interface, or enum that the file imports, writes in full, or declares in its own namespace
 - `self`, `static`, and `parent`, which name the classes `self::`, `static::`, and `parent::` reach in that method, as in an [inherited `toArray()`](#inheriting-a-parent-toarray). The variable may hold a subclass, so a read of a method or property a subclass can override takes its declared type, and publishes `unknown` where it has none. A closure parameter typed `self` or `parent` reads the same way.
 - `list<X>`, `array<int, X>`, `array<string, X>`, and `array<'a'|'b', X>`
 - `array{...}` and `object{...}` shapes with plain or quoted keys, and `list{...}` tuples
@@ -1350,7 +1346,7 @@ The annotation's type counts only when it's built from these forms, and when eve
 - A `callable` as a shape's member, which publishes `unknown`
 - Unions of these forms, such as `Comment|User|null` or `list<User>|User`, and `?` before any form
 
-Any other type is ignored, so write `list<int>` instead of `int[]`. A model or enum inside a shape is ignored too. A `?` before a shape adds `| null` even when a member already holds `null`, so `?array{a: ?int}` publishes `{ a: number | null } | null`.
+Any other type is ignored, so write `list<int>` instead of `int[]`. A model or an enum inside a shape keeps its type, so `array{author: User, status: Status}` publishes `{ author: User; status: StatusType }`. A `?` before a shape adds `| null` even when a member already holds `null`, so `?array{a: ?int}` publishes `{ a: number | null } | null`.
 
 ### Collection Pipelines
 
@@ -1756,7 +1752,7 @@ export interface PostResource {
 }
 ```
 
-Multi-line `@return` shapes work too:
+Multi-line `@return` shapes work too, as long as the type starts on the tag's own line, as PHPStan requires:
 
 ```php
 /**
@@ -2084,13 +2080,45 @@ export interface PostPermissionsResource {
 Both forms of `@return` count:
 
 - **An `array{...}` shape**: each key gets its own type, and a key written `key?:` also becomes optional. A string or number literal type, such as `'draft'|'live'` or `1|2|3`, publishes as written.
-- **`array<string, V>`**: `V` types every key the body left `unknown`.
+- **`array<string, V>`**: `V` types every key the body left vague.
 
 `toArray()`'s own `@return array{...}` fills keys the same way.
 
-The body always wins. The docblock fills only a key the body left `unknown`, or an [interpolated key's](#interpolated-keys) value that the body left `unknown | undefined`, so a stale `@return` can't overwrite a type the package already knows.
+The body wins wherever it's specific, so a stale `@return` can't overwrite a type the package already knows. The docblock fills only a key the body left vague, such as `unknown`, `unknown[]`, or `Record<string, unknown>`, and keeps any `| null` the body found. It also fills an [interpolated key's](#interpolated-keys) value that the body left `unknown | undefined`.
 
-A shape value that names a PHP class or enum is skipped, because a docblock can't carry its import. Type that key with `#[TsCasts]` and an `import` instead. A name that isn't a PHP class, such as a type you declare only in TypeScript, publishes as written in a spread method's `@return`. In `toArray()`'s own `@return`, the key stays `unknown`, so type it with `#[TsCasts]`.
+A shape value that names a model, an enum, or an API resource keeps it at any depth, and the file imports it. Here `tags` is a nullable column cast to `'array'`, which publishes `unknown[] | null` on its own, and `json_decode()` returns a value the package can't type:
+
+```php
+/**
+ * @return array{
+ *     tags: list<string>,
+ *     extra: array{author: User, status: PostStatus},
+ * }
+ */
+public function toArray(Request $request): array
+{
+    return [
+        'tags' => $this->tags,
+        'extra' => json_decode($this->extra_json, true),
+    ];
+}
+```
+
+The docblock fills both keys, and `tags` keeps its `| null`:
+
+```typescript
+import type { PostStatusType } from "../../enums";
+import type { User } from "../../models";
+
+export interface PostExtrasResource {
+  tags: string[] | null;
+  extra: { author: User; status: PostStatusType };
+}
+```
+
+A spread method's fill keeps its classes only when you spread the method at the top level of `toArray()`. Spread inside a nested array, as in `'meta' => [...$this->extras()]`, each model, enum, or API resource the fill names publishes `unknown`. Type such a key with `#[TsCasts]` and an `import`.
+
+A name that isn't a PHP class, such as a type you declare only in TypeScript, publishes as written in a spread method's `@return`. In `toArray()`'s own `@return`, the key stays `unknown`, so type it with `#[TsCasts]`.
 
 In a spread method, the branches count only while every `return` is an array literal, `[]`, or a variable the method builds. Otherwise, only the spread method's first `return` counts.
 
@@ -2798,7 +2826,8 @@ The package already types these shapes without an override:
 - A method call on an enum, a date, a model, or a service, and a property read on any of those or on a value object. See [Method Return Types](#method-return-types).
 - A value behind a local variable, a closure-local variable, or an `instanceof` guard. See [Local Variables and Narrowing](#local-variables-and-narrowing).
 - A collection chain, `data_get()`, and `only([...])` on any model. See [Collection Pipelines](#collection-pipelines) and [Attribute Filters on Any Model](#attribute-filters-on-any-model).
-- A key that only some branches return, or one that a spread method's `@return` describes. See [Return Branches and `@return` Shapes](#return-branches-and-return-shapes).
+- A key that only some branches return, or one that `toArray()`'s or a spread method's `@return` describes. See [Return Branches and `@return` Shapes](#return-branches-and-return-shapes).
+- A model, an enum, or an API resource in the array of a method you use as a value. See [Methods Declared as a Bare `array`](#methods-declared-as-a-bare-array).
 
 `#[TsCasts]` is the right tool when the frontend owns the type and it needs its own import, or when a shape is dynamic. To type every value of a class that way, put [`#[TsType]`](./custom-types.md) on the class instead.
 :::
