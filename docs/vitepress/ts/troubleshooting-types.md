@@ -87,6 +87,6 @@ JsonResource::macro('label', function (): string {
 });
 ```
 
-A `@return` docblock on the closure works too, but only when you declare the closure inside a class, such as in a service provider's `boot()` method.
+A `@return` docblock on the closure works too, but only when you declare the closure inside a class, such as in a service provider's `boot()` method. A closure you pass to a conditional method in a resource, such as `whenHas()`, can carry one as well, as [`whenHas()`, `whenAppended()`, and `whenExistsLoaded()`](./api-resources.md#whenhas-whenappended-and-whenexistsloaded-type-from-the-value-you-pass) describes.
 
 If the key publishes the type of a model method with the same name instead, the package didn't see the macro. Register it in the `boot()` method of a provider that isn't deferred, so it exists before `ts:publish` reads your resources. See [Resource Macros](./api-resources.md#resource-macros).

@@ -743,7 +743,7 @@ export interface PostResource {
 
 A property read works the same way. Once `$post` holds a `Post`, `$post?->author?->name` publishes `string | null`. A value object's public property takes its declared type, so `$this->stats?->views` publishes `number | null`. A `?->` adds `| null` to the result once, however many steps use it.
 
-A model or an enum named in a `@return` shape keeps its type at any depth, and the file imports it. A method documented `@return array{owner: User, count: int}` publishes `{ owner: User; count: number }`. Two kinds of shape publish each model and enum in them as `unknown`: one that also names another class, such as an API resource, and one that spells a class's name as a string literal or a key, as in `array{kind: 'User', owner: User}`.
+A model or an enum named in a `@return` shape keeps its type at any depth, and the file imports it. A method documented `@return array{owner: User, count: int}` publishes `{ owner: User; count: number }`, whether you call it on the resource, on a service, or statically. Two kinds of shape publish each model and enum in them as `unknown`: one that also names another class, such as an API resource, and one that spells a class's name as a string literal or a key, as in `array{kind: 'User', owner: User}`.
 
 When the declaration says too little, as with no return type, `mixed`, or a bare `array`, the method's own `return` statements set the type:
 
@@ -1346,7 +1346,7 @@ The annotation's type counts only when it's built from these forms, and when eve
 - A `callable` as a shape's member, which publishes `unknown`
 - Unions of these forms, such as `Comment|User|null` or `list<User>|User`, and `?` before any form
 
-Any other type is ignored, so write `list<int>` instead of `int[]`. A model inside a shape keeps its type, so `array{author: User}` publishes `{ author: User }`. A `?` before a shape adds `| null` even when a member already holds `null`, so `?array{a: ?int}` publishes `{ a: number | null } | null`.
+Any other type is ignored, so write `list<int>` instead of `int[]`. A model or an enum inside a shape keeps its type, so `array{author: User, status: Status}` publishes `{ author: User; status: StatusType }`. A `?` before a shape adds `| null` even when a member already holds `null`, so `?array{a: ?int}` publishes `{ a: number | null } | null`.
 
 ### Collection Pipelines
 
