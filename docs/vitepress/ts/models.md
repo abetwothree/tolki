@@ -578,7 +578,11 @@ PHPStan reads the `@use` tag for the same purpose, so static analysis checks the
 
 ### Custom Cast Classes
 
-A custom cast without [`#[TsType]`](./custom-types.md) publishes the return type of its `get()` method. A cast class with a `serialize()` method, including one a `Castable` value object names, publishes the return type of `serialize()` instead, because that's what Laravel sends when it converts the model to JSON. A `serialize()` that declares no return type, or only `mixed`, publishes what its `return` statements return, with or without the interface, so `return (string) $value;` publishes `string`. Where the returns don't prove a type, a `serialize()` with no return type leaves the column at `get()`'s type, and so does a `mixed` one on a cast without the interface. A `mixed` one on a cast that implements `SerializesCastableAttributes` publishes `unknown | null`.
+A custom cast without [`#[TsType]`](./custom-types.md) publishes the return type of its `get()` method. When the cast class has a `serialize()` method, including one a `Castable` value object names, Laravel sends what `serialize()` returns when it converts the model to JSON, with or without the `SerializesCastableAttributes` interface. The column then publishes:
+
+- **No declared type, or `mixed`**: the type its `return` statements prove, so `return (string) $value;` publishes `string`. Where they prove none, the column keeps `get()`'s type, except a `mixed` `serialize()` on a cast that implements the interface, which publishes `unknown | null`.
+- **A bare `array` or `object`, on a cast without the interface**: `get()`'s type, where `get()` returns a value object or an array shape. `?object` and `array|object` work the same way.
+- **Any other declared type**: that type, such as `string`.
 
 Laravel calls `get()` for a `NULL` column too, so a nullable column cast to a class whose `get()` declares a non-null return type publishes no `| null`. For a `coordinate_data` column that may be `NULL`, cast with a `get()` that always returns a `Coordinate`, the model publishes `coordinate_data: { lat: number; lng: number }`. Laravel sends a `null` from `get()` without calling `serialize()`, so a `get()` that declares a nullable return type, or returns `null` itself, adds `| null` to the `serialize()` type.
 
