@@ -339,7 +339,7 @@ To list the values or the names at runtime, call [`values`](#values) or [`keys`]
 
 ### Reading `->value` and `->name`
 
-Read an enum's `->value` or `->name` in an API resource, an Inertia page prop, a broadcast event, or anything else the package types, and the property publishes the enum's alias. The file imports the alias for you. Here a `PostSummaryResource` reads a `Post` model that casts `status` to the int-backed `PostStatus` enum and `visibility` to the unit enum `Visibility`:
+Read an enum's `->value` or `->name` in an API resource, an Inertia page prop, a broadcast event, or anything else the package types, and the property publishes the enum's alias, or the case's own value when you name the case. The file imports the alias for you. Here a `PostSummaryResource` reads a `Post` model that casts `status` to the int-backed `PostStatus` enum and `visibility` to the unit enum `Visibility`:
 
 ```php
 enum PostStatus: int
@@ -360,7 +360,7 @@ public function toArray(Request $request): array
 }
 ```
 
-Each property publishes the alias that lists what PHP sends for it:
+Each property publishes what PHP can send for it:
 
 ```typescript
 import type {
@@ -373,13 +373,33 @@ export interface PostSummaryResource {
   status: PostStatusType;
   status_name: PostStatusKind;
   visibility: VisibilityType;
-  published: PostStatusType;
+  published: 1;
 }
 ```
 
 A backed enum's `->value` publishes its `{Name}Type`, and its `->name` publishes its `{Name}Kind`. A unit enum's `->name` publishes its `{Name}Type`, because its values are its case names.
 
-`PostStatus::Published->value` and `PostStatus::from($value)->value` publish `PostStatusType` too. After `PostStatus::tryFrom()`, `?->value` publishes `PostStatusType | null`. A method you call on a case publishes its return type.
+A case you write out can send only its own value, so it publishes that value: `PostStatus::Published->value` publishes `1`, and `PostStatus::Published->name` publishes `'Published'`. A ternary between two cases publishes both values. `PostStatus::from($value)->value` publishes `PostStatusType`, and after `PostStatus::tryFrom()`, `?->value` publishes `PostStatusType | null`. A method you call on a case publishes its return type.
+
+In an API resource, `PostStatus::cases()` publishes a list of the alias. A map over the cases publishes what its callback reads from each case, with or without a type hint:
+
+```php
+'statuses' => PostStatus::cases(),
+'values' => array_map(fn ($case) => $case->value, PostStatus::cases()),
+'names' => collect(PostStatus::cases())
+    ->map(fn (PostStatus $case) => $case->name)
+    ->all(),
+```
+
+Each key publishes a list:
+
+```typescript
+statuses: PostStatusType[];
+values: PostStatusType[];
+names: PostStatusKind[];
+```
+
+`array_column(PostStatus::cases(), 'value')` publishes `unknown`, so map the cases instead.
 
 The property uses the alias only when `ts:publish` publishes the enum, and when no case's `#[TsCase]` changes what the alias lists. For a `{Name}Type` that's the case's `value`, and for a `{Name}Kind` its `name`. Otherwise the property publishes the literal union of what PHP sends.
 
