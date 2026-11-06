@@ -122,7 +122,7 @@ final class PostScheduled implements ShouldBroadcast
 
     private function publishedAt() // no return type
     {
-        return $this->post->getAttribute('published_at');
+        return json_decode($this->post->schedule)->published_at;
     }
 }
 ```
@@ -185,6 +185,58 @@ export interface ManifestAssembled {
 ```
 
 [Building the Array in a Variable](./api-resources.md#building-the-array-in-a-variable) on the API Resources page lists the writes the package follows.
+
+A query chain that starts at a model is typed step by step, as in [page props](./routing.md#what-the-props-expression-can-be). `Post::query()->pluck('id')->first()` publishes `number | null`, and `User::find($this->userId)` publishes the user or `null`.
+
+An `EnumResource` around an enum that may be `null` adds `| never[]`, and so does each element of a `map()` of such wraps, because an event sends the empty resource as `[]`.
+
+### `when()` and `unless()` From `Conditionable`
+
+An event that uses Laravel's `Conditionable` trait can call `$this->when()` and `$this->unless()` in `broadcastWith()`. Unlike a resource's `when()`, they always send the key: the callback's value when the condition holds, the default's when it doesn't, and the event itself where either one returns `null` or no default is passed. The key publishes that union, required:
+
+```php
+class PostPinned implements ShouldBroadcast
+{
+    use Conditionable;
+
+    public function __construct(public Post $post) {}
+
+    public function broadcastWith(): array
+    {
+        $pinned = $this->post->is_pinned;
+
+        return [
+            'label' => $this->when($pinned, fn () => 'active'),
+            'with_default' => $this->when(
+                $pinned,
+                fn () => 'pinned',
+                fn () => 'unpinned',
+            ),
+        ];
+    }
+
+    public function broadcastOn(): Channel
+    {
+        return new Channel('posts');
+    }
+}
+```
+
+`label` can send the event itself, whose JSON is its public `post` property:
+
+```typescript
+import type { Post } from "../models";
+
+/** @see App\Events\PostPinned */
+export interface PostPinned {
+  label: string | { post: Post };
+  with_default: string;
+}
+```
+
+The event's own JSON joins the type only when the package knows it. An event `make:event` generates uses `InteractsWithSockets`, whose untyped `$socket` property leaves that JSON unknown, so a key that can send such an event publishes `unknown`. Pass a default that returns a value, as `with_default` does, or type the key with [`#[TsCasts]`](#overriding-property-types-with-tscasts).
+
+A resource built around the call, such as `UserResource::make($this->when(…))`, is always sent too, so it publishes required.
 
 ## Model & Enum-Aware Properties
 
