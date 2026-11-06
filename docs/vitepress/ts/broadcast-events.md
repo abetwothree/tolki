@@ -186,7 +186,7 @@ export interface ManifestAssembled {
 
 [Building the Array in a Variable](./api-resources.md#building-the-array-in-a-variable) on the API Resources page lists the writes the package follows.
 
-A query chain that starts at a model is typed step by step, as in [page props](./routing.md#what-the-props-expression-can-be). `Post::query()->pluck('id')->first()` publishes `number | null`, and `User::find($this->userId)` publishes the user or `null`.
+A query chain that starts at a model is typed step by step, as in [page props](./routing.md#what-the-props-expression-can-be). `Post::query()->pluck('id')->first()` publishes `number | null`. A model the chain returns is presented as `Partial<Model>`, as a [model property](#model-enum-aware-properties) is, so `User::find($this->userId)` publishes `Partial<User> | null` and `User::query()->where('id', 1)->get()` publishes `Partial<User>[]`.
 
 An `EnumResource` around an enum that may be `null` adds `| never[]`, and so does each element of a `map()` of such wraps, because an event sends the empty resource as `[]`.
 

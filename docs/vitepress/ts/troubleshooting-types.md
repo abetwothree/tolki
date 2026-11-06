@@ -1,6 +1,6 @@
 # Troubleshooting Types
 
-This page covers three problems with types: a `@tolki/*` type that resolves to `any`, an API resource macro that publishes `unknown`, and a docblock type the package doesn't read.
+This page covers four problems with types: a `@tolki/*` type that resolves to `any`, an API resource macro that publishes `unknown`, a docblock type the package doesn't read, and a method of PHP's own classes that declares only a tentative return type.
 
 ## A `@tolki/*` Type Resolves to `any`
 
@@ -93,18 +93,11 @@ If the key publishes the type of a model method with the same name instead, the 
 
 ## A Docblock Type Publishes `unknown`
 
-When the package can't type a value from your code, it falls back to the types your docblocks declare, read the way PHPStan reads them. A key publishes `unknown` when the docblock uses a form the package doesn't read, or names a class the file doesn't import.
+When the package can't type a value from your code, it falls back to the types your docblocks declare, read the way PHPStan reads them. A key publishes `unknown` when the docblock uses a form the package doesn't read, or names a class that doesn't resolve.
 
 ### Inline `@var` and `@param` Forms
 
-An inline `@var` on a local and a `@param` on a helper's or a closure's parameter read the same forms:
-
-- Lists and arrays: `X[]`, `list<X>`, and `array<K, X>` with an `int`, `string`, `int|string`, or `array-key` key
-- Collections: `Collection<X>` and `Collection<K, X>`
-- Shapes, such as `array{a: int, b: string}`
-- Type aliases the class declares with `@phpstan-type`, or imports with `@phpstan-import-type`, under their own name or an `as` name
-
-An alias works in both places:
+An inline `@var` on a local and a `@param` on a helper's or a closure's parameter read the same forms, such as `X[]`, `array<int|string, X>`, `Collection<K, X>`, a shape, or a `@phpstan-type` alias. [Typing a Variable With `@var`](./api-resources.md#typing-a-variable-with-var) lists every form and where the annotation applies. An alias works in both places:
 
 ```php
 /**
@@ -144,7 +137,7 @@ export interface PairResource {
 }
 ```
 
-A key that can be an `int` or a `string`, as in `array<int|string, Comment>`, publishes both shapes PHP can send, `Comment[] | Record<string, Comment>`. A class in a `@var` counts only when the file imports it or writes it in full, so `@var DateTimeImmutable` without a `use DateTimeImmutable;` line is ignored. [Typing a Variable With `@var`](./api-resources.md#typing-a-variable-with-var) lists every form and where the annotation applies.
+A class the tag names must resolve the way PHP resolves it in that file: through a `use` import, written in full, or declared in the file's own namespace. Otherwise the tag is ignored, so write `@var \DateTimeImmutable`, or add `use DateTimeImmutable;`, rather than a bare `@var DateTimeImmutable` in a namespaced file.
 
 ### Conditional `@return` Types
 
@@ -160,6 +153,6 @@ Some Laravel helpers declare a `@return` that depends on their arguments. Such a
 
 A conditional `@return` with a `mixed`, template, `static`, or `$this` branch is read the way the package reads the method otherwise. Type such a key with [`#[TsCasts]`](./api-resources.md#overriding-property-types-with-tscasts).
 
-### Tentative Return Types
+## A PHP Method Declares a Tentative Return Type
 
 Many methods of PHP's own classes declare their return type only as a tentative type, which the package reads like a native one. `DateTimeImmutable::format()` publishes `string`, `ArrayIterator::count()` publishes `number`, and Carbon's inherited `getTimestamp()` publishes `number`. A tentative bare `array`, such as `DateTimeZone::listAbbreviations()`'s, publishes `unknown[] | Record<string, unknown>`, and a tentative `mixed` publishes `unknown`.

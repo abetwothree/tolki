@@ -578,7 +578,7 @@ PHPStan reads the `@use` tag for the same purpose, so static analysis checks the
 
 ### Custom Cast Classes
 
-A custom cast without [`#[TsType]`](./custom-types.md) publishes the return type of its `get()` method. A cast class with a `serialize()` method, including one a `Castable` value object names, publishes the return type of `serialize()` instead, because that's what Laravel sends when it converts the model to JSON. On a cast that implements `SerializesCastableAttributes`, a `serialize()` that declares no return type, or only `mixed`, publishes what its `return` statements return, so `return (string) $value;` publishes `string`.
+A custom cast without [`#[TsType]`](./custom-types.md) publishes the return type of its `get()` method. A cast class with a `serialize()` method, including one a `Castable` value object names, publishes the return type of `serialize()` instead, because that's what Laravel sends when it converts the model to JSON. A `serialize()` that declares no return type, or only `mixed`, publishes what its `return` statements return, with or without the interface, so `return (string) $value;` publishes `string`. Where the returns don't prove a type, the column keeps `get()`'s type.
 
 Laravel calls `get()` for a `NULL` column too, so a nullable column cast to a class whose `get()` declares a non-null return type publishes no `| null`. For a `coordinate_data` column that may be `NULL`, cast with a `get()` that always returns a `Coordinate`, the model publishes `coordinate_data: { lat: number; lng: number }`. Laravel sends a `null` from `get()` without calling `serialize()`, so a `get()` that declares a nullable return type, or returns `null` itself, adds `| null` to the `serialize()` type.
 

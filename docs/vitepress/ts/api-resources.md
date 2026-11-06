@@ -145,7 +145,7 @@ export interface StatsSummaryResource {
 }
 ```
 
-A tag that names a class other than a model stops the naming-convention and `#[UseResource]` guesses, because the resource doesn't wrap a model. The guess stands only when the guessed model already is the class the tag names, such as an interface every model implements, like `@mixin Arrayable`. `#[TsResource(model:)]` always wins over the tag.
+A tag that names a class other than a model stops the naming-convention and `#[UseResource]` guesses, because the resource doesn't wrap a model. The guess stands only when the guessed model is an instance of the class the tag names, such as `@mixin Arrayable`, an interface every model implements. `#[TsResource(model:)]` always wins over the tag.
 
 A tag that names no class the package can load, such as an IDE helper's `@mixin IdeHelperPost`, is skipped, and so is one that names `Model` itself or the `Eloquent` alias. The model the other steps find still applies.
 
@@ -1530,30 +1530,6 @@ A chain can start at `$this->resource` too. `$this->resource->comments->map(fn (
 
 `first()`, `last()` and `firstWhere()` on a collection of models return one of its models or `null`, so a read through them with `?->` is typed. That covers a relation's collection, a local holding one, and a variable an inline `@var Collection<int, Comment>` declares. `$this->comments->first()?->content` publishes `string | null`, and so does the same read after `last()`, `firstWhere('is_flagged', true)`, or `find()` with one literal key, such as `find(1)`. After a `first()` or `last()` call that passes a default, such as `first(null, 'none')`, the read publishes `unknown`, because Laravel returns that default when no model matches.
 
-#### Query Chains
-
-A query chain that starts at a model is typed step by step, as in [page props](./routing.md#what-the-props-expression-can-be):
-
-```php
-return [
-    'author' => User::find(1),
-    'author_name' => User::find(1)?->name,
-    'latest' => Post::query()->first(),
-    'first_id' => Post::query()->pluck('id')->first(),
-    'admins' => User::query()->where('id', 1)->get(),
-];
-```
-
-Each chain publishes what its last step returns:
-
-```typescript
-author: User | null;
-author_name: string | null;
-latest: Post | null;
-first_id: number | null;
-admins: User[];
-```
-
 #### Array Functions
 
 PHP's array functions keep the element type too. `array_map()` with one array keeps that array's keys, so a list maps to a list and a string-keyed array to an object. With two or more arrays it publishes a list, and a `null` callback zips the arrays into tuples. The callback can be any callable, as with `map()`:
@@ -1602,6 +1578,30 @@ values: string[];
 A filter that keeps no key sends `[]`, not `{}`. Reading a key on it still gives `undefined`, as the optional keys allow, but code that checks for an array, such as `Array.isArray()`, sees one.
 
 PHP throws a `TypeError` when you pass a collection to `array_map()`, `array_keys()`, `array_values()`, or `array_filter()`, so `ts:publish` warns and names the line. Call `->values()->all()` on the collection first.
+
+### Query Chains
+
+A query chain that starts at a model is typed step by step, as in [page props](./routing.md#what-the-props-expression-can-be):
+
+```php
+return [
+    'author' => User::find(1),
+    'author_name' => User::find(1)?->name,
+    'latest' => Post::query()->first(),
+    'first_id' => Post::query()->pluck('id')->first(),
+    'admins' => User::query()->where('id', 1)->get(),
+];
+```
+
+Each chain publishes what its last step returns:
+
+```typescript
+author: User | null;
+author_name: string | null;
+latest: Post | null;
+first_id: number | null;
+admins: User[];
+```
 
 ## Spreads and Inheritance
 
