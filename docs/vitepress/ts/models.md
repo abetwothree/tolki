@@ -432,9 +432,13 @@ The `null` case keeps a getter from publishing a type that's plainly wrong: `fn 
 
 A getter closure with no native return type takes its type from a `@return` docblock written just before it, so `Attribute::get(/** @return int */ fn () => json_decode($this->stats_json))` publishes `number`. The package reads that docblock only when it can't type what the getter returns, and ignores a vague one, such as `@return mixed`.
 
+A getter that reads an attribute through `getAttribute()` or `getAttributeValue()` with a literal name takes the attribute's type, so `Attribute::get(fn () => $this->getAttribute('title'))` publishes `string`, as `fn () => $this->title` does.
+
+Laravel runs an accessor's getter for a `NULL` column too, so an accessor on a nullable column publishes `| null` only where its getter can return `null`. A getter whose native return type is non-null, such as `fn (?string $value): array => …`, publishes no `| null`. One whose native return type allows `null`, such as `: ?array`, always publishes it, even when its `Attribute<…>` docblock leaves the `null` out.
+
 ### Typing `array` Casts With `@property`
 
-A column cast to `'array'`, or to any cast with no more specific type, publishes as `unknown[]`. Instead of `#[TsCasts]`, add a class-level `@property` or `@property-read` tag with the real shape. It's the same tag PHPStan and Larastan read:
+A column cast to `'array'`, or to any cast with no more specific type, publishes as `unknown[]`. Laravel sends the decoded JSON as it is, so a column holding an object, such as `{"theme":"dark"}`, is sent as that object, which `unknown[]` doesn't describe. The same holds for `collection` and `AsCollection` casts. Instead of `#[TsCasts]`, add a class-level `@property` or `@property-read` tag with the real shape. It's the same tag PHPStan and Larastan read:
 
 ```php
 /**
@@ -574,7 +578,13 @@ PHPStan reads the `@use` tag for the same purpose, so static analysis checks the
 
 ### Custom Cast Classes
 
-A custom cast without [`#[TsType]`](./custom-types.md) publishes the return type of its `get()` method. A cast class that implements `SerializesCastableAttributes`, including one a `Castable` value object names, publishes the return type of its `serialize()` method instead, because that's what Laravel sends when it converts the model to JSON.
+A custom cast without [`#[TsType]`](./custom-types.md) publishes the return type of its `get()` method. When the cast class has a `serialize()` method, including one a `Castable` value object names, Laravel sends what `serialize()` returns when it converts the model to JSON, with or without the `SerializesCastableAttributes` interface. The column then publishes:
+
+- **No declared type, or `mixed`**: the type its `return` statements prove, so `return (string) $value;` publishes `string`. Where they prove none, the column keeps `get()`'s type, except a `mixed` `serialize()` on a cast that implements the interface, which publishes `unknown | null`.
+- **A bare `array` or `object`, on a cast without the interface**: `get()`'s type, where `get()` returns a value object or an array shape. `?object` and `array|object` work the same way. Over a scalar `get()`, a bare `array` publishes `unknown[] | Record<string, unknown>`.
+- **Any other declared type**: that type, such as `string`.
+
+Laravel calls `get()` for a `NULL` column too, so a nullable column cast to a class whose `get()` declares a non-null return type publishes no `| null`. For a `coordinate_data` column that may be `NULL`, cast with a `get()` that always returns a `Coordinate`, the model publishes `coordinate_data: { lat: number; lng: number }`. Laravel sends a `null` from `get()` without calling `serialize()`, so a `get()` that declares a nullable return type, or returns `null` itself, adds `| null` to the `serialize()` type.
 
 When `get()`'s native type is missing or vague, such as a bare `array`, the `@return` docblock sets the type, so `@return list<LegDto>` publishes a list of `LegDto`'s public properties, the shape `json_encode()` writes. A `@return` that names a model, such as `list<User>`, or another class that doesn't publish as an inline shape keeps `unknown[]`. A `get()` that declares neither publishes `unknown`.
 
@@ -682,7 +692,7 @@ final readonly class ShippingOptions implements Arrayable
 }
 ```
 
-An accessor or cast that returns this DTO publishes as `{ carrier: string; insured: boolean; trackingUrl: string | null }`. Nullable properties keep their `| null`. Private, protected and static properties are left out, because `(array) $this` doesn't include them. A property typed as a class or an enum, such as a model, publishes as `unknown`, because the inline shape can't import it. A property whose class has or inherits a [`#[TsType]`](./custom-types.md) publishes that type, with its import.
+An accessor or cast that returns this DTO publishes as `{ carrier: string; insured: boolean; trackingUrl: string | null }`. Nullable properties keep their `| null`. Private, protected and static properties are left out, because `(array) $this` doesn't include them. A property typed as an enum or a published model publishes that type, and the file imports it, so `public Status $status` publishes `status: StatusType`. A property whose class has or inherits a [`#[TsType]`](./custom-types.md) publishes that type, with its import.
 
 A promoted property with no `@var` takes its type from the constructor's `@param`, as PHPStan reads it. So a constructor documented `@param list<string> $stops` publishes its promoted `public array $stops` as `stops: string[]` instead of `unknown[]`.
 
@@ -858,11 +868,11 @@ The `unknown[]` collection row is the bare form. `AsEnumCollection::of(...)`, `A
 
 A parameterized docblock generic in `@return`, `@property` or `Attribute<>` publishes a more specific type, based on its key type. Every container behaves the same way for a given key type:
 
-| Key type             | Emitted                    | Containers                                            |
-| -------------------- | -------------------------- | ----------------------------------------------------- |
-| `int`, or omitted    | `X[]`                      | `list<X>`, `array<…>`, `iterable<…>`, `Collection<…>` |
-| `string`             | `Record<string, X>`        | `array<…>`, `iterable<…>`, `Collection<…>`            |
-| `array-key`, `mixed` | `X[] \| Record<string, X>` | `array<…>`, `iterable<…>`, `Collection<…>`            |
+| Key type                            | Emitted                    | Containers                                            |
+| ----------------------------------- | -------------------------- | ----------------------------------------------------- |
+| `int`, or omitted                   | `X[]`                      | `list<X>`, `array<…>`, `iterable<…>`, `Collection<…>` |
+| `string`                            | `Record<string, X>`        | `array<…>`, `iterable<…>`, `Collection<…>`            |
+| `int\|string`, `array-key`, `mixed` | `X[] \| Record<string, X>` | `array<…>`, `iterable<…>`, `Collection<…>`            |
 
 `list<X>` has no key type, so it always publishes as `X[]`. A container with no generic at all, such as a bare `Collection`, uses the [Arrays & Objects](#arrays-objects) table above instead.
 

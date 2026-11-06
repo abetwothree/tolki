@@ -42,12 +42,12 @@ class UserResource extends JsonResource
 ```
 
 ::: tip
-Inside another resource, `EnumResource::make($this->status)` and `new EnumResource($this->status)` both publish the property as `AsEnum<typeof Status>`. See [Enum Properties With `EnumResource`](./api-resources.md#enum-properties-with-enumresource) on the API Resources page.
+Inside another resource, `EnumResource::make($this->status)` and `new EnumResource($this->status)` both publish the property as `AsEnum<typeof Status>`. See [Enum Properties With `EnumResource`](./api-resources.md#enum-properties-with-enumresource) on the API Resources page. A bare value sends no object: `'status' => Status::Published->value` publishes that case's own value, `1`. [Reading `->value` and `->name`](./enums.md#reading-value-and-name) covers bare values and `cases()`.
 
 The same rewrite applies to [Inertia shared data](./inertia.md). With `enums.use_tolki_package` on (the default), an `EnumResource::make()` returned from your middleware's `share()` publishes as `AsEnum<typeof Role>` in `inertia-config.d.ts`, with `import { type AsEnum } from '@tolki/ts'` and an import of the `Role` const above the declarations. Route page props are rewritten the same way. See the `EnumResource` notes in [How the Augmentation File Is Generated](./inertia.md#how-the-augmentation-file-is-generated).
 :::
 
-`EnumResource` turns off Laravel's resource wrapping (`public static $wrap = ''`), so the response is the flat object shown below, not wrapped in a `data` key. When the enum is `null`, the resource returns `null` instead of an object. As an Inertia page prop or shared value, Inertia sends `[]` instead, so the prop publishes `AsEnum<typeof Status> | never[]`.
+`EnumResource` turns off Laravel's resource wrapping (`public static $wrap = ''`), so the response is the flat object shown below, not wrapped in a `data` key. When the enum is `null`, the resource returns `null` instead of an object. As an Inertia page prop or shared value, Inertia sends `[]` instead, so the prop publishes `AsEnum<typeof Status> | never[]`. A broadcast event's payload, and a `map()` of wraps kept as a collection inside another resource, send `[]` too, and publish `| never[]`. See [Enum Properties With `EnumResource`](./api-resources.md#enum-properties-with-enumresource).
 
 ## Response Shape
 
