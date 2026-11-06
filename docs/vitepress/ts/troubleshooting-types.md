@@ -1,6 +1,6 @@
 # Troubleshooting Types
 
-This page covers two problems with types: a `@tolki/*` type that resolves to `any`, and an API resource macro that publishes `unknown`.
+This page covers three problems with types: a `@tolki/*` type that resolves to `any`, an API resource macro that publishes `unknown`, and a docblock type the package doesn't read.
 
 ## A `@tolki/*` Type Resolves to `any`
 
@@ -90,3 +90,76 @@ JsonResource::macro('label', function (): string {
 A `@return` docblock on the closure works too, but only when you declare the closure inside a class, such as in a service provider's `boot()` method. A closure you pass to a conditional method in a resource, such as `whenHas()`, can carry one as well, as [`whenHas()`, `whenAppended()`, and `whenExistsLoaded()`](./api-resources.md#whenhas-whenappended-and-whenexistsloaded-type-from-the-value-you-pass) describes.
 
 If the key publishes the type of a model method with the same name instead, the package didn't see the macro. Register it in the `boot()` method of a provider that isn't deferred, so it exists before `ts:publish` reads your resources. See [Resource Macros](./api-resources.md#resource-macros).
+
+## A Docblock Type Publishes `unknown`
+
+When the package can't type a value from your code, it falls back to the types your docblocks declare, read the way PHPStan reads them. A key publishes `unknown` when the docblock uses a form the package doesn't read, or names a class the file doesn't import.
+
+### Inline `@var` and `@param` Forms
+
+An inline `@var` on a local and a `@param` on a helper's or a closure's parameter read the same forms:
+
+- Lists and arrays: `X[]`, `list<X>`, and `array<K, X>` with an `int`, `string`, `int|string`, or `array-key` key
+- Collections: `Collection<X>` and `Collection<K, X>`
+- Shapes, such as `array{a: int, b: string}`
+- Type aliases the class declares with `@phpstan-type`, or imports with `@phpstan-import-type`, under their own name or an `as` name
+
+An alias works in both places:
+
+```php
+/**
+ * @phpstan-type Pair array{a: int, b: string}
+ */
+class PairResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        $body = $request->getContent();
+
+        /** @var Pair $local */
+        $local = json_decode($body, true);
+
+        return [
+            'local' => $local,
+            'helper' => $this->readPair(json_decode($body, true)),
+        ];
+    }
+
+    /**
+     * @param Pair $pair
+     */
+    private function readPair($pair): array
+    {
+        return ['p' => $pair];
+    }
+}
+```
+
+Both keys publish the alias's shape:
+
+```typescript
+export interface PairResource {
+  local: { a: number; b: string };
+  helper: { p: { a: number; b: string } };
+}
+```
+
+A key that can be an `int` or a `string`, as in `array<int|string, Comment>`, publishes both shapes PHP can send, `Comment[] | Record<string, Comment>`. A class in a `@var` counts only when the file imports it or writes it in full, so `@var DateTimeImmutable` without a `use DateTimeImmutable;` line is ignored. [Typing a Variable With `@var`](./api-resources.md#typing-a-variable-with-var) lists every form and where the annotation applies.
+
+### Conditional `@return` Types
+
+Some Laravel helpers declare a `@return` that depends on their arguments. Such a call publishes every type the helper can return:
+
+| Call              | Type                 |
+| ----------------- | -------------------- |
+| `Str::contains()` | `boolean`            |
+| `Arr::isList()`   | `boolean`            |
+| `Str::ucsplit()`  | `string[]`           |
+| `Str::position()` | `number \| false`    |
+| `Str::replace()`  | `string \| string[]` |
+
+A conditional `@return` with a `mixed`, template, `static`, or `$this` branch is read the way the package reads the method otherwise. Type such a key with [`#[TsCasts]`](./api-resources.md#overriding-property-types-with-tscasts).
+
+### Tentative Return Types
+
+Many methods of PHP's own classes declare their return type only as a tentative type, which the package reads like a native one. `DateTimeImmutable::format()` publishes `string`, `ArrayIterator::count()` publishes `number`, and Carbon's inherited `getTimestamp()` publishes `number`. A tentative bare `array`, such as `DateTimeZone::listAbbreviations()`'s, publishes `unknown[] | Record<string, unknown>`, and a tentative `mixed` publishes `unknown`.
