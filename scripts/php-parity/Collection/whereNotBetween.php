@@ -28,5 +28,7 @@ probe('whereNotBetween over numeric strings and falsy values', 'collect($between
 $vs = fn (array $values) => new Collection(array_map(fn ($v) => ['v' => $v], $values));
 probe('C32-D-whereNotBetween-collection-values', "whereNotBetween('v', new Collection([1, 3])) over v = 0..4", fn () => $vs([0, 1, 2, 3, 4])->whereNotBetween('v', new Collection([1, 3]))->keys()->all());
 probe('whereNotBetween-list-gap-keys', "pairs((new Collection([['v' => 1], ['v' => 5], ['v' => 9]]))->whereNotBetween('v', [2, 6]))", fn () => pairs((new Collection([['v' => 1], ['v' => 5], ['v' => 9]]))->whereNotBetween('v', [2, 6])));
+probe('whereNotBetween-laravel-collection-bounds', "CollectionTest::testWhereNotBetween's whereNotBetween('v', new Collection([2, 3]))", fn () => (new Collection([['v' => 1], ['v' => 2], ['v' => 3], ['v' => '3'], ['v' => 4]]))->whereNotBetween('v', new Collection([2, 3]))->values()->all());
+probe('whereNotBetween-keyed-collection-bounds', "whereNotBetween('v', new Collection(['lo' => 2, 'hi' => 3])) over v = 1..3", fn () => (new Collection([['v' => 1], ['v' => 2], ['v' => 3]]))->whereNotBetween('v', new Collection(['lo' => 2, 'hi' => 3]))->values()->all());
 
 emit();

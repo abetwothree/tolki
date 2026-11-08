@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.36.0-32-g6d2eefbb14"
+        "laravel": "v13.39.0-43-gb20bf7f442"
     },
     "probes": [
         {
@@ -66,6 +66,17 @@
                 "firstOrFail": "Illuminate\\Support\\Collection::first(): Argument #1 ($callback) must be of type ?callable, string given",
                 "firstOrFail-int": "Illuminate\\Support\\Collection::first(): Argument #1 ($callback) must be of type ?callable, int given"
             }
+        },
+        {
+            "label": "sole-null-key",
+            "php": "(new Collection([5]))->sole(null) and (new Collection([5, 6]))->sole(null)",
+            "value": [
+                5,
+                [
+                    "Illuminate\\Support\\MultipleItemsFoundException",
+                    "2 items were found."
+                ]
+            ]
         }
     ]
 }

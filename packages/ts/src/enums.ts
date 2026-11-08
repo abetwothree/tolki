@@ -6,4 +6,4 @@ export type {
     EnumConst,
     FromResult,
 } from "@tolki/enum";
-export { cases, defineEnum, from, tryFrom } from "@tolki/enum";
+export { cases, defineEnum, from, keys, tryFrom, values } from "@tolki/enum";

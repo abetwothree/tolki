@@ -229,6 +229,8 @@ let user: app.models.User;
 let status: app.enums.StatusType;
 ```
 
+Unlike in [the enum's own file](./enums.md#value-key-types), an enum's name in this file, such as `app.enums.Status`, is an interface of its cases, so type an enum value as `app.enums.StatusType`.
+
 A namespace segment of more than one word is camel-cased, because a hyphen isn't valid in a namespace name. `App\Http\Resources\ReportCards\SummaryCardResource` is `app.http.resources.reportCards.SummaryCardResource`, while its file is written under `report-cards/`. An acronym is lowered as one word, so `API` is `api` and `HTTPClient` is `httpClient`.
 
 When two published types share a name, such as `App\Models\User` and `Crm\Models\User`, each reference from another namespace is qualified with the namespace of the class your PHP code names, such as `crm.models.User`.

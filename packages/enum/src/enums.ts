@@ -1,5 +1,6 @@
 import type {
     AsEnum,
+    CaseKeys,
     CaseValue,
     DefineEnumResult,
     EnumConst,
@@ -18,8 +19,8 @@ export type { AsEnum, CaseValue, DefineEnumResult, EnumConst, FromResult };
  *
  * The enumObj is the published enum from the Laravel TypeScript Publish package.
  *
- * @see https://github.com/abetwothree/laravel-ts-publish#enum-metadata--tolki-enum-package
- * @see https://tolki.abe.dev/enums/enum-utilities-list.html#from
+ * @see https://tolki.abe.dev/ts/enums.html#metadata-the-defineenum-wrapper
+ * @see https://tolki.abe.dev/ts/enums.html#from
  *
  * @param enumObj - The enum const object to resolve from.
  * @param value - The case value to resolve. Must be one of the values defined in the enum const's cases.
@@ -82,7 +83,7 @@ export function from<
  *
  * Mirrors PHP's `BackedEnum::tryFrom()`.
  *
- * @see https://tolki.abe.dev/enums/enum-utilities-list.html#tryfrom
+ * @see https://tolki.abe.dev/ts/enums.html#tryfrom
  *
  * @param enumObj - The enum const object to resolve from.
  * @param value - The case value to resolve.
@@ -104,7 +105,7 @@ export function tryFrom<
  *
  * Mirrors PHP's `BackedEnum::cases()`, returning one resolved instance per case defined in the enum const.
  *
- * @see https://tolki.abe.dev/enums/enum-utilities-list.html#cases
+ * @see https://tolki.abe.dev/ts/enums.html#cases
  *
  * @param enumObj - The enum const object to resolve all cases from.
  * @returns An array of resolved enum instances, one for each case.
@@ -118,6 +119,40 @@ export function cases<TEnum extends EnumConst>(
 }
 
 /**
+ * Returns the backing values of all enum cases, in case order.
+ *
+ * Mirrors PHP's `array_column(Enum::cases(), 'value')`. A unit enum's values are its case names.
+ *
+ * @see https://tolki.abe.dev/ts/enums.html#values
+ *
+ * @param enumObj - The enum const object to read the case values from.
+ * @returns A new array with one value per case, or an empty array when the enum has no `_cases`.
+ */
+export function values<TEnum extends EnumConst>(
+    enumObj: TEnum,
+): ReadonlyArray<CaseValue<TEnum>> {
+    return (enumObj._cases ?? []).map(
+        (caseKey) => enumObj[caseKey] as CaseValue<TEnum>,
+    );
+}
+
+/**
+ * Returns the names of all enum cases, in case order.
+ *
+ * Mirrors PHP's `array_column(Enum::cases(), 'name')`.
+ *
+ * @see https://tolki.abe.dev/ts/enums.html#keys
+ *
+ * @param enumObj - The enum const object to read the case names from.
+ * @returns A new array with one name per case, or an empty array when the enum has no `_cases`.
+ */
+export function keys<TEnum extends EnumConst>(
+    enumObj: TEnum,
+): ReadonlyArray<CaseKeys<TEnum>> {
+    return [...(enumObj._cases ?? [])] as Array<CaseKeys<TEnum>>;
+}
+
+/**
  * Factory function that creates an enriched enum object
  *
  * It automatically binds Tolki helper methods {@linkcode from | from}, {@linkcode tryFrom | tryFrom}, and {@linkcode cases | cases}.
@@ -126,7 +161,7 @@ export function cases<TEnum extends EnumConst>(
  *
  * The original enum data is preserved and the PHP like enum methods are attached directly to the returned object.
  *
- * @see https://tolki.abe.dev/enums/enum-utilities-list.html#defineenum
+ * @see https://tolki.abe.dev/ts/enums.html#defineenum
  *
  * @param enumObj - The raw enum const object to enrich.
  * @returns The enum object with `from`, `tryFrom`, and `cases` methods bound to it.

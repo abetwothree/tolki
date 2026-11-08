@@ -34,6 +34,7 @@
     "packageManager": "pnpm@10.12.1",
     "dependencies": {
         "@tolki/num": "workspace:^",
+        "@tolki/types": "workspace:^",
         "@tolki/utils": "workspace:^",
         "@types/markdown-it": "^14.2.0",
         "@types/pluralize": "^0.0.33",

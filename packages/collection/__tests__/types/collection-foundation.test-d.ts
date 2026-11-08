@@ -1,6 +1,7 @@
 import type * as Exported from "@tolki/collection";
 import { collect, Collection, type CollectionShape } from "@tolki/collection";
 import * as Data from "@tolki/data";
+import * as Str from "@tolki/str";
 import type { Arrayable, MapArrayKey } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
@@ -1778,6 +1779,17 @@ describe("collection foundation type tests", () => {
 
             expectTypeOf(new Bag([1, 2]).called()).toEqualTypeOf<
                 Record<string, unknown>
+            >();
+        });
+    });
+
+    describe("Str interop", () => {
+        it("types Str.remove over a collection as what all() holds", () => {
+            expectTypeOf(Str.remove("o", collect({ x: "Foo" }))).toEqualTypeOf<{
+                x: string;
+            }>();
+            expectTypeOf(Str.remove("o", collect(["Foo"]))).toEqualTypeOf<
+                string[]
             >();
         });
     });

@@ -4,7 +4,7 @@
     "description": "A set of enum utilities for the Laravel TypeScript Publish PHP package.",
     "author": "Abraham Arango <https://github.com/abetwothree>",
     "license": "MIT",
-    "homepage": "https://tolki.abe.dev/enums/",
+    "homepage": "https://tolki.abe.dev/ts/enums.html",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/abetwothree/tolki.git",

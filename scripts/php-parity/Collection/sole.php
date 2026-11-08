@@ -71,5 +71,6 @@ probe('C32-C-lone-key-type-error-message', 'the TypeError message, up to ", call
 
     return $out;
 });
+probe('sole-null-key', '(new Collection([5]))->sole(null) and (new Collection([5, 6]))->sole(null)', fn () => [(new Collection([5]))->sole(null), (function () { try { return (new Collection([5, 6]))->sole(null); } catch (Throwable $e) { return [get_class($e), $e->getMessage()]; } })()]);
 
 emit();

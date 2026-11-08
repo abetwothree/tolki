@@ -169,3 +169,15 @@ export const NoCases = {
     Active: "active",
     Inactive: "inactive",
 } as const;
+
+/** Cases declared out of `_cases` order, with statics named like the values() and keys() helpers. */
+export const Tier = {
+    Gold: "gold",
+    Bronze: "bronze",
+    Silver: "silver",
+    values: ["published-values"],
+    keys: ["published-keys"],
+    _cases: ["Bronze", "Silver", "Gold"],
+    _methods: [],
+    _static: ["values", "keys"],
+} as const;

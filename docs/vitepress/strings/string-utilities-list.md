@@ -1667,6 +1667,16 @@ const result = remove(
 // result is "Ptr Pipr pickd a pck of pickld ppprs."
 ```
 
+The subject can also be a list, an object or a `Map` of strings, and the result keeps its shape and keys. A collection gives back what its `all()` holds, and any other iterable gives a list:
+
+```javascript
+import { remove } from "@tolki/str";
+
+const result = remove("o", { first: "Foo", last: "Boo" });
+
+// result is { first: "F", last: "B" }
+```
+
 <FnTry
   :fn="remove"
   :args="[
@@ -1721,6 +1731,16 @@ const result = replace(
 );
 
 // result is "Laravel Framework for Web Artisans"
+```
+
+The subject can also be a list, an object or a `Map` of strings, and the result keeps its shape and keys. A collection gives back what its `all()` holds, and any other iterable gives a list:
+
+```javascript
+import { replace } from "@tolki/str";
+
+const result = replace("o", "0", { first: "Foo", last: "Boo" });
+
+// result is { first: "F00", last: "B00" }
 ```
 
 <FnTry
@@ -2137,6 +2157,8 @@ const result = substrCount(
 
 // result is 2
 ```
+
+Offsets and lengths count characters, so an emoji counts as one. An empty needle throws, as it does in PHP. <!-- docs/php-parity/Str/substrCount.json, "substrCount-laravel-multibyte", "substrCount-empty-needle" -->
 
 <FnTry
   :fn="substrCount"

@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.36.0-32-g6d2eefbb14"
+        "laravel": "v13.39.0-43-gb20bf7f442"
     },
     "probes": [
         {
@@ -178,6 +178,20 @@
                     ]
                 ]
             }
+        },
+        {
+            "label": "pluck-closure-and-int-values",
+            "php": "->pluck(fn ($i) => $i['a'] * 10) over [['a' => 1], ['a' => 2]], and ->pluck(1) over [[10, 20], [30, 40]]",
+            "value": [
+                [
+                    10,
+                    20
+                ],
+                [
+                    20,
+                    40
+                ]
+            ]
         }
     ]
 }

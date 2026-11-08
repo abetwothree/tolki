@@ -73,6 +73,8 @@ export const Color = defineEnum({
 
 export type ColorType = "red" | "green" | "blue";
 export type ColorKind = "Red" | "Green" | "Blue";
+
+export type Color = ColorType;
 ```
 
 Each part of the file does one job:
@@ -81,7 +83,7 @@ Each part of the file does one job:
 - **`backed`**: whether the PHP enum is backed. [`EnumResource`](./enum-api-resource.md) responses include the same key, and [`AsEnum`](#type-reference) types it.
 - **`hex`**: an instance method published with [`#[TsEnumMethod]`](#tsenummethod), with one value per case.
 - **`_cases`, `_methods` and `_static`**: the lists the `@tolki/ts` functions read to build a PHP-like instance. See [Runtime Utilities](#runtime-utilities).
-- **`ColorType` and `ColorKind`**: type aliases for the case values and the case names. See [Value & Key Types](#value-key-types).
+- **`ColorType`, `ColorKind` and `Color`**: type aliases for the case values and the case names. The `Color` type is another name for `ColorType`, so `Color` is both the enum object and the type of its values. See [Value & Key Types](#value-key-types).
 
 ## Enum Attributes
 
@@ -142,6 +144,8 @@ The attribute takes these parameters:
 | `name`        | `string` | Method name | The key name in the output. [`enums.method_case`](#casing) applies to it too.                                       |
 | `description` | `string` | `''`        | A JSDoc comment above the property.                                                                                 |
 | `params`      | `array`  | `[]`        | Named arguments to call the method with. See [Methods With Required Parameters](#methods-with-required-parameters). |
+
+The method must be public. A private or protected method with the attribute isn't published, and `ts:publish` warns about it.
 
 #### Methods With Required Parameters
 
@@ -208,7 +212,7 @@ export const Status = defineEnum({
 } as const);
 ```
 
-A static method with required parameters is skipped unless you pass `params`, the same as with `#[TsEnumMethod]`.
+The same rules apply as with `#[TsEnumMethod]`: the method must be public, and a method with required parameters is skipped unless you pass `params`.
 
 ### `#[TsEnum]`
 
@@ -237,6 +241,8 @@ export const UserStatus = defineEnum({
 
 export type UserStatusType = "active" | "inactive";
 export type UserStatusKind = "Active" | "Inactive";
+
+export type UserStatus = UserStatusType;
 ```
 
 The file takes the new name too (`user-status.ts`), and models that use the enum refer to it as `UserStatusType`. The attribute takes these parameters:
@@ -246,8 +252,8 @@ The file takes the new name too (`user-status.ts`), and models that use the enum
 | `name`        | `string` | The TypeScript const name. Use it when two enums in one namespace publish the same name, or when a [route file](./routing.md#what-the-props-expression-can-be) uses two same-named enums from different namespaces. |
 | `description` | `string` | A JSDoc comment. It takes priority over any PHPDoc description.                                                                                                                                                     |
 
-::: warning An Enum Named Like Another Enum's Type
-An enum `Role` publishes the type `RoleType`. A second enum named `RoleType` in the same namespace publishes a const with that name, and the two can't share a barrel file or a global namespace. `ts:publish` warns when it finds such a pair. Rename one of them with `#[TsEnum]`. In two different namespaces this pair is fine, because a file that imports both gets an alias for one.
+::: warning Two Classes That Publish One Name
+When two classes in one namespace publish the same name, their barrel file and the global declaration file can't export both. For example, an enum `Role` publishes the type `RoleType`, so a second enum named `RoleType` in the same namespace clashes with it. `ts:publish` warns about any such pair, whether the classes are enums, models, resources, form requests, broadcast events or [composed types](./custom-types.md#composed-types). Move one of them to a namespace of its own, or rename it. An enum takes a new name with `#[TsEnum]`. In two different namespaces the pair is fine, because a file that imports both gets an alias for one. Two kinds of class in one directory, such as an enum `App\Models\Status` beside the models, drop each other's barrel exports, so keep each kind of class in a namespace of its own.
 :::
 
 ### `#[TsCase]`
@@ -279,7 +285,11 @@ export const Status = defineEnum({
 
 export type StatusType = "enabled" | "disabled";
 export type StatusKind = "Enabled" | "Disabled";
+
+export type Status = StatusType;
 ```
+
+A published [instance method](#tsenummethod) keys its values by the new case names too. `Status.from("enabled")` resolves each method to its value for `Status::Active`, and [`EnumResource`](./enum-api-resource.md) sends the same values.
 
 The attribute takes these parameters:
 
@@ -302,6 +312,8 @@ export type StatusType = "active" | "inactive";
 export type StatusKind = "Active" | "Inactive"; // backed enums only
 ```
 
+An enum with no cases publishes `never` for each alias.
+
 Use the aliases to type a raw value or a case name:
 
 ```typescript
@@ -311,9 +323,23 @@ function setStatus(status: StatusType) {} // only 'active' | 'inactive'
 function setStatusByKey(status: StatusKind) {} // only 'Active' | 'Inactive'
 ```
 
+The enum's own name is also a type, an alias of its `{Name}Type`, so for a unit enum it's the union of its case names. One import gives you the enum object and the type of its values, as a native TypeScript `enum` does:
+
+```typescript
+import { Color } from "@js/types/data/app/enums";
+
+let color: Color = Color.Red; // only 'red' | 'green' | 'blue'
+
+Color.from(color).hex; // '#EF4444'
+```
+
+Use `import type { Color }` when you need only the type. Every enum file has this alias, with or without metadata and the `defineEnum()` wrapper.
+
+To list the values or the names at runtime, call [`values`](#values) or [`keys`](#keys).
+
 ### Reading `->value` and `->name`
 
-Read an enum's `->value` or `->name` in an API resource, an Inertia page prop, a broadcast event, or anything else the package types, and the property publishes the enum's alias. The file imports the alias for you. Here a `PostSummaryResource` reads a `Post` model that casts `status` to the int-backed `PostStatus` enum and `visibility` to the unit enum `Visibility`:
+Read an enum's `->value` or `->name` in an API resource, an Inertia page prop, a broadcast event, or anything else the package types, and the property publishes the enum's alias, or the case's own value when you name the case. The file imports the alias for you. Here a `PostSummaryResource` reads a `Post` model that casts `status` to the int-backed `PostStatus` enum and `visibility` to the unit enum `Visibility`:
 
 ```php
 enum PostStatus: int
@@ -334,7 +360,7 @@ public function toArray(Request $request): array
 }
 ```
 
-Each property publishes the alias that lists what PHP sends for it:
+Each property publishes what PHP can send for it:
 
 ```typescript
 import type {
@@ -347,22 +373,39 @@ export interface PostSummaryResource {
   status: PostStatusType;
   status_name: PostStatusKind;
   visibility: VisibilityType;
-  published: PostStatusType;
+  published: 1;
 }
 ```
 
 A backed enum's `->value` publishes its `{Name}Type`, and its `->name` publishes its `{Name}Kind`. A unit enum's `->name` publishes its `{Name}Type`, because its values are its case names.
 
-`PostStatus::Published->value` and `PostStatus::from($value)->value` publish `PostStatusType` too. After `PostStatus::tryFrom()`, `?->value` publishes `PostStatusType | null`. A method you call on a case publishes its return type.
+A case you write out can send only its own value, so it publishes that value: `PostStatus::Published->value` publishes `1`, and `PostStatus::Published->name` publishes `'Published'`. A ternary between two cases publishes both values. `PostStatus::from($value)->value` publishes `PostStatusType`, and after `PostStatus::tryFrom()`, `?->value` publishes `PostStatusType | null`. A method you call on a case publishes its return type.
+
+In an API resource, `PostStatus::cases()` publishes a list of the alias. A map over the cases publishes what its callback reads from each case, with or without a type hint:
+
+```php
+'statuses' => PostStatus::cases(),
+'values' => array_map(fn ($case) => $case->value, PostStatus::cases()),
+'names' => collect(PostStatus::cases())
+    ->map(fn (PostStatus $case) => $case->name)
+    ->all(),
+```
+
+Each key publishes a list:
+
+```typescript
+statuses: PostStatusType[];
+values: PostStatusType[];
+names: PostStatusKind[];
+```
+
+`array_column(PostStatus::cases(), 'value')` publishes `unknown`, so map the cases instead.
 
 The property uses the alias only when `ts:publish` publishes the enum, and when no case's `#[TsCase]` changes what the alias lists. For a `{Name}Type` that's the case's `value`, and for a `{Name}Kind` its `name`. Otherwise the property publishes the literal union of what PHP sends.
 
 An enum the [filters](#filtering-excluding-enums) leave out publishes the literal union too, and so does every enum while `enums.enabled` is off. For the `Status` enum in the [`#[TsCase]`](#tscase) example, `->value` publishes `1 | 0` and `->name` publishes `'Active' | 'Inactive'`. An int-backed enum with a case outside JavaScript's safe integer range (±2⁵³−1) publishes `number` for `->value`.
 
-In two cases the alias can't be imported, so the property publishes the literal union:
-
-- A helper method's array that a resource uses as a value. A spread of the same helper keeps the aliases, as [Methods Declared as a Bare `array`](./api-resources.md#methods-declared-as-a-bare-array) shows.
-- A [route file](./routing.md), the [Inertia shared data](./inertia.md) file or a [model metadata](./model-metadata.md) companion that reads the `->name` of two enums with the same class name, such as `App\Enums\Status` and `App\Crm\Enums\Status`. These files can't import two names that clash, so each read publishes its case names.
+As in a resource, two enums with the same class name, such as `App\Enums\Status` and `App\Crm\Enums\Status`, are imported under aliases in a [route file](./routing.md), the [Inertia shared data](./inertia.md) file and a [model metadata](./model-metadata.md) companion, as in `StatusKind as CrmStatusKind`.
 
 ## Metadata & the `defineEnum()` Wrapper
 
@@ -375,7 +418,7 @@ const instance = Status.from("active");
 // { name: 'Active', value: 'active', backed: true, label: 'Active User', options: [...] }
 ```
 
-An instance method resolves to its value for the matched case (`label`), and a static method passes through as it is (`options`). See [Runtime Utilities](#runtime-utilities) for every function.
+An instance method resolves to its value for the matched case (`label`), and a static method passes through as it is (`options`). See [Runtime Utilities](#runtime-utilities) for every function. [`values`](#values) and [`keys`](#keys) read `_cases` too.
 
 ### Disabling Metadata or the `@tolki/ts` Wrapper
 
@@ -459,11 +502,11 @@ Enums use the same include and exclude settings as models, resources and the oth
 
 ## Runtime Utilities
 
-`@tolki/ts` exports these functions, which give `defineEnum()` its PHP-like behavior. You normally call them through the published enum (`Status.from(...)`) instead of importing them.
+`@tolki/ts` exports these functions. `from`, `tryFrom` and `cases` give `defineEnum()` its PHP-like behavior, and you normally call them through the published enum (`Status.from(...)`). `values` and `keys` aren't bound to the enum, so you import them.
 
 <div class="collection-method-list" markdown="1">
 
-[cases](#cases) [defineEnum](#defineenum) [from](#from) [tryFrom](#tryfrom)
+[cases](#cases) [defineEnum](#defineenum) [from](#from) [keys](#keys) [tryFrom](#tryfrom) [values](#values)
 
 </div>
 
@@ -510,6 +553,19 @@ const result = from(Status, "active");
 from(Status, "non-valid-key"); // throws
 ```
 
+### `keys`
+
+Like `array_column(Color::cases(), 'name')` in PHP, `keys` returns the enum's case names in case order, typed as a union of those names:
+
+```typescript
+import { keys } from "@tolki/ts";
+import { Color } from "@js/types/data/app/enums";
+
+keys(Color); // ['Red', 'Green', 'Blue']
+```
+
+Like `values`, `keys` reads the `_cases` list and returns an empty array without `enums.metadata_enabled`.
+
 ### `tryFrom`
 
 Like PHP's [tryFrom](https://www.php.net/manual/en/backedenum.tryfrom.php), `tryFrom` works like `from` but returns `null` for a value that matches no case:
@@ -521,6 +577,21 @@ import { Status } from "@js/types/data/app/enums";
 const result = tryFrom(Status, "active");
 const missing = tryFrom(Status, "non-valid-key"); // null
 ```
+
+### `values`
+
+Like `array_column(Color::cases(), 'value')` in PHP, `values` returns the enum's case values in case order, typed as its `{Name}Type` union:
+
+```typescript
+import { values } from "@tolki/ts";
+import { Color } from "@js/types/data/app/enums";
+
+values(Color); // ['red', 'green', 'blue']
+```
+
+A unit enum publishes each case name as its value, so `values` returns its case names. PHP's `array_column()` returns an empty array for a unit enum.
+
+`values` and `keys` read the `_cases` list, so they need `enums.metadata_enabled` and return an empty array without it. `defineEnum()` doesn't add `values` or `keys` to the enum. An enum that publishes its own `values()` or `keys()` static method keeps that published value under the name, so `Status.values` is the static method's published output while `values(Status)` returns the case values.
 
 ## Vite Plugin
 
@@ -538,6 +609,7 @@ The runtime functions come from `@tolki/ts`. The types come from `@tolki/types`,
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `defineEnum()`                    | Wraps a raw enum const with bound `from`, `tryFrom` and `cases` helpers.                                                                                                                                        |
 | `from()`, `tryFrom()`, `cases()`  | Standalone versions that take the enum object as their first argument.                                                                                                                                          |
+| `values()`, `keys()`              | The case values, or the case names, in case order.                                                                                                                                                              |
 | `EnumConst`                       | The base shape every generated enum const satisfies.                                                                                                                                                            |
 | `CaseKeys<T>` / `CaseValue<T>`    | The union of case key names, or of case values, for an enum const.                                                                                                                                              |
 | `MethodKeys<T>` / `StaticKeys<T>` | The union of instance method key names, or of static method key names.                                                                                                                                          |

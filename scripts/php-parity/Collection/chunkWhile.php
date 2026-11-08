@@ -20,8 +20,8 @@ use Illuminate\Tests\Support\TestJsonableObject;
 use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
 use Symfony\Component\VarDumper\VarDumper;
 
-// Task 3/4/6 — Collection::chunkWhile (Collection.php:1554 → LazyCollection::chunkWhile) and
-// EnumeratesValues::chunkBy (:939). Lists feed arr tests, assoc arrays feed obj tests, both feed collection.
+// Task 3/4/6 — Collection::chunkWhile (Collection.php:1564 → LazyCollection::chunkWhile) and
+// EnumeratesValues::chunkBy (:941). Lists feed arr tests, assoc arrays feed obj tests, both feed collection.
 
 // chunkWhile — the three CollectionTest cases plus the shape of the callback's arguments.
 probe('chunkWhile on equal adjacent elements', "['A','A','B','B','C','C','C'] chunkWhile(last === current)",

@@ -376,7 +376,7 @@ Most columns and accessors type themselves. When one publishes `unknown` or `unk
 2. A class-level `@property` or `@property-read` tag, including one that uses a `@phpstan-type` or `@phpstan-import-type` alias.
 3. A `@return MorphTo<A|B, $this>` generic on a `morphTo()` relation.
 
-PHPStan and Larastan read all of them, so the annotation that fixes your TypeScript is also checked by static analysis, and the package reads them with no configuration. `#[TsCasts]` is still the right tool when a shape's keys are built at runtime, or when the type belongs to the frontend and needs its own import. The [Annotation Checklist](#annotation-checklist) lists each case by symptom.
+PHPStan and Larastan read all of them, so the annotation that fixes your TypeScript is also checked by static analysis, and the package reads them with no configuration. When a docblock has more than one tag of a kind, the package reads them in PHPStan's order: `@phpstan-return`, then `@psalm-return`, then `@return`, and the same for `@var`, `@param`, `@property` and `@use`. A prefixed tag that's vague, such as `@phpstan-return array<string, mixed>`, yields to a precise plain tag. `#[TsCasts]` is still the right tool when a shape's keys are built at runtime, or when the type belongs to the frontend and needs its own import. The [Annotation Checklist](#annotation-checklist) lists each case by symptom.
 
 ### Accessor Getter Bodies
 
@@ -416,7 +416,7 @@ export interface ReleaseMutators {
 }
 ```
 
-The package reads `Attribute::make()`, `Attribute::get()`, `new Attribute(get: ...)` and old-style `get{Name}Attribute()` bodies. An accessor declared in a trait is read against the model that uses the trait. A method the getter calls is read the same way: `channelOptions()` returns `static::channelLabels()`, whose signature is a bare `: array`, and still publishes `{ "1": string; "2": string }`. A getter that returns an untyped property is typed from the property's default value, so `channels()`, which returns `protected $allowedChannels`, publishes `string[]`.
+The package reads `Attribute::make()`, `Attribute::get()`, `new Attribute(get: ...)` and old-style `get{Name}Attribute()` bodies. An accessor declared in a trait is read against the model that uses the trait. A method the getter calls is read the same way: `channelOptions()` returns `static::channelLabels()`, whose signature is a bare `: array`, and still publishes `{ "1": string; "2": string }`. A getter that returns an untyped property is typed from the property's default joined with what the class and its children write to it, so `channels()`, which returns `protected $allowedChannels`, publishes `string[]` when nothing writes it.
 
 A specific return type or `Attribute<Get, Set>` generic is always read first, so the getter body never overrides an accurate annotation. When the getter can't be typed, the accessor keeps the type from its signature or docblock, or publishes `unknown` if it has neither. That happens when the getter:
 
@@ -430,9 +430,15 @@ A specific return type or `Attribute<Get, Set>` generic is always read first, so
 
 The `null` case keeps a getter from publishing a type that's plainly wrong: `fn ($value, array $attributes) => $attributes['title'] ?? null` publishes `unknown`, not `null`, because its real value is the title.
 
+A getter closure with no native return type takes its type from a `@return` docblock written just before it, so `Attribute::get(/** @return int */ fn () => json_decode($this->stats_json))` publishes `number`. The package reads that docblock only when it can't type what the getter returns, and ignores a vague one, such as `@return mixed`.
+
+A getter that reads an attribute through `getAttribute()` or `getAttributeValue()` with a literal name takes the attribute's type, so `Attribute::get(fn () => $this->getAttribute('title'))` publishes `string`, as `fn () => $this->title` does.
+
+Laravel runs an accessor's getter for a `NULL` column too, so an accessor on a nullable column publishes `| null` only where its getter can return `null`. A getter whose native return type is non-null, such as `fn (?string $value): array => …`, publishes no `| null`. One whose native return type allows `null`, such as `: ?array`, always publishes it, even when its `Attribute<…>` docblock leaves the `null` out.
+
 ### Typing `array` Casts With `@property`
 
-A column cast to `'array'`, or to any cast with no more specific type, publishes as `unknown[]`. Instead of `#[TsCasts]`, add a class-level `@property` or `@property-read` tag with the real shape. It's the same tag PHPStan and Larastan read:
+A column cast to `'array'`, or to any cast with no more specific type, publishes as `unknown[]`. Laravel sends the decoded JSON as it is, so a column holding an object, such as `{"theme":"dark"}`, is sent as that object, which `unknown[]` doesn't describe. The same holds for `collection` and `AsCollection` casts. Instead of `#[TsCasts]`, add a class-level `@property` or `@property-read` tag with the real shape. It's the same tag PHPStan and Larastan read:
 
 ```php
 /**
@@ -452,7 +458,7 @@ A tag applies only when the column's own type is vague. It never overrides a spe
 
 A tag that is still partly vague is used when it's more specific than the type it replaces. `@property array<string, mixed>|null $settings` turns a plain `'array'` cast into `Record<string, unknown> | null`: the type still names `unknown`, but it beats `unknown[] | null`. A tag that is exactly as vague as the original is ignored: `unknown`, `unknown[]`, `object`, or the `unknown[] | Record<string, unknown>` of a bare collection.
 
-The package also reads `@property` tags on the traits the model and its parents use, and on the traits those traits use. A trait that supplies an accessor can document it that way. The `$`-less form some packages use, `@property string[] labels`, works as long as nothing follows the property name.
+The package also reads `@property` tags on the traits the model and its parents use, and on the traits those traits use. A trait that supplies an accessor can document it that way. A class a trait's docblocks name resolves through the trait file's imports, not the model's, and so does the `@var` of a property the trait declares. The `$`-less form some packages use, `@property string[] labels`, works as long as nothing follows the property name.
 
 ### Typing JSON Columns With `@phpstan-type` Aliases
 
@@ -527,16 +533,18 @@ A docblock intersection resolves each member and joins them with `&`:
 protected function assignedUsers(): Attribute
 ```
 
-`User` keeps its import, but `pivot` publishes as `unknown`:
+Both classes keep their types, and the file imports both:
 
 ```typescript
+import type { TaskAssignment, User } from ".";
+
 export interface ProjectMutators {
-  assigned_users: (User & { pivot: unknown })[];
+  assigned_users: (User & { pivot: TaskAssignment })[];
   // …
 }
 ```
 
-A class named inside an `object{...}` shape always publishes as `unknown`, which is why `TaskAssignment` is lost here. A member that can't be resolved is dropped from the intersection, instead of turning the whole type into `unknown`, since `A & B` is assignable to `A`.
+A model or an enum inside a docblock shape keeps its type at any depth, as `TaskAssignment` does here. Two kinds of shape publish each model and enum in them as `unknown`: one that also names another class, such as an API resource, and one that spells a class's name as a string literal or a key, as in `array{kind: 'User', owner: User}`. A member that can't be resolved is dropped from the intersection, instead of turning the whole type into `unknown`, since `A & B` is assignable to `A`.
 
 ### Trait `@template` Bindings
 
@@ -566,11 +574,17 @@ export interface ProjectMutators {
 }
 ```
 
-PHPStan reads the `@use` tag for the same purpose, so static analysis checks the binding too.
+PHPStan reads the `@use` tag for the same purpose, so static analysis checks the binding too. The trait's name in the tag resolves through the file's imports, then the model's namespace, so a trait declared beside the model needs no `use` import.
 
 ### Custom Cast Classes
 
-A custom cast without [`#[TsType]`](./custom-types.md) publishes the return type of its `get()` method. A cast class that implements `SerializesCastableAttributes`, including one a `Castable` value object names, publishes the return type of its `serialize()` method instead, because that's what Laravel sends when it converts the model to JSON.
+A custom cast without [`#[TsType]`](./custom-types.md) publishes the return type of its `get()` method. When the cast class has a `serialize()` method, including one a `Castable` value object names, Laravel sends what `serialize()` returns when it converts the model to JSON, with or without the `SerializesCastableAttributes` interface. The column then publishes:
+
+- **No declared type, or `mixed`**: the type its `return` statements prove, so `return (string) $value;` publishes `string`. Where they prove none, the column keeps `get()`'s type, except a `mixed` `serialize()` on a cast that implements the interface, which publishes `unknown | null`.
+- **A bare `array` or `object`, on a cast without the interface**: `get()`'s type, where `get()` returns a value object or an array shape. `?object` and `array|object` work the same way. Over a scalar `get()`, a bare `array` publishes `unknown[] | Record<string, unknown>`.
+- **Any other declared type**: that type, such as `string`.
+
+Laravel calls `get()` for a `NULL` column too, so a nullable column cast to a class whose `get()` declares a non-null return type publishes no `| null`. For a `coordinate_data` column that may be `NULL`, cast with a `get()` that always returns a `Coordinate`, the model publishes `coordinate_data: { lat: number; lng: number }`. Laravel sends a `null` from `get()` without calling `serialize()`, so a `get()` that declares a nullable return type, or returns `null` itself, adds `| null` to the `serialize()` type.
 
 When `get()`'s native type is missing or vague, such as a bare `array`, the `@return` docblock sets the type, so `@return list<LegDto>` publishes a list of `LegDto`'s public properties, the shape `json_encode()` writes. A `@return` that names a model, such as `list<User>`, or another class that doesn't publish as an inline shape keeps `unknown[]`. A `get()` that declares neither publishes `unknown`.
 
@@ -678,7 +692,9 @@ final readonly class ShippingOptions implements Arrayable
 }
 ```
 
-An accessor or cast that returns this DTO publishes as `{ carrier: string; insured: boolean; trackingUrl: string | null }`. Nullable properties keep their `| null`. Private, protected and static properties are left out, because `(array) $this` doesn't include them. A property typed as a class or an enum, such as a model, publishes as `unknown`, because the inline shape can't import it. A property whose class has or inherits a [`#[TsType]`](./custom-types.md) publishes that type, with its import.
+An accessor or cast that returns this DTO publishes as `{ carrier: string; insured: boolean; trackingUrl: string | null }`. Nullable properties keep their `| null`. Private, protected and static properties are left out, because `(array) $this` doesn't include them. A property typed as an enum or a published model publishes that type, and the file imports it, so `public Status $status` publishes `status: StatusType`. A property whose class has or inherits a [`#[TsType]`](./custom-types.md) publishes that type, with its import.
+
+A promoted property with no `@var` takes its type from the constructor's `@param`, as PHPStan reads it. So a constructor documented `@param list<string> $stops` publishes its promoted `public array $stops` as `stops: string[]` instead of `unknown[]`.
 
 Optional is separate from nullable. A property that is neither promoted nor given a default value publishes as an optional key. Add `public string $summary;` to the class body above, assigned in the constructor, and it publishes as `summary?: string`. PHP leaves an unassigned typed property out of `(array) $this`, and the package can't tell whether the constructor always assigns it. To keep the key required, promote the property, or give it a default value on a DTO that isn't `readonly`. A `@return array{...}` docblock on `toArray()` always wins, so add one when the properties don't tell the whole story.
 
@@ -852,11 +868,11 @@ The `unknown[]` collection row is the bare form. `AsEnumCollection::of(...)`, `A
 
 A parameterized docblock generic in `@return`, `@property` or `Attribute<>` publishes a more specific type, based on its key type. Every container behaves the same way for a given key type:
 
-| Key type             | Emitted                    | Containers                                            |
-| -------------------- | -------------------------- | ----------------------------------------------------- |
-| `int`, or omitted    | `X[]`                      | `list<X>`, `array<…>`, `iterable<…>`, `Collection<…>` |
-| `string`             | `Record<string, X>`        | `array<…>`, `iterable<…>`, `Collection<…>`            |
-| `array-key`, `mixed` | `X[] \| Record<string, X>` | `array<…>`, `iterable<…>`, `Collection<…>`            |
+| Key type                            | Emitted                    | Containers                                            |
+| ----------------------------------- | -------------------------- | ----------------------------------------------------- |
+| `int`, or omitted                   | `X[]`                      | `list<X>`, `array<…>`, `iterable<…>`, `Collection<…>` |
+| `string`                            | `Record<string, X>`        | `array<…>`, `iterable<…>`, `Collection<…>`            |
+| `int\|string`, `array-key`, `mixed` | `X[] \| Record<string, X>` | `array<…>`, `iterable<…>`, `Collection<…>`            |
 
 `list<X>` has no key type, so it always publishes as `X[]`. A container with no generic at all, such as a bare `Collection`, uses the [Arrays & Objects](#arrays-objects) table above instead.
 

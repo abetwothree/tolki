@@ -335,6 +335,9 @@ importers:
       "@tolki/num":
         specifier: workspace:^
         version: link:../num
+      "@tolki/types":
+        specifier: workspace:^
+        version: link:../types
       "@tolki/utils":
         specifier: workspace:^
         version: link:../utils
