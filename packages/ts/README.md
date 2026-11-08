@@ -229,7 +229,7 @@ php artisan ts:publish --source="app/Enums/Status.php"
 php artisan ts:publish --source="App\Http\Resources\UserResource"
 ```
 
-The class can be an enum, a model, an API resource, a controller with at least one registered route, a form request, or a broadcast event. On a large project, a single-class run is much faster than a full publish. The [Vite plugin](https://tolki.abe.dev/ts/vite-plugin.html#single-file-republishing) uses it during development to republish only the file that changed.
+The class can be an enum, a model, an API resource, a controller with at least one registered route, a form request, a broadcast event, or a class with a [composed type](https://tolki.abe.dev/ts/custom-types.html#composed-types). On a large project, a single-class run is much faster than a full publish. The [Vite plugin](https://tolki.abe.dev/ts/vite-plugin.html#single-file-republishing) uses it during development to republish only the file that changed.
 
 A single-class run differs from a full run in these ways:
 
@@ -343,6 +343,7 @@ Pass one `--only-*` flag to publish a single feature for one run:
 | `--only-form-requests`      | Form requests                                              |
 | `--only-broadcast-channels` | Broadcast channels                                         |
 | `--only-broadcast-events`   | Broadcast events                                           |
+| `--only-class-types`        | [Composed types](https://tolki.abe.dev/ts/custom-types.html#composed-types)         |
 | `--only-functional`         | Every enabled feature except model and resource interfaces |
 
 For example:
@@ -411,6 +412,8 @@ let user: app.models.User;
 let status: app.enums.StatusType;
 ```
 
+Unlike in [the enum's own file](https://tolki.abe.dev/ts/enums.html#value-key-types), an enum's name in this file, such as `app.enums.Status`, is an interface of its cases, so type an enum value as `app.enums.StatusType`.
+
 A namespace segment of more than one word is camel-cased, because a hyphen isn't valid in a namespace name. `App\Http\Resources\ReportCards\SummaryCardResource` is `app.http.resources.reportCards.SummaryCardResource`, while its file is written under `report-cards/`. An acronym is lowered as one word, so `API` is `api` and `HTTPClient` is `httpClient`.
 
 When two published types share a name, such as `App\Models\User` and `Crm\Models\User`, each reference from another namespace is qualified with the namespace of the class your PHP code names, such as `crm.models.User`.
@@ -419,7 +422,7 @@ TypeScript sees these types only when your `tsconfig.json` includes the file.
 
 #### JSON Definitions File
 
-When `json.enabled` is `true`, the package also writes `laravel-ts-definitions.json`. It describes every published model, enum, resource, form request, and broadcast event as data, such as properties, cases, and methods, instead of TypeScript source:
+When `json.enabled` is `true`, the package also writes `laravel-ts-definitions.json`. It describes every published model, enum, resource, form request, broadcast event, and [composed type](https://tolki.abe.dev/ts/custom-types.html#composed-types) as data, such as properties, cases, and methods, instead of TypeScript source:
 
 ```php
 // config/ts-publish.php
@@ -430,7 +433,7 @@ When `json.enabled` is `true`, the package also writes `laravel-ts-definitions.j
 ],
 ```
 
-The file has one top-level object per feature: `models`, `enums`, `resources`, `formRequests`, and `broadcastEvents`. Each object is keyed by fully-qualified class name, and each entry has a `name` field that holds the short class name:
+The file has one top-level object per feature: `models`, `enums`, `resources`, `formRequests`, `broadcastEvents`, and `classTypes`. Each object is keyed by fully-qualified class name, and each entry has a `name` field that holds the short class name. A `classTypes` entry's `name` holds the composed type's name instead, such as `ChartType`, and its `extends` field lists the types that interface extends:
 
 ```json
 {
@@ -468,7 +471,7 @@ File watchers such as the [Vite plugin](https://tolki.abe.dev/ts/vite-plugin.htm
 
 | Flag              | Output                                                                                                                                                                                                                                                                                    |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--quiet`, `-q`   | Nothing, except errors on stderr. The exit code reports the result, which suits tools such as the [Vite plugin](https://tolki.abe.dev/ts/vite-plugin.html).                                                                                                                               |
+| `--quiet`, `-q`   | Nothing, except errors on stderr. The exit code reports the result, which suits tools such as the [Vite plugin](https://tolki.abe.dev/ts/vite-plugin.html).                                                                                                                                                        |
 | _(none)_          | A summary: the output directory, the cache state, file counts per feature, extra files such as barrels and the globals and JSON files, and the elapsed time.                                                                                                                              |
 | `--verbose`, `-v` | The summary, plus a table for each of enums, models, model metadata, resources, routes, and form requests, with details such as enum cases and methods, or model columns, mutators, and relations. A last table lists the extra files, such as barrels, globals, and the broadcast files. |
 
@@ -559,6 +562,8 @@ export const Color = defineEnum({
 
 export type ColorType = "red" | "green" | "blue";
 export type ColorKind = "Red" | "Green" | "Blue";
+
+export type Color = ColorType;
 ```
 
 Each part of the file does one job:
@@ -567,7 +572,7 @@ Each part of the file does one job:
 - **`backed`**: whether the PHP enum is backed. [`EnumResource`](https://tolki.abe.dev/ts/enum-api-resource.html) responses include the same key, and [`AsEnum`](#type-reference) types it.
 - **`hex`**: an instance method published with [`#[TsEnumMethod]`](#tsenummethod), with one value per case.
 - **`_cases`, `_methods` and `_static`**: the lists the `@tolki/ts` functions read to build a PHP-like instance. See [Runtime Utilities](#runtime-utilities).
-- **`ColorType` and `ColorKind`**: type aliases for the case values and the case names. See [Value & Key Types](#value--key-types).
+- **`ColorType`, `ColorKind` and `Color`**: type aliases for the case values and the case names. The `Color` type is another name for `ColorType`, so `Color` is both the enum object and the type of its values. See [Value & Key Types](#value--key-types).
 
 ### Enum Attributes
 
@@ -629,6 +634,8 @@ The attribute takes these parameters:
 | `description` | `string` | `''`        | A JSDoc comment above the property.                                                                                 |
 | `params`      | `array`  | `[]`        | Named arguments to call the method with. See [Methods With Required Parameters](#methods-with-required-parameters). |
 
+The method must be public. A private or protected method with the attribute isn't published, and `ts:publish` warns about it.
+
 ##### Methods With Required Parameters
 
 A method with required parameters is skipped by default, instead of publishing misleading `null` values. To include one, pass `params`. The package calls the method once per case, with those values as named arguments:
@@ -654,7 +661,7 @@ An instance or static method's value publishes as `json_encode()` writes it, whi
 
 A value that `json_encode()` can't write, such as `NAN` or a string that isn't valid UTF-8, publishes as `null`.
 
-An array whose integer keys don't count up from 0 in order publishes as an object keyed by those numbers, because that's how `json_encode()` writes it. `array_filter()` keeps each item's key, so it returns such an array whenever it removes an item before one it keeps. An `EnumResource` response sends the same value as a list, so `ts:publish` warns about the method. Keys that are numeric strings, such as `'01'`, are re-indexed the same way. Wrap the array in `array_values()` to publish and send a list, or use keys that aren't numeric to publish and send an object:
+An array whose integer keys don't count up from 0 in order publishes as an object keyed by those numbers, because that's how `json_encode()` writes it, and an `EnumResource` response sends the same object. `array_filter()` keeps each item's key, so it returns such an array whenever it removes an item before one it keeps. Wrap the array in `array_values()` to publish and send a list:
 
 ```php
 #[TsEnumMethod]
@@ -691,7 +698,7 @@ export const Status = defineEnum({
 } as const);
 ```
 
-A static method with required parameters is skipped unless you pass `params`, the same as with `#[TsEnumMethod]`.
+The same rules apply as with `#[TsEnumMethod]`: the method must be public, and a method with required parameters is skipped unless you pass `params`.
 
 #### `#[TsEnum]`
 
@@ -720,16 +727,18 @@ export const UserStatus = defineEnum({
 
 export type UserStatusType = "active" | "inactive";
 export type UserStatusKind = "Active" | "Inactive";
+
+export type UserStatus = UserStatusType;
 ```
 
 The file takes the new name too (`user-status.ts`), and models that use the enum refer to it as `UserStatusType`. The attribute takes these parameters:
 
-| Parameter     | Type     | Description                                                                                                                                                                                                                                  |
-| ------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Parameter     | Type     | Description                                                                                                                                                                                                         |
+| ------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `name`        | `string` | The TypeScript const name. Use it when two enums in one namespace publish the same name, or when a [route file](https://tolki.abe.dev/ts/routing.html#what-the-props-expression-can-be) uses two same-named enums from different namespaces. |
-| `description` | `string` | A JSDoc comment. It takes priority over any PHPDoc description.                                                                                                                                                                              |
+| `description` | `string` | A JSDoc comment. It takes priority over any PHPDoc description.                                                                                                                                                     |
 
-An enum `Role` publishes the type `RoleType`. A second enum named `RoleType` in the same namespace publishes a const with that name, and the two can't share a barrel file or a global namespace. `ts:publish` warns when it finds such a pair. Rename one of them with `#[TsEnum]`. In two different namespaces this pair is fine, because a file that imports both gets an alias for one.
+When two classes in one namespace publish the same name, their barrel file and the global declaration file can't export both. For example, an enum `Role` publishes the type `RoleType`, so a second enum named `RoleType` in the same namespace clashes with it. `ts:publish` warns about any such pair, whether the classes are enums, models, resources, form requests, broadcast events or [composed types](https://tolki.abe.dev/ts/custom-types.html#composed-types). Move one of them to a namespace of its own, or rename it. An enum takes a new name with `#[TsEnum]`. In two different namespaces the pair is fine, because a file that imports both gets an alias for one. Two kinds of class in one directory, such as an enum `App\Models\Status` beside the models, drop each other's barrel exports, so keep each kind of class in a namespace of its own.
 
 #### `#[TsCase]`
 
@@ -760,7 +769,11 @@ export const Status = defineEnum({
 
 export type StatusType = "enabled" | "disabled";
 export type StatusKind = "Enabled" | "Disabled";
+
+export type Status = StatusType;
 ```
+
+A published [instance method](#tsenummethod) keys its values by the new case names too. `Status.from("enabled")` resolves each method to its value for `Status::Active`, and [`EnumResource`](https://tolki.abe.dev/ts/enum-api-resource.html) sends the same values.
 
 The attribute takes these parameters:
 
@@ -781,6 +794,8 @@ export type StatusType = "active" | "inactive";
 export type StatusKind = "Active" | "Inactive"; // backed enums only
 ```
 
+An enum with no cases publishes `never` for each alias.
+
 Use the aliases to type a raw value or a case name:
 
 ```typescript
@@ -789,6 +804,90 @@ import type { StatusType, StatusKind } from "@js/types/data/app/enums";
 function setStatus(status: StatusType) {} // only 'active' | 'inactive'
 function setStatusByKey(status: StatusKind) {} // only 'Active' | 'Inactive'
 ```
+
+The enum's own name is also a type, an alias of its `{Name}Type`, so for a unit enum it's the union of its case names. One import gives you the enum object and the type of its values, as a native TypeScript `enum` does:
+
+```typescript
+import { Color } from "@js/types/data/app/enums";
+
+let color: Color = Color.Red; // only 'red' | 'green' | 'blue'
+
+Color.from(color).hex; // '#EF4444'
+```
+
+Use `import type { Color }` when you need only the type. Every enum file has this alias, with or without metadata and the `defineEnum()` wrapper.
+
+To list the values or the names at runtime, call [`values`](#values) or [`keys`](#keys).
+
+#### Reading `->value` and `->name`
+
+Read an enum's `->value` or `->name` in an API resource, an Inertia page prop, a broadcast event, or anything else the package types, and the property publishes the enum's alias, or the case's own value when you name the case. The file imports the alias for you. Here a `PostSummaryResource` reads a `Post` model that casts `status` to the int-backed `PostStatus` enum and `visibility` to the unit enum `Visibility`:
+
+```php
+enum PostStatus: int
+{
+    case Draft = 0;
+    case Published = 1;
+}
+
+// PostSummaryResource
+public function toArray(Request $request): array
+{
+    return [
+        'status' => $this->status->value,
+        'status_name' => $this->status->name,
+        'visibility' => $this->visibility->name,
+        'published' => PostStatus::Published->value,
+    ];
+}
+```
+
+Each property publishes what PHP can send for it:
+
+```typescript
+import type {
+  PostStatusKind,
+  PostStatusType,
+  VisibilityType,
+} from "../../enums";
+
+export interface PostSummaryResource {
+  status: PostStatusType;
+  status_name: PostStatusKind;
+  visibility: VisibilityType;
+  published: 1;
+}
+```
+
+A backed enum's `->value` publishes its `{Name}Type`, and its `->name` publishes its `{Name}Kind`. A unit enum's `->name` publishes its `{Name}Type`, because its values are its case names.
+
+A case you write out can send only its own value, so it publishes that value: `PostStatus::Published->value` publishes `1`, and `PostStatus::Published->name` publishes `'Published'`. A ternary between two cases publishes both values. `PostStatus::from($value)->value` publishes `PostStatusType`, and after `PostStatus::tryFrom()`, `?->value` publishes `PostStatusType | null`. A method you call on a case publishes its return type.
+
+In an API resource, `PostStatus::cases()` publishes a list of the alias. A map over the cases publishes what its callback reads from each case, with or without a type hint:
+
+```php
+'statuses' => PostStatus::cases(),
+'values' => array_map(fn ($case) => $case->value, PostStatus::cases()),
+'names' => collect(PostStatus::cases())
+    ->map(fn (PostStatus $case) => $case->name)
+    ->all(),
+```
+
+Each key publishes a list:
+
+```typescript
+statuses: PostStatusType[];
+values: PostStatusType[];
+names: PostStatusKind[];
+```
+
+`array_column(PostStatus::cases(), 'value')` publishes `unknown`, so map the cases instead.
+
+The property uses the alias only when `ts:publish` publishes the enum, and when no case's `#[TsCase]` changes what the alias lists. For a `{Name}Type` that's the case's `value`, and for a `{Name}Kind` its `name`. Otherwise the property publishes the literal union of what PHP sends.
+
+An enum the [filters](#filtering--excluding-enums) leave out publishes the literal union too, and so does every enum while `enums.enabled` is off. For the `Status` enum in the [`#[TsCase]`](#tscase) example, `->value` publishes `1 | 0` and `->name` publishes `'Active' | 'Inactive'`. An int-backed enum with a case outside JavaScript's safe integer range (±2⁵³−1) publishes `number` for `->value`.
+
+As in a resource, two enums with the same class name, such as `App\Enums\Status` and `App\Crm\Enums\Status`, are imported under aliases in a [route file](https://tolki.abe.dev/ts/routing.html), the [Inertia shared data](https://tolki.abe.dev/ts/inertia.html) file and a [model metadata](https://tolki.abe.dev/ts/model-metadata.html) companion, as in `StatusKind as CrmStatusKind`.
 
 ### Metadata & the `defineEnum()` Wrapper
 
@@ -801,7 +900,7 @@ const instance = Status.from("active");
 // { name: 'Active', value: 'active', backed: true, label: 'Active User', options: [...] }
 ```
 
-An instance method resolves to its value for the matched case (`label`), and a static method passes through as it is (`options`). See [Runtime Utilities](#runtime-utilities) for every function.
+An instance method resolves to its value for the matched case (`label`), and a static method passes through as it is (`options`). See [Runtime Utilities](#runtime-utilities) for every function. [`values`](#values) and [`keys`](#keys) read `_cases` too.
 
 #### Disabling Metadata or the `@tolki/ts` Wrapper
 
@@ -881,9 +980,9 @@ Enums use the same include and exclude settings as models, resources and the oth
 
 ### Runtime Utilities
 
-`@tolki/ts` exports these functions, which give `defineEnum()` its PHP-like behavior. You normally call them through the published enum (`Status.from(...)`) instead of importing them.
+`@tolki/ts` exports these functions. `from`, `tryFrom` and `cases` give `defineEnum()` its PHP-like behavior, and you normally call them through the published enum (`Status.from(...)`). `values` and `keys` aren't bound to the enum, so you import them.
 
-[cases](#cases) [defineEnum](#defineenum) [from](#from) [tryFrom](#tryfrom)
+[cases](#cases) [defineEnum](#defineenum) [from](#from) [keys](#keys) [tryFrom](#tryfrom) [values](#values)
 
 #### `cases`
 
@@ -928,6 +1027,19 @@ const result = from(Status, "active");
 from(Status, "non-valid-key"); // throws
 ```
 
+#### `keys`
+
+Like `array_column(Color::cases(), 'name')` in PHP, `keys` returns the enum's case names in case order, typed as a union of those names:
+
+```typescript
+import { keys } from "@tolki/ts";
+import { Color } from "@js/types/data/app/enums";
+
+keys(Color); // ['Red', 'Green', 'Blue']
+```
+
+Like `values`, `keys` reads the `_cases` list and returns an empty array without `enums.metadata_enabled`.
+
 #### `tryFrom`
 
 Like PHP's [tryFrom](https://www.php.net/manual/en/backedenum.tryfrom.php), `tryFrom` works like `from` but returns `null` for a value that matches no case:
@@ -939,6 +1051,21 @@ import { Status } from "@js/types/data/app/enums";
 const result = tryFrom(Status, "active");
 const missing = tryFrom(Status, "non-valid-key"); // null
 ```
+
+#### `values`
+
+Like `array_column(Color::cases(), 'value')` in PHP, `values` returns the enum's case values in case order, typed as its `{Name}Type` union:
+
+```typescript
+import { values } from "@tolki/ts";
+import { Color } from "@js/types/data/app/enums";
+
+values(Color); // ['red', 'green', 'blue']
+```
+
+A unit enum publishes each case name as its value, so `values` returns its case names. PHP's `array_column()` returns an empty array for a unit enum.
+
+`values` and `keys` read the `_cases` list, so they need `enums.metadata_enabled` and return an empty array without it. `defineEnum()` doesn't add `values` or `keys` to the enum. An enum that publishes its own `values()` or `keys()` static method keeps that published value under the name, so `Status.values` is the static method's published output while `values(Status)` returns the case values.
 
 ### Vite Plugin
 
@@ -952,15 +1079,16 @@ The [Configuration Reference](https://tolki.abe.dev/ts/configuration-reference.h
 
 The runtime functions come from `@tolki/ts`. The types come from `@tolki/types`, and `@tolki/ts` re-exports `AsEnum`, `CaseValue`, `DefineEnumResult`, `EnumConst` and `FromResult`:
 
-| Export                            | Description                                                                                                                                                                                                                              |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `defineEnum()`                    | Wraps a raw enum const with bound `from`, `tryFrom` and `cases` helpers.                                                                                                                                                                 |
-| `from()`, `tryFrom()`, `cases()`  | Standalone versions that take the enum object as their first argument.                                                                                                                                                                   |
-| `EnumConst`                       | The base shape every generated enum const satisfies.                                                                                                                                                                                     |
-| `CaseKeys<T>` / `CaseValue<T>`    | The union of case key names, or of case values, for an enum const.                                                                                                                                                                       |
-| `MethodKeys<T>` / `StaticKeys<T>` | The union of instance method key names, or of static method key names.                                                                                                                                                                   |
-| `FromResult<T, V>`                | The resolved instance type that `from(T, V)` returns.                                                                                                                                                                                    |
-| `DefineEnumResult<T>`             | The return type of `defineEnum()`: the const plus its bound helpers.                                                                                                                                                                     |
+| Export                            | Description                                                                                                                                                                                                     |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `defineEnum()`                    | Wraps a raw enum const with bound `from`, `tryFrom` and `cases` helpers.                                                                                                                                        |
+| `from()`, `tryFrom()`, `cases()`  | Standalone versions that take the enum object as their first argument.                                                                                                                                          |
+| `values()`, `keys()`              | The case values, or the case names, in case order.                                                                                                                                                              |
+| `EnumConst`                       | The base shape every generated enum const satisfies.                                                                                                                                                            |
+| `CaseKeys<T>` / `CaseValue<T>`    | The union of case key names, or of case values, for an enum const.                                                                                                                                              |
+| `MethodKeys<T>` / `StaticKeys<T>` | The union of instance method key names, or of static method key names.                                                                                                                                          |
+| `FromResult<T, V>`                | The resolved instance type that `from(T, V)` returns.                                                                                                                                                           |
+| `DefineEnumResult<T>`             | The return type of `defineEnum()`: the const plus its bound helpers.                                                                                                                                            |
 | `AsEnum<T, V?>`                   | A resolved instance at the type level: a discriminated union across all cases, or one case with the second parameter. It types the JSON that the [`EnumResource`](https://tolki.abe.dev/ts/enum-api-resource.html) API resource returns. |
 
 ## Models
@@ -975,7 +1103,7 @@ The `ts:publish` command publishes each model as follows:
 
 - **One file per model**: `App\Models\User` is written to `app/models/user.ts`, following the model's namespace. Each namespace directory also gets an `index.ts` barrel that re-exports its files (`export * from './user'`), the same as [enums](https://tolki.abe.dev/ts/enums.html#how-enums-are-generated).
 - **Split interfaces**: columns, accessors and relations go into separate interfaces by default. See [Model Templates](#model-templates).
-- **Column types**: a column's type comes from the first source that applies. In order, those are a [`#[TsCasts]`](#tscasts) entry, an accessor with the column's name, the model's cast in `casts()` or `$casts`, and the database column type. A custom cast class can set its own type with [`#[TsType]`](#tstype). When the result is still vague, such as `unknown[]`, a class-level `@property` tag refines it. The [Type Mapping Reference](#type-mapping-reference) lists the default types.
+- **Column types**: a column's type comes from the first source that applies. In order, those are a [`#[TsCasts]`](#tscasts) entry, an accessor with the column's name, the model's cast in `casts()` or `$casts`, and the database column type. A custom cast class can set its own type with [`#[TsType]`](https://tolki.abe.dev/ts/custom-types.html#model-attributes-and-casts). When the result is still vague, such as `unknown[]`, a class-level `@property` tag refines it. The [Type Mapping Reference](#type-mapping-reference) lists the default types.
 - **Accessors**: new-style `Attribute` accessors and old-style `get{Name}Attribute()` methods that aren't columns publish as mutators, typed from their return types, their docblocks or what their getters return.
 - **Relations**: each relation publishes, plus a `_count` and an `_exists` property for it.
 - **Metadata companions**: an opt-in feature writes a runtime `{model}_meta.ts` file beside the interface. See [Model Metadata](https://tolki.abe.dev/ts/model-metadata.html).
@@ -1255,11 +1383,11 @@ A relation's `_count` and `_exists` properties follow the same rule. When a colu
 
 All attributes live in the `AbeTwoThree\LaravelTsPublish\Attributes` namespace.
 
-| Attribute      | Target                                              | Description                                                          |
-| -------------- | --------------------------------------------------- | -------------------------------------------------------------------- |
-| `#[TsCasts]`   | `casts()` method, `$casts` property, or model class | Override or add TypeScript types for columns, mutators or relations. |
-| `#[TsType]`    | Custom cast class                                   | Set the TypeScript type used wherever this cast class is applied.    |
-| `#[TsExclude]` | Model class, accessor method, or relation method    | Exclude a whole model, or one accessor or relation.                  |
+| Attribute      | Target                                              | Description                                                                                 |
+| -------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `#[TsCasts]`   | `casts()` method, `$casts` property, or model class | Override or add TypeScript types for columns, mutators or relations.                        |
+| `#[TsType]`    | Any class, such as a custom cast class              | Set the TypeScript type of every value of the class, or of every column that uses the cast. |
+| `#[TsExclude]` | Model class, accessor method, or relation method    | Exclude a whole model, or one accessor or relation.                                         |
 
 #### `#[TsCasts]`
 
@@ -1304,56 +1432,24 @@ Put `#[TsCasts]` on `casts()` or `$casts`, so the TypeScript type sits next to t
 
 #### `#[TsType]`
 
-For a custom cast class you use on several models, put `#[TsType]` on the cast class once, instead of repeating `#[TsCasts]` everywhere you use it:
-
-```php
-use AbeTwoThree\LaravelTsPublish\Attributes\TsType;
-
-#[TsType(['type' => 'ProductDimensions', 'import' => '@js/types/product'])]
-class ProductDimensionsCast implements CastsAttributes
-{
-    public function get($model, string $key, $value, array $attributes) { /* ... */ }
-}
-
-class Product extends Model
-{
-    public function casts(): array
-    {
-        return ['dimensions' => ProductDimensionsCast::class];
-    }
-}
-```
-
-Every column that uses the cast publishes with that type:
-
-```typescript
-import type { ProductDimensions } from "@js/types/product";
-
-export interface Product {
-  dimensions: ProductDimensions;
-}
-```
-
-`#[TsType]` also takes a plain string, such as `#[TsType('{width: number, height: number}')]`, when the type needs no import. Without `#[TsType]`, a custom cast publishes the return type of its `get()` method. A cast class that implements `SerializesCastableAttributes`, including one a `Castable` value object names, publishes the return type of its `serialize()` method instead, because that's what Laravel sends when it converts the model to JSON.
-
-When `get()`'s native type is missing or vague, such as a bare `array`, the `@return` docblock sets the type, so `@return list<LegDto>` publishes a list of `LegDto`'s public properties, the shape `json_encode()` writes. A `@return` that names a model, such as `list<User>`, or another class that doesn't publish as an inline shape keeps `unknown[]`. A `get()` that declares neither publishes `unknown`.
+Put `#[TsType]` on a custom cast class, or on any class a column holds, to set the column's type. [Custom Types](https://tolki.abe.dev/ts/custom-types.html) describes the attribute.
 
 ### Laravel 13 Model Attributes
 
 Laravel 13 added native class attributes for Eloquent models (`Illuminate\Database\Eloquent\Attributes`) and API resources (`Illuminate\Http\Resources\Attributes`). They replace property-based conventions, such as `#[Table]` in place of `protected $table`. These are Laravel's attributes, not this package's, so you don't import anything from `AbeTwoThree\LaravelTsPublish\Attributes` to use them. The package honors the ones that change a model's serialized shape, with no configuration:
 
-| Attribute                                                                                                                                                                                                                                                                                          | Honored? | Notes                                                                                                                                                                                                                                                                                           |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `#[Table('...')]`                                                                                                                                                                                                                                                                                  | Yes      | Selects the table whose columns are published, the same as `protected $table`.                                                                                                                                                                                                                  |
-| `#[Hidden(['col'])]`                                                                                                                                                                                                                                                                               | Yes      | Marks columns hidden, the same as `protected $hidden`. See [Hidden Attributes](#hidden-attributes).                                                                                                                                                                                             |
-| `#[Visible(['col'])]`                                                                                                                                                                                                                                                                              | Yes      | An allowlist, the same as `protected $visible`: every column it doesn't list becomes hidden. With `models.exclude_hidden` on, list every column you want published, or most of the model disappears from the interface.                                                                         |
-| `#[Appends(['accessor'])]`                                                                                                                                                                                                                                                                         | Yes      | Adds accessors to the published set, the same as `protected $appends`.                                                                                                                                                                                                                          |
-| `#[Connection('name')]`                                                                                                                                                                                                                                                                            | Yes      | Selects the database connection whose schema the columns come from, the same as `protected $connection`.                                                                                                                                                                                        |
+| Attribute                                                                                                                                                                                                                                                                                          | Honored? | Notes                                                                                                                                                                                                                                                                  |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#[Table('...')]`                                                                                                                                                                                                                                                                                  | Yes      | Selects the table whose columns are published, the same as `protected $table`.                                                                                                                                                                                         |
+| `#[Hidden(['col'])]`                                                                                                                                                                                                                                                                               | Yes      | Marks columns hidden, the same as `protected $hidden`. See [Hidden Attributes](#hidden-attributes).                                                                                                                                                                    |
+| `#[Visible(['col'])]`                                                                                                                                                                                                                                                                              | Yes      | An allowlist, the same as `protected $visible`: every column it doesn't list becomes hidden. With `models.exclude_hidden` on, list every column you want published, or most of the model disappears from the interface.                                                |
+| `#[Appends(['accessor'])]`                                                                                                                                                                                                                                                                         | Yes      | Adds accessors to the published set, the same as `protected $appends`.                                                                                                                                                                                                 |
+| `#[Connection('name')]`                                                                                                                                                                                                                                                                            | Yes      | Selects the database connection whose schema the columns come from, the same as `protected $connection`.                                                                                                                                                               |
 | `#[Collects(SomeResource::class)]`                                                                                                                                                                                                                                                                 | Yes      | Sets the resource a collection collects. See [Resource Collections](https://tolki.abe.dev/ts/api-resources.html#resource-collections).                                                                                                                                                          |
 | `#[UseResource(...)]`, `#[UseResourceCollection(...)]`                                                                                                                                                                                                                                             | Yes      | Link a model to its resource. See [How the Backing Model Is Resolved](https://tolki.abe.dev/ts/api-resources.html#how-the-backing-model-is-resolved). Available since Laravel 12.29.                                                                                                            |
 | `#[PreserveKeys]`                                                                                                                                                                                                                                                                                  | Yes      | Types the collection's `data` as `Record<string, R>` instead of `R[]`, the keyed JSON object Laravel returns. `public $preserveKeys = true;` does the same. See [Key-Preserving Collections](https://tolki.abe.dev/ts/api-resources.html#key-preserving-collections) on the API Resources page. |
 | `#[RouteKey('slug')]`                                                                                                                                                                                                                                                                              | Yes      | A model-bound route argument types `_routeKey` from the attribute's key, even when the model overrides none of `getRouteKeyName()`, `getKeyName()` or `$primaryKey`. See [Model Binding](https://tolki.abe.dev/ts/routing.html#model-binding) on the Routing page.                              |
-| Everything else (`#[DateFormat]`, `#[WithoutTimestamps]`, `#[WithoutIncrementing]`, `#[Fillable]`, `#[Guarded]`, `#[Unguarded]`, `#[Scope]`, `#[ScopedBy]`, `#[ObservedBy]`, `#[Boot]`, `#[Initialize]`, `#[Touches]`, `#[CollectedBy]`, `#[UseEloquentBuilder]`, `#[UseFactory]`, `#[UsePolicy]`) | N/A      | These change querying, events, mass assignment or factories, not the serialized shape, so they don't affect the published types.                                                                                                                                                                |
+| Everything else (`#[DateFormat]`, `#[WithoutTimestamps]`, `#[WithoutIncrementing]`, `#[Fillable]`, `#[Guarded]`, `#[Unguarded]`, `#[Scope]`, `#[ScopedBy]`, `#[ObservedBy]`, `#[Boot]`, `#[Initialize]`, `#[Touches]`, `#[CollectedBy]`, `#[UseEloquentBuilder]`, `#[UseFactory]`, `#[UsePolicy]`) | N/A      | These change querying, events, mass assignment or factories, not the serialized shape, so they don't affect the published types.                                                                                                                                       |
 
 `#[Table]`, `#[Hidden]`, `#[Visible]`, `#[Appends]`, `#[Connection]`, `#[Collects]` and `#[PreserveKeys]` require Laravel 13. `#[RouteKey]` requires Laravel 13.21. `#[UseResource]` and `#[UseResourceCollection]` require Laravel 12.29. On an older version, using one isn't an error: the model loads normally and the attribute is ignored. Nothing tells you that `#[Table]` didn't take effect, so run a Laravel version that supports each attribute you rely on.
 
@@ -1365,7 +1461,7 @@ Most columns and accessors type themselves. When one publishes `unknown` or `unk
 2. A class-level `@property` or `@property-read` tag, including one that uses a `@phpstan-type` or `@phpstan-import-type` alias.
 3. A `@return MorphTo<A|B, $this>` generic on a `morphTo()` relation.
 
-PHPStan and Larastan read all of them, so the annotation that fixes your TypeScript is also checked by static analysis, and the package reads them with no configuration. `#[TsCasts]` is still the right tool when a shape's keys are built at runtime, or when the type belongs to the frontend and needs its own import. The [Annotation Checklist](#annotation-checklist) lists each case by symptom.
+PHPStan and Larastan read all of them, so the annotation that fixes your TypeScript is also checked by static analysis, and the package reads them with no configuration. When a docblock has more than one tag of a kind, the package reads them in PHPStan's order: `@phpstan-return`, then `@psalm-return`, then `@return`, and the same for `@var`, `@param`, `@property` and `@use`. A prefixed tag that's vague, such as `@phpstan-return array<string, mixed>`, yields to a precise plain tag. `#[TsCasts]` is still the right tool when a shape's keys are built at runtime, or when the type belongs to the frontend and needs its own import. The [Annotation Checklist](#annotation-checklist) lists each case by symptom.
 
 #### Accessor Getter Bodies
 
@@ -1405,7 +1501,7 @@ export interface ReleaseMutators {
 }
 ```
 
-The package reads `Attribute::make()`, `Attribute::get()`, `new Attribute(get: ...)` and old-style `get{Name}Attribute()` bodies. An accessor declared in a trait is read against the model that uses the trait. A method the getter calls is read the same way: `channelOptions()` returns `static::channelLabels()`, whose signature is a bare `: array`, and still publishes `{ "1": string; "2": string }`. A getter that returns an untyped property is typed from the property's default value, so `channels()`, which returns `protected $allowedChannels`, publishes `string[]`.
+The package reads `Attribute::make()`, `Attribute::get()`, `new Attribute(get: ...)` and old-style `get{Name}Attribute()` bodies. An accessor declared in a trait is read against the model that uses the trait. A method the getter calls is read the same way: `channelOptions()` returns `static::channelLabels()`, whose signature is a bare `: array`, and still publishes `{ "1": string; "2": string }`. A getter that returns an untyped property is typed from the property's default joined with what the class and its children write to it, so `channels()`, which returns `protected $allowedChannels`, publishes `string[]` when nothing writes it.
 
 A specific return type or `Attribute<Get, Set>` generic is always read first, so the getter body never overrides an accurate annotation. When the getter can't be typed, the accessor keeps the type from its signature or docblock, or publishes `unknown` if it has neither. That happens when the getter:
 
@@ -1419,9 +1515,15 @@ A specific return type or `Attribute<Get, Set>` generic is always read first, so
 
 The `null` case keeps a getter from publishing a type that's plainly wrong: `fn ($value, array $attributes) => $attributes['title'] ?? null` publishes `unknown`, not `null`, because its real value is the title.
 
+A getter closure with no native return type takes its type from a `@return` docblock written just before it, so `Attribute::get(/** @return int */ fn () => json_decode($this->stats_json))` publishes `number`. The package reads that docblock only when it can't type what the getter returns, and ignores a vague one, such as `@return mixed`.
+
+A getter that reads an attribute through `getAttribute()` or `getAttributeValue()` with a literal name takes the attribute's type, so `Attribute::get(fn () => $this->getAttribute('title'))` publishes `string`, as `fn () => $this->title` does.
+
+Laravel runs an accessor's getter for a `NULL` column too, so an accessor on a nullable column publishes `| null` only where its getter can return `null`. A getter whose native return type is non-null, such as `fn (?string $value): array => …`, publishes no `| null`. One whose native return type allows `null`, such as `: ?array`, always publishes it, even when its `Attribute<…>` docblock leaves the `null` out.
+
 #### Typing `array` Casts With `@property`
 
-A column cast to `'array'`, or to any cast with no more specific type, publishes as `unknown[]`. Instead of `#[TsCasts]`, add a class-level `@property` or `@property-read` tag with the real shape. It's the same tag PHPStan and Larastan read:
+A column cast to `'array'`, or to any cast with no more specific type, publishes as `unknown[]`. Laravel sends the decoded JSON as it is, so a column holding an object, such as `{"theme":"dark"}`, is sent as that object, which `unknown[]` doesn't describe. The same holds for `collection` and `AsCollection` casts. Instead of `#[TsCasts]`, add a class-level `@property` or `@property-read` tag with the real shape. It's the same tag PHPStan and Larastan read:
 
 ```php
 /**
@@ -1441,7 +1543,7 @@ A tag applies only when the column's own type is vague. It never overrides a spe
 
 A tag that is still partly vague is used when it's more specific than the type it replaces. `@property array<string, mixed>|null $settings` turns a plain `'array'` cast into `Record<string, unknown> | null`: the type still names `unknown`, but it beats `unknown[] | null`. A tag that is exactly as vague as the original is ignored: `unknown`, `unknown[]`, `object`, or the `unknown[] | Record<string, unknown>` of a bare collection.
 
-The package also reads `@property` tags on the traits the model and its parents use, and on the traits those traits use. A trait that supplies an accessor can document it that way. The `$`-less form some packages use, `@property string[] labels`, works as long as nothing follows the property name.
+The package also reads `@property` tags on the traits the model and its parents use, and on the traits those traits use. A trait that supplies an accessor can document it that way. A class a trait's docblocks name resolves through the trait file's imports, not the model's, and so does the `@var` of a property the trait declares. The `$`-less form some packages use, `@property string[] labels`, works as long as nothing follows the property name.
 
 #### Typing JSON Columns With `@phpstan-type` Aliases
 
@@ -1516,16 +1618,18 @@ A docblock intersection resolves each member and joins them with `&`:
 protected function assignedUsers(): Attribute
 ```
 
-`User` keeps its import, but `pivot` publishes as `unknown`:
+Both classes keep their types, and the file imports both:
 
 ```typescript
+import type { TaskAssignment, User } from ".";
+
 export interface ProjectMutators {
-  assigned_users: (User & { pivot: unknown })[];
+  assigned_users: (User & { pivot: TaskAssignment })[];
   // …
 }
 ```
 
-A class named inside an `object{...}` shape always publishes as `unknown`, which is why `TaskAssignment` is lost here. A member that can't be resolved is dropped from the intersection, instead of turning the whole type into `unknown`, since `A & B` is assignable to `A`.
+A model or an enum inside a docblock shape keeps its type at any depth, as `TaskAssignment` does here. Two kinds of shape publish each model and enum in them as `unknown`: one that also names another class, such as an API resource, and one that spells a class's name as a string literal or a key, as in `array{kind: 'User', owner: User}`. A member that can't be resolved is dropped from the intersection, instead of turning the whole type into `unknown`, since `A & B` is assignable to `A`.
 
 #### Trait `@template` Bindings
 
@@ -1555,7 +1659,19 @@ export interface ProjectMutators {
 }
 ```
 
-PHPStan reads the `@use` tag for the same purpose, so static analysis checks the binding too.
+PHPStan reads the `@use` tag for the same purpose, so static analysis checks the binding too. The trait's name in the tag resolves through the file's imports, then the model's namespace, so a trait declared beside the model needs no `use` import.
+
+#### Custom Cast Classes
+
+A custom cast without [`#[TsType]`](https://tolki.abe.dev/ts/custom-types.html) publishes the return type of its `get()` method. When the cast class has a `serialize()` method, including one a `Castable` value object names, Laravel sends what `serialize()` returns when it converts the model to JSON, with or without the `SerializesCastableAttributes` interface. The column then publishes:
+
+- **No declared type, or `mixed`**: the type its `return` statements prove, so `return (string) $value;` publishes `string`. Where they prove none, the column keeps `get()`'s type, except a `mixed` `serialize()` on a cast that implements the interface, which publishes `unknown | null`.
+- **A bare `array` or `object`, on a cast without the interface**: `get()`'s type, where `get()` returns a value object or an array shape. `?object` and `array|object` work the same way. Over a scalar `get()`, a bare `array` publishes `unknown[] | Record<string, unknown>`.
+- **Any other declared type**: that type, such as `string`.
+
+Laravel calls `get()` for a `NULL` column too, so a nullable column cast to a class whose `get()` declares a non-null return type publishes no `| null`. For a `coordinate_data` column that may be `NULL`, cast with a `get()` that always returns a `Coordinate`, the model publishes `coordinate_data: { lat: number; lng: number }`. Laravel sends a `null` from `get()` without calling `serialize()`, so a `get()` that declares a nullable return type, or returns `null` itself, adds `| null` to the `serialize()` type.
+
+When `get()`'s native type is missing or vague, such as a bare `array`, the `@return` docblock sets the type, so `@return list<LegDto>` publishes a list of `LegDto`'s public properties, the shape `json_encode()` writes. A `@return` that names a model, such as `list<User>`, or another class that doesn't publish as an inline shape keeps `unknown[]`. A `get()` that declares neither publishes `unknown`.
 
 #### Typing Castable-With-Arguments Casts
 
@@ -1661,7 +1777,9 @@ final readonly class ShippingOptions implements Arrayable
 }
 ```
 
-An accessor or cast that returns this DTO publishes as `{ carrier: string; insured: boolean; trackingUrl: string | null }`. Nullable properties keep their `| null`. Private, protected and static properties are left out, because `(array) $this` doesn't include them. A property typed as a class or an enum, such as a model, publishes as `unknown`, because the inline shape can't import it.
+An accessor or cast that returns this DTO publishes as `{ carrier: string; insured: boolean; trackingUrl: string | null }`. Nullable properties keep their `| null`. Private, protected and static properties are left out, because `(array) $this` doesn't include them. A property typed as an enum or a published model publishes that type, and the file imports it, so `public Status $status` publishes `status: StatusType`. A property whose class has or inherits a [`#[TsType]`](https://tolki.abe.dev/ts/custom-types.html) publishes that type, with its import.
+
+A promoted property with no `@var` takes its type from the constructor's `@param`, as PHPStan reads it. So a constructor documented `@param list<string> $stops` publishes its promoted `public array $stops` as `stops: string[]` instead of `unknown[]`.
 
 Optional is separate from nullable. A property that is neither promoted nor given a default value publishes as an optional key. Add `public string $summary;` to the class body above, assigned in the constructor, and it publishes as `summary?: string`. PHP leaves an unassigned typed property out of `(array) $this`, and the package can't tell whether the constructor always assigns it. To keep the key required, promote the property, or give it a default value on a DTO that isn't `readonly`. A `@return array{...}` docblock on `toArray()` always wins, so add one when the properties don't tell the whole story.
 
@@ -1673,20 +1791,20 @@ This only applies to `Arrayable`. A `JsonSerializable` DTO is typed from a `@ret
 
 This table indexes the annotations above by symptom, plus two cases from [API Resources](https://tolki.abe.dev/ts/api-resources.html). None of them needs `#[TsCasts]`, and PHPStan and Larastan read them all, so the annotation that fixes the TypeScript type is also checked by static analysis:
 
-| Still publishing `unknown`?                                                                                     | Add this                                                                                                                                              | Result                                                                                                                                                                                                                                              |
-| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Attribute<Collection, never>` publishes `unknown[]`, and the getter builds the value in a loop                 | Parameterize the generic: `Attribute<Collection<int, LineItem>, never>`, or `array{...}` for a fixed shape                                            | The element type (`LineItem[]`), imported automatically. Keys built in a loop can't be read from the getter body, so the generic is the fix                                                                                                         |
-| A bare `'array'` or `'collection'` cast with no shape anywhere else                                             | A class-level `@property` or `@property-read` tag, such as `@property array<string, mixed>\|null $settings`                                           | `Record<string, unknown> \| null`, or the tag's more specific type, instead of `unknown[] \| null`. See [Typing `array` Casts With `@property`](#typing-array-casts-with-property)                                                                  |
-| A JSON shape you want to name once and reuse                                                                    | `@phpstan-type Name array{...}` on the class that owns it, then `@phpstan-import-type Name from ThatClass` and `@property Name $prop` on the model    | The shape, expanded inline and checked by PHPStan, with no import of the DTO. See [Typing JSON Columns With `@phpstan-type` Aliases](#typing-json-columns-with-phpstan-type-aliases)                                                                |
-| An `AsEnumCollection` or `AsCollection` cast with no argument publishes `unknown[]`                             | Pass the mapped class: `AsEnumCollection::of(Status::class)`, `AsCollection::of(LineItemDto::class)`                                                  | The element's type, an enum or a DTO shape, as a list. See [Typing Castable-With-Arguments Casts](#typing-castable-with-arguments-casts)                                                                                                            |
-| A `morphTo()` publishes `unknown` because no model declares the matching `morphOne()` or `morphMany()`          | `@return MorphTo<A\|B, $this>` on the relation method                                                                                                 | The union, with every member imported. See [Typing `morphTo` Relations](#typing-morphto-relations)                                                                                                                                                  |
-| A `morphTo()` whose parents point at a subclass, or reach it through a `->using()` pivot                        | Nothing. The union includes both automatically                                                                                                        | The parent union. See [Parents Found Through a Subclass or a Custom Pivot](#parents-found-through-a-subclass-or-a-custom-pivot)                                                                                                                     |
-| An `Arrayable` DTO accessor or cast publishes `unknown[]`                                                       | Nothing. Typed public properties, promoted constructor properties included, are read automatically when `toArray()` has no `@return array{...}` shape | The DTO's property shape instead of `unknown[]`. See [DTO-Typed Accessors and Casts](#dto-typed-accessors-and-casts)                                                                                                                                |
+| Still publishing `unknown`?                                                                                     | Add this                                                                                                                                              | Result                                                                                                                                                                                                                     |
+| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Attribute<Collection, never>` publishes `unknown[]`, and the getter builds the value in a loop                 | Parameterize the generic: `Attribute<Collection<int, LineItem>, never>`, or `array{...}` for a fixed shape                                            | The element type (`LineItem[]`), imported automatically. Keys built in a loop can't be read from the getter body, so the generic is the fix                                                                                |
+| A bare `'array'` or `'collection'` cast with no shape anywhere else                                             | A class-level `@property` or `@property-read` tag, such as `@property array<string, mixed>\|null $settings`                                           | `Record<string, unknown> \| null`, or the tag's more specific type, instead of `unknown[] \| null`. See [Typing `array` Casts With `@property`](#typing-array-casts-with-property)                                         |
+| A JSON shape you want to name once and reuse                                                                    | `@phpstan-type Name array{...}` on the class that owns it, then `@phpstan-import-type Name from ThatClass` and `@property Name $prop` on the model    | The shape, expanded inline and checked by PHPStan, with no import of the DTO. See [Typing JSON Columns With `@phpstan-type` Aliases](#typing-json-columns-with-phpstan-type-aliases)                                       |
+| An `AsEnumCollection` or `AsCollection` cast with no argument publishes `unknown[]`                             | Pass the mapped class: `AsEnumCollection::of(Status::class)`, `AsCollection::of(LineItemDto::class)`                                                  | The element's type, an enum or a DTO shape, as a list. See [Typing Castable-With-Arguments Casts](#typing-castable-with-arguments-casts)                                                                                   |
+| A `morphTo()` publishes `unknown` because no model declares the matching `morphOne()` or `morphMany()`          | `@return MorphTo<A\|B, $this>` on the relation method                                                                                                 | The union, with every member imported. See [Typing `morphTo` Relations](#typing-morphto-relations)                                                                                                                         |
+| A `morphTo()` whose parents point at a subclass, or reach it through a `->using()` pivot                        | Nothing. The union includes both automatically                                                                                                        | The parent union. See [Parents Found Through a Subclass or a Custom Pivot](#parents-found-through-a-subclass-or-a-custom-pivot)                                                                                            |
+| An `Arrayable` DTO accessor or cast publishes `unknown[]`                                                       | Nothing. Typed public properties, promoted constructor properties included, are read automatically when `toArray()` has no `@return array{...}` shape | The DTO's property shape instead of `unknown[]`. See [DTO-Typed Accessors and Casts](#dto-typed-accessors-and-casts)                                                                                                       |
 | `$this->relation->only([...])` or `->except([...])` loses the related model's `#[TsCasts]` or `@property` types | Nothing. This is automatic when the relation resolves to a single model and every filtered key is a database column                                   | `Pick<Model, 'a' \| 'b'>`, which reuses the model's own interface. `except()` picks every other column. See [Relation Filters](https://tolki.abe.dev/ts/api-resources.html#relation-filters) on the API Resources page                              |
 | An accessor or relation is missing from an inlined `$this->relation->except([...])`                             | Name it: switch that key to `only([...])`, or give it its own entry in `toArray()`                                                                    | The key comes back. An inlined `except()` expands to database columns only, which matches what `Model::except()` returns at runtime. See [Relation Filters](https://tolki.abe.dev/ts/api-resources.html#relation-filters) on the API Resources page |
-| An accessor publishes `unknown[]` from a vague `Attribute<array, never>` or a bare `: array` getter             | Nothing. The getter body is read when the signature and the docblock are both vague                                                                   | The shape the getter returns. See [Accessor Getter Bodies](#accessor-getter-bodies)                                                                                                                                                                 |
-| A query-selected attribute (`selectRaw('… as rank')`) has no column, cast or accessor behind it                 | A class-level `@property` or `@property-read` tag naming it                                                                                           | The tag's type wherever a resource or another published type reads the attribute. The tag doesn't add the attribute to the model's own interface, which lists only what the schema and casts declare                                                |
-| A nullable docblock generic (`?Alias`, `Attribute<?array<int, int>, never>`) publishes `unknown`                | Nothing. A leading `?` is read as `\| null`                                                                                                           | The type with `\| null`. See [Nullable and Intersection Docblock Types](#nullable-and-intersection-docblock-types)                                                                                                                                  |
+| An accessor publishes `unknown[]` from a vague `Attribute<array, never>` or a bare `: array` getter             | Nothing. The getter body is read when the signature and the docblock are both vague                                                                   | The shape the getter returns. See [Accessor Getter Bodies](#accessor-getter-bodies)                                                                                                                                        |
+| A query-selected attribute (`selectRaw('… as rank')`) has no column, cast or accessor behind it                 | A class-level `@property` or `@property-read` tag naming it                                                                                           | The tag's type wherever a resource or another published type reads the attribute. The tag doesn't add the attribute to the model's own interface, which lists only what the schema and casts declare                       |
+| A nullable docblock generic (`?Alias`, `Attribute<?array<int, int>, never>`) publishes `unknown`                | Nothing. A leading `?` is read as `\| null`                                                                                                           | The type with `\| null`. See [Nullable and Intersection Docblock Types](#nullable-and-intersection-docblock-types)                                                                                                         |
 
 If a property still publishes `unknown`, open an issue on the [package's GitHub issue tracker](https://github.com/abetwothree/laravel-ts-publish/issues) with the PHP and the generated TypeScript.
 
@@ -1779,7 +1897,7 @@ To change how a type publishes everywhere, add it to `custom_ts_mappings`. Keys 
 
 To see which entry a cast, a column or a date follows, read [`custom_ts_mappings`](https://tolki.abe.dev/ts/configuration-reference.html#custom-ts-mappings) in the Configuration Reference.
 
-To change one property instead of every column of a type, use [`#[TsCasts]`](#tscasts) or [`#[TsType]`](#tstype).
+To change one property instead of every column of a type, use [`#[TsCasts]`](#tscasts) or [`#[TsType]`](https://tolki.abe.dev/ts/custom-types.html).
 
 ### Type Mapping Reference
 
@@ -1827,11 +1945,11 @@ The `unknown[]` collection row is the bare form. `AsEnumCollection::of(...)`, `A
 
 A parameterized docblock generic in `@return`, `@property` or `Attribute<>` publishes a more specific type, based on its key type. Every container behaves the same way for a given key type:
 
-| Key type             | Emitted                    | Containers                                            |
-| -------------------- | -------------------------- | ----------------------------------------------------- |
-| `int`, or omitted    | `X[]`                      | `list<X>`, `array<…>`, `iterable<…>`, `Collection<…>` |
-| `string`             | `Record<string, X>`        | `array<…>`, `iterable<…>`, `Collection<…>`            |
-| `array-key`, `mixed` | `X[] \| Record<string, X>` | `array<…>`, `iterable<…>`, `Collection<…>`            |
+| Key type                            | Emitted                    | Containers                                            |
+| ----------------------------------- | -------------------------- | ----------------------------------------------------- |
+| `int`, or omitted                   | `X[]`                      | `list<X>`, `array<…>`, `iterable<…>`, `Collection<…>` |
+| `string`                            | `Record<string, X>`        | `array<…>`, `iterable<…>`, `Collection<…>`            |
+| `int\|string`, `array-key`, `mixed` | `X[] \| Record<string, X>` | `array<…>`, `iterable<…>`, `Collection<…>`            |
 
 `list<X>` has no key type, so it always publishes as `X[]`. A container with no generic at all, such as a bare `Collection`, uses the [Arrays & Objects](#arrays--objects) table above instead.
 
@@ -2033,6 +2151,46 @@ Point `model_metadata.provider_class` at your class. The published config ships 
 
 Prefer a precise `@return array{...}` shape. PHPStan or Psalm checks the contract, and the package publishes the same shape. The published config names no classes of its own. Every `*_class` key, `provider_class` included, is a commented line that shows what you can swap, and the default applies in code.
 
+Your provider can inherit `provide()` from a base class, or take it from a trait. The package reads it as PHP runs it on the provider that `provider_class` names. `$this->` and `static::` reach that provider, and `self::` reaches the class that declares `provide()`, which for a trait is the class that uses it:
+
+```php
+abstract class BaseModelMetadataProvider implements ModelMetadataProvider
+{
+    public function provide(Model $model): array
+    {
+        return [
+            'morphClass' => (string) $model->getMorphClass(),
+            'channel' => $this->channel($model),
+        ];
+    }
+
+    protected function channel(Model $model): ?string
+    {
+        return null;
+    }
+}
+
+final class AppModelMetadataProvider extends BaseModelMetadataProvider
+{
+    protected function channel(Model $model): string
+    {
+        return $model->getTable().'.updates';
+    }
+}
+```
+
+With `provider_class` set to `AppModelMetadataProvider`, `channel` publishes the override's `string`, not the base class's `string | null`:
+
+```typescript
+export const UserModelMetadata = {
+  morphClass: "App\\Models\\User",
+  channel: "users.updates",
+} as const satisfies {
+  morphClass: string;
+  channel: string;
+};
+```
+
 ### How Each Key Is Typed
 
 Each returned key's TypeScript type comes from the first of these that applies:
@@ -2042,13 +2200,14 @@ Each returned key's TypeScript type comes from the first of these that applies:
 3. **The method body**: the package reads the returned array literal, with `$model` typed as its declared class. These need no annotation:
    - Scalars, casts such as `(string) …`, and nested inline arrays
    - Calls on `$model` whose Laravel signature or docblock declares a return type, such as `getTable()`, `getKeyName()`, `getRouteKeyName()` and `getMorphClass()`, which all publish as `string`
-   - Enum values, including a case written inline such as `'status' => Status::Active`, which import their `{Name}Type` alias from the generated enums, the same as a `#[TsCasts]` import would
+   - Enum values, including a case written inline such as `'status' => Status::Active`, which import their `{Name}Type` alias from the generated enums, the same as a `#[TsCasts]` import would. Two enums with the same class name are imported under aliases, such as `StatusType as CrmStatusType`, and so are their `{Name}Kind` aliases
+   - An `instanceof` test on `$model`, which narrows it where the test holds, and relation calls that the query answers, as in `$model instanceof Post ? $model->comments()->count() : null`, which publishes `number | null`
 
-   When the body's type for a key still contains `unknown`, the package ignores it, and the key needs a docblock or `#[TsCasts]` type. A helper with no declared return type, such as `private function tableFor($model)`, is that case.
+   When the body's type for a key still contains `unknown`, the package ignores it, and the key needs a docblock or `#[TsCasts]` type. A helper with no declared return type, such as `private function tableFor($model)`, is that case. Inside a ternary or another union, a value the body can't type is left out instead, as in an API resource. See [Values Left Out of a Union](https://tolki.abe.dev/ts/api-resources.html#values-left-out-of-a-union).
 
 Marking a key optional decides whether the payload has to return it, not how the key is written once it's returned. The `satisfies` type lists exactly the keys the payload returned, each one required.
 
-Two kinds of value always need `#[TsCasts]`. The first is a class or enum named in the docblock, because a docblock string carries no import path. The second is any value typed as a model or a resource. A metadata value doesn't have to match either interface, so the package never imports one for it.
+An enum named in the docblock is imported from the generated enums, at any depth, so `pair: array{role: Role}` publishes `pair: { role: RoleType }`. So is one named in a `#[TsCasts]` entry with no `import`, when the key's value holds that enum. Two kinds of value still need a `#[TsCasts]` entry with an `import`. The first is any other class the docblock names at any depth, such as a model or an API resource, because a docblock string carries no import path. The second is a model or a resource the method body returns, because a metadata value doesn't have to match either interface, so the package never imports one for it. Without the entry, the companion fails, and the error names the model, the key and its type.
 
 Every returned key must end up with a type, and every required key must be returned. Otherwise the companion fails, and the error names the model and the keys.
 
@@ -2225,8 +2384,8 @@ export interface WarehouseResource {
 The package types most properties from the resource's backing Eloquent model, using its database columns, casts, accessors, and relations. It looks for that model in this order:
 
 1. The `#[TsResource(model: User::class)]` attribute.
-2. A `@mixin` or `@extends` tag in the resource's own docblock. The class name resolves through the file's `use` imports.
-3. The nearest parent class whose docblock has a `@mixin` or `@extends` tag.
+2. A `@mixin`, `@extends`, or `@property … $resource` tag in the resource's own docblock. The class name resolves through the file's `use` imports.
+3. The nearest parent class whose docblock has one of those tags.
 4. A `$resource` property redeclared with a `@var` type, such as `/** @var User */ public $resource;`.
 5. Laravel's naming convention in reverse, so `App\Http\Resources\UserResource` maps to `App\Models\User`.
 6. A model whose `#[UseResource(UserResource::class)]` attribute names the resource. This attribute needs Laravel 12.29 or later.
@@ -2237,9 +2396,48 @@ Step 3 lets a subclass use its parent's model without repeating the docblock, wh
 
 If no model resolves, a property read from the model, such as `$this->id`, publishes `unknown`.
 
-`$this->resource` holds the backing model, so a key that returns it whole publishes the model's interface. `'post' => $this->resource` publishes `post: Post`. If the resource redeclares `$resource` as nullable, such as `/** @var Post|null */ public $resource;` or `?Post`, the key keeps that `null`: `post: Post | null`.
+`$this->resource` holds the backing model, so a key that returns it whole publishes the model's interface. `'post' => $this->resource` publishes `post: Post`. If the resource declares `$resource` as nullable, such as `/** @var Post|null */ public $resource;`, `?Post`, or `@extends JsonResource<Post|null>`, the key keeps that `null`: `post: Post | null`.
 
 A `ResourceCollection` is backed by no model, whatever its docblock or `#[TsResource(model:)]` names, because its `$this->resource` holds the collected items. A model read in a collection, such as `$this->title`, publishes `unknown`. See [Reading `$this->resource`](#reading-this-resource).
+
+#### Resources That Wrap Other Classes
+
+A resource can wrap a class that isn't a model, such as a value object. Name the class in an `@extends JsonResource<X>`, `@mixin X`, or `@property X $resource` tag, or redeclare `$resource` with `@var X`. Reads through `$this->resource` and through the resource itself then take the types that class declares:
+
+```php
+/**
+ * @extends JsonResource<PostStats>
+ */
+class StatsSummaryResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'views' => $this->resource->views,
+            'shares' => $this->shares,
+            'summary' => $this->summary(),
+        ];
+    }
+}
+```
+
+`PostStats` declares `public float $views`, `public int $shares`, and `summary(): string`, so the resource publishes:
+
+```typescript
+export interface StatsSummaryResource {
+  views: number;
+  shares: number;
+  summary: string;
+}
+```
+
+A tag that names a class other than a model stops the naming-convention and `#[UseResource]` guesses, because the resource doesn't wrap a model. The guess stands only when the guessed model is an instance of the class the tag names, such as `@mixin Arrayable`, an interface every model implements. `#[TsResource(model:)]` always wins over the tag.
+
+A tag that names no class the package can load, such as an IDE helper's `@mixin IdeHelperPost`, is skipped, and so is one that names `Model` itself or the `Eloquent` alias. The model the other steps find still applies.
+
+A tag can also name an intersection of a model and an interface it implements. With `@extends JsonResource<Post&HasLabel>`, `$this->title` reads the `Post` column and `$this->label()` reads the method `HasLabel` declares, so both publish `string`.
+
+A subclass that redeclares `$resource` with its own `@var` decides what an inherited `toArray()` reads, because PHP has only one `$resource` property.
 
 ### Supported `toArray()` Patterns
 
@@ -2263,9 +2461,9 @@ name: string;
 status: StatusType;
 ```
 
-`$this->resource->name` reads the same attribute, so it publishes the same type. A property you declare on the resource class itself, such as a promoted constructor parameter, takes its type from that declaration. It wins over a model attribute with the same name, as it does in PHP.
+`$this->resource->name` reads the same attribute, so it publishes the same type. A property you declare on the resource class itself, such as a promoted constructor parameter, takes its type from that declaration. It wins over a model attribute with the same name, as it does in PHP. A `@var` docblock on the property names classes through the imports of the file that declares it, so a property a trait declares uses the trait's imports. A promoted property with no `@var` takes its type from the constructor's `@param`, as PHPStan reads it.
 
-An untyped property that nothing in the class, its parents, or its traits writes takes its default's type, so `protected $stage = Status::Draft;` publishes `StatusType`. A protected or private one declared without a value, such as `protected $name;`, publishes `null`.
+An untyped property publishes its default's type joined with each value the resource, its parents, its traits, or its children write to it, so `protected $stage = Status::Draft;` publishes `StatusType`, and a protected or private one declared without a value, such as `protected $name;`, publishes `null`. Writes include element writes and writes inside a closure, typed by the closure's parameters and `use` imports, so `protected $sizes = ['small' => 1];` extended by `$this->sizes['large'] = 2;` publishes `{ small: number; large?: number }`. A write in a trait method the resource overrides doesn't count. The property publishes `unknown` when a write is a value from an untyped parameter, a by-reference call such as `sort($this->sizes)`, or an `unset()` of the whole property.
 
 #### Conditional Methods
 
@@ -2316,6 +2514,8 @@ For `whenNotNull()` and `whenNull()`, the second argument is that default value,
 'discount' => $this->whenNotNull($this->discount_percent, 0), // discount: number
 ```
 
+A closure or a first-class callable is never `null`, so `whenNotNull()` always includes the key and sends what the call returns, `null` included. Over a nullable `rating` column, `'rating' => $this->whenNotNull(fn () => $this->rating)` publishes `rating: string | null`.
+
 A default of the value's own type makes the property required without widening it. A default of another type, such as a string fallback for a number column, publishes a union of both.
 
 An explicit `null` counts as a default, because Laravel checks whether you passed the argument, not what it holds. So `$this->whenLoaded('user', fn ($user) => $user, null)` is required, and it publishes `User | null` instead of `User`.
@@ -2357,11 +2557,11 @@ When you pass a closure as the value, its first parameter holds whatever Laravel
 | `whenExistsLoaded()`                                              | The relation's `{relation}_exists` flag, a `boolean`                                                                                                             |
 | `whenCounted()`, and `whenAggregated()` with the `count` function | The count, a `number`                                                                                                                                            |
 | `whenAggregated()` with any other function                        | The aggregate, never `null`                                                                                                                                      |
-| `transform()`                                                     | The value you pass as its first argument                                                                                                                         |
-| `when()`, `unless()`                                              | No value, since Laravel passes none. A closure that requires a parameter throws `ArgumentCountError` whenever Laravel calls it, and `ts:publish` warns about it. |
+| `transform()`                                                     | The value you pass as its first argument, without `null`, since Laravel calls the closure only for a filled value                                                |
+| `when()`, `unless()`, `whenNotNull()`                             | No value, since Laravel passes none. A closure that requires a parameter throws `ArgumentCountError` whenever Laravel calls it, and `ts:publish` warns about it. |
 | `whenAppended()`                                                  | No value, since Laravel passes none                                                                                                                              |
 
-When Laravel passes no value, a parameter with a default holds that default's type.
+When Laravel passes no value, a parameter with a default holds that default's type. A default that builds a model holds that model, so `fn ($post = new Post) => $post->author?->name` publishes `string | null`.
 
 The closure's return type becomes the property's type:
 
@@ -2370,7 +2570,7 @@ The closure's return type becomes the property's type:
 'has_comments' => $this->whenExistsLoaded('comments', fn ($exists) => $exists), // has_comments?: boolean
 ```
 
-Here `author` is a relation that can't load `null`. When a relation is loaded as `null`, Laravel returns `null` without calling the closure, so a relation that can load `null` publishes `author_name?: string | null`. A `whenAggregated()` closure works the same way when its function is a string literal other than `'count'`, because SQL returns `NULL` for that aggregate over no rows. So `fn ($max) => ['max' => $max]` publishes `{ max: number } | null`, unless an accessor or `@property` on your model types the attribute without `null`. See [Nullable Relations](#nullable-relations) for which relations can load `null`.
+Here `author` is a relation that can't load `null`. When a relation is loaded as `null`, Laravel returns `null` without calling the closure, so a relation that can load `null` publishes `author_name?: string | null`. A `whenAggregated()` closure works the same way when its function is a string literal other than `'count'`, because SQL returns `NULL` for that aggregate over no rows. So `fn ($max) => ['max' => $max]` publishes `{ max: number } | null`, unless an accessor or `@property` on your model types the attribute without `null`. A closure that hands the relation to a resource's `collection()` adds `| null` only for a to-one relation that can load `null`. See [Nullable Relations](#nullable-relations) for which relations can load `null`.
 
 ##### `whenHas()`, `whenAppended()`, and `whenExistsLoaded()` Type From the Value You Pass
 
@@ -2399,7 +2599,17 @@ export interface PostResource {
 }
 ```
 
-When the package can't type the value of `whenHas()` or `whenAppended()`, the property publishes `unknown`, not the attribute's type, because the value replaces the attribute in the response. `json_decode()` returns `mixed`, and a plain title decodes to `null`, so `title_unresolvable` is `unknown`. To type it, give the closure a native return type: `fn ($title): ?string => json_decode($title)` publishes `string | null`. A `@return` docblock on the closure doesn't type it.
+When the package can't type the value of `whenHas()` or `whenAppended()`, the property publishes `unknown`, not the attribute's type, because the value replaces the attribute in the response. `json_decode()` returns `mixed`, and a plain title decodes to `null`, so `title_unresolvable` is `unknown`. To type it, give the closure a native return type, or a `@return` docblock written just before the closure:
+
+```php
+'title_typed' => $this->whenHas('title', fn ($title): ?string => json_decode($title)),
+'title_documented' => $this->whenHas('title',
+    /** @return string|null */
+    fn ($title) => json_decode($title),
+),
+```
+
+Both properties publish `string | null`, and both stay optional. The package reads the docblock only on a closure with no native return type, and ignores a vague one, such as `@return mixed`. A docblock written before the whole call, or above the array item, describes the call's value rather than the closure, so it isn't read. To type the key itself, use [`#[TsCasts]`](#overriding-property-types-with-tscasts).
 
 `whenExistsLoaded()` keeps `boolean` for a value it can't type. Without a value argument, `whenHas('phone')` types from its column, and `whenExistsLoaded('user')` publishes `boolean`.
 
@@ -2608,6 +2818,23 @@ visibility_from_helper: AsEnum<typeof Visibility> | null;
 
 Wrapping a conditional value, as in `EnumResource::make($this->whenHas('status'))`, makes the property optional, as the conditional method alone would.
 
+`EnumResource::make(Status::tryFrom($value))` adds `| null`, because `tryFrom()` returns `null` for a value that matches no case. A `map()` that wraps each element is different: kept as a collection, it sends `[]` for an element whose enum is `null`. Laravel turns an empty `EnumResource` into `null` only inside an array, so end the chain with `->all()` to get `null` instead:
+
+```php
+'roles' => $this->members
+    ->map(fn (User $user) => EnumResource::make($user->role)),
+'role_list' => $this->members
+    ->map(fn (User $user) => EnumResource::make($user->role))
+    ->all(),
+```
+
+The two keys publish what each sends for a member with no role:
+
+```typescript
+roles: (AsEnum<typeof Role> | never[])[];
+role_list: (AsEnum<typeof Role> | null)[];
+```
+
 A ternary that wraps only one of its arms keeps both shapes. The property publishes a union, with the import each side needs, even inside an inline array:
 
 ```php
@@ -2712,6 +2939,8 @@ $this->merge(function () {
 
 The closure publishes `user_name?: string` and `user_email?: string`.
 
+A closure can also build its array in a variable and return it. The merge then publishes the keys that the variable's writes set, as [Building the Array in a Variable](#building-the-array-in-a-variable) describes. If an `unset()` that the package can't follow may remove one of its keys, the merge adds none of them. A variable the closure assigns is its own, even when the method has one with the same name.
+
 A merge can also take the resource's own model, `$this->resource`, or a call to one of the resource's methods, such as `$this->labelFields()`, passed as it is or returned from a closure:
 
 ```php
@@ -2743,19 +2972,78 @@ A closure or an arrow function in value position is typed from what it returns:
 }),
 ```
 
-This works wherever a value goes, including `when()`, `whenLoaded()`, `whenNotNull()`, `merge()`, and `mergeWhen()`.
+This works wherever a value goes, including `when()`, `whenLoaded()`, `whenNotNull()`, `merge()`, and `mergeWhen()`. When the package can't type what a closure returns, the closure's native return type types the value, and so does a `@return` docblock on a closure with no native return type, as [`whenHas()`, `whenAppended()`, and `whenExistsLoaded()`](#whenhas-whenappended-and-whenexistsloaded-type-from-the-value-you-pass) shows.
 
-A first-class callable, such as `$this->label(...)` or `UserResource::make(...)`, creates a closure. Where Laravel calls the value, as `when()`, `whenLoaded()` and the other conditional methods do, it publishes what the call returns:
+A closure that builds an array in a variable and returns it publishes the keys its writes set, as [Building the Array in a Variable](#building-the-array-in-a-variable) describes:
 
 ```php
-'label' => $this->when($request->has('label'), $this->label(...)),        // label?: string
-'supervisor' => $this->whenLoaded('supervisor', UserResource::make(...)), // supervisor?: UserResource | null
-'length' => strlen(...),                                                  // length: Record<string, never>
+'summary' => $this->when($this->published_at !== null, function () {
+    $summary = ['id' => $this->id];
+
+    if ($this->is_pinned) {
+        $summary['flag'] = 'pinned';
+    } else {
+        $summary['flag'] = 0;
+    }
+
+    return $summary;
+}),
+```
+
+The property publishes `summary?: { id: number; flag: string | number }`.
+
+A first-class callable, such as `$this->label(...)` or `UserResource::make(...)`, creates a closure. Where Laravel calls the value, as `when()`, `whenLoaded()`, `mergeWhen()` and the other conditional methods do, it publishes what the call returns, whether you pass the callable directly or through a local:
+
+```php
+public function toArray(Request $request): array
+{
+    $label = $this->label(...);
+
+    return [
+        'label' => $this->when($request->has('label'), $label),                  // label?: string
+        'supervisor' => $this->whenLoaded('supervisor', UserResource::make(...)), // supervisor?: UserResource | null
+        'length' => strlen(...),                                                  // length: Record<string, never>
+        $this->mergeWhen($request->has('stats'), $this->statFields(...)),         // views?: number
+    ];
+}
+
+/** @return array{views: int} */
+public function statFields(): array
+{
+    return ['views' => 1];
+}
 ```
 
 As a plain value, nothing calls it, and Laravel sends the `Closure` as `{}`, so a first-class callable there, like `length` above, publishes `Record<string, never>`. `ts:publish` warns about such a callable and names its line. Call the function instead, as in `'length' => strlen($this->name)`.
 
-`ts:publish` doesn't analyze a class again while the [generation cache](https://tolki.abe.dev/ts/generating-cache.html) holds it, so a warning may not repeat on the next run. Run `php artisan ts:publish --fresh` to list every warning.
+#### Values Left Out of a Union
+
+When the package can't type one value of a union, it leaves that value out and publishes the others. Here `opaqueTags()` and `opaqueNote()` declare no return type and return something the package can't type:
+
+```php
+'tags' => $this->is_published ? $this->opaqueTags() : [],   // tags: never[]
+'note' => $this->is_published ? $this->opaqueNote() : null, // note: null
+```
+
+The same happens to a `??`, a `match`, a write to a closure's or helper's parameter inside a block, and a key that one branch of a returned array writes, where the writes join, as [Local Variables and Narrowing](#local-variables-and-narrowing) describes. Some unions widen to `unknown` instead, such as a method you read as a value when one of its returns can't be typed.
+
+When what's left is only `null`, an empty array, or both, the published type claims the value is always that. `ts:publish` prints a warning after its summary, naming the class, the line, and the value it left out:
+
+```text
+App\Http\Resources\PostResource: The value on line 24 publishes `never[]`, an array that is always empty, because `$this->opaqueTags()` could not be typed and was left out of its union. Give what it reads a return type or a `@return` docblock.
+```
+
+For a value left as `null`, the message reads "publishes `null`, as if it were always null", and for both, "publishes `null | never[]`, as if it were always null or an empty array".
+
+A ternary or a `??` that leaves out a value beside a typed one raises no warning. A value left out where a parameter's writes, a returned array's branches, a merge's two sides or a spread helper's returns join raises one, because the published type may not cover everything Laravel sends:
+
+```text
+App\Http\Resources\PostResource: The value on line 31 leaves out `$this->opaqueTitle()`, which could not be typed, so its published type may not admit every value it sends. Give what it reads a return type or a `@return` docblock.
+```
+
+Give the method a return type or a `@return` docblock, and its value joins the union again. An inline [`@var`](#typing-a-variable-with-var) that types the variable also removes the warning. `--quiet` hides every warning.
+
+`ts:publish` doesn't analyze a class again while the [generation cache](https://tolki.abe.dev/ts/generating-cache.html) holds it. A class the cache serves prints none of these warnings, nor the first-class callable warning above, so run `php artisan ts:publish --fresh` to see every one.
 
 ### Method Calls, Variables, and Collections
 
@@ -2763,7 +3051,7 @@ Values you compute in `toArray()` get types too: method calls, property reads on
 
 #### Method Return Types
 
-A method call takes its type from the called method's signature: its native return type, or its `@return` docblock when the native type is missing or vague. This works for calls on enum casts, date casts, models, Eloquent collections, value objects, and services resolved from the container:
+A method call takes its type from the called method's signature: its native return type, or its `@return` docblock when the native type is missing or vague. When a method has more than one of `@phpstan-return`, `@psalm-return`, and `@return`, the package reads them in that order, as PHPStan does, and a vague one, such as `array<string, mixed>`, yields to a precise one. This works for calls on enum casts, date casts, models, Eloquent collections, value objects, and services resolved from the container:
 
 ```php
 public function toArray(Request $request): array
@@ -2796,6 +3084,8 @@ export interface PostResource {
 ```
 
 A property read works the same way. Once `$post` holds a `Post`, `$post?->author?->name` publishes `string | null`. A value object's public property takes its declared type, so `$this->stats?->views` publishes `number | null`. A `?->` adds `| null` to the result once, however many steps use it.
+
+A model or an enum named in a `@return` shape keeps its type at any depth, and the file imports it. A method documented `@return array{owner: User, count: int}` publishes `{ owner: User; count: number }`, whether you call it on the resource, on a service, or statically. Two kinds of shape publish each model and enum in them as `unknown`: one that also names another class, such as an API resource, and one that spells a class's name as a string literal or a key, as in `array{kind: 'User', owner: User}`.
 
 When the declaration says too little, as with no return type, `mixed`, or a bare `array`, the method's own `return` statements set the type:
 
@@ -2844,9 +3134,11 @@ public function total(): mixed
 }
 ```
 
-`$this->resource->total()` calls the model's method directly, so it publishes the model's type. When neither the resource method's declaration nor its body types the call, the key publishes `unknown`, never the model method's type. Give the method a return type to fix it. The same holds for a `$resource` redeclared as a class other than a model, such as `/** @var CartTotals */ public $resource;`. If `CartTotals` doesn't declare the method you call, the key publishes `unknown`, because Laravel throws there.
+`$this->resource->total()` calls the model's method directly, so it publishes the model's type. When neither the resource method's declaration nor its body types the call, the key publishes `unknown`, never the model method's type. Give the method a return type to fix it. The same holds for a resource that [wraps a class other than a model](#resources-that-wrap-other-classes), such as one declared with `@extends JsonResource<CartTotals>` or `/** @var CartTotals */ public $resource;`. If `CartTotals` doesn't declare the method you call, the key publishes `unknown`, because Laravel throws there.
 
 Some of Laravel's own methods declare loose types, so the package reads the model instead. `getKey()` publishes the model's key type, `number` or `string`, and `modelKeys()` publishes a list of it. That's why `comment_ids` above is `number[]`. `resolveRouteBinding()` publishes the model you call it on, or `null`, so `$this->author?->resolveRouteBinding($this->user_id)` publishes `User | null`.
+
+`getAttribute()` and `getAttributeValue()` with a literal name publish what reading the attribute as a property would. On a `Post` resource, `$this->getAttribute('title')` and `$this->resource->getAttributeValue('title')` publish `string`, as `$this->title` does, and `$this->resource->getAttribute('author')` publishes the relation's type, `User`. That works on a relation's model and a closure parameter too, so `$this->whenLoaded('author', fn ($author) => $author->getAttribute('name'))` publishes `string` as an optional property. A name the model doesn't declare publishes `unknown`, and so does a relation read through `getAttributeValue()`, which returns no relation.
 
 `getKey()` publishes the key type on any model the package can name, including one a variable holds, such as a `whenLoaded()` closure parameter, a `map()` element, or a helper's `Post $post` parameter. So `$this->comments->map(fn ($comment) => $comment->getKey())` publishes `number[]`.
 
@@ -2862,20 +3154,65 @@ A model that no database row backs yet has no key, so its `getKey()` adds `| nul
 
 A call that returns the same model, such as `(new Post)->fill([...])`, keeps the `| null`. A helper's `Post $post` parameter adds it only where the call passes a model no row backs yet. The package doesn't follow `save()`, so a model you save after `new` still publishes `number | null`. On a model whose `$primaryKey` is `null`, `getKey()` publishes `null`.
 
+A model you build with `new` and no attributes holds no columns either, so Laravel sends `null` for each one, and a column read on it adds `| null`. `(new Post)->title` publishes `string | null`. A column you set keeps its type, whether you pass it to the constructor, `fill()` it, or write it, as in `$post->title = 'Draft'`. So does every column of a model from `replicate()`, `firstOrNew()` or a factory's `make()`. A relation, an accessor, and a column your model's `$attributes` gives a default publish their types as usual.
+
 On an abstract model, `getKey()` publishes the key type the class declares, through `$keyType`, `HasUuids`, `HasUlids` or Laravel 13's `#[Table]`, joined with the key type of each published model that extends it. So a base whose subclasses key by integer and by UUID publishes `number | string`. When the abstract model works its key out in code, such as in an overridden `getKeyType()`, `getKey()` publishes `unknown`.
 
 `getAuthIdentifier()` on an authenticatable model publishes the type of the column the model identifies users by. That's the key type, or the type of the column a literal `getAuthIdentifierName()` returns, so a model whose `getAuthIdentifierName()` returns `'email'` publishes `string`. A model no row backs yet adds `| null`, and a model that overrides `getAuthIdentifier()` publishes the return type it declares.
 
 A method that returns a plain PHP `DateTime` or `DateTimeImmutable` publishes `{ date: string; timezone_type: number; timezone: string }`, the object `json_encode()` writes for it. A Carbon date publishes `string`, or `Date` under `timestamps_as_date`, and so do the `now()` and `today()` helpers, which return one. A `DateTimeInterface` can hold either kind, so it publishes the Carbon date's type or that object, and a `CarbonPeriod` publishes a list of the Carbon date's type. A `CarbonInterval` publishes the `DateInterval` fields `json_encode()` writes for it, such as `y`, `m`, `d` and `days`. `str($value)` publishes `string`, and `str()` with no argument publishes `Record<string, never>`. `url($path)` publishes `string` when the path can't be `null`, and `unknown` when it can or has no type.
 
-A value built in place publishes what `json_encode()` writes for it as well, so `new DateTime()` publishes that date object and `new RuntimeException('x')` publishes `Record<string, never>`. `new Collection($items)` publishes as `collect($items)` does. These values stay `unknown` when built in place:
+A value built in place publishes what `json_encode()` writes for it as well, so `new DateTime()` publishes that date object and `new RuntimeException('x')` publishes `Record<string, never>`. `new Collection($items)` publishes as `collect($items)` does. `new stdClass`, and a method declared to return `stdClass`, publish `Record<string, unknown>`, because a `stdClass` can gain properties at run time.
+
+These values stay `unknown` when built in place:
 
 - An `Arrayable` or a `Responsable`
 - An Inertia `ProvidesInertiaProperty` class
 - A model
-- A class with no public property and no `__toString()`, such as `stdClass`
+- A class with no public property and no `__toString()`
 
-Type such a key with [`#[TsCasts]`](#overriding-property-types-with-tscasts).
+Type such a key with [`#[TsCasts]`](#overriding-property-types-with-tscasts), or give the class a [`#[TsType]`](https://tolki.abe.dev/ts/custom-types.html). A `new` of a class that has or inherits one publishes that type, unless the class is a model.
+
+`array_values()` keeps the element type and publishes a list. An `(object)` cast publishes the object `json_encode()` writes: a shape keeps its keys, a list becomes a `Record` keyed by its indexes, and `(object) []` publishes `Record<string, never>`. An `(array)` cast of an array keeps the array's type:
+
+```php
+public function toArray(Request $request): array
+{
+    return [
+        'tags' => array_values(array_filter($this->tags())),
+        'count_list' => array_values($this->tagCounts()),
+        'tag_counts' => (object) $this->tagCounts(),
+        'tag_object' => (object) $this->tags(),
+        'size' => (object) ['width' => 640, 'label' => 'large'],
+        'counts' => (array) $this->tagCounts(),
+    ];
+}
+
+/** @return list<string> */
+private function tags(): array
+{
+    return explode(',', $this->title);
+}
+
+/** @return array<string, int> */
+private function tagCounts(): array
+{
+    return array_count_values($this->tags());
+}
+```
+
+Each key publishes the list or object PHP sends:
+
+```typescript
+export interface PostTagsResource {
+  tags: string[];
+  count_list: number[];
+  tag_counts: Record<string, number>;
+  tag_object: Record<string, string>;
+  size: { width: number; label: string };
+  counts: Record<string, number>;
+}
+```
 
 A method that returns the base `Model` class, `Illuminate\Foundation\Auth\User`, an abstract model, or a model that isn't published, such as one in `models.excluded`, publishes `unknown`, because no published file has a type for it. Declare the concrete model as the return type, such as `: Order`, to type the value.
 
@@ -2921,12 +3258,13 @@ Outside a resource, such as in an Inertia page prop, `tiers` publishes `{ "1": s
 
 A `?array` declaration keeps its `null`, so the method publishes the shape `| null`. An `array|false` declaration keeps its `false` the same way.
 
-What the body reads from the method's parameters is typed too, whether you use its result as a value or spread it. Each parameter holds its declared type, from the signature, or from a `@param` tag when the signature's type is missing or vague, such as `array`. A parameter with no type, or only `mixed`, holds what each call passes. A closure you pass is the exception: in `$this->hold(fn () => 5)`, the parameter holds `unknown`, because a resource sends a closure as `{}`. A first-class callable that Laravel calls gets the value Laravel calls it with, as in `whenLoaded()`:
+What the body reads from the method's parameters is typed too, whether you use its result as a value or spread it. Each parameter holds its declared type, from the signature, or from a `@param` tag when the signature's type is missing or vague, such as `array`. A parameter with no type, or only `mixed`, holds what each call passes, and a collection you pass keeps its model, so a read such as `$comments->first()?->content` is typed. A closure you pass is the exception: in `$this->hold(fn () => 5)`, the parameter holds `unknown`, because a resource sends a closure as `{}`. A first-class callable that Laravel calls gets the value Laravel calls it with, as in `whenLoaded()`:
 
 ```php
 'card' => $this->card($this->resource),                              // card: { id: number; title: string }
 'author_card' => $this->authorCard($this->author),                    // author_card: { name: string }
 'loaded_card' => $this->whenLoaded('author', $this->authorCard(...)), // loaded_card?: { name: string }
+'first_comment' => $this->firstContent($this->comments),             // first_comment: { first: string | null }
 
 private function card(Post $post): array
 {
@@ -2936,6 +3274,11 @@ private function card(Post $post): array
 private function authorCard($author): array
 {
     return ['name' => $author->name];
+}
+
+private function firstContent($comments): array
+{
+    return ['first' => $comments->first()?->content];
 }
 ```
 
@@ -2950,40 +3293,94 @@ private function contents(): array
 }
 ```
 
-If one `return` can't be typed, or the method yields, the property publishes `unknown`.
-
-When you use the method's result as a value, a value in the array that is an enum or a model publishes `unknown`, because a method body can't supply the import it needs. The rest of the shape keeps its types. Spreading the same method keeps an enum's type. To type that value, build the array in `toArray()` itself, or override the property with [`#[TsCasts]`](#overriding-property-types-with-tscasts) and a type your frontend exports, as in `['type' => 'StatusPayload', 'import' => '@/types/payloads']`. An entry imports only a type it names whole, so a type named inside a shape you write in the entry isn't imported.
-
-A model's own `toArray()`, called as a value, publishes `Record<string, unknown>`, because the relations it includes depend on what's loaded at runtime. A relation's collection, as in `$this->comments->toArray()`, publishes `Record<string, unknown>[]`. To publish the model's keys, spread it instead, as [Model `toArray()` Spread](#model-toarray-spread) shows.
-
-An `only()` or `except()` call names no class, so its result keeps its shape:
-
-- A literal key list publishes its inline shape, with any enum- or model-typed member left `unknown`.
-- A runtime key list publishes `Record<string, unknown>`.
-- A to-many relation publishes `unknown[]`.
-
-The same applies when the method reads an accessor whose getter calls `only()` or `except()`. A model that overrides `only()` or `except()` with a declared return type publishes that type instead. A model return, such as `: static`, becomes an object with the model's columns and appended accessors, narrowed to the literal keys. An enum or other class return leaves the value `unknown`.
-
-This `Comment` method shows each case:
+The pipeline can also start at a relation of a model parameter, at a query's `get()`, or at a local holding either:
 
 ```php
-// On Comment, read from a resource as 'summary' => $this->relationSummary()
-public function relationSummary(): array
+final class CommentRowsService
+{
+    public function forPost(Post $post): array
+    {
+        return $post->comments->map(fn ($comment) => ['id' => $comment->id])->values()->all();
+    }
+
+    public function unflagged(): array
+    {
+        $rows = Comment::query()->where('is_flagged', false)->get();
+
+        return $rows->map(fn ($comment) => ['id' => $comment->id])->all();
+    }
+}
+
+// in toArray():
+'post_rows' => resolve(CommentRowsService::class)->forPost($this->resource), // post_rows: { id: number }[]
+'unflagged_rows' => resolve(CommentRowsService::class)->unflagged(),        // unflagged_rows: { id: number }[]
+```
+
+A method that builds its array in a variable and returns it publishes the keys its writes set. Beside a `return` of another array, each `return` is one shape of a union:
+
+```php
+'summary' => $this->summary($request), // summary: { id: number } | { id: number; title: string }
+
+private function summary(Request $request): array
+{
+    if ($request->boolean('short')) {
+        return ['id' => $this->id];
+    }
+
+    $data = ['id' => $this->id];
+    $data['title'] = $this->title;
+
+    return $data;
+}
+```
+
+If one `return` can't be typed, or the method yields, the property publishes `unknown`.
+
+When you use the method's result as a value, its array publishes what the same expressions publish in `toArray()`. That includes models, API resources, and enums, and the file imports what they name. One value differs. A backed enum case you write out, such as `PostStatus::Draft`, publishes the value it sends, `0`, instead of the enum's alias. A list of such cases publishes a list of their values, such as `(0 | 1)[]`.
+
+Here a `Post` casts `status` to the int-backed `PostStatus` enum, whose cases are `Draft = 0` and `Published = 1`, and `author` is a `BelongsTo` relation whose foreign key isn't nullable. The resource uses `card()` as a value:
+
+```php
+public function toArray(Request $request): array
 {
     return [
-        'id' => $this->id,
-        'author' => $this->user->only(['id', 'name']),
-        'author_role' => $this->user?->only(['id', 'role']),
-        'replies' => $this->replies->only([1, 2]),
+        'card' => $this->card(),
+    ];
+}
+
+private function card(): array
+{
+    return [
+        'author' => $this->author,
+        'status' => $this->status,
+        'status_resource' => EnumResource::make($this->status),
+        'first_status' => PostStatus::Draft,
     ];
 }
 ```
 
-The `role` column is an enum, so it's left `unknown`, and the to-many `replies` publishes `unknown[]`:
+Each member keeps its type, and `first_status` publishes the case's value:
 
 ```typescript
-summary: { id: number; author: { id: number; name: string }; author_role: { id: number; role: unknown } | null; replies: unknown[] };
+import { type AsEnum } from "@tolki/ts";
+
+import { PostStatus } from "../../enums";
+import type { PostStatusType } from "../../enums";
+import type { User } from "../../models";
+
+export interface PostCardResource {
+  card: {
+    author: User;
+    status: PostStatusType;
+    status_resource: AsEnum<typeof PostStatus>;
+    first_status: 0;
+  };
+}
 ```
+
+Written in `toArray()` itself, or spread with `...$this->card()`, `first_status` publishes `PostStatusType`.
+
+A model's own `toArray()`, called as a value, publishes `Record<string, unknown>`, because the relations it includes depend on what's loaded at runtime. A relation's collection, as in `$this->comments->toArray()`, publishes `Record<string, unknown>[]`. To publish the model's keys, spread it instead, as [Model `toArray()` Spread](#model-toarray-spread) shows.
 
 ##### Resource Macros
 
@@ -3000,7 +3397,7 @@ JsonResource::macro('label', function (): string {
 'model_label' => $this->resource->label(), // model_label: number
 ```
 
-`$this->resource->label()` calls the model directly, so it keeps the model's type. `$this?->label()`, `static::label()`, `self::label()` and `$this::label()` reach the macro, as `$this->label()` does. A method the resource declares or inherits, such as `whenLoaded()`, runs before any macro with its name, so a macro never changes it.
+`$this->resource->label()` calls the model directly, so it keeps the model's type. `$this?->label()`, `static::label()`, `self::label()` and `$this::label()` reach the macro, as `$this->label()` does. A method the resource declares or inherits, such as `whenLoaded()`, runs before any macro with its name, so a macro doesn't change it. In a parent resource's body, `self::label()` looks only at that parent: if the parent doesn't declare `label()`, the macro runs even when the child declares one, and the key publishes the macro's type.
 
 The package types a macro from its native return type, then its `@return` docblock, then its body. It reads the body without the values the call passes, so a body whose result depends on its arguments publishes `unknown`. It doesn't read the body of a closure declared outside a class method, such as in `bootstrap/app.php`. To type such a macro, give the closure a return type. A `@return` docblock works only on a closure declared inside a class, such as in a service provider's `boot()` method.
 
@@ -3010,7 +3407,7 @@ Registering, removing, or re-pointing a macro makes the next `ts:publish` rebuil
 
 #### Local Variables and Narrowing
 
-A variable you assign once keeps the type of its value, so you don't need to inline the expression. Assign it in a statement at the top level of the method or of a closure body:
+A variable keeps the type of the value you assign it, so you don't need to inline the expression:
 
 ```php
 public function toArray(Request $request): array
@@ -3021,6 +3418,20 @@ public function toArray(Request $request): array
         'slug' => $slug, // string, as if you returned $this->slug
     ];
 }
+```
+
+A variable assigned inside an `if`, a loop, or a `try` block keeps that type for the reads after it in the same block:
+
+```php
+'title_or_count' => $this->when($request->has('title'), function () {
+    if ($this->is_pinned) {
+        $title = $this->title;
+
+        return $title;
+    }
+
+    return 7;
+}), // title_or_count?: string | number
 ```
 
 A conditional value keeps its `?` through the variable, and through a `??` or a ternary. With `$loaded = $this->whenLoaded('author')`, `'author' => $loaded ?? 'none'` publishes `author?: User | string`: a missing value isn't `null`, so `??` returns it, and Laravel drops the key.
@@ -3041,7 +3452,92 @@ public function toArray(Request $request): array
 
 A closure that captures the variable by value, with `use ($member)`, and reassigns it doesn't change the outer variable either. Only `use (&$member)` does. An arrow function never does.
 
-A variable you write more than once publishes `unknown`, because the package can't tell which value reaches the response. That includes a second assignment inside an `if` or a loop, a `foreach` that assigns it, a `catch`, `unset()`, `static` or `global`, and changes through `.=`, `++`, or a reference. It also includes passing the variable to a by-reference parameter, such as `preg_match()`'s `$matches`, `settype()`, `parse_str()`, or one of your own methods. A variable assigned only inside an `if`, a loop, or another block also publishes `unknown`. Variables assigned inside a closure body follow the same rules within that closure. A reassignment inside an `if` branch that ends in `return` or `throw` applies only inside that branch, so the code after it keeps reading the original variable.
+A variable you write more than once publishes every value that can reach the read. A write that always runs replaces the value before it, and a write inside an `if`, a loop, a `try`, or a `catch` joins it:
+
+```php
+public function toArray(Request $request): array
+{
+    $status = 'draft';
+
+    if ($this->is_pinned) {
+        $status = 1;
+    }
+
+    $first = null;
+
+    foreach ($this->comments as $comment) {
+        if ($comment->content !== '') {
+            $first = $comment->content;
+
+            break;
+        }
+    }
+
+    return [
+        'status' => $status, // status: string | number
+        'first' => $first,   // first: string | null
+    ];
+}
+```
+
+Each read sees only the writes that reach it. After `$x = $this->notes;`, a guard that returns `['early' => $x]` publishes `early: string | null`, and a later `$x = $this->resource->getKey(); return ['late' => $x];` publishes `late: number`. A write that reads the variable itself, as in `$label = $label.$this->title` or `$row = ['v' => $row]`, builds on the value before it.
+
+A closure's or a helper's parameter follows the same rules. A write that always runs replaces the value the parameter was passed. A write inside a block is what later reads in that block see, and past the block it joins the value the parameter was passed. Here `$this->labelFor($this->title)` publishes `string | number`:
+
+```php
+private function labelFor(string $label)
+{
+    if ($this->is_pinned) {
+        $label = $this->id;
+    }
+
+    return $label;
+}
+```
+
+A write to a closure's or helper's parameter inside a block, or a key one branch writes, that the package can't type is left out of the join, as [Values Left Out of a Union](#values-left-out-of-a-union) describes. On a plain local, such a write makes the read publish `unknown`.
+
+A check that rules out `null` drops it from the reads it covers. With `$score = $this->rating` on a nullable column, `$score !== null ? $score : 'none'` publishes `string`, and so does `$this->when($score, fn () => $score)`, as an optional property.
+
+Some variables still publish `unknown`:
+
+- One a reference can write, through `use (&$x)`, `$alias = &$x`, `global` or `static`
+- One you change with `.=`, `++` or another compound assignment, apart from adding an array with `+=` as described below
+- One an `unset()` may remove
+- One you pass to a by-reference parameter that can change the value's form, such as `settype()`, `parse_str()`, or one of your own methods
+
+Variables assigned inside a closure body follow the same rules within that closure. A reassignment inside an `if` branch that ends in `return` or `throw` applies only inside that branch, so the code after it keeps reading the original variable.
+
+`preg_match()` and `preg_match_all()` type their `$matches` from the pattern's groups and the flags you pass. After `preg_match('/(\w+)-(\d+)/', $this->slug, $matches)`, both `$matches` and `$matches ?? []` publish `string[]`. Named groups and flags change the shape:
+
+```php
+preg_match('/(?<first>B)/', $this->title, $named);
+preg_match('/(B)/', $this->title, $offset, PREG_OFFSET_CAPTURE);
+preg_match('/(B)(x)?/', $this->title, $nulls, PREG_UNMATCHED_AS_NULL);
+preg_match_all('/(B)/', $this->title, $all);
+
+return [
+    'named' => $named,
+    'first' => $named['first'] ?? null,
+    'offset' => $offset ?? [],
+    'nulls' => $nulls ?? [],
+    'all' => $all,
+];
+```
+
+Each key publishes the shape its call writes:
+
+```typescript
+named: { "0": string; first?: string; "1"?: string } | never[];
+first: string | null;
+offset: [string, number][];
+nulls: (string | null)[];
+all: string[][];
+```
+
+A named group's matches publish an object keyed by name and number, or `never[]` for the empty array a failed match leaves. A pattern the package can't read as a literal, such as one held in a variable, leaves `$matches ?? []` as `never[]`. A call that may not run, such as one inside an `if`, types `$matches` only when nothing else writes the variable.
+
+A literal key read on a variable that holds an array shape takes that key's type. With `$row = ['a' => 1, 'b' => 'x']`, `$row['b']` publishes `string`, and `$row['c'] ?? null`, a key the shape lacks, publishes `null`. A `map()` parameter and a method whose `@return` declares a shape work the same way, so `$this->pair()[1]` on a method declared `@return array{int, string}` publishes `string`.
 
 A by-reference built-in that keeps the value's form keeps its type:
 
@@ -3066,13 +3562,27 @@ sort($original); // $copy keeps the type $original had before the sort
 
 A call on one of a local's keys, such as `sort($groups['x'])`, keeps the local's type when it keeps that key's form.
 
-These rules cover a variable you read as a value. For a variable that `toArray()` returns, the package follows each write instead, as [Building the Array in a Variable](#building-the-array-in-a-variable) describes.
+A variable you build with key writes or `+=` and read as a value publishes the keys written before the read:
+
+```php
+$meta = ['id' => $this->id];
+$meta['name'] = $this->name;
+$early = ['meta' => $meta];
+$meta['late'] = true;
+
+return [
+    'meta' => $meta,   // meta: { id: number; name: string; late: boolean }
+    'early' => $early, // early: { meta: { id: number; name: string } }
+];
+```
+
+For a variable that `toArray()` returns, the package follows each write the same way, as [Building the Array in a Variable](#building-the-array-in-a-variable) describes.
 
 To type a variable the package can't read, annotate its assignment. See [Typing a Variable With `@var`](#typing-a-variable-with-var).
 
 ##### Narrowing With `instanceof`
 
-An early-exit `instanceof` guard narrows a variable for every statement after it. Here `attachable` is a `morphTo`, so `$parent` can hold several models until the guard proves it holds a `Post`:
+An early-exit `instanceof` guard narrows a variable for the statements after it, up to the end of the block it sits in. Here `attachable` is a `morphTo`, so `$parent` can hold several models until the guard proves it holds a `Post`:
 
 ```php
 $record = $this->attachable;
@@ -3104,21 +3614,52 @@ export interface AttachmentResource {
 }
 ```
 
-A guard narrows a variable only when all of these hold:
+An `if` narrows a variable wherever its test is proven:
 
-- The `if` sits at the top level of the method or closure body.
-- The `if` has no `else` or `elseif`, and its body ends with `return` or `throw`.
-- The condition is a negated test such as `! $parent instanceof Post`, alone or in an `||` chain. A chain joined with `&&` narrows nothing.
-- The test reads a local variable or a closure parameter, not a property such as `$this->author`.
-- Nothing writes the variable after the guard. A write before the guard doesn't matter, since the guard tests the value it leaves.
+- **After a guard**: an `if` whose body ends in `return` or `throw` narrows the reads after it, up to the end of the block it sits in. Inside a loop, so does one whose body ends in `continue` or `break`. A guard nested in a loop or in another `if` narrows only the rest of that block.
+- **Inside a positive test**: `if ($parent instanceof Post) { ... }` narrows the reads in its block. An `elseif` or `else` sees the earlier tests fail, so the `else` of `if (! $parent instanceof Post) { ... }` reads `Post`.
 
-The guard narrows only the reads after it. A read in the guard's own body, or in a `return` placed before the guard, still sees every class the variable can hold. A positive test, such as `if ($parent instanceof Post) { ... }`, narrows nothing, not even inside its own body.
+```php
+$owner = $this->imageable;
+$data = [];
 
-Narrowing applies to reads through the variable, such as `$parent->title`. The variable's own value, as in `'parent' => $parent`, keeps its full union type.
+if ($owner instanceof Post) {
+    $data['post_title'] = $owner->title;
+} elseif ($owner instanceof User) {
+    $data['user_email'] = $owner->email;
+}
 
-An `instanceof` ternary on a variable narrows its true arm the same way, as `record_title` above shows, and so does an `||` chain of tests on that variable. A negated test, such as `! $post instanceof Post ? null : $post->title`, narrows the false arm instead.
+return $data; // post_title?: string; user_email?: string
+```
 
-A ternary that tests `$this->resource` against one model narrows the backing model for its proven arm, so a relation that only a subclass declares resolves there. On a `Team` resource, `$this->resource instanceof SubscribedTeam ? $this->resource->subscriber?->name : null` publishes `string | null`.
+The test can be one `instanceof`, negated or not, or an `||` chain of tests on the same variable, which narrows to any of their classes. A positive test can also join tests with `&&`. A positive test whose `||` joins two different variables narrows neither. A guard whose negated tests are joined with `||` narrows each, and one joined with `&&` narrows none. The test can read a local variable, a closure parameter, a `foreach` value variable, or a chain of property reads on `$this`, such as `$this->imageable`.
+
+A write to the variable between the test and the end of what it narrows cancels the narrowing, even for the reads before that write. A write through one of its members keeps the narrowing when it stores a literal the member's column holds, such as `$parent->title = 'Draft'`, or names no column or relation, such as `$parent->touched = true`. A write before the test doesn't matter, since the test checks the value it leaves.
+
+A test on a `$this` property chain narrows reads of that same chain, so you don't need a local first. Here `imageable` is a `morphTo`:
+
+```php
+if (! $this->imageable instanceof Post) {
+    return ['title' => null];
+}
+
+return ['title' => $this->imageable->title]; // title: string | null
+```
+
+Each spelling narrows on its own, so a test on `$this->resource->imageable` doesn't narrow a read of `$this->imageable`. Because code between the test and a read could change the property, the narrowing ends at a write to the chain, at any write through a local, and at most calls, such as `$this->reload()`, `PostResource::make($this->resource)`, or a call on a local. These calls keep it:
+
+- The resource's own helpers, such as `when()` and `whenLoaded()`
+- Gate and policy checks
+- Laravel's `route()` and `url()`
+- A call that's passed no local, no `$this`, and no `$this->resource`, such as `Str::limit($this->imageable->title, 50)`
+
+A read in a guard's own body, in a `return` placed before the guard, or in the `if` condition itself still sees every class the variable can hold.
+
+Narrowing applies to reads through the variable, such as `$parent->title`. A local's own value, as in `'parent' => $parent`, keeps its full union type. A closure parameter bound to one model is the exception: under a test for a published subclass of that model, its own value publishes the subclass, so `$this->whenLoaded('post', fn ($post) => $post instanceof DraftPost ? $post : null)` publishes `DraftPost | null`.
+
+An `instanceof` ternary on a variable narrows its true arm the same way, as `record_title` above shows, and so does an `||` chain of tests on that variable. A negated test, such as `! $post instanceof Post ? null : $post->title`, narrows the false arm instead. A ternary that tests a chain of property reads on `$this` narrows reads through the same chain in its arm, so `$this->imageable instanceof Post ? $this->imageable->getKey() : null` publishes `number | null`.
+
+A test that checks `$this->resource` against one model narrows the backing model wherever it's proven: in a ternary's arm, in an `if` block, or after a guard. So a relation that only a subclass declares resolves there. On a `Team` resource, `$this->resource instanceof SubscribedTeam ? $this->resource->subscriber?->name : null` publishes `string | null`. A method of the resource that the proven code calls reads the narrowed model too, so `$this->resource instanceof SubscribedTeam ? $this->subscriberName() : null` publishes `string | null` when `subscriberName()` returns `$this->resource->subscriber?->name`. In a resource collection, the same test narrows the collected items to the paginator it names, as [Reading `$this->resource`](#reading-this-resource) shows.
 
 A variable assigned from an `instanceof` ternary keeps the narrowing for every read through it. The test can be an `||` chain of `instanceof` checks. Here `imageable` is a `morphTo` whose possible models include one with a string key:
 
@@ -3144,9 +3685,8 @@ return [
 These forms don't narrow:
 
 - **The ternary's own value**: `'either' => $either` publishes the whole union. Only reads through the variable narrow.
-- **A read inside the arm when the test is on a property**: `$this->imageable instanceof Post ? $this->imageable->getKey() : null` stays `number | string | null`. Assign the ternary to a variable, and read through that variable instead.
 - **A test on a different spelling of the arm's value**: a variable bound to a ternary that tests `$this->resource->imageable` against a `$this->imageable` arm isn't narrowed.
-- **Mixed conditions**: a test joined with `&&`, or an `||` chain that mixes negated and plain tests.
+- **Mixed conditions in a ternary**: a test joined with `&&`, or an `||` chain that mixes negated and plain tests.
 - **The arm the test doesn't prove**: `$this->resource instanceof SubscribedTeam ? null : $this->resource->subscriber` publishes `unknown`, since `Team` has no `subscriber` relation.
 
 ##### Typing a Variable With `@var`
@@ -3163,7 +3703,7 @@ return [
 ];
 ```
 
-It also restores a value the package would otherwise drop. Without the annotation, `$picked` below publishes `null`, because the package leaves out a ternary arm it can't type:
+It also restores a value the package would otherwise drop. Without the annotation, `$picked` below publishes `null`, because the package [leaves out a ternary arm it can't type](#values-left-out-of-a-union):
 
 ```php
 /** @var string|null $picked */
@@ -3172,29 +3712,35 @@ $picked = $this->id > 0 ? json_decode('"x"') : null; // string | null
 
 The annotation follows these rules:
 
-- **Placement**: it sits on a `$x = ...;` statement at the top level of the method or closure body. It names the variable, as in `/** @var CartTotals $totals */`, or names none, as in `/** @var CartTotals */`.
-- **Span**: it types the reads after that statement, up to the next statement that writes the variable. A loop that writes the variable ends the span where the loop starts. So an annotation also types a variable you reassign, until its next write.
+- **Placement**: it sits on a `$x = ...;` statement anywhere in the method or closure body, including inside an `if` or a loop. It names the variable, as in `/** @var CartTotals $totals */`, or names none, as in `/** @var CartTotals */`. A `@phpstan-var` or `@psalm-var` tag wins over a plain `@var`, as in PHPStan.
+- **Span**: it types the reads after that statement, up to the next statement that writes the variable. A loop that writes the variable ends the span where the loop starts. So an annotation also types a variable you reassign, until its next write. Inside a block, it types the reads after it in that block. Past the block, where the variable held a value before it, the annotated type joins that value. Where the variable held none, reads past the block aren't typed. With `$post = null;` before an `if` whose annotated assignment reads `/** @var Post|null $post */`, `$post?->title` after the `if` publishes `string | null`.
 - **Precedence**: it applies only where the package's own reading of the value is `unknown`, or is only the `null` left after an arm it can't type was dropped. Any other reading stands, whatever the annotation says: `/** @var int $n */ $n = $this->title;` still publishes `string`. To override a type the package got wrong, use [`#[TsCasts]`](#overriding-property-types-with-tscasts).
 
 A conditional value stays optional, so `/** @var User $reviewer */ $reviewer = $this->whenLoaded('reviewer');` publishes `reviewer?: User`.
 
-A closure parameter you reassign reads the new value from that statement on, when the value or an annotation names its class. In `function (User $author)`, `$author = $author->profile;` makes the reads after it use `Profile`. The package can't tell which class `$author->comments->find(1)` returns, so after `$author = $author->comments->find(1);` the reads keep using `User` until you annotate the assignment with `/** @var Comment $author */`. A `foreach` variable bound to a model keeps reading that model.
+A closure parameter you reassign reads the new value from that statement on, when the value or an annotation names its class. In `function (User $author)`, `$author = $author->profile;` makes the reads after it use `Profile`. `find()` with one literal key returns one of the collection's models or `null`. After `$author = $author->comments->find(1);`, `$author?->content` publishes `string | null`, and `$author->name` publishes `unknown`, since a comment has no `name`. A read of the variable itself after that write publishes `unknown`, as `first()` does.
+
+A write the package can't type keeps a model parameter's model, so after `$author = $this->normalize($author);`, where `normalize()` declares no return type, both `$author->name` and `return $author;` still read `User`. Annotate such an assignment, as in `/** @var Comment $author */`, and the reads follow the annotation. A write of a typed value is read as that value, so after `$author = $author->name;`, `return $author;` publishes `string`. A parameter that holds a plain value takes what any write returns, so after `$title = json_decode($title);`, `return $title;` publishes `unknown`. A `foreach` variable bound to a model keeps reading that model.
 
 The annotation's type counts only when it's built from these forms, and when every part of it resolves:
 
 - Scalars: `int`, `string`, `bool`, `float`, `null`, `true`, and `false`
-- A class, interface, or enum that the file imports or writes in full
-- `list<X>`, `array<int, X>`, `array<string, X>`, and `array<'a'|'b', X>`
+- A class, interface, or enum that the file imports, writes in full, or declares in its own namespace
+- `self`, `static`, and `parent`, which name the classes `self::`, `static::`, and `parent::` reach in that method, as in an [inherited `toArray()`](#inheriting-a-parent-toarray). The variable may hold a subclass, so a read of a method or property a subclass can override takes its declared type, and publishes `unknown` where it has none. A closure parameter typed `self` or `parent` reads the same way.
+- `X[]`, `list<X>`, `array<int, X>`, `array<string, X>`, `array<int|string, X>`, `array<array-key, X>`, and `array<'a'|'b', X>`
 - `array{...}` and `object{...}` shapes with plain or quoted keys, and `list{...}` tuples
-- `Collection<K, X>`, for both Laravel's support collection and its Eloquent collection
+- `Collection<X>` and `Collection<K, X>`, for both Laravel's support collection and its Eloquent collection
+- A type alias the class declares with `@phpstan-type`, or imports with `@phpstan-import-type`, under its own name or an `as` name
 - A `callable` as a shape's member, which publishes `unknown`
 - Unions of these forms, such as `Comment|User|null` or `list<User>|User`, and `?` before any form
 
-Any other type is ignored, so write `list<int>` instead of `int[]`. A model or enum inside a shape is ignored too. A `?` before a shape adds `| null` even when a member already holds `null`, so `?array{a: ?int}` publishes `{ a: number | null } | null`.
+Any other type is ignored. A key that can be an `int` or a `string`, as in `array<int|string, Comment>` or `array<array-key, Comment>`, publishes both shapes PHP can send, `Comment[] | Record<string, Comment>`. A model or an enum inside a shape keeps its type, so `array{author: User, status: Status}` publishes `{ author: User; status: StatusType }`. A `?` before a shape adds `| null` even when a member already holds `null`, so `?array{a: ?int}` publishes `{ a: number | null } | null`.
+
+A helper's or a closure's `@param` tag reads the same forms where the value passed in can't be typed. With `@param Collection<int, Comment> $comments`, a read such as `$comments->first()?->content` publishes `string | null`, and with `@param Pair $pair`, where `Pair` is a `@phpstan-type` alias, `$pair` takes the alias's shape. Where the value passed in is typed, its type wins over the tag.
 
 #### Collection Pipelines
 
-A chain of collection methods keeps its element type to the end, whether it starts at a relation or at `collect()`:
+A chain of collection methods keeps its element type to the end, whether it starts at a relation, a local, a query, or `collect()`:
 
 ```php
 return [
@@ -3221,16 +3767,127 @@ export interface PostResource {
 
 These helpers and methods publish as follows:
 
-- **`all()` and `values()`**: a collection and the array behind it both publish `X[]`, so `all()` changes nothing. A method that breaks sequential keys, such as `filter()`, `sortBy()`, or `keyBy()`, adds a `Record<string, X>` arm, because `json_encode()` writes such a collection as an object. `values()` restores sequential keys and removes that arm.
+- **`all()` and `values()`**: a collection and the array behind it both publish `X[]`, so `all()` changes nothing. A method that breaks sequential keys, such as `filter()`, `sortBy()`, or `keyBy()`, adds a `Record<string, X>` arm, because `json_encode()` writes such a collection as an object. The arm stays through a local and through a later `map()`. `values()` restores sequential keys and removes that arm.
 - **`collect()`**: the element type comes from the argument, and the `map()` parameter holds that element, which is why `$word` above is a `string`. On its own, `collect([...])` publishes the list or object its array encodes as, such as `number[]` for `collect([1, 2])` or `{ title: string }` for `collect(['title' => $this->title])`. `collect()` with no argument publishes `never[]`. A bare array literal publishes the same way, so `['a', 'b']` publishes `string[]`. A list holding an element the package can't type publishes `unknown[]`.
 - **`data_get()`**: `data_get($target, 'a.b')` publishes what `$target?->a?->b` would. A default joins the type instead of removing `null`, because `data_get()` returns the default only when the key is missing, not when its value is `null`.
-- **Typed `map()` parameters**: a model type hint on a `map()` parameter types every read through it, chained and nullsafe reads included, when you call `map()` on a variable such as a local or a `whenLoaded()` parameter. With `$rows = $this->resource->getRelation('comments')`, `$rows->map(fn (Comment $comment) => $comment->user?->name ?: null)->all()` publishes `(string | null)[]`. A relation chain such as `$this->comments->map(...)` uses the relation's model the same way. On a `collect(...)` root, or on a `map()` called straight on a method's result, such as `$this->resource->getRelation('comments')->map(...)`, the parameter holds no model, so reads through it publish `unknown`.
+- **`keys()`**: publishes the list of the keys, `number[]` for a list and `string[]` for a `Record<string, X>`. A literal array lists its own keys, so `collect(['a' => 1, 200 => 'x'])->keys()->all()` publishes `('a' | 200)[]`.
+- **`map()` parameters**: the callback's parameter holds the collection's element, with or without a type hint, whether the collection comes from a relation, a local, a `whenLoaded()` parameter, `getRelation()`, a query's `get()`, or `collect()`. Every read through it is typed, chained and nullsafe reads included. A class type hint, such as `fn (Comment $comment)` or a value object's class, types the parameter whatever the collection holds. A scalar type hint holds the value PHP converts the element to, so `collect(['5'])->map(fn (int $v) => $v)->all()` publishes `number[]`. A write that replaces the parameter is followed into the body.
+- **`map()` callbacks**: besides a closure, the callback can be a first-class callable, such as `$this->shout(...)`, or a callable string, such as `'strtoupper'`. A `map()` over a `Record<string, X>` keeps its string keys, so it publishes a `Record` of what the callback returns.
+
+Here `PromoCode` is a value object with a `string` property `code`:
+
+```php
+public function toArray(Request $request): array
+{
+    $rows = $this->comments;
+    $byContent = $this->comments->keyBy('content');
+
+    return [
+        'collected_reads' => collect($this->comments)->map(fn ($comment) => ['content' => $comment->content, 'who' => $comment->user?->name])->all(),
+        'local_rows' => $rows->map(fn ($comment) => ['who' => $comment->user?->name]),
+        'author_names' => $rows->map(function (Comment $comment) {
+            $comment = $comment->user;
+
+            return $comment->name;
+        }),
+        'keyed_rows' => $byContent->map(fn (Comment $comment) => ['id' => $comment->id])->all(),
+        'query_rows' => Comment::query()->get()->map(fn (Comment $comment) => ['id' => $comment->id])->all(),
+        'codes' => collect([new PromoCode('a')])->map(fn (PromoCode $code) => ['id' => $code->code])->all(),
+    ];
+}
+```
+
+Each map publishes its callback's shape:
+
+```typescript
+collected_reads: { content: string; who: string | null }[];
+local_rows: { who: string | null }[];
+author_names: string[];
+keyed_rows: { id: number }[] | Record<string, { id: number }>;
+query_rows: { id: number }[];
+codes: { id: string }[];
+```
+
+`Model::all()` names its model the same way, so `Post::all()->toResourceCollection()` publishes `PostResource[]`. `map()` on a paginator maps the models on its page, so with `$page = Post::query()->paginate();`, `$page->map(fn (Post $post) => ['id' => $post->id])` publishes `{ id: number }[]`.
 
 `concat($other)` keeps the type only when `$other` is exactly the same collection type. Concatenating `Comment[]` and `Tag[]` publishes `unknown`, since the result is a different collection, not a longer one. A `data_get()` key with a `*` segment also publishes `unknown`.
 
 A chain can start at `$this->resource` too. `$this->resource->comments->map(fn ($comment) => $comment->id)` publishes `number[]`, as `$this->comments->map(...)` does. A `?->` on `$this->resource` adds `| null` once, since a resource can wrap `null`. `$this->resource?->comments->map(fn ($comment) => $comment->id)` publishes `number[] | null`.
 
-`first()`, `last()` and `firstWhere()` on a relation's collection return one of its models or `null`, so a read through them with `?->` is typed. `$this->comments->first()?->content` publishes `string | null`, and so does the same read after `last()` or `firstWhere('is_flagged', true)`. After a `first()` or `last()` call that passes a default, such as `first(null, 'none')`, the read publishes `unknown`, because Laravel returns that default when no model matches.
+`first()`, `last()` and `firstWhere()` on a collection of models return one of its models or `null`, so a read through them with `?->` is typed. That covers a relation's collection, a local holding one, and a variable an inline `@var Collection<int, Comment>` declares. `$this->comments->first()?->content` publishes `string | null`, and so does the same read after `last()`, `firstWhere('is_flagged', true)`, or `find()` with one literal key, such as `find(1)`. After a `first()` or `last()` call that passes a default, such as `first(null, 'none')`, the read publishes `unknown`, because Laravel returns that default when no model matches.
+
+##### Array Functions
+
+PHP's array functions keep the element type too. `array_map()` with one array keeps that array's keys, so a list maps to a list and a string-keyed array to an object. With two or more arrays it publishes a list, and a `null` callback zips the arrays into tuples. The callback can be any callable, as with `map()`:
+
+```php
+public function toArray(Request $request): array
+{
+    return [
+        'messages' => array_map(fn (array $row): string => $row['message'], $this->rows()),
+        'doubled' => array_map(fn (int $count): int => $count * 2, ['low' => 1, 'high' => 2]),
+        'zipped' => array_map(null, $this->labels(), $this->counts()),
+        'names' => array_map('strtoupper', $this->comments->pluck('content')->all()),
+    ];
+}
+```
+
+Here `rows()` returns `list<array{message: string}>`, `labels()` a `list<string>`, and `counts()` a `list<int>`:
+
+```typescript
+export interface ArrayMapResource {
+  messages: string[];
+  doubled: { low: number; high: number };
+  zipped: [string | null, number | null][];
+  names: string[];
+}
+```
+
+`array_keys()` publishes the list of the keys, as `keys()` does, so `array_keys(['a' => 1, 'b' => 2])` publishes `('a' | 'b')[]`.
+
+`array_filter()` of an array shape makes each key optional and leaves out a key that only ever holds `null`. `array_values()` of the result publishes the list of the values left:
+
+```php
+'shape' => array_filter(['a' => $this->title, 'b' => $this->published_at]),
+'no_null' => array_filter(['a' => $this->title, 'b' => null]),
+'values' => array_values(array_filter(['a' => $this->title, 'b' => $this->published_at])),
+```
+
+Here `published_at` is a nullable column:
+
+```typescript
+shape: { a?: string; b?: string };
+no_null: { a?: string };
+values: string[];
+```
+
+A filter that keeps no key sends `[]`, not `{}`. Reading a key on it still gives `undefined`, as the optional keys allow, but code that checks for an array, such as `Array.isArray()`, sees one.
+
+PHP throws a `TypeError` when you pass a collection to `array_map()`, `array_keys()`, `array_values()`, or `array_filter()`, so `ts:publish` warns and names the line. Call `->values()->all()` on the collection first.
+
+#### Query Chains
+
+A query chain that starts at a model is typed step by step, as in [page props](https://tolki.abe.dev/ts/routing.html#what-the-props-expression-can-be):
+
+```php
+return [
+    'author' => User::find(1),
+    'author_name' => User::find(1)?->name,
+    'latest' => Post::query()->first(),
+    'first_id' => Post::query()->pluck('id')->first(),
+    'admins' => User::query()->where('id', 1)->get(),
+];
+```
+
+Each chain publishes what its last step returns:
+
+```typescript
+author: User | null;
+author_name: string | null;
+latest: Post | null;
+first_id: number | null;
+admins: User[];
+```
 
 ### Spreads and Inheritance
 
@@ -3305,6 +3962,77 @@ export interface BodylessOrderResource {
 
 The nearest class up the parent chain that declares a `toArray()` provides the shape, so inheritance several levels deep works. The backing model comes from the parent chain too: a resource with no `@mixin` or `@extends` tag of its own uses the nearest ancestor's, as step 3 of [How the Backing Model Is Resolved](#how-the-backing-model-is-resolved) describes. That keeps the inherited properties typed from their columns.
 
+The package reads the inherited body as PHP runs it for the child:
+
+- `$this->` and `static::` reach the child, so a method, constant, or property the child overrides publishes the child's type. That includes a helper that `toArray()` spreads.
+- `self::` reaches the class that declares the body, and `parent::` reaches that class's parent. Spreads follow the same rule: `...parent::extra()` adds the keys of the parent's `extra()`, as `...self::extra()` and `...static::extra()` add those of the method each reaches. A private or abstract parent method adds none because PHP throws on that call, and neither does one whose body the package can't read in full.
+- A `private` member stays the one in the class that declares `toArray()`, because PHP never overrides one.
+
+```php
+class BaseCardResource extends JsonResource
+{
+    public const KIND = 'card';
+
+    public function toArray(Request $request): array
+    {
+        return [
+            'title' => $this->title(),
+            'kind' => static::KIND,
+            'label' => self::label(),
+            'weight' => $this->weight(),
+        ];
+    }
+
+    public function title(): int|string
+    {
+        return 0;
+    }
+
+    public static function label(): int|string
+    {
+        return 0;
+    }
+
+    private function weight(): int
+    {
+        return 1;
+    }
+}
+
+class NoticeCardResource extends BaseCardResource
+{
+    public const KIND = 7;
+
+    public function title(): string
+    {
+        return 'Notice';
+    }
+
+    public static function label(): string
+    {
+        return 'notice';
+    }
+
+    public function weight(): string
+    {
+        return 'heavy';
+    }
+}
+```
+
+`title` and `kind` come from `NoticeCardResource`. `label` keeps the parent's `string | number`, because `self::label()` calls `BaseCardResource::label()`, and `weight` keeps `number`, because `weight()` is private to `BaseCardResource`:
+
+```typescript
+export interface NoticeCardResource {
+  title: string;
+  kind: number;
+  label: string | number;
+  weight: number;
+}
+```
+
+`self::make()` and `self::collection()` in the inherited body build the child, as they do in PHP. So a `FeaturedCategoryResource` that inherits `'children' => self::collection($this->whenLoaded('children'))` from `CategoryResource` publishes `children?: FeaturedCategoryResource[]`. A method that returns `static`, called through `self::` or `parent::`, returns the child too.
+
 If no class in the chain declares a `toArray()`, the resource publishes the model's properties, as [JsonResource Base Delegation](#jsonresource-base-delegation) describes. With no model either, the interface is empty, apart from any types `#[TsExtends]` adds. A `ResourceCollection` subclass with no `toArray()` still finds its element type as [Resource Collections](#resource-collections) describes.
 
 #### A `toArray()` From a Trait
@@ -3344,6 +4072,45 @@ export interface LabelResource {
 ```
 
 A subclass of `LabelResource` with no `toArray()` of its own publishes the same keys. A `ResourceCollection` can take its `toArray()` from a trait the same way.
+
+In the trait's `toArray()`, `self::` reaches the class that uses the trait, and `parent::` reaches that class's parent. `$this->` and `static::` reach the resource, as they do in an [inherited `toArray()`](#inheriting-a-parent-toarray). Here `TagCardResource` extends the `BaseCardResource` above:
+
+```php
+trait ShapesCard
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            ...parent::toArray($request),
+            'label' => self::label(),
+            'kind' => static::KIND,
+        ];
+    }
+}
+
+class TagCardResource extends BaseCardResource
+{
+    use ShapesCard;
+
+    public const KIND = 'tag';
+
+    public static function label(): string
+    {
+        return 'tag';
+    }
+}
+```
+
+`parent::toArray()` spreads `BaseCardResource`'s keys, and `label` and `kind` take `TagCardResource`'s types:
+
+```typescript
+export interface TagCardResource {
+  title: string | number;
+  kind: string;
+  label: string;
+  weight: number;
+}
+```
 
 #### JsonResource Base Delegation
 
@@ -3450,7 +4217,7 @@ export interface PostResource {
 }
 ```
 
-Multi-line `@return` shapes work too:
+Multi-line `@return` shapes work too, as long as the type starts on the tag's own line, as PHPStan requires:
 
 ```php
 /**
@@ -3579,19 +4346,147 @@ The variable can start from an array literal, as above, or from any of these:
 - `$this->only([...])` with a literal list of keys
 - `array_merge()` of array literals and `parent::toArray($request)` calls
 - A helper method on the resource that returns an array
+- A local you assign one of these once, as in `$data = $defaults;`
 
 A spread of `...$this->with($request)` or `...parent::with($request)` in `toArray()` adds the `$with` keys too.
 
 These rules decide each key:
 
-- **A write inside a block**: a key first written inside an `if`, a loop, a `try` or `catch` block, or a `switch` case publishes optional, because that path may not run.
-- **A key written more than once**: the key takes the type of its last write. `+=` adds only the keys the array doesn't have yet, and assigning a whole new array drops the keys written before it.
-- **An `unset()`**: `unset($data['slug'])` removes the key. Inside a block, it makes the key optional instead.
+- **Branches**: each branch of an `if` chain holds its own value for a key. A key that every branch of a chain ending in `else` writes is required, with each branch's type. A key that only some branches write publishes optional, and a key set before the chain keeps that value as one more type. A branch that ends in `throw`, or in a `return` of anything but the variable, stays out.
+- **Loops**: a loop may run no times, so a key it first writes publishes optional, and a key it re-sets keeps the value it held before the loop as one more type.
+- **`try`, `catch`, and `switch`**: their bodies are read in order. A key first written in one publishes optional, and a key re-set in one takes its last write's type.
+- **A key written more than once in a row**: the key takes the type of its last write. `+=` adds only the keys the array doesn't have yet. Assigning a whole new array drops the keys written before it. Inside one branch, it replaces them for that branch only, so a key that one side lacks publishes optional.
+- **An `unset()`**: `unset($data['slug'])` removes the key, and so does `unset($data[$key])` when `$key` is a local you assign a string literal once. Inside a block, it makes the key optional instead. In `unset($data['name'], $data[$hidden])`, the package removes `name` but can't follow `$data[$hidden]`. An index signature from an [interpolated key](#interpolated-keys) stays after an `unset()` of a literal key it matches, since its value already admits `undefined`.
 - **Other `return` statements**: the variable counts as one branch beside the method's other returns, so a `return []` guard, or a returned array literal that leaves a key out, makes that key optional.
 
-The package doesn't follow `$data[] = ...`, a key computed at runtime such as `$data[$key]`, or a nested key such as `$data['meta']['label']`, whether written or passed to `unset()`. It also reads the method in one pass. A key written after an early `return $data;` publishes required when that write always runs, though the early return sends the array without it. In either case, return an array literal on each path, or list the keys with [`#[TsCasts]`](#overriding-property-types-with-tscasts), which can also mark a key optional.
+Here each key holds the value of every branch that can write it:
 
-`+` publishes PHP's array union, where the left side's keys win and the right side adds the keys it lacks. That holds in a key's value, so `['code' => 'in'] + ['code' => 0, 'lane' => 2]` publishes `{ code: string; lane: number }`, and in a whole return, such as `return parent::toArray($request) + ['note' => 'none'];`.
+```php
+public function toArray(Request $request): array
+{
+    $data = ['id' => $this->id, 'label' => $this->sort_order];
+
+    if ($this->is_active) {
+        $data['mode'] = 1;
+    } else {
+        $data['mode'] = 'off';
+    }
+
+    if ($this->sort_order === 1) {
+        $data['tier'] = 'first';
+        $data['first_only'] = true;
+    } elseif ($this->sort_order === 2) {
+        $data['tier'] = 2;
+    } else {
+        $data['tier'] = false;
+    }
+
+    if ($this->description !== null) {
+        $data['label'] = $this->name;
+        $data['described'] = true;
+    }
+
+    return $data;
+}
+```
+
+On a `Category` resource, the variable publishes:
+
+```typescript
+export interface CategorySummaryResource {
+  id: number;
+  label: number | string;
+  mode: number | string;
+  tier: string | number | boolean;
+  first_only?: boolean;
+  described?: boolean;
+}
+```
+
+A value one branch writes that the package can't type is left out of the key's type, as [Values Left Out of a Union](#values-left-out-of-a-union) describes.
+
+The package doesn't follow `$data[] = ...`, a key computed at runtime, such as `$data[$key]` where `$key` isn't a local holding one string literal, or a nested key such as `$data['meta']['label']`, whether written or passed to `unset()`. It also reads the method in one pass. A key written after an early `return $data;` publishes required when that write always runs, though the early return sends the array without it. A `continue` or `break` isn't followed either, so in a loop body, a write after an `if` that ends in `continue` replaces the `if`'s write, though Laravel can send the `if`'s value. In each case, return an array literal on each path, or list the keys with [`#[TsCasts]`](#overriding-property-types-with-tscasts), which can also mark a key optional.
+
+`+` publishes PHP's array union, where the left side's keys win and the right side adds the keys it lacks. That holds in a key's value, so `['code' => 'in'] + ['code' => 0, 'lane' => 2]` publishes `{ code: string; lane: number }`, and in a whole return, such as `return parent::toArray($request) + ['note' => 'none'];`. Either side can be a local holding an array: with `$defaults = ['note' => 'none', 'id' => 'x']`, `return ['id' => $this->id] + $defaults;` publishes `id: number` and `note: string`.
+
+A helper that you pass the array to, and that returns it, keeps the array's keys and adds the keys it writes. A vague `@return array<string, mixed>` on the helper doesn't hide them:
+
+```php
+public function toArray(Request $request): array
+{
+    $data = [
+        'id' => $this->id,
+        'title' => $this->title,
+        'url' => url("/posts/{$this->id}"),
+        'disabled' => false,
+    ];
+
+    return $this->guard($data);
+}
+
+/**
+ * @param  array<string, mixed>  $data
+ * @return array<string, mixed>
+ */
+private function guard(array $data): array
+{
+    if ($this->trashed()) {
+        $data['url'] = null;
+        $data['disabled'] = true;
+    }
+
+    return $data;
+}
+```
+
+The resource publishes the array's keys, with the helper's writes joined in:
+
+```typescript
+export interface PostLinkResource {
+  id: number;
+  title: string;
+  url: string | null;
+  disabled: boolean;
+}
+```
+
+The same holds when you use the helper's result as a value, so `'link' => $this->guard(['url' => url('/posts'), 'disabled' => false])` publishes `link: { url: string | null; disabled: boolean }`.
+
+When a helper's array starts from a value the package can't read, such as `$request->all()`, a key that holds the helper's result publishes the keys the helper writes, plus an index signature for the rest. When all the package can read of a helper's array is its `@return array<string, mixed>`, such a key publishes `Record<string, unknown>`:
+
+```php
+public function toArray(Request $request): array
+{
+    return [
+        'filters' => $this->filters($request),
+        'options' => $this->options(),
+    ];
+}
+
+/** @return array<string, mixed> */
+private function filters(Request $request): array
+{
+    $filters = $request->all();
+    $filters['page'] = 1;
+
+    return $filters;
+}
+
+/** @return array<string, mixed> */
+private function options(): array
+{
+    return json_decode($this->content, true);
+}
+```
+
+`filters` keeps the key the helper writes, and `options` publishes a record:
+
+```typescript
+export interface PostFiltersResource {
+  filters: { page: number; [key: string]: unknown };
+  options: Record<string, unknown>;
+}
+```
 
 #### Return Branches and `@return` Shapes
 
@@ -3628,7 +4523,7 @@ trait GathersPermissions
     /** Untyped, so only the docblocks above can type what it returns. */
     protected function opaque()
     {
-        return $this->resource->getAttribute('title');
+        return json_decode($this->resource->payload);
     }
 }
 ```
@@ -3648,13 +4543,45 @@ export interface PostPermissionsResource {
 Both forms of `@return` count:
 
 - **An `array{...}` shape**: each key gets its own type, and a key written `key?:` also becomes optional. A string or number literal type, such as `'draft'|'live'` or `1|2|3`, publishes as written.
-- **`array<string, V>`**: `V` types every key the body left `unknown`.
+- **`array<string, V>`**: `V` types every key the body left vague.
 
 `toArray()`'s own `@return array{...}` fills keys the same way.
 
-The body always wins. The docblock fills only a key the body left `unknown`, or an [interpolated key's](#interpolated-keys) value that the body left `unknown | undefined`, so a stale `@return` can't overwrite a type the package already knows.
+The body wins wherever it's specific, so a stale `@return` can't overwrite a type the package already knows. The docblock fills only a key the body left vague, such as `unknown`, `unknown[]`, or `Record<string, unknown>`, and keeps any `| null` the body found. It also fills an [interpolated key's](#interpolated-keys) value that the body left `unknown | undefined`.
 
-A shape value that names a PHP class or enum is skipped, because a docblock can't carry its import. Type that key with `#[TsCasts]` and an `import` instead. A name that isn't a PHP class, such as a type you declare only in TypeScript, publishes as written in a spread method's `@return`. In `toArray()`'s own `@return`, the key stays `unknown`, so type it with `#[TsCasts]`.
+A shape value that names a model, an enum, or an API resource keeps it at any depth, and the file imports it. Here `tags` is a nullable column cast to `'array'`, which publishes `unknown[] | null` on its own, and `json_decode()` returns a value the package can't type:
+
+```php
+/**
+ * @return array{
+ *     tags: list<string>,
+ *     extra: array{author: User, status: PostStatus},
+ * }
+ */
+public function toArray(Request $request): array
+{
+    return [
+        'tags' => $this->tags,
+        'extra' => json_decode($this->extra_json, true),
+    ];
+}
+```
+
+The docblock fills both keys, and `tags` keeps its `| null`:
+
+```typescript
+import type { PostStatusType } from "../../enums";
+import type { User } from "../../models";
+
+export interface PostExtrasResource {
+  tags: string[] | null;
+  extra: { author: User; status: PostStatusType };
+}
+```
+
+A spread method's fill keeps its classes only when you spread the method at the top level of `toArray()`. Spread inside a nested array, as in `'meta' => [...$this->extras()]`, each model, enum, or API resource the fill names publishes `unknown`. Type such a key with `#[TsCasts]` and an `import`.
+
+A name that isn't a PHP class, such as a type you declare only in TypeScript, publishes as written in a spread method's `@return`. In `toArray()`'s own `@return`, the key stays `unknown`, so type it with `#[TsCasts]`.
 
 In a spread method, the branches count only while every `return` is an array literal, `[]`, or a variable the method builds. Otherwise, only the spread method's first `return` counts.
 
@@ -3769,6 +4696,8 @@ members?: (Omit<User, "flag"> & { flag: boolean })[];
 
 The `Omit<>` matters. In PHP the later key wins, so `'flag'` replaces whatever the spread contributed. TypeScript's `&` would instead intersect both, and turn a conflicting key into `never`. When one literal holds several spreads, each spread's `Omit<>` removes every key that a later spread or an explicit key overwrites, in source order.
 
+The spread uses the model the variable holds, on any collection a `map()` runs over. `collect($this->comments)->map(fn (Comment $comment) => [...$comment->toArray(), 'flag' => true])->all()` publishes `(Omit<Comment, "flag"> & { flag: boolean })[]`. A local inside the callback spreads its own model, so `$author = $comment->user;` followed by `[...$author->toArray(), 'x' => 1]` publishes `Omit<User, "x"> & { x: number }` for each comment.
+
 At the top level of `toArray()`, a spread with no key flattens into the resource's own properties instead. `...$this->user->toArray()` adds the user's properties to the interface, and `...PostResource::make($this->post)->resolve()` adds the post resource's. A collection's `...$this->tags->toArray()` adds a `[key: number]` index signature.
 
 The intersection references the `{Model}` interface instead of copying its shape. That comes close to what `toArray()` returns at runtime, with two differences:
@@ -3865,7 +4794,7 @@ replies: Comment[];
 kept: Comment[] | null;
 ```
 
-A `?->` on `$this->resource` adds `| null` once, because a resource can wrap `null`. `$this->resource?->comments->only([1, 2])` publishes `Comment[] | null`.
+A `?->` on `$this->resource` adds `| null` once, because a resource can wrap `null`. `$this->resource?->comments->only([1, 2])` publishes `Comment[] | null`. A variable that holds the relation's collection filters the same way, so `'picked' => $this->whenLoaded('comments', fn ($comments) => $comments->only([1, 2]))` publishes `picked?: Comment[]`.
 
 An accessor that returns an Eloquent collection of models filters the same way. It publishes a list of those models, such as `Comment[]`, whatever key type the accessor declares.
 
@@ -4154,13 +5083,30 @@ Laravel throws when the items are a plain collection, or a paginator without tha
 
 If the collection always receives one kind of paginator, redeclare `$resource` with it. With `/** @var LengthAwarePaginator<int, UserResource> */ public $resource;`, `page` publishes `LengthAwarePaginator<UserResource>`.
 
+An `instanceof` test on `$this->resource` narrows the items to the paginator it names, in a ternary's arm, inside an `if` block, or after a guard. A read outside what the test proves keeps every shape:
+
+```php
+public function toArray(Request $request): array
+{
+    if ($this->resource instanceof LengthAwarePaginator) {
+        return ['pager' => $this->resource];
+    }
+
+    return ['pager' => null];
+}
+```
+
+Here `pager` publishes `LengthAwarePaginator<UserResource> | null`.
+
 A call the collection forwards to `$this->resource`, such as `$this->first()` or `$this->total()`, publishes the same type. In a [key-preserving collection](#key-preserving-collections), the list type is `Record<string, UserResource>`. When no singular resource matches, each type holds `unknown`, such as `unknown[]` and `LengthAwarePaginator<unknown>`.
 
-The package doesn't follow a collection pipeline on `$this->resource`, such as `map()`, `pluck()` or `values()`, or a read on the item `first()` returns, such as `$this->resource->first()?->name`. Each publishes `unknown`. Type such a key with [`#[TsCasts]`](#overriding-property-types-with-tscasts).
+A read on the item `first()` or `last()` returns takes the type of the singular resource's model. In a `PostCollection` that collects `PostResource`, `$this->resource->first()?->title`, `$this->collection->first()?->title`, and `$this->collection->last()?->title` each publish `string | null`.
+
+The package doesn't follow a collection pipeline on `$this->resource`, such as `map()`, `pluck()` or `values()`. Each publishes `unknown`. Type such a key with [`#[TsCasts]`](#overriding-property-types-with-tscasts).
 
 #### Paginated Collections
 
-A collection's interface covers what its `toArray()` returns. The `links` and `meta` keys Laravel adds to a paginated response, and any data you add with `with()` or `additional()`, aren't part of it. An Inertia page prop that passes a paginator to a resource collection gets its pagination members from the page prop's type instead, with the `meta` block of each paginator kind. See [Paginating Inline in the Render Call](https://tolki.abe.dev/ts/inertia.html#paginating-inline-in-the-render-call) on the Inertia page.
+A collection's interface covers what its `toArray()` returns. The `links` and `meta` keys Laravel adds to a paginated response, and any data you add with `with()` or `additional()`, aren't part of it. An Inertia page prop that passes a paginator to a resource collection gets its pagination members from the page prop's type instead, with the `meta` block of each paginator kind. An Inertia prop's type also carries the `with()` and `additional()` keys. See [Paginating Inline in the Render Call](https://tolki.abe.dev/ts/inertia.html#paginating-inline-in-the-render-call) on the Inertia page.
 
 Over a paginator, Laravel merges a `meta` or `links` key that your `toArray()` returns beside `data` into its own pagination block with `array_merge_recursive()`, and it merges the `with()` and `additional()` data the same way. A key your `toArray()` adds, such as `links.self`, is in the page prop's type. A key that two of these name, such as `meta.total`, is sent as a list of both values, such as `[3, 3]`, while the type still says `number`. Give your key another name, or remove from `paginationInformation()` only the key your `toArray()` also sends. The package doesn't read `paginationInformation()`, so any other change there leaves the published pagination type wrong.
 
@@ -4297,10 +5243,10 @@ related: { data: PostResource }[];
 
 Four attributes configure how a resource is published:
 
-| Attribute       | Target                                              | Use it to                                                                                                                                    |
-| --------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `#[TsResource]` | Resource class                                      | Set the interface name, the backing model, or a description                                                                                  |
-| `#[TsCasts]`    | Resource class, `toArray()`, or a method it spreads | Override property types, or add properties                                                                                                   |
+| Attribute       | Target                                              | Use it to                                                                                                           |
+| --------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `#[TsResource]` | Resource class                                      | Set the interface name, the backing model, or a description                                                         |
+| `#[TsCasts]`    | Resource class, `toArray()`, or a method it spreads | Override property types, or add properties                                                                          |
 | `#[TsExtends]`  | Resource class                                      | Extend the interface with your own TypeScript types, as [Extending Interfaces](https://tolki.abe.dev/ts/extending-interfaces.html) describes |
 | `#[TsExclude]`  | Resource class                                      | Leave the resource out of the output, as [Excluding Content](https://tolki.abe.dev/ts/excluding-content.html) describes                      |
 
@@ -4336,9 +5282,10 @@ The package already types these shapes without an override:
 - A method call on an enum, a date, a model, or a service, and a property read on any of those or on a value object. See [Method Return Types](#method-return-types).
 - A value behind a local variable, a closure-local variable, or an `instanceof` guard. See [Local Variables and Narrowing](#local-variables-and-narrowing).
 - A collection chain, `data_get()`, and `only([...])` on any model. See [Collection Pipelines](#collection-pipelines) and [Attribute Filters on Any Model](#attribute-filters-on-any-model).
-- A key that only some branches return, or one that a spread method's `@return` describes. See [Return Branches and `@return` Shapes](#return-branches-and-return-shapes).
+- A key that only some branches return, or one that `toArray()`'s or a spread method's `@return` describes. See [Return Branches and `@return` Shapes](#return-branches-and-return-shapes).
+- A model, an enum, or an API resource in the array of a method you use as a value. See [Methods Declared as a Bare `array`](#methods-declared-as-a-bare-array).
 
-`#[TsCasts]` is the right tool when the frontend owns the type and it needs its own import, or when a shape is dynamic.
+`#[TsCasts]` is the right tool when the frontend owns the type and it needs its own import, or when a shape is dynamic. To type every value of a class that way, put [`#[TsType]`](https://tolki.abe.dev/ts/custom-types.html) on the class instead.
 
 Use `#[TsCasts]` to override a property's type, or to add a property that `toArray()` doesn't return:
 
@@ -4460,6 +5407,26 @@ Each `| null` comes from what Laravel does at runtime:
 A `when()`, ternary, `mergeWhen()`, `transform()`, `if` block or earlier `return` that rules out a `null` `parent` by testing `$this->parent` itself, for truthiness, against `null`, with `isset()` or with one `instanceof`, drops the `| null` from what it guards, so `$this->when($this->parent, fn () => CategoryResource::make($this->parent))` publishes `CategoryResource`, while a check on `parent_id` keeps it, because a soft-deleted parent still loads as `null`.
 
 A resource built directly around a relation gets the `| null` only when the package can type that relation. A relation the model doesn't declare, a relation to a model the package doesn't publish, and a `morphTo` with no resolvable target publish without it. Inside a `whenLoaded()` closure, the relation's own rule applies instead, so `$this->whenLoaded('parent', fn ($parent) => CategoryResource::make($parent))` publishes `CategoryResource | null` whenever `parent` can load `null`. In that closure, a relation the model doesn't declare counts as one that can load `null` while `nullable_relations` is on.
+
+A `whenLoaded()` value that hands the relation to a resource's `collection()` is the exception. Only a to-many relation, which loads as a list, fits there, so `$this->whenLoaded('branches', CategoryResource::collection(...))` publishes `branches?: CategoryResource[]` even when the package can't read `branches`.
+
+Inside a `map()`, Laravel turns a nested resource with a `null` payload into `null` only where it reaches the mapped items as an array, so the `| null` depends on how the chain ends. On a `Team` resource, where `members` holds users and `profile` is a `HasOne` relation:
+
+```php
+'profiles' => $this->members->map(fn (User $member) => ['profile' => new ProfileResource($member->profile)]),
+'profiles_all' => $this->members->map(fn (User $member) => ['profile' => new ProfileResource($member->profile)])->all(),
+```
+
+Only the chain that ends in `->all()` adds `| null`:
+
+```typescript
+interface TeamResource {
+  profiles: { profile: ProfileResource }[];
+  profiles_all: { profile: ProfileResource | null }[];
+}
+```
+
+Without `->all()`, or through `->values()`, a member with no profile makes Laravel throw instead of sending `null`.
 
 To turn off nullable relation detection everywhere:
 
@@ -4819,7 +5786,7 @@ final class PostScheduled implements ShouldBroadcast
 
     private function publishedAt() // no return type
     {
-        return $this->post->getAttribute('published_at');
+        return json_decode($this->post->schedule)->published_at;
     }
 }
 ```
@@ -4882,6 +5849,58 @@ export interface ManifestAssembled {
 ```
 
 [Building the Array in a Variable](https://tolki.abe.dev/ts/api-resources.html#building-the-array-in-a-variable) on the API Resources page lists the writes the package follows.
+
+A query chain that starts at a model is typed step by step, as in [page props](https://tolki.abe.dev/ts/routing.html#what-the-props-expression-can-be). `Post::query()->pluck('id')->first()` publishes `number | null`. A model the chain returns is presented as `Partial<Model>`, as a [model property](#model--enum-aware-properties) is, so `User::find($this->userId)` publishes `Partial<User> | null` and `User::query()->where('id', 1)->get()` publishes `Partial<User>[]`.
+
+An `EnumResource` around an enum that may be `null` adds `| never[]`, and so does each element of a `map()` of such wraps, because an event sends the empty resource as `[]`.
+
+#### `when()` and `unless()` From `Conditionable`
+
+An event that uses Laravel's `Conditionable` trait can call `$this->when()` and `$this->unless()` in `broadcastWith()`. Unlike a resource's `when()`, they always send the key: the callback's value when the condition holds, the default's when it doesn't, and the event itself where either one returns `null` or no default is passed. The key publishes that union, required:
+
+```php
+class PostPinned implements ShouldBroadcast
+{
+    use Conditionable;
+
+    public function __construct(public Post $post) {}
+
+    public function broadcastWith(): array
+    {
+        $pinned = $this->post->is_pinned;
+
+        return [
+            'label' => $this->when($pinned, fn () => 'active'),
+            'with_default' => $this->when(
+                $pinned,
+                fn () => 'pinned',
+                fn () => 'unpinned',
+            ),
+        ];
+    }
+
+    public function broadcastOn(): Channel
+    {
+        return new Channel('posts');
+    }
+}
+```
+
+`label` can send the event itself, whose JSON is its public `post` property:
+
+```typescript
+import type { Post } from "../models";
+
+/** @see App\Events\PostPinned */
+export interface PostPinned {
+  label: string | { post: Post };
+  with_default: string;
+}
+```
+
+The event's own JSON joins the type only when the package knows it. An event `make:event` generates uses `InteractsWithSockets`, whose untyped `$socket` property leaves that JSON unknown, so a key that can send such an event publishes `unknown`. Pass a default that returns a value, as `with_default` does, or type the key with [`#[TsCasts]`](#overriding-property-types-with-tscasts).
+
+A resource built around the call, such as `UserResource::make($this->when(…))`, is always sent too, so it publishes required.
 
 ### Model & Enum-Aware Properties
 
@@ -5017,6 +6036,8 @@ This override gives `trackingNumber` its template-literal type, and gives `metad
 An entry publishes its type exactly as written, without the `Partial<>` a model property otherwise gets, and the file imports only the types the interface names. A class-level entry for a key the payload doesn't have adds neither the key nor its import. An entry on `broadcastWith()` does add a key the payload lacks, as a resource's `toArray()` entry does.
 
 You can also put `#[TsCasts]` on `broadcastWith()`. It works the same way as on the class, and the class's entry wins when both name a key.
+
+To type every property that holds a given class, in every event, put [`#[TsType]`](https://tolki.abe.dev/ts/custom-types.html) on that class instead of an entry on each event.
 
 ### Extending Interfaces: Global Config vs. `#[TsExtends]`
 
@@ -5296,11 +6317,11 @@ class UserResource extends JsonResource
 }
 ```
 
-Inside another resource, `EnumResource::make($this->status)` and `new EnumResource($this->status)` both publish the property as `AsEnum<typeof Status>`. See [Enum Properties With `EnumResource`](https://tolki.abe.dev/ts/api-resources.html#enum-properties-with-enumresource) on the API Resources page.
+Inside another resource, `EnumResource::make($this->status)` and `new EnumResource($this->status)` both publish the property as `AsEnum<typeof Status>`. See [Enum Properties With `EnumResource`](https://tolki.abe.dev/ts/api-resources.html#enum-properties-with-enumresource) on the API Resources page. A bare value sends no object: `'status' => Status::Published->value` publishes that case's own value, `1`. [Reading `->value` and `->name`](https://tolki.abe.dev/ts/enums.html#reading-value-and-name) covers bare values and `cases()`.
 
-The same rewrite applies to [Inertia shared data](https://tolki.abe.dev/ts/inertia.html). With `enums.use_tolki_package` on (the default), an `EnumResource::make()` returned from your middleware's `share()` publishes as `AsEnum<typeof Role>` in `inertia-config.d.ts`, with `import { type AsEnum } from '@tolki/ts'` and an import of the `Role` const above the declarations. A shared key whose ternary picks between two different enums isn't rewritten. It publishes as `RoleType | StatusType` with neither enum imported, so TypeScript reports both names as missing (`TS2304`). Give both arms the same enum. See the `EnumResource` note in [How the Augmentation File Is Generated](https://tolki.abe.dev/ts/inertia.html#how-the-augmentation-file-is-generated).
+The same rewrite applies to [Inertia shared data](https://tolki.abe.dev/ts/inertia.html). With `enums.use_tolki_package` on (the default), an `EnumResource::make()` returned from your middleware's `share()` publishes as `AsEnum<typeof Role>` in `inertia-config.d.ts`, with `import { type AsEnum } from '@tolki/ts'` and an import of the `Role` const above the declarations. Route page props are rewritten the same way. See the `EnumResource` notes in [How the Augmentation File Is Generated](https://tolki.abe.dev/ts/inertia.html#how-the-augmentation-file-is-generated).
 
-`EnumResource` turns off Laravel's resource wrapping (`public static $wrap = ''`), so the response is the flat object shown below, not wrapped in a `data` key. When the enum is `null`, the resource returns `null` instead of an object.
+`EnumResource` turns off Laravel's resource wrapping (`public static $wrap = ''`), so the response is the flat object shown below, not wrapped in a `data` key. When the enum is `null`, the resource returns `null` instead of an object. As an Inertia page prop or shared value, Inertia sends `[]` instead, so the prop publishes `AsEnum<typeof Status> | never[]`. A broadcast event's payload, and a `map()` of wraps kept as a collection inside another resource, send `[]` too, and publish `| never[]`. See [Enum Properties With `EnumResource`](https://tolki.abe.dev/ts/api-resources.html#enum-properties-with-enumresource).
 
 ### Response Shape
 
@@ -5326,7 +6347,7 @@ The response for `Status::Published`, with two instance methods, looks like this
 
 Each instance method, marked with `#[TsEnumMethod]` or included by `enums.auto_include_methods`, adds a top-level key that holds the method's value for this case. Each static method, marked with `#[TsEnumStaticMethod]` or included by `enums.auto_include_static_methods`, adds a top-level key that holds its return value.
 
-Each method key holds the same value as the published enum, as `json_encode()` writes it. A method that throws for the case, or returns a value `json_encode()` can't write, sends `null`. [Object and Array Values](https://tolki.abe.dev/ts/enums.html#object-and-array-values) shows how an object becomes JSON, and the one kind of array that the response sends as a list while the published enum holds an object.
+Each method key holds the same value as the published enum, as `json_encode()` writes it. A method that throws for the case, or returns a value `json_encode()` can't write, sends `null`. [Object and Array Values](https://tolki.abe.dev/ts/enums.html#object-and-array-values) shows how an object or an array becomes JSON.
 
 The response therefore has the same keys as the object you get when you call `.from()` on the published enum with the same value.
 
@@ -5463,7 +6484,7 @@ When two enums share a class name, both imports get a namespace prefix, for the 
 
 ## Excluding Content
 
-Add the `#[TsExclude]` attribute to keep a class out of the TypeScript output, or to leave out one of its methods, accessors, relations, or controller actions. It works on enums, models, resources, form requests, broadcast events, and controllers. It's a PHP attribute only. It has no config key, and there's nothing to set up in `@tolki/ts`.
+Add the `#[TsExclude]` attribute to keep a class out of the TypeScript output, or to leave out one of its methods, accessors, relations, or controller actions. It works on enums, models, resources, form requests, broadcast events, and controllers. On a class with a [composed type](https://tolki.abe.dev/ts/custom-types.html#composed-types), it also stops the class composing. It's a PHP attribute only. It has no config key, and there's nothing to set up in `@tolki/ts`.
 
 ### `#[TsExclude]` Attribute
 
@@ -5609,6 +6630,8 @@ export const ExcludableEnum = defineEnum({
 
 export type ExcludableEnumType = "alpha" | "beta";
 export type ExcludableEnumKind = "Alpha" | "Beta";
+
+export type ExcludableEnum = ExcludableEnumType;
 ```
 
 `overridden()` and `overriddenStatic()` have attributes that would include them whatever the auto-include settings, but `#[TsExclude]` removes them. `label()` and `secret()` are missing because auto-include is off. Turn on `enums.auto_include_methods`, and `label()` publishes while `secret()` stays out. See [Auto-Including All Enum Methods](https://tolki.abe.dev/ts/enums.html#auto-including-all-enum-methods) for which methods auto-include adds.
@@ -6102,11 +7125,11 @@ A value loses its quotes only when it reads back as the same text. Laravel's `in
 
 These rules decide whether a field is optional, nullable or left out:
 
-| Rule                                                                                                           | Effect                                                                                                                                                                                |
-| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `required`, or any rule starting with `required` (including `Rule::requiredIf()` and `Rule::requiredUnless()`) | The field is required, with no `?`.                                                                                                                                                   |
-| `sometimes`                                                                                                    | The field is optional, even alongside `required`.                                                                                                                                     |
-| `nullable`                                                                                                     | Adds `\| null` to the field's type.                                                                                                                                                   |
+| Rule                                                                                                           | Effect                                                                                                                                                                               |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `required`, or any rule starting with `required` (including `Rule::requiredIf()` and `Rule::requiredUnless()`) | The field is required, with no `?`.                                                                                                                                                  |
+| `sometimes`                                                                                                    | The field is optional, even alongside `required`.                                                                                                                                    |
+| `nullable`                                                                                                     | Adds `\| null` to the field's type.                                                                                                                                                  |
 | `missing` or `prohibited`                                                                                      | The field is left out of the interface entirely, not only marked optional. A nested key is dropped from its parent's shape instead. See [Array & Nested Rules](#array--nested-rules). |
 
 This example shows each rule's effect in a comment:
@@ -6557,18 +7580,21 @@ This page covers shared data, and the API resources that shared data and a route
 With `inertia.enabled` on (the default), the package builds the file from your middleware:
 
 - **Finding the middleware**: the package searches `inertia.inertia_middleware_path`, or `app_path()` when that isn't set, for a class that extends `Inertia\Middleware`. If it finds none, it writes no file. If your app has more than one such class, point `inertia.inertia_middleware_path` at the directory that holds the one you want.
-- **Reading `share()`**: every key's value is typed from your code, without handling a real request. A `share()` that a trait supplies is read too, and so is one that builds its array in a variable and returns it. A key that the variable gets on only some paths, such as inside an `if`, is optional.
-- **Parent middleware**: a `...parent::share($request)` spread and `array_merge(parent::share($request), [...])` are both read, all the way up your middleware's parent classes. A later key overrides an earlier one and keeps the earlier one's position, as PHP does.
+- **Reading `share()`**: every key's value is typed from your code, without handling a real request. A `share()` that a trait supplies is read too, even under an alias such as `use SharesProps { base as share; }`, and so is one that builds its array in a variable and returns it. A key that the variable gets on only some paths, such as inside an `if`, is optional.
+- **Parent middleware**: a `...parent::share($request)` spread and `array_merge(parent::share($request), [...])` are both read, all the way up your middleware's parent classes. A later key overrides an earlier one and keeps the earlier one's position, as PHP does. A parent's `#[TsCasts]` applies too, as [Type Resolution Priority](#type-resolution-priority) describes.
+- **Dotted keys**: Inertia unpacks a top-level dotted key into nested objects, so `'auth.name' => $request->user()?->name` publishes `auth: { name: string | null }`. When the array also holds an `auth` array, `name` is added to it.
 - **Integer keys**: Inertia merges shared data and page props with `array_merge()`, which renumbers integer keys from `0`. A top-level `42 => …` key therefore publishes as `"0"`, and `ts:publish` warns that you probably meant a string key. Nested keys keep theirs.
-- **`$request->user()`**: typed through your live auth config, from `auth.defaults.guard` to that guard's provider to the provider's `model`. The prop becomes `User | null`, and the file imports the model's type for you. `auth()->user()`, `auth()->id()`, `Auth::user()` and `Auth::id()` resolve the same way.
+- **The signed-in user**: `$request->user()` is typed through your live auth config, from `auth.defaults.guard` to that guard's provider to the provider's `model`. The prop becomes `User | null`, and the file imports the model's type for you. `auth()->user()`, `Auth::user()`, `request()->user()` and `Auth::guard()->user()` resolve the same way, and so does a read past any of them, such as `auth()->user()?->name`, which publishes `string | null`. `auth()->id()` and `Auth::id()` publish the user's key, as described below.
 - **Request helpers**: `$request->url()`, `fullUrl()`, `path()`, `integer()`, `boolean()`, `string()`, `cookie()` and `hasCookie()` are typed from Laravel's own signatures.
 - **`config()`**: `config('some.key')` with a literal key is typed from the live config value, since the package runs inside your booted app. A computed key stays `unknown`.
 - **Value helpers**: `now()` and `today()` are typed as `string`, or `Date` under [`timestamps_as_date`](https://tolki.abe.dev/ts/models.html#timestamps-as-date-objects). `str($value)` is typed as `string`, and `str()` with no argument as `Record<string, never>`. `url($path)` is typed as `string` when the path can't be `null`, and stays `unknown` when it can or has no type. `collect([...])` and a bare array literal are both typed as the list or object the array encodes as, such as `string[]` for `['a', 'b']`. `+` on two arrays is typed as PHP's array union, where the left side's keys win.
-- **Closures and first-class callables**: Inertia calls a callable prop before it sends it, so closures and first-class callables, such as `fn () => $request->url()` and `now(...)`, are typed from what the call returns.
-- **Inertia v2 prop wrappers**: `Inertia::defer()`, `optional()`, `lazy()`, `always()`, `merge()` and `deepMerge()` type as the value they wrap. The three a partial reload can leave out, `defer`, `optional` and `lazy`, make the key optional.
+- **Closures and first-class callables**: Inertia calls a callable prop before it sends it, so closures and first-class callables, such as `fn () => $request->url()` and `now(...)`, are typed from what the call returns. That includes one inside an array that a helper method builds.
+- **Inertia v2 prop wrappers**: `Inertia::defer()`, `optional()`, `lazy()`, `always()`, `merge()` and `deepMerge()` type as the value they wrap, and so does a prop class you construct, such as `new OptionalProp(fn () => …)`. The three a partial reload can leave out, `defer`, `optional` and `lazy`, make the key optional.
 - **API resources**: a resource or resource collection is typed as the response Inertia sends for it, as [API Resources in Props](#api-resources-in-props) describes.
 - **`EnumResource` props**: a prop that wraps an enum in `EnumResource`, such as `'role' => EnumResource::make(Role::Admin)`, becomes `AsEnum<typeof Role>` when `enums.use_tolki_package` is on (the default), the same as in [API Resources](https://tolki.abe.dev/ts/api-resources.html#enum-properties-with-enumresource). With it off, the key keeps the enum's type alias (`role: RoleType`). The change applies per key, so another key that reads the enum directly keeps `RoleType`.
+- **`EnumResource` ternaries and `null`**: each arm of a ternary is typed as Laravel sends it. Wrapping two different enums publishes `AsEnum<typeof Role> | AsEnum<typeof Status>`, and a wrap beside a bare case of the same enum publishes `AsEnum<typeof Status> | StatusType`. A wrap around an enum that may be `null` publishes `AsEnum<typeof Status> | never[]`, because Inertia sends `[]` for it, not `null`. Tell the two apart with `Array.isArray()`.
 - **Enum cases**: a bare case, such as `'defaultStatus' => Status::Draft`, is typed as the enum's type alias (`defaultStatus: StatusType`), which matches the value Laravel sends for a backed enum. The file imports the alias for you.
+- **Classes with `#[TsType]`**: a value of a class that has or inherits a `#[TsType]` is typed as that type, with its import, in shared data and page props alike. See [Custom Types](https://tolki.abe.dev/ts/custom-types.html).
 - **`errors`**: left out. `@inertiajs/core` already types `page.props.errors` as `Errors & ErrorBag`, and [`errorValueType`](#anatomy-of-the-generated-file) sharpens it. A `#[TsCasts]` or `@return` docblock entry named `errors` still adds one if you want it.
 - **The output file**: the result is written to `inertia-config.d.ts`. Set `inertia.augmentation_filename` to change the name.
 
@@ -6576,9 +7602,11 @@ With `inertia.enabled` on (the default), the package builds the file from your m
 
 When the package can't create an instance of the model, it reads the key type from the class, and publishes `unknown` if code works the key out. A `getAuthIdentifierName()` that works the column out in code, such as from config, publishes `unknown` too, and so does an override of `getAuthIdentifier()`, since only running your app shows which value the ID holds.
 
-In a route's [page props](https://tolki.abe.dev/ts/routing.html#inertia-integration), `getKey()` on a route-bound model publishes the model's key type with no `| null`, because Laravel binds only a saved row. With a `Post $post` action parameter, `'post_id' => $post->getKey()` publishes `post_id: number`.
+The signed-in user is typed from the default guard only, so a named guard, such as `auth('admin')->user()` or `Auth::guard('admin')->user()`, publishes `unknown`. When your guards' providers name more than one user model, a route's guard middleware can sign in either one, so `request()->user()`, `Auth::guard()->user()` and a read past `auth()->user()`, `Auth::user()` or `request()->user()` publish `unknown` too. `$request->user()`, a bare `auth()->user()` or `Auth::user()`, `auth()->id()` and `Auth::id()` keep the default guard's model. Type such a key with [`#[TsCasts]`](#type-resolution-priority).
 
-A key whose ternary arms wrap different enums, such as `$cond ? EnumResource::make(Role::Admin) : EnumResource::make(Status::Draft)`, renders as `RoleType | StatusType` with no import for either name. Your build then fails with a `TS2304` error for each. Give both arms the same enum, or override that key with a `#[TsCasts]` entry that has an `import`.
+In a route's [page props](https://tolki.abe.dev/ts/routing.html#inertia-integration), `getKey()` on a route-bound model publishes the model's key type with no `| null`, because Laravel binds only a saved row. With a `Post $post` action parameter, `'post_id' => $post->getKey()` publishes `post_id: number`. A relation read on the parameter is typed by the models it loads, so `'comments' => $post->comments` publishes `comments: Comment[]`.
+
+A few mixes of `EnumResource` arms publish a type that doesn't match what Laravel sends. A wrap beside a bare case of another enum, as in `$cond ? EnumResource::make(Role::Admin) : Status::Draft`, publishes `RoleType | StatusType`, though the first arm sends the `Role` object. A nested ternary over the wraps of three enums can leave a type alias unimported, which fails your build with `TS2304`. Override such a key with a `#[TsCasts]` entry that has an `import`.
 
 ### Anatomy of the Generated File
 
@@ -6635,13 +7663,13 @@ export {};
 
 Each part of the file does one job:
 
-- **`import type { User } from "./app/models";`**: every model, resource or enum that a prop type names gets an import at the top, with a path relative to the output root. An `EnumResource` prop is the exception under the default `enums.use_tolki_package`. It renders as `AsEnum<typeof Role>`, so the enum's const is imported as a value (`import { Role } from './app/enums';`), under an `import { type AsEnum } from '@tolki/ts';` line, and both come before the `import type` lines. Imports from an `import` key in `#[TsCasts]` join the `import type` lines.
+- **`import type { User } from "./app/models";`**: every model, resource or enum that a prop type names gets an import at the top, with a path relative to the output root. An `EnumResource` prop is the exception under the default `enums.use_tolki_package`. It renders as `AsEnum<typeof Role>`, so the enum's const is imported as a value (`import { Role } from './app/enums';`), under an `import { type AsEnum } from '@tolki/ts';` line, and both come before the `import type` lines. Imports from an `import` key in `#[TsCasts]` join the `import type` lines. Two classes that share a name, such as `App\Enums\Status` and `App\Crm\Enums\Status`, are imported under aliases, as in `StatusType as CrmStatusType`.
 - **`declare global { namespace Inertia { type SharedData = ...; } }`**: makes `Inertia.SharedData` available by name in any `.ts` file in your project. That includes the generated route files, which combine it with each page's props, as [Inertia Integration](https://tolki.abe.dev/ts/routing.html#inertia-integration) shows.
 - **`declare module '@inertiajs/core' { ... }`**: augments Inertia's own `InertiaConfig`, so `usePage().props` is typed across your frontend without you writing the augmentation.
 - **`errorValueType: string[]`**: added only when the middleware sets `protected $withAllErrors = true;`. It matches the shape Inertia uses for its validation errors in that mode.
 - **`export {};`**: TypeScript accepts a `declare global` block only in a module, a file with at least one top-level `import` or `export`. This line makes the file a module even when it has no imports.
 
-The file imports only the names its types use. A key you override with `#[TsCasts]` drops the import its inferred type needed.
+The file imports only the names its types use. A key you override with `#[TsCasts]` drops the imports its inferred type needed, but keeps the import of a class the override names and the key's value holds. `'owner' => 'User | null'` over `$request->user()` still imports `User`, with no `import` key.
 
 A key that isn't a plain identifier, such as `'can-edit'` or `42`, is quoted, as in `"can-edit": boolean`. Route files quote a page prop's key the same way.
 
@@ -6651,8 +7679,8 @@ A value the package can't read stays `unknown`. `'flash' => ['success' => fn () 
 
 Each key from `share()` takes its type from the first of these that covers it:
 
-1. **`#[TsCasts]`** on the middleware class or on its `share()` method. When both name a key, the method's entry wins, even when the two spell an index signature's name differently. It's the same attribute [models](https://tolki.abe.dev/ts/models.html#tscasts), [API resources](https://tolki.abe.dev/ts/api-resources.html#overriding-property-types-with-tscasts) and [broadcast events](https://tolki.abe.dev/ts/broadcast-events.html#overriding-property-types-with-tscasts) use.
-2. **A `@return array{...}` docblock** on `share()`. You write the shape by hand, for a key the package can't infer, such as a method call whose return type says nothing. A `key?:` entry makes that key optional.
+1. **`#[TsCasts]`** on the middleware class or on its `share()` method. When both name a key, the method's entry wins, even when the two spell an index signature's name differently. A parent middleware's entries apply too when your middleware inherits the parent's `share()` or reads it through `parent::share()`, and your class's entries win over the parent's. It's the same attribute [models](https://tolki.abe.dev/ts/models.html#tscasts), [API resources](https://tolki.abe.dev/ts/api-resources.html#overriding-property-types-with-tscasts) and [broadcast events](https://tolki.abe.dev/ts/broadcast-events.html#overriding-property-types-with-tscasts) use.
+2. **A `@return array{...}` docblock** on `share()`. You write the shape by hand, for a key the package can't infer, such as a method call whose return type says nothing. A `key?:` entry makes that key optional. A model or enum that a top-level key names, as in `owner: User`, is imported for you.
 3. **Inference from your code**, the default. It covers plain values, nested arrays, conditionals, closures, spreads, `array_merge()`, `config()`, the request and auth helpers, and Inertia's prop wrappers.
 
 A key that `#[TsCasts]` or the docblock names but `share()` doesn't return is added to the type.
@@ -6685,7 +7713,7 @@ Here `appName` takes its type from `#[TsCasts]` and `flash` takes its type from 
 
 ### API Resources in Props
 
-Inertia sends an API resource prop as the resource's whole response, the same JSON a route that returns the resource sends. That holds at any depth of a route's page props and in `share()`, so each prop publishes that response:
+Inertia sends an API resource prop as the resource's whole response, the same JSON a route that returns the resource sends. That holds at any depth of a route's page props and in `share()`, including props that a helper method or another class's method builds, as in `Inertia::render('Posts/Show', $this->props->build())`. Each prop publishes that response:
 
 ```php
 return Inertia::render('Posts/Show', [
@@ -6711,10 +7739,34 @@ Each kind of prop follows its own rule:
 - **`Resource::collection()`** publishes `AnonymousResourceCollection<CommentResource>` from `@tolki/types`, which is `{ data: CommentResource[] }`.
 - **A named collection** publishes its own interface, which already holds its wrap key. One whose `toArray()` returns no wrap key publishes `{ data: TagCollection }`, because Laravel nests that body under `data`.
 - **`->toResourceCollection()`** with no argument publishes the collection Laravel guesses. Over an empty collection, Laravel skips the guess and sends `{ data: [] }`, so the prop also publishes that empty response, such as `UserCollection | { data: never[] }` or, over `paginate()`, `| JsonResourcePaginator<never>`. A guessed collection whose response is only its `data` list already fits it and gets no extra type.
+- **Keys beside `data`**: the keys that a resource's `with()` method or an `->additional([...])` call adds are published beside the body. A single resource merges them into its object, as in `{ data: PostResource; meta: { total: number } }`, and any other response is intersected with them, as in `AnonymousResourceCollection<CommentResource> & { meta: { total: number } }`. A `with()` key that a `when()` call may leave out arrives as `[]`, so it publishes `T | never[]`.
+- **A resolved resource**, from `->resolve()`, publishes the resource's own type, with no `data` key. Inertia still sends each API resource inside the resolved body as a response, so a key that holds one publishes that response, as the example below shows. `Resource::collection(...)->resolve()` publishes a list of the same.
 
-The wrap key is the one your app sets by the time `ts:publish` runs, as [The Wrap Key Your App Sets](https://tolki.abe.dev/ts/api-resources.html#the-wrap-key-your-app-sets) describes. After `JsonResource::withoutWrapping()`, a single resource publishes the bare `PostResource`, and `Resource::collection()` over items that aren't paginated publishes `CommentResource[]`. Over a paginator, Laravel keeps the `data` key. After `JsonResource::wrap('items')`, a single resource publishes `{ items: PostResource }`.
+Here `PostCardResource` returns `'author' => UserCardResource::make($this->author)` among its keys:
 
-Some props publish less than Inertia sends. The keys that `additional()` or a resource's `with()` method add beside `data` aren't published, and after `JsonResource::withoutWrapping()` those keys still make Laravel nest the resource under `data`, while the package publishes it bare. `Resource::collection(...)->additional(...)` publishes `unknown`. Props that another class's method builds, as in `Inertia::render('Posts/Show', $this->props->build())`, publish each API resource inside them bare, though Inertia sends it under `data`. Type such a prop with [`#[TsCasts]`](https://tolki.abe.dev/ts/routing.html#overriding-props-with-tscasts).
+```php
+return Inertia::render('Posts/Show', [
+    'post' => PostResource::make($post)->additional([
+        'meta' => ['total' => $post->comments()->count()],
+    ]),
+    'card' => PostCardResource::make($post)->resolve(),
+]);
+```
+
+Both props publish what Inertia sends:
+
+```typescript
+export type ShowPageProps = Inertia.SharedData & {
+  post: { data: PostResource; meta: { total: number } };
+  card: Omit<PostCardResource, "author"> & {
+    author: { data: UserCardResource };
+  };
+};
+```
+
+After `->resolve()`, a resource collection class with its own `toArray()` publishes its items bare, though Inertia sends each one under `data`. Pass the collection itself, or type the prop with [`#[TsCasts]`](https://tolki.abe.dev/ts/routing.html#overriding-props-with-tscasts).
+
+The wrap key is the one your app sets by the time `ts:publish` runs, as [The Wrap Key Your App Sets](https://tolki.abe.dev/ts/api-resources.html#the-wrap-key-your-app-sets) describes. After `JsonResource::withoutWrapping()`, a single resource publishes the bare `PostResource`, and `Resource::collection()` over items that aren't paginated publishes `CommentResource[]`. Over a paginator, Laravel keeps the `data` key. Keys from `with()` or `additional()` also make Laravel nest the resource under `data`, and the prop publishes it that way. After `JsonResource::wrap('items')`, a single resource publishes `{ items: PostResource }`.
 
 #### JSON:API Resources in Props
 
@@ -6789,7 +7841,7 @@ export type IndexPageProps = Inertia.SharedData & {
 };
 ```
 
-`paginate()`, `simplePaginate()`, and `cursorPaginate()` are all recognized, in the `new SomeCollection(...)`, `SomeResource::collection(...)`, and `->toResourceCollection()` forms.
+`paginate()`, `simplePaginate()`, and `cursorPaginate()` are all recognized, in the `new SomeCollection(...)`, `SomeResource::collection(...)`, and `->toResourceCollection()` forms. The paginator can also come from a query builder held in a variable, or from a controller method or an injected service's method, typed from the method's return type or its body. A call that hands back the same paginator, such as `withQueryString()`, `appends()` or `onEachSide()`, keeps its kind.
 
 Each paginator sends its own `meta` block, so each gets its own type from `@tolki/types`. A named collection adds the pagination type to its own interface. An anonymous collection, from `SomeResource::collection(...)`, publishes the paginator's whole response, and so does a collection with `$wrap = null`, because Laravel sends it under `data` over a paginator. In this list, the named form comes first, and `R` is the collected resource:
 
@@ -6799,17 +7851,16 @@ Each paginator sends its own `meta` block, so each gets its own type from `@tolk
 
 A prop that can hold more than one paginator kind, such as a ternary over `paginate()` and `simplePaginate()`, publishes `TeamCollection & (ResourceSimplePagination | ResourcePagination)`. One that can hold a plain collection or a paginator publishes both shapes, `TeamCollection | (TeamCollection & ResourcePagination)`. A collection that `share()` returns is typed the same way.
 
-When the package doesn't see a paginator, the prop doesn't lose its type. It gets the collection's type without the pagination part, which is wrong rather than missing. The package sees a paginator that a query chain starting at the model returns, such as `Post::query()->simplePaginate(10)`, or one held in a local variable assigned that way. It doesn't follow a paginator from a query builder held in a variable, from a controller method such as `$this->page()`, or from a method of an injected service:
+When the package can't tell which paginator a payload holds, the prop gets the collection's type without the pagination part, a wrong type rather than a missing one. That happens with a method declared to return the `Paginator` contract, which more than one paginator kind implements, or with one that has no return type and a body the package can't read:
 
 ```php
-$q = Post::query();
-
+// page() is declared to return the Paginator contract
 return Inertia::render('Posts/Index', [
-    'posts' => new PostCollection($q->paginate(10)), // not detected
+    'posts' => new PostCollection($this->posts->page()),
 ]);
 ```
 
-Here `posts` types as `PostCollection`, without `& ResourcePagination`, and the same paginator passed without a resource publishes `unknown`. Build the paginator in the props, or type the prop with [`#[TsCasts]`](https://tolki.abe.dev/ts/routing.html#overriding-props-with-tscasts).
+Here `posts` types as `PostCollection`, without `& ResourcePagination`. A paginator passed without a resource is typed only from a query chain that starts at a model, or from a method that returns one. From a query builder held in a variable, it publishes `unknown`. Declare the paginator class the method returns, such as `LengthAwarePaginator`, build the paginator in the props, or type the prop with [`#[TsCasts]`](https://tolki.abe.dev/ts/routing.html#overriding-props-with-tscasts).
 
 ### Output Location
 
@@ -6825,7 +7876,7 @@ The [Configuration Reference](https://tolki.abe.dev/ts/configuration-reference.h
 
 ## Modular Publishing
 
-The package writes every TypeScript file into a directory tree that mirrors your PHP namespaces. There's no flat-output mode, and no setting to turn this off. Modular and domain-driven apps, such as those built with [InterNACHI/modular](https://github.com/InterNACHI/modular), keep each module's types together, and a single-namespace app gets one `app/` tree. Models, enums, resources, form requests, broadcast events, and routes all follow the same rule.
+The package writes every TypeScript file into a directory tree that mirrors your PHP namespaces. There's no flat-output mode, and no setting to turn this off. Modular and domain-driven apps, such as those built with [InterNACHI/modular](https://github.com/InterNACHI/modular), keep each module's types together, and a single-namespace app gets one `app/` tree. Models, enums, resources, form requests, broadcast events, routes, and [composed types](https://tolki.abe.dev/ts/custom-types.html#composed-types) all follow the same rule.
 
 ### Output Structure
 
@@ -7001,7 +8052,7 @@ import type { Invoice } from "@data/accounting/models";
 import type { InvoiceStatusType } from "@data/accounting/enums";
 ```
 
-Models, enums, resources, form requests, broadcast events, and routes each write their own barrels. A route barrel re-exports each controller's default export by name, such as `export { default as PostController } from './post-controller';`, rather than using `export *`. That keeps two controllers with a method of the same name from clashing.
+Models, enums, resources, form requests, broadcast events, and routes each write their own barrels, and composed types add their modules to their namespace's barrel. A route barrel re-exports each controller's default export by name, such as `export { default as PostController } from './post-controller';`, rather than using `export *`. That keeps two controllers with a method of the same name from clashing.
 
 `ts:publish --preview=true` prints each barrel's contents under its own label, such as `Model Barrel Files:` or `Enum Barrel Files:`, next to the per-class files. A verbose run, `ts:publish -v`, lists each barrel file's path in its Extras table.
 
@@ -7520,11 +8571,12 @@ The package reads the props argument as an expression, not only as an array lite
 public function show(Post $post, Request $request): Response
 {
     return Inertia::render('Posts/Show', [
-        'post' => $post,
+        'post' => $post->load('author:id,name'),
         'comments' => Comment::query()->latest()->get(),
         'author' => $request->user(),
+        'viewer' => auth()->user()?->name,
         'page' => $request->integer('page'),
-        'related' => Post::query()->paginate(10),
+        'related' => Post::query()->paginate(10)->withQueryString(),
         'tally' => Inertia::defer(fn () => Comment::query()->count()),
     ]);
 }
@@ -7534,32 +8586,54 @@ This generates:
 
 ```typescript
 export type ShowPageProps = Inertia.SharedData & {
-  post: Post;
+  post: Post & { author: Pick<User, "id" | "name"> };
   comments: Comment[];
   author: User | null;
+  viewer: string | null;
   page: number;
   related: LengthAwarePaginator<Post>;
   tally?: number;
 };
 ```
 
-These expressions are typed:
+Eloquent finders and collections are typed step by step from the model the chain starts at:
 
-- **Eloquent finders and collections**, typed from the model the chain starts at. `find()`, `first()` and `firstWhere()` are `Model | null`. `findOrFail()`, `firstOrFail()`, `sole()`, `create()`, `make()`, `firstOrCreate()`, `firstOrNew()` and `updateOrCreate()` are `Model`. `all()` and `get()` are `Model[]`. `paginate()`, `simplePaginate()` and `cursorPaginate()` are `LengthAwarePaginator<Model>`, `SimplePaginator<Model>` and `CursorPaginator<Model>`, imported from `@tolki/types`. `count()` is `number` and `exists()` is `boolean`.
-- **Route-bound model parameters**: a `Post $post` parameter is `Post` wherever a prop uses it.
-- **PHP enums**: a prop holding an enum is the enum's `{Name}Type` alias, imported from the generated [enums](https://tolki.abe.dev/ts/enums.html). That includes a bare case, such as `'status' => Status::Active`. A rename with [`#[TsEnum]`](https://tolki.abe.dev/ts/enums.html#tsenum) carries over, so `#[TsEnum(name: 'Size')] enum ShirtSize` gives you `size: SizeType`.
-- **`$request->user()`**, typed through your `auth` config the same way [shared data](https://tolki.abe.dev/ts/inertia.html) is, and the typed `Request` reads such as `integer()`, `boolean()`, `string()` and `url()`.
+| Call                                                                                                                   | Type                         |
+| ---------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `find()`, `first()`, `firstWhere()`                                                                                    | `Model \| null`              |
+| `findOrFail()`, `firstOrFail()`, `sole()`, `create()`, `make()`, `firstOrCreate()`, `firstOrNew()`, `updateOrCreate()` | `Model`                      |
+| `all()`, `get()`, `cursor()`, `findMany()`, and `find()` with a list of keys                                           | `Model[]`                    |
+| `pluck('title')`                                                                                                       | A list of the column's type  |
+| `value('title')`                                                                                                       | The column's type, or `null` |
+| `count()`                                                                                                              | `number`                     |
+| `exists()`                                                                                                             | `boolean`                    |
+
+A relation step moves the chain to the related model, so `Post::find(1)->comments()->get()` is `Comment[]`. A read past a finder is typed too, so `Post::find(1)?->title` is `string | null`.
+
+These expressions are typed too:
+
+- **Paginators**: `paginate()`, `simplePaginate()` and `cursorPaginate()` are `LengthAwarePaginator<Model>`, `SimplePaginator<Model>` and `CursorPaginator<Model>`, imported from `@tolki/types`. A call that hands back the same paginator, such as `withQueryString()` or `appends()`, keeps that type, and `through()` types the items as its callback returns them.
+- **Route-bound model parameters**: a `Post $post` parameter is `Post` wherever a prop uses it, and a relation read on it is typed by the models the relation loads, so `$post->author` is `User` and `$post->comments` is `Comment[]`.
+- **`load()` and `loadMissing()`**: the model with the relations the call loads, such as `Post & { author: User }`, or a list of that on a collection. A column list publishes a `Pick`, as the example shows, and a dotted path nests, so `load('author.posts')` is `Post & { author: User & { posts: Post[] } }`. A to-one relation adds `| null` where a closure may filter it out, or where a column list leaves out the key Laravel matches it by. Only the value the call returns carries the relations, so call `load()` inside the prop: `$post->load('author');` on its own line, followed by `'post' => $post`, publishes `Post`.
+- **PHP enums**: a prop holding an enum is the enum's `{Name}Type` alias, imported from the generated [enums](https://tolki.abe.dev/ts/enums.html). That includes a bare case, such as `'status' => Status::Active`. A rename with [`#[TsEnum]`](https://tolki.abe.dev/ts/enums.html#tsenum) carries over, so `#[TsEnum(name: 'Size')] enum ShirtSize` gives you `size: SizeType`. Two enums with the same class name in different namespaces are imported under aliases, such as `StatusType as CrmStatusType`. An `EnumResource` prop publishes `AsEnum<typeof Status>`, as it does in [shared data](https://tolki.abe.dev/ts/inertia.html#how-the-augmentation-file-is-generated).
+- **The signed-in user**: `$request->user()`, `auth()->user()`, `Auth::user()` and `request()->user()`, and reads past them such as `auth()->user()?->name`, typed through your `auth` config the same way [shared data](https://tolki.abe.dev/ts/inertia.html#how-the-augmentation-file-is-generated) is. A named guard, or guards that name more than one user model, can leave some of these `unknown`, as that page describes. `Request` reads such as `integer()`, `boolean()`, `string()` and `url()` are typed too.
 - **`compact()` and `array_merge()`**: passed as the whole props argument, as in `Inertia::render('Posts/Show', compact('post', 'comments'))` or `array_merge($base, [...])`, each types the same as the array literal it builds.
-- **Inertia v2 prop wrappers**: `defer()`, `optional()` and `lazy()` type as the value they wrap and make the key optional, since a partial reload can leave it out. `always()`, `merge()` and `deepMerge()` type as the value they wrap.
-- **API resources and resource collections**, typed as the response Inertia sends for each, such as `{ data: PostResource }` for a single resource and `JsonResourceSimplePaginator<PostResource>` over `simplePaginate()`, including a `#[PreserveKeys]` collection's keyed `data` member. See [API Resources in Props](https://tolki.abe.dev/ts/inertia.html#api-resources-in-props).
-- **A props array assigned from a ternary**, or props built whole by a method on an injected service, as in `Inertia::render('Posts/Show', $this->service->build())`.
-- **Closures and first-class callables**: Inertia calls a callable prop, so `fn () => $this->label()` and `$this->label(...)` are both typed from what the call returns. In props that another class's method or a controller helper method builds, a first-class callable publishes `Record<string, never>` and `ts:publish` warns, even though Inertia does call it. Use a closure there.
+- **Inertia v2 prop wrappers**: `defer()`, `optional()` and `lazy()` type as the value they wrap and make the key optional, since a partial reload can leave it out. `always()`, `merge()` and `deepMerge()` type as the value they wrap. A prop class you construct, such as `new OptionalProp(fn () => …)`, types the same as its factory.
+- **API resources and resource collections**, typed as the response Inertia sends for each, such as `{ data: PostResource }` for a single resource and `JsonResourceSimplePaginator<PostResource>` over `simplePaginate()`, including a `#[PreserveKeys]` collection's keyed `data` member, the keys `with()` and `additional()` add, and the resources nested in a resource you call `->resolve()` on. See [API Resources in Props](https://tolki.abe.dev/ts/inertia.html#api-resources-in-props).
+- **A props array in a local variable**, typed from what your code writes to it before the render call. The local can be assigned from a ternary, set one key at a time, assigned in each arm of an `if`, or built with `$base + [...]`. A key written after the render call isn't published, because the call has already copied the array, and keys a loop writes under an interpolated name publish an index signature.
+- **Props a helper builds**: props built whole by a controller helper method or by a method on an injected service, as in `Inertia::render('Posts/Show', $this->service->build())`, are typed the same way, closures and API resources included.
+- **Closures and first-class callables**: Inertia calls a callable prop, so `fn () => $this->label()` and `$this->label(...)` are both typed from what the call returns.
 
-If two enums in different namespaces share a class name, such as `App\Enums\Status` and `App\Billing\Status`, both publish as `StatusType`. A route file whose props use both imports `StatusType` twice, and TypeScript rejects it as a duplicate identifier. Rename one with `#[TsEnum]` to keep them apart.
+A prop the package can't read is typed `unknown`, and the run carries on. Use [`#[TsCasts]`](#overriding-props-with-tscasts) to set its type. A few shapes the package doesn't follow:
 
-A prop the package can't read is typed `unknown`, and the run carries on. Use [`#[TsCasts]`](#overriding-props-with-tscasts) to set its type.
+- A props local that a `+=` writes, or one written inside a `switch`, a `try`, or a loop that exits through `continue` or `break`, publishes none of its keys, so the page's type is only `Inertia.SharedData`. Build the props as an array literal instead.
+- A first-class callable that a constructor stores in a property, as in `$this->stamp = now(...)`, publishes `Record<string, never>`, and `ts:publish` warns, though Inertia calls it and sends what it returns. Set that prop's type with `#[TsCasts]`.
 
-Inertia merges shared data and page props with `array_merge()`, which renumbers integer keys from `0`. A top-level `42 => …` key therefore publishes as `"0"`, and `ts:publish` warns that you probably meant a string key. Nested keys keep theirs.
+Inertia unpacks a top-level dotted key into nested objects, so `'filters.page' => $request->integer('page')` publishes `filters: { page: number }`. When the props also hold a `filters` array, `page` is added to it.
+
+A page key with the same name as a shared-data key publishes both types intersected, though Inertia sends only the page's value. Give page keys names that shared data doesn't use.
+
+Inertia merges shared data and page props with `array_merge()`, which renumbers integer keys from `0`. A top-level `42 => …` key therefore publishes as `"0"`, and `ts:publish` warns that you probably meant a string key. A render call that can send one of several arrays, such as the arms of a ternary, numbers each array on its own. Nested keys keep theirs.
 
 Sometimes the package can't analyze an action at all, for example because a class the action depends on fails to load. That route then publishes as a plain helper with no page-props type, and `ts:publish` names the action in a warning after the run. The rest of the run still finishes.
 
@@ -7597,11 +8671,14 @@ export type IndexPageProps = Inertia.SharedData & {
 };
 ```
 
+An entry with no `import` key that names a class the prop's value holds, such as `'post' => 'Post | null'` over a route-bound `Post`, imports that class for you.
+
 ### Inertia UI Table Props
 
 A route that renders an [Inertia UI Table](https://inertiaui.com/) gets a typed page prop. The package reads the table's model from the table class itself, and never creates the table or calls its `toArray()`:
 
 ```php
+use App\Models\Post;
 use App\Tables\PostTable;
 use Inertia\Inertia;
 
@@ -7609,6 +8686,7 @@ public function index()
 {
     return Inertia::render('Posts/Index', [
         'posts' => PostTable::make()->defaultSort('-id'),
+        'total' => Post::query()->count(),
     ]);
 }
 ```
@@ -7621,16 +8699,18 @@ import type { Post } from "../models";
 
 export type IndexPageProps = Inertia.SharedData & {
   posts: TableResource<Post>;
+  total: number;
 };
 ```
 
+A table is one prop like any other: the render call's other props keep their types, and the action's [`#[TsCasts]`](#overriding-props-with-tscasts) applies. `new PostTable`, a table held in a local variable, one in props a service method builds, and one in [shared data](https://tolki.abe.dev/ts/inertia.html) are typed the same way.
+
 `TableResource` is imported from whichever Inertia UI Table package your `package.json` lists, `@inertiaui/table-vue` or `@inertiaui/table-react`. If neither is listed, the import uses `@inertiaui/table-vue`. To force a package, or to use an alias, set `inertia.ui_table_package` in `config/ts-publish.php`.
 
-The package finds a table's model in any of these places:
+The package finds a table's model in either of these places:
 
 - A `$resource` property default, as in `protected ?string $resource = Post::class;`.
 - A `query(): Builder` method that returns `Post::query()`, `Post::class`, or a query chain that starts at the model.
-- A service method: when the controller passes `$this->tables->index($request)`, the array that method returns can hold table props.
 
 A table whose model exists only at runtime, for example one set in its constructor, gets no table type. Use [`#[TsCasts]`](#overriding-props-with-tscasts) on the controller method to type its props.
 
@@ -7971,6 +9051,7 @@ Each stage has a config key named `{feature}.{stage}_class`, such as `models.col
 | `form_requests`      | `FormRequestsCollector`      | `FormRequestGenerator`    | `FormRequestTransformer`    | `FormRequestWriter`       |
 | `broadcast_channels` | `BroadcastChannelsCollector` | none                      | none                        | `BroadcastChannelsWriter` |
 | `broadcast_events`   | `BroadcastEventsCollector`   | `BroadcastEventGenerator` | `BroadcastEventTransformer` | `BroadcastEventWriter`    |
+| `class_types`        | `ClassTypesCollector`        | `ClassTypeGenerator`      | `ClassTypeTransformer`      | `ClassTypeWriter`         |
 
 The classes live in the `AbeTwoThree\LaravelTsPublish\Collectors`, `Generators`, `Transformers`, and `Writers` namespaces.
 
@@ -7987,12 +9068,12 @@ Two more keys swap a class that isn't a pipeline stage:
 
 A few writers don't belong to a single feature. Each one has its own config key:
 
-| Writer              | Config Key             | Writes                                                                                                                                                                                               |
-| ------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Writer              | Config Key             | Writes                                                                                                                                                                      |
+| ------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `BarrelWriter`      | `barrel_writer_class`  | The [barrel `index.ts`](https://tolki.abe.dev/ts/modular-publishing.html#barrel-files) in each namespace directory for models, model metadata, enums, resources, form requests, and broadcast events |
-| `GlobalsWriter`     | `globals.writer_class` | The global declaration file, which declares your enum, model, resource, form request, and broadcast event types in a global namespace                                                                |
-| `JsonWriter`        | `json.writer_class`    | The combined JSON definitions file                                                                                                                                                                   |
-| `WatcherJsonWriter` | `watcher.writer_class` | The JSON list of collected file paths that file watchers read                                                                                                                                        |
+| `GlobalsWriter`     | `globals.writer_class` | The global declaration file, which declares your enum, model, resource, form request, and broadcast event types in a global namespace                                       |
+| `JsonWriter`        | `json.writer_class`    | The combined JSON definitions file                                                                                                                                          |
+| `WatcherJsonWriter` | `watcher.writer_class` | The JSON list of collected file paths that file watchers read                                                                                                               |
 
 Route barrels have a different format, so the route writer (`routes.writer_class`) writes them.
 
@@ -8181,6 +9262,7 @@ To use a template with a different name, point the feature's template key at it.
 | `broadcast_events.template`                   | `laravel-ts-publish::broadcast-event`        |
 | `broadcast_events.index_template`             | `laravel-ts-publish::broadcast-events-index` |
 | `broadcast_events.echo_augmentation.template` | `laravel-ts-publish::echo-broadcast-events`  |
+| `class_types.template`                        | `laravel-ts-publish::class-type`             |
 | `globals.template`                            | `laravel-ts-publish::globals`                |
 
 Inertia's `inertia-config.blade.php` and Vite env's `vite-env.blade.php` have no template key. Edit your published copies to change them.
@@ -8195,9 +9277,9 @@ To change what `ts:publish` itself does, replace one of its stages instead. See 
 
 ### Analyzing a Method
 
-`analyze()` reads what a method returns: nested arrays, conditionals, closures, and method calls. It works on any class, whether or not it's a resource. A property read or a method call is typed from the class of the value you call it on, such as `$this->author->name` or a local variable.
+`analyze()` reads what a method returns: nested arrays, conditionals, closures, and method calls. It works on any class, whether or not it's a resource. A property read or a method call is typed from the class of the value you call it on, such as `$this->author->name` or a local variable. A plain value object gets the same types a resource does for enum `->value` and `->name` reads, `(object)` and `(array)` casts, helpers that return the array you pass them, and an inherited or trait method.
 
-Laravel's conditional methods, such as `$this->when()` and `$this->whenLoaded()`, belong to `JsonResource`, so `analyze()` reads them that way only on a resource. On any other class, `$this->when()` is that class's own method. Laravel's `Conditionable::when()`, which events and other classes can use, returns the callback's result or the object itself. The package doesn't type that, so the key comes back `unknown`, as it does in a publish. A resource built around the call is the exception: `UserResource::make($this->when(…))` still comes back optional on any class, though `Conditionable::when()` always sends the key. Write such a key as a ternary, or give it a `#[TsCasts]` entry on the method with `'optional' => false`.
+Laravel's conditional methods, such as `$this->when()` and `$this->whenLoaded()`, belong to `JsonResource`, so `analyze()` reads them that way only on a resource. On any other class, `$this->when()` is that class's own method. Laravel's `Conditionable::when()` and `unless()`, which events and other classes can use, return the callback's result, the default's, or the object itself, so the key is always sent. `analyze()` types the key that way, required, as a publish does, and a resource built around the call, such as `UserResource::make($this->when(…))`, comes back required too. See [`when()` and `unless()` From `Conditionable`](https://tolki.abe.dev/ts/broadcast-events.html#when-and-unless-from-conditionable).
 
 This example analyzes a service class's `toPayload()` method:
 
@@ -8213,11 +9295,11 @@ $result = resolve(AstEngine::class)->analyze(App\Services\CartSummary::class, 't
 
 `analyze()` takes four arguments:
 
-| Argument             | Default     | Description                                                                                                                                                                                                                                                                     |
-| -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `$class`             | required    | The class to analyze.                                                                                                                                                                                                                                                           |
-| `$method`            | `'toArray'` | The method whose return value is analyzed.                                                                                                                                                                                                                                      |
-| `$modelClass`        | `null`      | The Eloquent model that `$this->...` reads resolve against. Leave it `null` to bind no model, or to let a `JsonResource` subclass find its own.                                                                                                                                 |
+| Argument             | Default     | Description                                                                                                                                                                                                                                            |
+| -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `$class`             | required    | The class to analyze.                                                                                                                                                                                                                                  |
+| `$method`            | `'toArray'` | The method whose return value is analyzed.                                                                                                                                                                                                             |
+| `$modelClass`        | `null`      | The Eloquent model that `$this->...` reads resolve against. Leave it `null` to bind no model, or to let a `JsonResource` subclass find its own.                                                                                                        |
 | `$fromNamespacePath` | `''`        | The namespace path of the file you're writing, such as `app/services`. Import paths come back relative to it, as [Automatic Relative Imports](https://tolki.abe.dev/ts/modular-publishing.html#automatic-relative-imports) describes. Pass `''` for a file at your output root. |
 
 `analyze()` writes nothing to disk. The file, its formatting, and any barrel entry are up to you.
@@ -8322,9 +9404,9 @@ The difference can also run the other way. Where a key the method returns can't 
 
 Outside those cases, `analyze()` runs the same inference that resources, broadcast events, model metadata, Inertia page props, and Inertia shared data publish from. What each of those features adds on top is on its own page, linked above.
 
-`analyze()` and `ts:publish` both type the patterns these docs describe. Anything else, such as an expression neither can follow or [a local you reassign](https://tolki.abe.dev/ts/api-resources.html#local-variables-and-narrowing), comes back `unknown` rather than a guess.
+`analyze()` and `ts:publish` both type the patterns these docs describe, including [a local you write more than once](https://tolki.abe.dev/ts/api-resources.html#local-variables-and-narrowing). Anything else, such as an expression neither can follow or a local that a reference can write, comes back `unknown` rather than a guess.
 
-Two cases don't widen to `unknown`. [A conditional's default that can't be typed](https://tolki.abe.dev/ts/api-resources.html#passing-a-default-argument) leaves the value's own type in place. [A ternary or `?:` arm that can't be typed is left out](https://tolki.abe.dev/ts/api-resources.html#typing-a-variable-with-var), so `$cond ? $untypable : null` publishes `null`.
+Two cases don't widen to `unknown`. [A conditional's default that can't be typed](https://tolki.abe.dev/ts/api-resources.html#passing-a-default-argument) leaves the value's own type in place. [A union member that can't be typed is left out](https://tolki.abe.dev/ts/api-resources.html#values-left-out-of-a-union), whether it's a ternary or `?:` arm or a value that a parameter's writes join. So `$cond ? $untypable : null` publishes `null`.
 
 ### Configuration Reference
 
@@ -8342,19 +9424,19 @@ The `*_class` keys swap a class in the publishing pipeline. See [Abstract Base C
 
 ### General Settings
 
-| Config Key                    | Type     | Default                   | Description                                                                                                                                                                                                      |
-| ----------------------------- | -------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Config Key                    | Type     | Default                   | Description                                                                                                                                                                             |
+| ----------------------------- | -------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `run_after_migrate`           | `bool`   | `true`                    | Republish types with `--fresh` after `migrate` runs migrations. Set with `TS_PUBLISH_RUN_AFTER_MIGRATE`. See [Publishing After Migrations](https://tolki.abe.dev/ts/publishing.html#publishing-after-migrations) |
-| `output_to_files`             | `bool`   | `true`                    | Setting it to `false` turns off the post-migration republish. `ts:publish` writes files on every run unless you pass `--preview=true`                                                                            |
-| `output_directory`            | `string` | `resources/js/types/data` | Directory where TypeScript files are written                                                                                                                                                                     |
-| `namespace_strip_prefix`      | `string` | `''`                      | Prefix removed from class namespaces before they become output paths, such as `'Modules\\'`                                                                                                                      |
-| `timestamps_as_date`          | `bool`   | `false`                   | Map date, datetime, and timestamp values, including Carbon instances, to `Date` instead of `string`, except a `timestamp` cast, which is a number                                                                |
-| `custom_ts_mappings`          | `array`  | `[]`                      | Override or extend PHP-to-TypeScript type mappings. See [`custom_ts_mappings`](#custom_ts_mappings)                                                                                                              |
-| `ts_extends.models`           | `array`  | `[]`                      | Global `extends` clauses for all models                                                                                                                                                                          |
-| `ts_extends.resources`        | `array`  | `[]`                      | Global `extends` clauses for all resources                                                                                                                                                                       |
-| `ts_extends.form_requests`    | `array`  | `[]`                      | Global `extends` clauses for all form requests                                                                                                                                                                   |
-| `ts_extends.broadcast_events` | `array`  | `[]`                      | Global `extends` clauses for all broadcast events                                                                                                                                                                |
-| `barrel_writer_class`         | `string` | `BarrelWriter`            | Class that writes barrel `index.ts` files                                                                                                                                                                        |
+| `output_to_files`             | `bool`   | `true`                    | Setting it to `false` turns off the post-migration republish. `ts:publish` writes files on every run unless you pass `--preview=true`                                                   |
+| `output_directory`            | `string` | `resources/js/types/data` | Directory where TypeScript files are written                                                                                                                                            |
+| `namespace_strip_prefix`      | `string` | `''`                      | Prefix removed from class namespaces before they become output paths, such as `'Modules\\'`                                                                                             |
+| `timestamps_as_date`          | `bool`   | `false`                   | Map date, datetime, and timestamp values, including Carbon instances, to `Date` instead of `string`, except a `timestamp` cast, which is a number                                       |
+| `custom_ts_mappings`          | `array`  | `[]`                      | Override or extend PHP-to-TypeScript type mappings. See [`custom_ts_mappings`](#custom_ts_mappings)                                                                                     |
+| `ts_extends.models`           | `array`  | `[]`                      | Global `extends` clauses for all models                                                                                                                                                 |
+| `ts_extends.resources`        | `array`  | `[]`                      | Global `extends` clauses for all resources                                                                                                                                              |
+| `ts_extends.form_requests`    | `array`  | `[]`                      | Global `extends` clauses for all form requests                                                                                                                                          |
+| `ts_extends.broadcast_events` | `array`  | `[]`                      | Global `extends` clauses for all broadcast events                                                                                                                                       |
+| `barrel_writer_class`         | `string` | `BarrelWriter`            | Class that writes barrel `index.ts` files                                                                                                                                               |
 
 #### `custom_ts_mappings`
 
@@ -8374,22 +9456,22 @@ Each entry maps a type name to the TypeScript type it publishes, and it wins ove
 
 ### Models (`models.*`)
 
-| Config Key                        | Type     | Default                           | Description                                                                                                                                                                                                                                                             |
-| --------------------------------- | -------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `models.enabled`                  | `bool`   | `true`                            | Enable or disable model publishing                                                                                                                                                                                                                                      |
-| `models.namespace`                | `string` | `'models'`                        | Not used. The global declaration file names each namespace after the class's PHP namespace, such as `app.models`                                                                                                                                                        |
-| `models.relationship_case`        | `string` | `'snake'`                         | Case style for relationships: `snake`, `camel`, or `pascal`                                                                                                                                                                                                             |
-| `models.nullable_relations`       | `bool`   | `true`                            | Append `\| null` to singular relation types that can be empty, based on each relation type's strategy                                                                                                                                                                   |
+| Config Key                        | Type     | Default                           | Description                                                                                                                                                                                                                                    |
+| --------------------------------- | -------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `models.enabled`                  | `bool`   | `true`                            | Enable or disable model publishing                                                                                                                                                                                                             |
+| `models.namespace`                | `string` | `'models'`                        | Not used. The global declaration file names each namespace after the class's PHP namespace, such as `app.models`                                                                                                                               |
+| `models.relationship_case`        | `string` | `'snake'`                         | Case style for relationships: `snake`, `camel`, or `pascal`                                                                                                                                                                                    |
+| `models.nullable_relations`       | `bool`   | `true`                            | Append `\| null` to singular relation types that can be empty, based on each relation type's strategy                                                                                                                                          |
 | `models.exclude_hidden`           | `bool`   | `false`                           | Omit Eloquent `$hidden` attributes from model interfaces, and from resource properties wherever the package derives them from the model. See [`exclude_hidden` and Attribute Filters](https://tolki.abe.dev/ts/api-resources.html#exclude-hidden-and-attribute-filters) |
-| `models.relation_nullability_map` | `array`  | `[]`                              | Override the nullability strategy per relation class: `nullable`, `never`, `fk`, or `morph`                                                                                                                                                                             |
-| `models.template`                 | `string` | `laravel-ts-publish::model-split` | Blade template for model TypeScript output                                                                                                                                                                                                                              |
-| `models.included`                 | `array`  | `[]`                              | Only publish these models (empty = all)                                                                                                                                                                                                                                 |
-| `models.excluded`                 | `array`  | `[]`                              | Exclude these models from publishing                                                                                                                                                                                                                                    |
+| `models.relation_nullability_map` | `array`  | `[]`                              | Override the nullability strategy per relation class: `nullable`, `never`, `fk`, or `morph`                                                                                                                                                    |
+| `models.template`                 | `string` | `laravel-ts-publish::model-split` | Blade template for model TypeScript output                                                                                                                                                                                                     |
+| `models.included`                 | `array`  | `[]`                              | Only publish these models (empty = all)                                                                                                                                                                                                        |
+| `models.excluded`                 | `array`  | `[]`                              | Exclude these models from publishing                                                                                                                                                                                                           |
 | `models.additional_directories`   | `array`  | `[]`                              | Extra directories to search for models. A model that a published model relates to is published without being listed, under the rules in [Related Models Outside Your Directories](https://tolki.abe.dev/ts/models.html#related-models-outside-your-directories)         |
-| `models.collector_class`          | `string` | `ModelsCollector`                 | Discovers PHP model classes                                                                                                                                                                                                                                             |
-| `models.generator_class`          | `string` | `ModelGenerator`                  | Orchestrates transforming and writing                                                                                                                                                                                                                                   |
-| `models.transformer_class`        | `string` | `ModelTransformer`                | Converts PHP class into TypeScript data                                                                                                                                                                                                                                 |
-| `models.writer_class`             | `string` | `ModelWriter`                     | Writes TypeScript model files                                                                                                                                                                                                                                           |
+| `models.collector_class`          | `string` | `ModelsCollector`                 | Discovers PHP model classes                                                                                                                                                                                                                    |
+| `models.generator_class`          | `string` | `ModelGenerator`                  | Orchestrates transforming and writing                                                                                                                                                                                                          |
+| `models.transformer_class`        | `string` | `ModelTransformer`                | Converts PHP class into TypeScript data                                                                                                                                                                                                        |
+| `models.writer_class`             | `string` | `ModelWriter`                     | Writes TypeScript model files                                                                                                                                                                                                                  |
 
 ### Model Metadata (`model_metadata.*`)
 
@@ -8548,16 +9630,32 @@ See [Collected Files Manifest](https://tolki.abe.dev/ts/publishing.html#collecte
 | `broadcast_events.echo_augmentation.output_directory` | `string`  | `''`                                         | Custom output directory for the Echo augmentation file. Empty uses `broadcast_events.output_directory`, then `output_directory`                                                                                       |
 | `broadcast_events.echo_augmentation.writer_class`     | `string`  | `BroadcastEventsEchoWriter`                  | Writes the Echo augmentation file                                                                                                                                                                                     |
 
+### Class Types (`class_types.*`)
+
+See [Custom Types](https://tolki.abe.dev/ts/custom-types.html#configuration) for which classes compose and when the package writes their modules. A config file published before class types existed has no `class_types` block, and every key then takes its default.
+
+| Config Key                           | Type     | Default                          | Description                                                                                                                                     |
+| ------------------------------------ | -------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `class_types.enabled`                | `bool`   | `true`                           | Compose the `#[TsType]` types a class inherits into one `{Basename}Type` interface. When `false`, each value publishes its class's nearest type |
+| `class_types.template`               | `string` | `laravel-ts-publish::class-type` | Blade template for each composed type's module                                                                                                  |
+| `class_types.additional_directories` | `array`  | `[]`                             | Directories to scan for composed classes, whose modules are written even when no value uses them. No directory is scanned by default            |
+| `class_types.included`               | `array`  | `[]`                             | Only these classes compose (empty = all)                                                                                                        |
+| `class_types.excluded`               | `array`  | `[]`                             | These classes never compose                                                                                                                     |
+| `class_types.collector_class`        | `string` | `ClassTypesCollector`            | Discovers composed classes in `additional_directories`                                                                                          |
+| `class_types.generator_class`        | `string` | `ClassTypeGenerator`             | Orchestrates transforming and writing                                                                                                           |
+| `class_types.transformer_class`      | `string` | `ClassTypeTransformer`           | Converts a composed class into TypeScript data                                                                                                  |
+| `class_types.writer_class`           | `string` | `ClassTypeWriter`                | Writes each composed type's module                                                                                                              |
+
 ### Inertia (`inertia.*`)
 
-| Config Key                        | Type      | Default               | Description                                                                                                                                                             |
-| --------------------------------- | --------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `inertia.enabled`                 | `bool`    | `true`                | Enable or disable Inertia shared-data and page-prop analysis                                                                                                            |
-| `inertia.inertia_middleware_path` | `?string` | `null`                | Directory to search for the `HandleInertiaRequests` middleware (defaults to `app_path()`)                                                                               |
-| `inertia.augmentation_filename`   | `string`  | `inertia-config.d.ts` | Filename for the generated module augmentation file                                                                                                                     |
-| `inertia.output_directory`        | `string`  | `''`                  | Custom output directory. Empty uses `routes.output_directory`, then the global `output_directory`                                                                       |
+| Config Key                        | Type      | Default               | Description                                                                                                                                    |
+| --------------------------------- | --------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `inertia.enabled`                 | `bool`    | `true`                | Enable or disable Inertia shared-data and page-prop analysis                                                                                   |
+| `inertia.inertia_middleware_path` | `?string` | `null`                | Directory to search for the `HandleInertiaRequests` middleware (defaults to `app_path()`)                                                      |
+| `inertia.augmentation_filename`   | `string`  | `inertia-config.d.ts` | Filename for the generated module augmentation file                                                                                            |
+| `inertia.output_directory`        | `string`  | `''`                  | Custom output directory. Empty uses `routes.output_directory`, then the global `output_directory`                                              |
 | `inertia.component_casing`        | `string`  | `'camel'`             | Casing style for derived page-prop export names, used by the per-route page props. See [Inertia Integration](https://tolki.abe.dev/ts/routing.html#inertia-integration) |
-| `inertia.ui_table_package`        | `?string` | `null`                | npm package used for InertiaUI Table integration, used by the per-route page props                                                                                      |
+| `inertia.ui_table_package`        | `?string` | `null`                | npm package used for InertiaUI Table integration, used by the per-route page props                                                             |
 
 ### Vite Env (`vite_env.*`)
 
