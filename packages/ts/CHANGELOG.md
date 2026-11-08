@@ -1,5 +1,18 @@
 # @tolki/ts
 
+## 1.1.0
+
+### Minor Changes
+
+- c3d5ccf: Re-export `values()` and `keys()` from `@tolki/enum`, which return a published enum's case values and case names in PHP's case order.
+
+### Patch Changes
+
+- Updated dependencies [ba95281]
+- Updated dependencies [972d5e6]
+  - @tolki/enum@1.2.0
+  - @tolki/types@1.12.0
+
 ## 1.0.4
 
 ### Patch Changes
