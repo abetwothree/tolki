@@ -1,5 +1,22 @@
 # @tolki/str
 
+## 1.8.0
+
+### Minor Changes
+
+- 972d5e6: `replace()` and `remove()` now return a result shaped like the subject, as Laravel does: an object keeps its keys, a `Map` stays a `Map`, and a collection gives back an array or an object like its `all()`.
+  - **Breaking:** a keyed collection subject now returns an object keyed like it, instead of an array of its values. Wrap the result in `Object.values()` to keep a list.
+  - A `Map` subject no longer turns each entry into a `"key,value"` string, and a plain-object subject no longer returns an empty array.
+  - The new `StringSubject` and `StringSubjectResult` types can be imported from `@tolki/str` to type a subject and its result.
+
+- 5382b17: `substrCount()` now throws for an empty needle, as Laravel does.
+  - **Breaking:** `substrCount(value, "")` and `of(value).substrCount("")` throw an error instead of returning `0`. Check for an empty needle before calling if it can be empty.
+
+### Patch Changes
+
+- Updated dependencies [972d5e6]
+  - @tolki/types@1.12.0
+
 ## 1.7.1
 
 ### Patch Changes

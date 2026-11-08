@@ -1,5 +1,15 @@
 # @tolki/collection
 
+## 1.0.2
+
+### Patch Changes
+
+- a20f1a7: `mode()` now returns float values as they are, as Laravel 13.38 does. Before, `collect([1.5, 1.5, 2.5]).mode()` returned `[1]` instead of `[1.5]`.
+- Updated dependencies [ba95281]
+- Updated dependencies [972d5e6]
+  - @tolki/enum@1.2.0
+  - @tolki/types@1.12.0
+
 ## 1.0.1
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @tolki/types
 
+## 1.12.0
+
+### Minor Changes
+
+- 972d5e6: Add `StringSubject` and `StringSubjectResult`, the subject and result types of `replace()` and `remove()` in `@tolki/str`.
+
 ## 1.11.0
 
 ### Minor Changes
