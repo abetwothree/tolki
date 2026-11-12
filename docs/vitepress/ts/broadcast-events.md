@@ -136,7 +136,7 @@ export interface PostScheduled {
 }
 ```
 
-The body still wins wherever it types a value. The docblock only fills a key the body left `unknown`, so a stale `@return` can't overwrite a type the body already found. A `key?:` entry in the docblock makes that key optional.
+The body still wins wherever it types a value, so a stale `@return` can't overwrite a type the body already found. The docblock types only what the body can't, at any depth, such as a key the body left `unknown`, a member inside a key it typed, or a value it left out of a union. It follows the same rules as an [API resource's `@return`](./api-resources.md#return-branches-and-return-shapes). A `key?:` entry in the docblock makes that key optional.
 
 A spread helper that builds its keys by interpolation, such as `"{$name}_tag"`, adds an index signature to the interface, for example ``[key: `${string}_tag`]: string | undefined``. When the helper's body can't type the values, its `@return array<string, V>` docblock types them. [Interpolated Keys](./api-resources.md#interpolated-keys) on the API Resources page describes how the event's `#[TsCasts]` and `extends` clause then apply.
 
