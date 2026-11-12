@@ -757,6 +757,8 @@ App\Http\Resources\PostResource: The value on line 31 leaves out `$this->opaqueT
 
 Give the method a return type or a `@return` docblock, and its value joins the union again. An inline [`@var`](#typing-a-variable-with-var) that types the variable also removes the warning. `--quiet` hides every warning.
 
+A `@return` docblock that types the key, on `toArray()` or on a method it spreads, also types the value left out. The docblock's type takes that value's place beside the values the body types. Under `score: int|string|null`, a `score` whose body types `number | null` and leaves one more value out publishes `number | null | string`. `ts:publish` prints no warning for a value the docblock types. A value it doesn't type, such as one under a `mixed` entry or under a key the docblock doesn't name, still warns. [Return Branches and `@return` Shapes](#return-branches-and-return-shapes) shows an example.
+
 `ts:publish` doesn't analyze a class again while the [generation cache](./generating-cache.md) holds it. A class the cache serves prints none of these warnings, nor the first-class callable warning above, so run `php artisan ts:publish --fresh` to see every one.
 
 ## Method Calls, Variables, and Collections
@@ -1892,7 +1894,7 @@ A variable that starts from `parent::toArray($request)` works the same way. See 
 
 ### Trait Method Spread
 
-Spread a trait method's return into `toArray()` with `...$this->method()`. Its body publishes the same types it would in `toArray()`, and its `@return array{...}` docblock types the keys the body can't:
+Spread a trait method's return into `toArray()` with `...$this->method()`. Its body publishes the same types it would in `toArray()`, and its `@return array{...}` docblock types what the body can't:
 
 ```php
 trait IncludesMorphValue
@@ -1970,6 +1972,27 @@ trait IncludesExtras
 ```
 
 A key the body can't type, and that neither the `@return` docblock nor `#[TsCasts]` covers, publishes `unknown`.
+
+Keys follow PHP's order, so a later write replaces an earlier one with the same name, whether a key or a spread writes it. Here the resource wraps a value object whose `title` is a `string`, and the second spread replaces the `author` that `credited()` returns:
+
+```php
+public function toArray(Request $request): array
+{
+    return [
+        'byline' => [
+            ...$this->credited(),
+            ...['author' => $this->resource->title],
+        ],
+    ];
+}
+
+private function credited(): array
+{
+    return ['id' => 1, 'author' => $this->resource->author];
+}
+```
+
+The property publishes `byline: { id: number; author: string }`. When a spread always writes a key but the package can't type its value, the key publishes `unknown`, not the type it replaced. A spread of a local that sets the key only inside an `if` may leave the earlier value in place, so the key publishes both types. A merge is the exception, because Laravel never lets a merged key replace a key written before the merge, or a key written after the merge replace the merged one. See [Merge Operations](#merge-operations).
 
 ::: tip
 Trait spreads carry through inheritance. When a parent resource spreads a trait method and a child spreads `...parent::toArray($request)`, the child gets the keys the trait contributed.
@@ -2258,12 +2281,67 @@ export interface PostPermissionsResource {
 
 Both forms of `@return` count:
 
-- **An `array{...}` shape**: each key gets its own type, and a key written `key?:` also becomes optional. A string or number literal type, such as `'draft'|'live'` or `1|2|3`, publishes as written.
-- **`array<string, V>`**: `V` types every key the body left vague.
+- **An `array{...}` shape**: each key gets its own type, and a key written `key?:` also becomes optional. A string or number literal type, such as `'draft'|'live'` or `1|2|3`, publishes as written. It also narrows a body type that admits every literal it lists, so `label: 'early'|'late'` over a `string` column publishes `label: 'early' | 'late'`.
+- **`array<string, V>`**: `V` is the entry for every key, and types each one as a shape's entry would.
 
 `toArray()`'s own `@return array{...}` fills keys the same way.
 
-The body wins wherever it's specific, so a stale `@return` can't overwrite a type the package already knows. The docblock fills only a key the body left vague, such as `unknown`, `unknown[]`, or `Record<string, unknown>`, and keeps any `| null` the body found. It also fills an [interpolated key's](#interpolated-keys) value that the body left `unknown | undefined`.
+Apart from the literal narrowing above, the body wins wherever it's specific, so a stale `@return` can't overwrite a type the package already knows. The docblock types what the body can't, at any depth:
+
+- a key the body left vague, such as `unknown`, `unknown[]`, or `Record<string, unknown>`
+- a member or a list element the body couldn't type, inside a key it did type
+- a value the body [left out of a union](#values-left-out-of-a-union), beside the values it typed
+- an [interpolated key's](#interpolated-keys) value that the body left `unknown | undefined`
+
+It keeps any `| null` the body found, and it doesn't add what the body proves Laravel never sends. An entry that only adds `| null` to the body's type, as `label` does below, publishes the body's type. A shape inside a key keeps the keys the body writes: a docblock key the body never writes is left out, unless the docblock marks it `key?:` or the array may hold keys the package can't name, such as a spread of an array with no element type.
+
+This resource wraps a `ContactSheet` value object, as [Resources That Wrap Other Classes](#resources-that-wrap-other-classes) describes. Its `contacts` property lists `MailRecipient` objects, whose `name` is a `?string`. Its `extras` property is an `array` with no element type, `hint` has no type, and `title` is a `?string`:
+
+```php
+/**
+ * @property-read ContactSheet $resource
+ */
+class ContactSheetResource extends JsonResource
+{
+    /**
+     * @return array{
+     *     rows: list<array{name: string|null, locale: string}>,
+     *     summary: array{label: string|null, count: int|null}
+     * }
+     */
+    public function toArray(Request $request): array
+    {
+        $sheet = $this->resource;
+
+        return [
+            'rows' => array_map(
+                fn (MailRecipient $r) => [
+                    ...$sheet->extras,
+                    'name' => $r->name,
+                ],
+                $sheet->contacts,
+            ),
+            'summary' => [
+                'label' => (string) $sheet->title,
+                'count' => $sheet->title !== null
+                    ? $sheet->hint
+                    : null,
+            ],
+        ];
+    }
+}
+```
+
+Each row takes `locale` from the docblock, because the spread may hold it. `label` keeps the body's `string`, since `(string)` never sends `null`, and `count` takes the docblock's `number` in place of `$sheet->hint`:
+
+```typescript
+export interface ContactSheetResource {
+  rows: { name: string | null; locale: string }[];
+  summary: { label: string; count: number | null };
+}
+```
+
+Where a key's value has a different shape on each path, each shape stays its own member of the union, and the docblock adds keys only to a shape that may hold them. Under the same entry as `rows`, a row that one path builds as `['name' => $r->name]`, and another builds with `...$sheet->extras`, publishes `({ name: string | null } | { name: string | null; locale: string })[]`.
 
 A shape value that names a model, an enum, or an API resource keeps it at any depth, and the file imports it. Here `tags` is a nullable column cast to `'array'`, which publishes `unknown[] | null` on its own, and `json_decode()` returns a value the package can't type:
 
@@ -2295,7 +2373,7 @@ export interface PostExtrasResource {
 }
 ```
 
-A spread method's fill keeps its classes only when you spread the method at the top level of `toArray()`. Spread inside a nested array, as in `'meta' => [...$this->extras()]`, each model, enum, or API resource the fill names publishes `unknown`. Type such a key with `#[TsCasts]` and an `import`.
+A key that a spread method's `@return` fills because the body left it vague keeps its classes only when you spread the method at the top level of `toArray()`. Spread inside a nested array, as in `'meta' => [...$this->extras()]`, each model, enum, or API resource such a fill names publishes `unknown`. Type such a key with `#[TsCasts]` and an `import`. A key the body typed keeps its classes wherever you spread the method.
 
 A name that isn't a PHP class, such as a type you declare only in TypeScript, publishes as written in a spread method's `@return`. In `toArray()`'s own `@return`, the key stays `unknown`, so type it with `#[TsCasts]`.
 
