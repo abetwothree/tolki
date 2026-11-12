@@ -1894,7 +1894,7 @@ A variable that starts from `parent::toArray($request)` works the same way. See 
 
 ### Trait Method Spread
 
-Spread a trait method's return into `toArray()` with `...$this->method()`. Its body publishes the same types it would in `toArray()`, and its `@return array{...}` docblock types the keys the body can't:
+Spread a trait method's return into `toArray()` with `...$this->method()`. Its body publishes the same types it would in `toArray()`, and its `@return array{...}` docblock types what the body can't:
 
 ```php
 trait IncludesMorphValue
@@ -1932,22 +1932,6 @@ export interface PostResource {
   title: string;
 }
 ```
-
-Keys follow PHP's order, so a later write replaces an earlier one with the same name, whether a key or a spread writes it. Here the resource wraps a value object whose `title` is a `string`, and the second spread replaces the `author` that `credited()` returns:
-
-```php
-public function toArray(Request $request): array
-{
-    return ['byline' => [...$this->credited(), ...['author' => $this->resource->title]]];
-}
-
-private function credited(): array
-{
-    return ['id' => 1, 'author' => $this->resource->author];
-}
-```
-
-The property publishes `byline: { id: number; author: string }`. When a spread names a key but the package can't type its value, the key publishes `unknown`, not the type it replaced. A spread of a local that sets the key only inside an `if` may leave the earlier value in place, so the key publishes both types. A merge is the exception, because Laravel never lets a merged key replace a key written before the merge, or a key written after the merge replace the merged one. See [Merge Operations](#merge-operations).
 
 Multi-line `@return` shapes work too, as long as the type starts on the tag's own line, as PHPStan requires:
 
@@ -1988,6 +1972,27 @@ trait IncludesExtras
 ```
 
 A key the body can't type, and that neither the `@return` docblock nor `#[TsCasts]` covers, publishes `unknown`.
+
+Keys follow PHP's order, so a later write replaces an earlier one with the same name, whether a key or a spread writes it. Here the resource wraps a value object whose `title` is a `string`, and the second spread replaces the `author` that `credited()` returns:
+
+```php
+public function toArray(Request $request): array
+{
+    return [
+        'byline' => [
+            ...$this->credited(),
+            ...['author' => $this->resource->title],
+        ],
+    ];
+}
+
+private function credited(): array
+{
+    return ['id' => 1, 'author' => $this->resource->author];
+}
+```
+
+The property publishes `byline: { id: number; author: string }`. When a spread always writes a key but the package can't type its value, the key publishes `unknown`, not the type it replaced. A spread of a local that sets the key only inside an `if` may leave the earlier value in place, so the key publishes both types. A merge is the exception, because Laravel never lets a merged key replace a key written before the merge, or a key written after the merge replace the merged one. See [Merge Operations](#merge-operations).
 
 ::: tip
 Trait spreads carry through inheritance. When a parent resource spreads a trait method and a child spreads `...parent::toArray($request)`, the child gets the keys the trait contributed.
@@ -2281,7 +2286,7 @@ Both forms of `@return` count:
 
 `toArray()`'s own `@return array{...}` fills keys the same way.
 
-The body wins wherever it's specific, so a stale `@return` can't overwrite a type the package already knows. The docblock types what the body can't, at any depth:
+Apart from the literal narrowing above, the body wins wherever it's specific, so a stale `@return` can't overwrite a type the package already knows. The docblock types what the body can't, at any depth:
 
 - a key the body left vague, such as `unknown`, `unknown[]`, or `Record<string, unknown>`
 - a member or a list element the body couldn't type, inside a key it did type
@@ -2309,8 +2314,19 @@ class ContactSheetResource extends JsonResource
         $sheet = $this->resource;
 
         return [
-            'rows' => array_map(fn (MailRecipient $r) => [...$sheet->extras, 'name' => $r->name], $sheet->contacts),
-            'summary' => ['label' => (string) $sheet->title, 'count' => $sheet->title !== null ? $sheet->hint : null],
+            'rows' => array_map(
+                fn (MailRecipient $r) => [
+                    ...$sheet->extras,
+                    'name' => $r->name,
+                ],
+                $sheet->contacts,
+            ),
+            'summary' => [
+                'label' => (string) $sheet->title,
+                'count' => $sheet->title !== null
+                    ? $sheet->hint
+                    : null,
+            ],
         ];
     }
 }
