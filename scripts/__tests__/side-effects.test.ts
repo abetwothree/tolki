@@ -288,6 +288,18 @@ describe("scanFile", () => {
         ]);
     });
 
+    it("handles a call at byte offset 0 of the file", () => {
+        expect(scan("f();").moduleScope.map((p) => p.kind)).toEqual([
+            "top-level-statement",
+        ]);
+        expect(scan("const x = f();").moduleScope).toMatchObject([
+            { line: 1, kind: "unannotated-call" },
+        ]);
+        expect(
+            scan("/* @__PURE__ */ f();").moduleScope.map((p) => p.kind),
+        ).toEqual(["top-level-statement"]);
+    });
+
     it("ignores calls inside function bodies", () => {
         const result = scan(
             [
