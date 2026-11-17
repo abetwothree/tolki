@@ -47,3 +47,15 @@ const parsedNumber = Num.parse("1,234,567.89"); // 1234567.89
 The reason that importing the entire package is not recommended is that it will include all functions in your bundle, even the ones you don't use, which can lead to larger bundle sizes. Importing individual functions allows your end files to only include the code that is actually used, resulting in smaller and more efficient bundles.
 
 However, if you are working on a backend project where bundle size is not a concern, importing the entire package can be more convenient.
+
+## Bundling
+
+A helper call whose result nothing uses drops out of your bundle in Rollup, Rolldown (Vite 8), webpack and Rspack, because the helpers are marked as free of side effects. This holds for a call at the top level of a module too.
+
+The exception is Rspack, where an unused top-level call to `spell` or `spellOrdinal` drops the call but keeps the loader code it needs for the dynamic `import()` of the `to-words` locale files. Writing `/* @__PURE__ */` before the call drops everything:
+
+```typescript
+export const words = /* @__PURE__ */ spell(5);
+```
+
+`useLocale` and `useCurrency` set the defaults that every formatter reads, and `withLocale` and `withCurrency` run a callback around a temporary swap of them, so a call to any of the four is always kept.
