@@ -152,15 +152,6 @@ describe("stagePackages", () => {
 
         put(
             repo,
-            "packages/nobuild/package.json",
-            JSON.stringify({
-                name: "@tolki/nobuild",
-                scripts: { build: "x" },
-                files: ["dist"],
-            }),
-        );
-        put(
-            repo,
             "packages/skipped/package.json",
             JSON.stringify({
                 name: "@tolki/skipped",
@@ -176,8 +167,6 @@ describe("stagePackages", () => {
     });
 
     it("stages only the manifest's files and links third-party deps", () => {
-        rmSync(join(repo, "packages/nobuild"), { recursive: true });
-
         const staged = stagePackages(repo, out);
         const root = join(out, "node_modules/@tolki/fake");
 
@@ -197,6 +186,8 @@ describe("stagePackages", () => {
     });
 
     it("links an installed peer dependency and skips a missing one", () => {
+        stagePackages(repo, out);
+
         expect(
             lstatSync(join(out, "node_modules/peerdep")).isSymbolicLink(),
         ).toBe(true);
