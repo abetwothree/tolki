@@ -11,13 +11,21 @@ How four packages stack, and why that lets the docs share one reference page.
 
 ## How `data` dispatches
 
-`packages/data/src/dispatch.ts` exports `dispatch(arrFn, objFn, toPositional?, toKeyed?)`. Most of `data.ts` is one line per helper:
+`packages/data/src/dispatch.ts` exports `forwardData(arrFn, objFn, data, rest, toPositional?, toKeyed?)` and the `Dispatched` type. Most helpers in `data.ts` are a function declaration and an alias export that types it:
 
 ```ts
-export const dataGet = dispatch(arrGet, objGet);
+export const dataCollapse = dataCollapseImpl as unknown as Dispatched<
+  typeof arrCollapse,
+  typeof objCollapse
+>;
+
+/* @__NO_SIDE_EFFECTS__ */
+function dataCollapseImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+  return forwardData(arrCollapse, objCollapse, data, rest);
+}
 ```
 
-The returned function checks its first argument with `isKeyedData`:
+`forwardData` checks `data` with `isKeyedData`:
 
 - A `Map`, or an object that is not iterable, is keyed. The call goes to `objFn` after `toKeyed` runs.
 - Anything else is positional: arrays, `Set`s, generators and scalars. The call goes to `arrFn` after `toPositional` runs.
@@ -26,7 +34,7 @@ The defaults are `keepKeyedData`, which hands the data on as it arrived so a `Ma
 
 ### The intersection type
 
-`dispatch` returns `KeyedMapRow<TObjFn> & TArrFn & TObjFn`. Intersecting two overloaded function types makes TypeScript try the rows of each in turn, so the return type of a call is whatever the matching delegate row says. `data` never restates a delegate's types, which is why they cannot drift.
+`Dispatched<TArrFn, TObjFn>` is `KeyedMapRow<TObjFn> & TArrFn & TObjFn`. Intersecting two overloaded function types makes TypeScript try the rows of each in turn, so the return type of a call is whatever the matching delegate row says. `data` never restates a delegate's types, which is why they cannot drift. A function declaration cannot carry that type: `ReturnType` of an overloaded function sees only its last overload, so the export is a `const` cast to `Dispatched`.
 
 Two rules keep that sound:
 
@@ -35,9 +43,15 @@ Two rules keep that sound:
 
 An intersection can only widen what a call accepts. It cannot make `dataX` reject an input that one delegate takes.
 
+### The build transform
+
+Bundlers read `/* @__NO_SIDE_EFFECTS__ */` off a function declaration, and webpack and Rspack lose it through a `const` alias. The Vite plugin in [scripts/build/alias-exports.ts](../../scripts/build/alias-exports.ts), used by `packages/data/vite.config.ts`, rewrites each `export const dataX = dataXImpl as …` to `export { dataXImpl as dataX }`. The dist then exports the annotated declaration, while the `.d.ts`, emitted from the source, keeps the alias's type.
+
+`dispatch(arrFn, objFn)` builds the same forwarder in one call. Only the type sweeps use it.
+
 ## Hand-written helpers
 
-Ten helpers do not use `dispatch`, because the two delegates differ in more than the backing. Each is a hand-written function with its own overloads: `dataCombine`, `dataCount`, `dataUndot`, `dataUnion`, `dataMapWithKeys`, `dataSearch`, `dataBefore`, `dataAfter`, `dataReplace` and `dataReplaceRecursive`.
+Ten helpers do not go through `forwardData`, because the two delegates differ in more than the backing. Each is a hand-written function with its own overloads: `dataCombine`, `dataCount`, `dataUndot`, `dataUnion`, `dataMapWithKeys`, `dataSearch`, `dataBefore`, `dataAfter`, `dataReplace` and `dataReplaceRecursive`.
 
 ## Names that differ between packages
 

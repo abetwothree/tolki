@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import {
     copyKeyedData,
     dispatch,
+    forwardData,
     isKeyedData,
     keepKeyedData,
     streamPositionalData,
@@ -211,9 +212,67 @@ describe("dispatch with a keyed normalizer", () => {
     });
 });
 
-describe("dispatch call sites", () => {
-    // esbuild cannot tell that dispatch() is pure, so an unmarked call keeps every arr and obj helper it names.
-    it("marks every data helper built with dispatch() as pure", () => {
+describe("forwardData", () => {
+    it("sends a list to the array helper and a record to the object helper", () => {
+        const rec = { a: { x: 1 }, b: { y: 2 } };
+
+        expect(
+            forwardData(arrCollapse, objCollapse, [[1, 2], [3]], []),
+        ).toEqual(arrCollapse([[1, 2], [3]]));
+        expect(forwardData(arrCollapse, objCollapse, rec, [])).toEqual(
+            objCollapse(rec),
+        );
+    });
+
+    it("passes the other arguments on untouched", () => {
+        const callback = (value: number): boolean => value > 1;
+
+        expect(forwardData(arrFirst, objFirst, [1, 2, 3], [callback])).toBe(2);
+        expect(
+            forwardData(arrFirst, objFirst, { a: 1, b: 2 }, [callback]),
+        ).toBe(2);
+    });
+
+    it("normalizes each backing with the functions it is given", () => {
+        const map = new Map([
+            [2, "c"],
+            [0, "a"],
+        ]);
+
+        expect(forwardData(arrFirst, objFirst, map, [])).toBe("c");
+        expect(
+            forwardData(
+                arrFirst,
+                objFirst,
+                map,
+                [],
+                streamPositionalData,
+                toKeyedData,
+            ),
+        ).toBe("a");
+        expect(
+            forwardData(
+                arrFirst,
+                objFirst,
+                undefined,
+                [],
+                streamPositionalData,
+            ),
+        ).toBeNull();
+    });
+
+    it("is what dispatch builds", () => {
+        const rec = { a: 7, b: 8 };
+
+        expect(dispatch(arrFirst, objFirst)(rec)).toBe(
+            forwardData(arrFirst, objFirst, rec, []),
+        );
+    });
+});
+
+describe("data helper exports", () => {
+    // The build ships an alias of a same-file function as that function, which keeps the function's annotation.
+    it("aliases a same-file function declaration in every exported const", () => {
         const source = readFileSync(
             path.resolve(
                 fileURLToPath(import.meta.url),
@@ -222,17 +281,19 @@ describe("dispatch call sites", () => {
             ),
             "utf-8",
         );
-        const helpers = [
-            ...source.matchAll(
-                /const (\w+)[^=\n]*=\s*(\/\*\s*[#@]__PURE__\s*\*\/\s*)?dispatch\(/g,
-            ),
+        const aliases = [
+            ...source.matchAll(/^export const (\w+)[^=]*=\s*(\S+)/gm),
         ];
 
-        expect(helpers.length).toBe(source.match(/\bdispatch\(/g)?.length);
+        expect(aliases.length).toBeGreaterThan(0);
         expect(
-            helpers
-                .filter((helper) => helper[2] === undefined)
-                .map((helper) => helper[1]),
+            aliases
+                .filter(
+                    ([, name, target]) =>
+                        target !== `${name}Impl` ||
+                        !source.includes(`\nfunction ${target}(`),
+                )
+                .map(([, name]) => name),
         ).toEqual([]);
     });
 });

@@ -96,6 +96,18 @@ Import only the functions you use. Importing the entire package with `import * a
 
 However, if you are working on a backend project where bundle size is not a concern, importing the entire package can be more convenient.
 
+## Bundling
+
+A helper call whose result nothing uses drops out of your bundle in Vite (Rolldown), Rollup, webpack and Rspack, because the helpers are marked as free of side effects. This holds for the `data*` helpers as it does for `@tolki/arr` and `@tolki/obj`, including a call at the top level of a module.
+
+esbuild doesn't follow that mark across files, so it keeps the call unless the call site says it is safe to remove:
+
+```typescript
+export const prices = /* @__PURE__ */ dataPluck(products, "price");
+```
+
+`pop`, `shift`, `unshift` and `splice`, and `dataPop`, `dataShift`, `dataUnshift` and `dataSplice`, can change the data you pass, so a call to them is always kept.
+
 ## How to read the utilities list
 
 The [utilities list](./utilities-list.md) has one section per function. Each section has one tab per package that exports it, in the order `@tolki/arr`, `@tolki/obj`, `@tolki/data`. A function that only some packages have shows only those tabs.

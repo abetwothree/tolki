@@ -12,7 +12,6 @@ const ANNOTATION = "/* @__NO_SIDE_EFFECTS__ */";
  */
 const PENDING_PACKAGES: ReadonlySet<string> = new Set([
     "@tolki/collection",
-    "@tolki/data",
     "@tolki/lang",
     "@tolki/num",
     "@tolki/str",

@@ -24,6 +24,20 @@ type KeyedMapRow<TObjFn extends AnyFn> = TObjFn extends (
     : never;
 
 /**
+ * The type of a `data*` helper that forwards to an array helper and an object helper, keeping both signatures.
+ *
+ * The intersection is the point: it re-runs overload resolution per call site, which is the only construct that
+ * forwards an overloaded delegate's return type. `TArrFn` must come before `TObjFn`: arr's rows are array-shaped,
+ * so keyed data falls through them to `TObjFn`.
+ */
+// The Map row must stay FIRST in the intersection: TS tries constituents left to right, and
+// either delegate's own rows claim a Map before it, answering a type the runtime never returns.
+export type Dispatched<
+    TArrFn extends AnyFn,
+    TObjFn extends AnyFn,
+> = KeyedMapRow<TObjFn> & TArrFn & TObjFn;
+
+/**
  * Determine whether the given data carries its own keys.
  *
  * Plain objects and Maps are the JavaScript equivalents of a PHP associative
@@ -33,6 +47,7 @@ type KeyedMapRow<TObjFn extends AnyFn> = TObjFn extends (
  * @param data - The data to inspect.
  * @returns True when the data should be handled as keyed data.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isKeyedData(data: unknown): boolean {
     if (isMap(data)) {
         return true;
@@ -50,6 +65,7 @@ export function isKeyedData(data: unknown): boolean {
  * @param data - The keyed data to normalize.
  * @returns The data itself when it is already a plain object, otherwise a record built from it.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function toKeyedData<TKey extends PropertyKey, TValue>(
     data: unknown,
 ): Record<TKey, TValue> {
@@ -57,7 +73,7 @@ export function toKeyedData<TKey extends PropertyKey, TValue>(
 }
 
 /**
- * Hand keyed data to the object helper exactly as it arrived. This is dispatch's default.
+ * Hand keyed data to the object helper exactly as it arrived. This is forwardData's default.
  *
  * Only a Map keeps a PHP array's out-of-sequence integer keys in order: `{2: "c", 0: "a"}` iterates `0` first,
  * while PHP's `[2 => 'c', 0 => 'a']` iterates as written.
@@ -65,6 +81,7 @@ export function toKeyedData<TKey extends PropertyKey, TValue>(
  * @param data - The keyed data to pass along.
  * @returns The data itself, converted by nothing.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function keepKeyedData(data: unknown): unknown {
     return data;
 }
@@ -77,6 +94,7 @@ export function keepKeyedData(data: unknown): unknown {
  * @param data - The keyed data to pass along.
  * @returns A new Map holding a Map's entries, otherwise the data itself.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function copyKeyedData(data: unknown): unknown {
     return isMap(data) ? new Map(data) : data;
 }
@@ -88,6 +106,7 @@ export function copyKeyedData(data: unknown): unknown {
  * @param data - The data to normalize.
  * @returns The data itself when it is already iterable, otherwise it wrapped in an array.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function streamPositionalData<TValue>(data: unknown): Iterable<TValue> {
     if (isIterable<TValue>(data)) {
         return data;
@@ -120,10 +139,11 @@ export function streamPositionalData<TValue>(data: unknown): Iterable<TValue> {
  * @param data - The data to normalize.
  * @returns The elements of a materializable iterable, otherwise the data wrapped in a list.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function toPositionalBacking(data: unknown): unknown {
     // Laravel materializes a Traversable, so a Set or generator arrives as its elements. An array
     // is ALIASED instead, since the mutating helpers write through it; a string is not iterable
-    // here; and the Map guard is defensive only — dispatch sends a Map to obj before this runs.
+    // here; and the Map guard is defensive only — forwardData sends a Map to obj before this runs.
     if (isIterable(data) && !isArray(data) && !isMap(data)) {
         return [...data];
     }
@@ -132,38 +152,59 @@ export function toPositionalBacking(data: unknown): unknown {
 }
 
 /**
- * Build a function that forwards to an array helper or an object helper, keeping both signatures.
+ * Forward data to the array helper or the object helper, by whether the data carries its own keys.
  *
- * @param arrFn - The `@tolki/arr` helper, used for a list backing. It must be the first operand:
- *                arr's rows are array-shaped, so keyed data falls through them to `objFn`.
+ * @sideEffects mutates - Writes through the data when the delegate does, as `pop` does.
+ * @param arrFn - The `@tolki/arr` helper, used for a list backing.
  * @param objFn - The `@tolki/obj` helper, used for a keyed backing.
+ * @param data - The data the helper was called with.
+ * @param rest - The helper's other arguments, passed on untouched.
  * @param toPositional - How a non-keyed backing reaches `arrFn`.
  * @param toKeyed - How a keyed backing reaches `objFn`.
- * @returns A function carrying both helpers' overloads, behind the Map row.
+ * @returns The delegate's own result.
  */
-// The Map row must stay FIRST in the intersection: TS tries constituents left to right, and
-// either delegate's own rows claim a Map before it, answering a type the runtime never returns.
-export function dispatch<TArrFn extends AnyFn, TObjFn extends AnyFn>(
-    arrFn: TArrFn,
-    objFn: TObjFn,
+export function forwardData(
+    arrFn: AnyFn,
+    objFn: AnyFn,
+    data: unknown,
+    rest: readonly unknown[],
     // A streaming helper must pass a Set or generator through UNREAD, so that an infinite
     // generator still works; those helpers override this with streamPositionalData.
     toPositional: (data: unknown) => unknown = toPositionalBacking,
     // An objFn reads a Map in insertion order, so it gets the Map; a by-path or order-blind helper overrides this
     // with toKeyedData, and a mutator with copyKeyedData, so the caller's Map is never written.
     toKeyed: (data: unknown) => unknown = keepKeyedData,
-): KeyedMapRow<TObjFn> & TArrFn & TObjFn {
-    const forward = (data: unknown, ...rest: readonly unknown[]): unknown => {
-        const keyed = isKeyedData(data);
-        const target = keyed ? objFn : arrFn;
+): unknown {
+    const keyed = isKeyedData(data);
+    const target = keyed ? objFn : arrFn;
 
-        return (target as unknown as (...args: readonly unknown[]) => unknown)(
-            keyed ? toKeyed(data) : toPositional(data),
-            ...rest,
-        );
-    };
+    return (target as unknown as (...args: readonly unknown[]) => unknown)(
+        keyed ? toKeyed(data) : toPositional(data),
+        ...rest,
+    );
+}
 
-    // The intersection is the point: it re-runs overload resolution per call site,
-    // which is the only construct that forwards an overloaded delegate's return type.
-    return forward as unknown as KeyedMapRow<TObjFn> & TArrFn & TObjFn;
+/**
+ * Build a function that forwards to an array helper or an object helper, keeping both signatures.
+ *
+ * The `data*` helpers are function declarations that call `forwardData` instead, so bundlers can drop an unused call.
+ * This builds the same forwarder in one call, for the type sweeps that measure a delegate pair the way `data` types it.
+ *
+ * @param arrFn - The `@tolki/arr` helper, used for a list backing.
+ * @param objFn - The `@tolki/obj` helper, used for a keyed backing.
+ * @param toPositional - How a non-keyed backing reaches `arrFn`.
+ * @param toKeyed - How a keyed backing reaches `objFn`.
+ * @returns A function carrying both helpers' overloads, behind the Map row.
+ */
+/* @__NO_SIDE_EFFECTS__ */
+export function dispatch<TArrFn extends AnyFn, TObjFn extends AnyFn>(
+    arrFn: TArrFn,
+    objFn: TObjFn,
+    toPositional: (data: unknown) => unknown = toPositionalBacking,
+    toKeyed: (data: unknown) => unknown = keepKeyedData,
+): Dispatched<TArrFn, TObjFn> {
+    const forward = (data: unknown, ...rest: readonly unknown[]): unknown =>
+        forwardData(arrFn, objFn, data, rest, toPositional, toKeyed);
+
+    return forward as unknown as Dispatched<TArrFn, TObjFn>;
 }
