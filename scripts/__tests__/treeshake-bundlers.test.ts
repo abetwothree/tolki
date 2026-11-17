@@ -330,6 +330,39 @@ describe("bundle", () => {
         expect(code).toBe(control);
     });
 
+    it("keeps a dropped call's text from renaming esbuild's output", async () => {
+        const control = await build(
+            'import { make } from "fx-plain";\nexport const used = 1;\n',
+            "esbuild",
+        );
+        const code = await build(
+            'import { make } from "fx-plain";\nexport const unused = /* @__PURE__ */ make({ zzzzzz: "zzzzzzzzzzzzzzzzz" });\nexport const used = 1;\n',
+            "esbuild",
+        );
+
+        expect(code).toBe(control);
+    });
+
+    it.each(BUNDLERS)(
+        "leaves vite and Node built-ins external in %s",
+        async (bundler) => {
+            const dir = join(app, `case-${counter++}`);
+
+            put(
+                dir,
+                "entry.js",
+                'import { normalizePath } from "vite";\nimport { join } from "node:path";\nconsole.log(normalizePath, join);\n',
+            );
+
+            const { missingExports } = await bundle(
+                join(dir, "entry.js"),
+                bundler,
+            );
+
+            expect(missingExports).toEqual([]);
+        },
+    );
+
     it("reports own bytes for a top-level call in strict mode", async () => {
         const dir = join(app, `case-${counter++}`);
 

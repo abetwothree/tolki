@@ -42,13 +42,11 @@ const OWN_MODULE = /\/node_modules\/@tolki\//;
 function isOwnModule(id: string): boolean {
     return OWN_MODULE.test(id.replaceAll("\\", "/"));
 }
-const FRAMEWORKS = new Set(["vue", "react", "svelte"]);
+const PEERS = new Set(["vue", "react", "svelte", "vite"]);
 
-/** Frameworks and Node built-ins stay external so a bundle holds only the code under test. */
+/** Peer dependencies and Node built-ins stay external so a bundle holds only the code under test. */
 function isExternal(id: string): boolean {
-    return (
-        FRAMEWORKS.has(id) || id.startsWith("svelte/") || id.startsWith("node:")
-    );
+    return PEERS.has(id) || id.startsWith("svelte/") || id.startsWith("node:");
 }
 
 /** The path of a staged module relative to `node_modules/`, or null for any other module. */
@@ -182,12 +180,14 @@ async function bundleEsbuild(entry: string): Promise<BundleResult> {
         entryPoints: [entry],
         bundle: true,
         format: "esm",
-        minify: true,
+        // The renamer weighs the text of code it later drops, so mangled names would differ from the control build.
+        minifyWhitespace: true,
+        minifySyntax: true,
         platform: "browser",
         metafile: true,
         write: false,
         outfile: join(dirname(entry), "out.js"),
-        external: ["vue", "react", "svelte", "svelte/*", "node:*"],
+        external: ["vue", "react", "svelte", "svelte/*", "vite", "node:*"],
         logLevel: "silent",
     }).catch((error: { errors?: { text: string }[] }) => {
         const missing = (error.errors ?? [])
@@ -257,10 +257,11 @@ async function bundlePack(entry: string, pack: Pack): Promise<BundleResult> {
                             { request }: { request?: string },
                             done: (error?: Error, result?: string) => void,
                         ) => {
+                            // The default `var` type would emit `module.exports = node:path`, which does not parse.
                             done(
                                 undefined,
                                 request !== undefined && isExternal(request)
-                                    ? request
+                                    ? `commonjs ${request}`
                                     : undefined,
                             );
                         },
