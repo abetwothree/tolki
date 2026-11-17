@@ -377,6 +377,23 @@ describe("bundle", () => {
         expect(Object.keys(ownBytes ?? {})).toContain("@tolki/fx-own/setup.js");
     });
 
+    it.each(["webpack", "rspack"] as const)(
+        "rejects a real error beside a missing-export warning in %s",
+        async (bundler) => {
+            const dir = join(app, `case-${counter++}`);
+
+            put(
+                dir,
+                "entry.js",
+                'import { nope } from "fx-plain";\nimport "./gone.js";\nconsole.log(nope);\n',
+            );
+
+            await expect(
+                bundle(join(dir, "entry.js"), bundler),
+            ).rejects.toThrow(/gone/);
+        },
+    );
+
     it.each(BUNDLERS)("reports a missing export in %s", async (bundler) => {
         const dir = join(app, `case-${counter++}`);
 

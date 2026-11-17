@@ -37,6 +37,11 @@ export interface BundleResult {
 }
 
 const OWN_MODULE = /\/node_modules\/@tolki\//;
+
+/** Whether a resolved id is a staged `@tolki` module, on any path separator. */
+function isOwnModule(id: string): boolean {
+    return OWN_MODULE.test(id.replaceAll("\\", "/"));
+}
 const FRAMEWORKS = new Set(["vue", "react", "svelte"]);
 
 /** Frameworks and Node built-ins stay external so a bundle holds only the code under test. */
@@ -88,7 +93,7 @@ function strictSideEffects(): Plugin {
 
             return {
                 ...resolved,
-                moduleSideEffects: OWN_MODULE.test(resolved.id),
+                moduleSideEffects: isOwnModule(resolved.id),
             };
         },
     };
@@ -142,7 +147,7 @@ async function bundleRolldown(
         ...(strict
             ? {
                   treeshake: {
-                      moduleSideEffects: (id: string) => OWN_MODULE.test(id),
+                      moduleSideEffects: (id: string) => isOwnModule(id),
                   },
               }
             : {}),
@@ -275,29 +280,19 @@ async function bundlePack(entry: string, pack: Pack): Promise<BundleResult> {
             errors: true,
             warnings: true,
         });
-        const missing: string[] = [];
-        const rest: string[] = [];
+        const missingName = (message: string): string | undefined =>
+            /export '(.+?)' \(imported as '.+?'\) was not found/.exec(
+                message,
+            )?.[1];
+        const fatal = errors.filter(({ message }) => !missingName(message));
 
-        for (const { message } of [...errors, ...warnings]) {
-            const name =
-                /export '(.+?)' \(imported as '.+?'\) was not found/.exec(
-                    message,
-                )?.[1];
-
-            if (name === undefined) {
-                rest.push(message);
-            } else {
-                missing.push(name);
-            }
+        if (fatal.length > 0) {
+            throw new Error(fatal.map((item) => item.message).join("\n"));
         }
 
-        if (
-            errors.length > 0 &&
-            rest.length > 0 &&
-            missing.length < errors.length
-        ) {
-            throw new Error(errors.map((item) => item.message).join("\n"));
-        }
+        const missing = [...errors, ...warnings]
+            .map(({ message }) => missingName(message))
+            .filter((name): name is string => name !== undefined);
 
         return {
             code: readFileSync(join(outDir, "out.js"), "utf8"),
