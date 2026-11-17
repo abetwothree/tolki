@@ -3,6 +3,12 @@ import { join, relative } from "node:path";
 
 import ts from "typescript";
 
+import {
+    aliasExportOf,
+    localFunctionNames,
+    unwrapAliasTarget,
+} from "./alias.ts";
+
 export type SideEffectCategory =
     | "mutates"
     | "state"
@@ -203,23 +209,6 @@ function analyzeFunction(
     return { kind: "unclassified", category: null, line, problems };
 }
 
-/**
- * Peels `as` and parenthesis wrappers off an initializer.
- */
-function unwrap(expression: ts.Expression): ts.Expression {
-    let current = expression;
-
-    while (
-        ts.isAsExpression(current) ||
-        ts.isParenthesizedExpression(current) ||
-        ts.isSatisfiesExpression(current)
-    ) {
-        current = current.expression;
-    }
-
-    return current;
-}
-
 const PURE_ANNOTATION = /^\/\*\s*[@#]__PURE__\s*\*\/$/;
 
 function isPureAnnotated(sourceFile: ts.SourceFile, node: ts.Node): boolean {
@@ -399,6 +388,7 @@ export function scanFile(
     );
     const result: SourceScan = { exports: [], placement: [], moduleScope: [] };
     const groups = new Map<string, ts.FunctionDeclaration[]>();
+    const localFunctions = localFunctionNames(sourceFile);
 
     for (const statement of sourceFile.statements) {
         if (ts.isFunctionDeclaration(statement) && statement.name) {
@@ -488,7 +478,7 @@ export function scanFile(
 
             const name = declaration.name.text;
             const line = lineOf(sourceFile, declaration);
-            const initializer = unwrap(declaration.initializer);
+            const initializer = unwrapAliasTarget(declaration.initializer);
 
             if (
                 ts.isArrowFunction(initializer) ||
@@ -509,7 +499,12 @@ export function scanFile(
 
                 push(name, line, "unclassified", null);
             } else if (ts.isIdentifier(initializer)) {
-                scanAlias(statement, name, line, initializer.text);
+                // Only the alias shape the data build rewrites ships its declaration, and with it the annotation.
+                if (aliasExportOf(statement, localFunctions) === null) {
+                    push(name, line, "unclassified", null);
+                } else {
+                    scanAlias(statement, name, line, initializer.text);
+                }
             } else if (
                 ts.isCallExpression(initializer) &&
                 ts.isIdentifier(initializer.expression) &&
@@ -526,14 +521,8 @@ export function scanFile(
         line: number,
         target: string,
     ): void {
-        const analysis = analysisOf(target);
-
-        if (analysis === undefined) {
-            push(name, line, "unclassified", null);
-
-            return;
-        }
-
+        // aliasExportOf accepts only a local function with a body, which `groups` holds.
+        const analysis = analysisOf(target)!;
         const aliasTag = readTag(statement);
 
         if (aliasTag.unknown) {

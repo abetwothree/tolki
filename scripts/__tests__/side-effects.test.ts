@@ -185,6 +185,22 @@ describe("scanFile", () => {
         ]);
     });
 
+    it("leaves an alias the data build does not rewrite unclassified", () => {
+        const result = scan(
+            [
+                ANNOTATION,
+                "function aImpl(): unknown { return 1; }",
+                "export let a = aImpl as unknown as () => number;",
+                "export const b = aImpl as unknown as () => number, c = 1;",
+            ].join("\n"),
+        );
+
+        expect(result.exports).toMatchObject([
+            { name: "a", kind: "unclassified" },
+            { name: "b", kind: "unclassified" },
+        ]);
+    });
+
     it("leaves an unmarked function unclassified", () => {
         const result = scan(
             "/** Doc. */\nexport function a(): number { return 1; }",

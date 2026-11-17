@@ -6,6 +6,7 @@ import {
 } from "../build/alias-exports.ts";
 
 const ANNOTATION = "/* @__NO_SIDE_EFFECTS__ */";
+const SRC = "/repo/packages/data/src";
 const IMPL = [
     ANNOTATION,
     "function dataGetImpl(data: unknown, ...rest: readonly unknown[]): unknown {",
@@ -16,8 +17,8 @@ const IMPL = [
 /**
  * Runs the plugin's transform hook the way Vite calls it.
  */
-function transform(code: string, id: string): unknown {
-    const hook = aliasExportsPlugin().transform as (
+function transform(code: string, id: string, srcDir = SRC): unknown {
+    const hook = aliasExportsPlugin(srcDir).transform as (
         code: string,
         id: string,
     ) => unknown;
@@ -65,30 +66,112 @@ describe("rewriteAliasExports", () => {
         );
     });
 
-    it("keeps an alias of an imported name", () => {
-        const source = [
-            'import { get } from "@tolki/arr";',
-            "",
-            "export const dataGet = get as unknown as typeof get;",
-        ].join("\n");
-
+    // Each source differs from a rewritable alias in one way only, so each case fails when its guard is removed.
+    it.each([
+        [
+            "an alias of an imported name",
+            'import { aImpl } from "./a";\nexport const a = aImpl as unknown as A;',
+        ],
+        [
+            "an alias of a bodiless function",
+            "declare function aImpl(): void;\nexport const a = aImpl as unknown as A;",
+        ],
+        [
+            "an alias of a nested function",
+            "{\n    function aImpl(): void {}\n}\nexport const a = aImpl as unknown as A;",
+        ],
+        [
+            "an alias of a const",
+            "const aImpl = 1;\nexport const a = aImpl as unknown as A;",
+        ],
+        [
+            "a let alias",
+            "export let a = aImpl as unknown as A;\nfunction aImpl(): void {}",
+        ],
+        [
+            "a var alias",
+            "export var a = aImpl as unknown as A;\nfunction aImpl(): void {}",
+        ],
+        [
+            "an alias declared beside another const",
+            "export const a = aImpl as unknown as A, b = 1;\nfunction aImpl(): void {}",
+        ],
+        [
+            "an alias that is not exported",
+            "const a = aImpl as unknown as A;\nfunction aImpl(): void {}",
+        ],
+        [
+            "an ambient alias that is not exported",
+            "declare const a = aImpl as unknown as A;\nfunction aImpl(): void {}",
+        ],
+        [
+            "an ambient alias",
+            "export declare const a = aImpl as unknown as A;\nfunction aImpl(): void {}",
+        ],
+        [
+            "an ambient declaration",
+            "export declare const a: A;\nfunction aImpl(): void {}",
+        ],
+        [
+            "a const with no initializer",
+            "export const a: A;\nfunction aImpl(): void {}",
+        ],
+        [
+            "a destructuring export",
+            "export const { a } = aImpl as unknown as A;\nfunction aImpl(): void {}",
+        ],
+    ])("keeps %s", (_label, source) => {
         expect(rewriteAliasExports(source)).toBeNull();
     });
 
-    it("keeps an alias of a nested, bodiless or non-function declaration", () => {
+    it("throws when the module uses the alias's own name, which the rewrite would unbind", () => {
         const source = [
-            "declare function ambient(): void;",
-            "const value = 1;",
-            "{",
-            "    function nested(): void {}",
+            "export const a = aImpl as unknown as A;",
+            "function aImpl(): void {}",
+            "export function b(): void {",
+            "    a();",
             "}",
-            "export const a = ambient as unknown;",
-            "export const b = value as unknown;",
-            "export const c = nested as unknown;",
-            "export let d = (() => 1) as unknown;",
         ].join("\n");
 
-        expect(rewriteAliasExports(source)).toBeNull();
+        expect(() => rewriteAliasExports(source)).toThrow(
+            "alias-exports: `a` is used on line 4, and `export { aImpl as a }` declares no local `a`. Use `aImpl` there.",
+        );
+    });
+
+    it("does not count a property or member named like the alias as a use", () => {
+        const source = [
+            "export const a = aImpl as unknown as A;",
+            "function aImpl(): void {}",
+            "export const o = { a: 1 };",
+            "export function b(x: { a: number }): number {",
+            "    return x.a;",
+            "}",
+        ].join("\n");
+
+        expect(rewriteAliasExports(source)).toBe(
+            source.replace(
+                "export const a = aImpl as unknown as A;",
+                "export { aImpl as a };",
+            ),
+        );
+    });
+
+    it("rewrites an alias with a comment between its keywords", () => {
+        const source =
+            "export /* c */ const a = aImpl as unknown as A;\nfunction aImpl(): void {}";
+
+        expect(rewriteAliasExports(source)).toBe(
+            "export { aImpl as a };\nfunction aImpl(): void {}",
+        );
+    });
+
+    it("rewrites an alias whose const is typed", () => {
+        const source =
+            "export const a: A = aImpl as unknown as B;\nfunction aImpl(): void {}";
+
+        expect(rewriteAliasExports(source)).toBe(
+            "export { aImpl as a };\nfunction aImpl(): void {}",
+        );
     });
 
     it("keeps the export's docblock and every other statement byte-identical", () => {
@@ -144,7 +227,7 @@ describe("aliasExportsPlugin", () => {
     const source = `export const a = aImpl as unknown as A;\n${IMPL.replace("dataGetImpl", "aImpl")}`;
 
     it("runs before other transforms", () => {
-        expect(aliasExportsPlugin().enforce).toBe("pre");
+        expect(aliasExportsPlugin(SRC).enforce).toBe("pre");
     });
 
     it("rewrites a package source file", () => {
@@ -163,10 +246,33 @@ describe("aliasExportsPlugin", () => {
         ).toMatchObject({ map: null });
     });
 
+    it("rewrites under a Windows source root given with backslashes", () => {
+        expect(
+            transform(
+                source,
+                "C:/repo/packages/data/src/data.ts",
+                "C:\\repo\\packages\\data\\src\\",
+            ),
+        ).toMatchObject({ map: null });
+    });
+
     it.each([
         ["a spec file", "/repo/packages/data/__tests__/data.spec.ts"],
         ["a declaration file", "/repo/packages/data/src/data.d.ts"],
-        ["a dependency", "/repo/node_modules/@tolki/arr/src/arr.js"],
+        ["a JavaScript module", "/repo/packages/data/src/data.js"],
+        ["another package's source", "/repo/packages/arr/src/arr.ts"],
+        [
+            "a dependency's TypeScript source",
+            "/repo/node_modules/@tolki/arr/src/arr.ts",
+        ],
+        [
+            "a folder that only shares the prefix",
+            "/repo/packages/data/src-old/data.ts",
+        ],
+        [
+            "a dependency inside the source root",
+            "/repo/packages/data/src/node_modules/dep/index.ts",
+        ],
     ])("leaves %s alone", (_label, id) => {
         expect(transform(source, id)).toBeNull();
     });

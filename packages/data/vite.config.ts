@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 import { defineConfig, mergeConfig } from "vite";
 
 import { aliasExportsPlugin } from "../../scripts/build/alias-exports";
@@ -8,8 +10,10 @@ const entries = buildPackageEntries("src/**/*.ts", import.meta.url);
 
 export default defineConfig(
     mergeConfig(baseViteConfig, {
-        // webpack and Rspack lose an annotation through a `const` alias, so each `dataX` ships as its declaration.
-        plugins: [aliasExportsPlugin()],
+        // Rolldown, webpack and Rspack keep calls through a `const` alias, so each `dataX` ships as its declaration.
+        plugins: [
+            aliasExportsPlugin(fileURLToPath(new URL("src", import.meta.url))),
+        ],
         build: {
             lib: {
                 entry: entries,

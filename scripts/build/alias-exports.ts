@@ -1,78 +1,80 @@
 import ts from "typescript";
 import type { Plugin } from "vite";
 
-/**
- * Peels `as`, `satisfies` and parenthesis wrappers off an initializer, as the side-effect scan does.
- *
- * @param expression - The initializer to unwrap.
- * @returns The expression inside every wrapper.
- */
-function unwrap(expression: ts.Expression): ts.Expression {
-    let current = expression;
+import { aliasExportOf, localFunctionNames } from "../side-effects/alias.ts";
 
-    while (
-        ts.isAsExpression(current) ||
-        ts.isParenthesizedExpression(current) ||
-        ts.isSatisfiesExpression(current)
-    ) {
-        current = current.expression;
+/**
+ * Tells whether an identifier names a member rather than a binding of the module.
+ *
+ * @param node - The identifier to place.
+ * @returns True for a property, method or enum member name, or the imported name of an import specifier.
+ */
+function isMemberName(node: ts.Identifier): boolean {
+    const parent = node.parent;
+
+    if (ts.isPropertyAccessExpression(parent) || ts.isQualifiedName(parent)) {
+        return (
+            (ts.isPropertyAccessExpression(parent)
+                ? parent.name
+                : parent.right) === node
+        );
     }
 
-    return current;
+    if (ts.isImportSpecifier(parent)) {
+        return parent.propertyName === node;
+    }
+
+    return (
+        (ts.isPropertyAssignment(parent) ||
+            ts.isPropertyDeclaration(parent) ||
+            ts.isPropertySignature(parent) ||
+            ts.isMethodDeclaration(parent) ||
+            ts.isMethodSignature(parent) ||
+            ts.isGetAccessorDeclaration(parent) ||
+            ts.isSetAccessorDeclaration(parent) ||
+            ts.isEnumMember(parent)) &&
+        parent.name === node
+    );
 }
 
 /**
- * Names the function an `export const X = Y as …` statement aliases, when `Y` is a declared function.
+ * Collects every identifier of a module that may refer to one of its bindings.
  *
- * @param statement - A top-level statement.
- * @param functions - The names of the file's top-level function declarations that have a body.
- * @returns The exported name and the function it aliases, or null when the statement is anything else.
+ * @param sourceFile - The parsed module.
+ * @returns The identifiers, grouped by name.
  */
-function aliasOf(
-    statement: ts.Statement,
-    functions: ReadonlySet<string>,
-): { name: string; target: string } | null {
-    if (
-        !ts.isVariableStatement(statement) ||
-        !(statement.declarationList.flags & ts.NodeFlags.Const) ||
-        statement.declarationList.declarations.length !== 1
-    ) {
-        return null;
-    }
+function bindingReferences(
+    sourceFile: ts.SourceFile,
+): Map<string, ts.Identifier[]> {
+    const references = new Map<string, ts.Identifier[]>();
+    const visit = (node: ts.Node): void => {
+        if (ts.isIdentifier(node) && !isMemberName(node)) {
+            references.set(node.text, [
+                ...(references.get(node.text) ?? []),
+                node,
+            ]);
+        }
 
-    const modifiers = ts.getModifiers(statement) ?? [];
-    const [declaration] = statement.declarationList.declarations;
+        ts.forEachChild(node, visit);
+    };
 
-    if (
-        modifiers.length !== 1 ||
-        modifiers[0]!.kind !== ts.SyntaxKind.ExportKeyword ||
-        !ts.isIdentifier(declaration!.name) ||
-        declaration!.initializer === undefined
-    ) {
-        return null;
-    }
+    visit(sourceFile);
 
-    const target = unwrap(declaration!.initializer);
-
-    return ts.isIdentifier(target) && functions.has(target.text)
-        ? { name: declaration!.name.text, target: target.text }
-        : null;
+    return references;
 }
 
 /**
  * Rewrites each `export const X = Y as …;` aliasing a same-file function declaration to `export { Y as X };`.
  *
- * Bundlers read `@__NO_SIDE_EFFECTS__` off a function declaration, and webpack and Rspack lose it through a `const`
- * alias. Exporting the declaration itself keeps it, while the `.d.ts`, emitted from the source, keeps the alias's type.
+ * Bundlers read `@__NO_SIDE_EFFECTS__` off a function declaration, and Rolldown, webpack and Rspack keep calls through
+ * a `const` alias. Exporting the declaration itself keeps the mark, while the `.d.ts`, emitted from the source, keeps
+ * the alias's type.
  *
  * @param code - The TypeScript source of one module.
  * @returns The rewritten source, or null when no statement changed.
+ * @throws Error when the module uses an alias's own name, which the rewrite would leave unbound.
  */
 export function rewriteAliasExports(code: string): string | null {
-    if (!/\bexport\s+const\b/.test(code)) {
-        return null;
-    }
-
     const sourceFile = ts.createSourceFile(
         "module.ts",
         code,
@@ -80,23 +82,36 @@ export function rewriteAliasExports(code: string): string | null {
         true,
         ts.ScriptKind.TS,
     );
-    const functions = new Set(
-        sourceFile.statements
-            .filter(ts.isFunctionDeclaration)
-            .filter((statement) => statement.body !== undefined)
-            .flatMap((statement) =>
-                statement.name ? [statement.name.text] : [],
-            ),
-    );
+    const functions = localFunctionNames(sourceFile);
+    let references: Map<string, ts.Identifier[]> | undefined;
     let rewritten = code;
     let changed = false;
 
     // Back to front, so each earlier statement's offsets still hold after a later one is replaced.
     for (const statement of [...sourceFile.statements].reverse()) {
-        const alias = aliasOf(statement, functions);
+        const alias = aliasExportOf(statement, functions);
 
         if (alias === null) {
             continue;
+        }
+
+        references ??= bindingReferences(sourceFile);
+
+        // The declarator's own name is the one reference the rewrite removes on purpose.
+        const [use] = (references.get(alias.name) ?? []).filter(
+            (node) =>
+                node.getStart(sourceFile) < statement.getStart(sourceFile) ||
+                node.end > statement.end,
+        );
+
+        if (use !== undefined) {
+            const { line } = sourceFile.getLineAndCharacterOfPosition(
+                use.getStart(sourceFile),
+            );
+
+            throw new Error(
+                `alias-exports: \`${alias.name}\` is used on line ${line + 1}, and \`export { ${alias.target} as ${alias.name} }\` declares no local \`${alias.name}\`. Use \`${alias.target}\` there.`,
+            );
         }
 
         const start = statement.getStart(sourceFile);
@@ -112,12 +127,15 @@ export function rewriteAliasExports(code: string): string | null {
 }
 
 /**
- * Ships each alias export of a package source as the function declaration it aliases.
+ * Ships each alias export of one package's sources as the function declaration it aliases.
  *
- * @returns A Vite plugin that runs `rewriteAliasExports` on each TypeScript module under a `src` folder, before
- *     other transforms.
+ * @param srcDir - Absolute path of the package's `src` directory; no module outside it is touched.
+ * @returns A Vite plugin that runs `rewriteAliasExports` on the TypeScript modules under `srcDir`, before other
+ *     transforms.
  */
-export function aliasExportsPlugin(): Plugin {
+export function aliasExportsPlugin(srcDir: string): Plugin {
+    const root = `${srcDir.replaceAll("\\", "/").replace(/\/+$/, "")}/`;
+
     return {
         name: "tolki:alias-exports",
         enforce: "pre",
@@ -125,7 +143,8 @@ export function aliasExportsPlugin(): Plugin {
             const file = id.split("?")[0]!.replaceAll("\\", "/");
 
             if (
-                !file.includes("/src/") ||
+                !file.startsWith(root) ||
+                file.includes("/node_modules/") ||
                 !file.endsWith(".ts") ||
                 file.endsWith(".d.ts")
             ) {
