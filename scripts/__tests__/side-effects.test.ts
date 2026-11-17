@@ -211,17 +211,13 @@ describe("scanFile", () => {
     });
 
     it("classifies a function exported through a local export list", () => {
-        const listed = scan(
-            "function f() { return 1; }\nexport { f };",
-        );
+        const listed = scan("function f() { return 1; }\nexport { f };");
 
         expect(listed.exports).toMatchObject([
             { name: "f", line: 1, kind: "unclassified", category: null },
         ]);
 
-        const renamed = scan(
-            "function f() { return 1; }\nexport { f as g };",
-        );
+        const renamed = scan("function f() { return 1; }\nexport { f as g };");
 
         expect(renamed.exports).toMatchObject([
             { name: "g", kind: "unclassified" },
