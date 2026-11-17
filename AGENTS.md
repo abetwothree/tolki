@@ -244,6 +244,14 @@ if (condition) {
 - Functions should be defined with named exports, e.g. `export function functionName() {}` instead of `export const functionName = () => {}` for easier reference and consistency.
   - **Exception — `@tolki/data` only, and only for the helpers built by `dispatch`.** A `data*` helper that forwards to an `@tolki/arr` delegate and an `@tolki/obj` delegate is written `export const dataX = dispatch(arrX, objX)`. The whole value of `dispatch` is its return type, an intersection of the two delegates' types: TypeScript re-runs overload resolution against an intersection at every call site, so `data` inherits `arr`'s and `obj`'s return types automatically and never restates them. A `function` declaration cannot carry that type, because `ReturnType<typeof f>` on an overloaded `f` resolves only its **last** overload, which would collapse every other row. The 11 `data*` helpers that have no delegate pair are still `export function`, and **no other package may use the `export const` form for a function.**
 
+## Docs
+
+The documentation in `docs/features` contains detailed information about the project's architecture, components, and functionality. When adding or editing doc files, make sure to provide clear and concise explanations, avoid repeating what the code already self-explains, and focus on describing the purpose and behavior of the code while linking to the relevant source files as the source of truth.
+
+The purpose of the `docs/features` directory is to provide AI agents a quick overview of the project's source code. But the code is the actual source of truth, and the documentation should not repeat what is already evident from the code itself.
+
+Keep it extremely concise and focused on the key points with minimal elaboration. The source code is the ultimate reference for implementation details.
+
 ## Comments
 
 This explains when to write comments in the code base and how to write comments.
