@@ -336,7 +336,10 @@ interface DataAdd {
  * dataAdd([1, 2], 2, 3); -> [1, 2, 3]
  * dataAdd({a: 1}, 'b', 2); -> {a: 1, b: 2}
  */
-export const dataAdd = dataAddImpl as unknown as DataAdd;
+export const dataAdd: DataAdd = dataAddImpl as unknown as Dispatched<
+    typeof arrAdd,
+    typeof objAdd
+>;
 
 /** Forwards `dataAdd` to its delegate. */
 /* @__NO_SIDE_EFFECTS__ */
