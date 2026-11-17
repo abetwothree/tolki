@@ -9,3 +9,4 @@ How the repo's own tooling works. One line per file.
 - [code-group-sync.md](./code-group-sync.md): how code groups with the same tab titles stay in sync, are remembered in localStorage and keep the page from jumping.
 - [docs-site.md](./docs-site.md): the VitePress site layout, nav and sidebar rules, page URLs, authoring conventions, both section templates and the verification commands.
 - [arr-obj-data-collection-layering.md](./arr-obj-data-collection-layering.md): how `data` dispatches to `arr` and `obj`, the hand-written helpers, name differences and how `Collection` builds on it.
+- [side-effect-annotations.md](./side-effect-annotations.md): the `/* @__NO_SIDE_EFFECTS__ */` and `@sideEffects` rules every published export follows, and the scan that guards them.

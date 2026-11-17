@@ -74,6 +74,17 @@ If you need to create utility functions that are not specific to implement a Lar
 
 Once added to the `@tolki/utils` package, they can be used in any other package in the monorepo.
 
+## Tree-shaking and side effects
+
+- Every exported function of a published package is marked: pure ones carry `/* @__NO_SIDE_EFFECTS__ */`, the rest `@sideEffects <category>` in the docblock.
+- The annotation goes on its own line after the docblock, directly above the `export function` with the body (the implementation signature when overloaded).
+- Never put it above the first overload, inside a docblock or on an arrow `const`; bundlers drop it there.
+- Categories: `mutates`, `state`, `callback`, `asserts`, `io`. One function never has both markers.
+- A new exported function is unclassified until it has one of them, and the guard (`npx vitest run --project scripts side-effects`) fails.
+- Classes are exempt. Alias exports (`export const x = xImpl as ...`) take their mark from the same-file function.
+- Module scope: every call or `new` at module scope carries `/* @__PURE__ */`, nested calls too, and no argument is a spread.
+- Details: [docs/features/side-effect-annotations.md](docs/features/side-effect-annotations.md).
+
 ## Test structure
 
 Test should be structured with `describe` blocks for each function being tested, and `it` blocks for each test case.
