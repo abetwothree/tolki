@@ -148,8 +148,8 @@ import {
 
 // Collection resolves a descriptor's key with data_get, the way
 // Collection::sortByMany does; Arr and Obj resolve with getNestedValue.
-const sortSpecComparator = createSortSpecComparator((item, key) =>
-    itemValue(item, key),
+const sortSpecComparator = /* @__PURE__ */ createSortSpecComparator(
+    (item, key) => itemValue(item, key),
 );
 
 /** A list (`TValue[]`), a keyed record holding every key its type names, or a keyed record that may lack some. */
@@ -8440,7 +8440,7 @@ type EnsuredType<TSpec> = TSpec extends keyof EnsureTypeMap
         : unknown;
 
 /** Items a builder created for a new instance; the constructor adopts them instead of copying. */
-const owned = new WeakSet<object>();
+const owned = /* @__PURE__ */ new WeakSet<object>();
 
 /**
  * Hand items a builder just created to the constructor it calls next, which adopts them without a copy.

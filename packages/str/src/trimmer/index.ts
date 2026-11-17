@@ -2,7 +2,7 @@
  * Precomputed character class (as a regex fragment) for Laravel's invisible characters list.
  * Built using ES2015 Unicode escapes (\\u{...}) and intended for use with the 'u' flag.
  */
-const INVISIBLE_CHAR_CLASS: string = (() => {
+const INVISIBLE_CHAR_CLASS: string = /* @__PURE__ */ (() => {
     const cps = [
         0x0009, 0x0020, 0x00a0, 0x00ad, 0x034f, 0x061c, 0x115f, 0x1160, 0x17b4,
         0x17b5, 0x180e, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006,

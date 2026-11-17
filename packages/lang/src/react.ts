@@ -43,7 +43,7 @@ export interface ReactLang<
 /** Do nothing; the version snapshot tracks changes, so reads need no tracker. */
 function noop(): void {}
 
-const LangContext = createContext<Lang<LangLines> | null>(null);
+const LangContext = /* @__PURE__ */ createContext<Lang<LangLines> | null>(null);
 
 /**
  * Hand a lang to every component below.

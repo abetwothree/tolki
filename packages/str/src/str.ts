@@ -25,17 +25,17 @@ import { createUuidsNormally } from "./uuid";
 /**
  * The cache of snake-cased words.
  */
-const snakeCache = new Map<string, string>();
+const snakeCache = /* @__PURE__ */ new Map<string, string>();
 
 /**
  * The cache of camel-cased words.
  */
-const camelCache = new Map<string, string>();
+const camelCache = /* @__PURE__ */ new Map<string, string>();
 
 /**
  * The cache of studly-cased words.
  */
-const studlyCache = new Map<string, string>();
+const studlyCache = /* @__PURE__ */ new Map<string, string>();
 
 /**
  * The callback that should be used to generate random strings.

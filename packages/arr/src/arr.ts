@@ -302,8 +302,8 @@ type ListPrependRecord<TValue, TPrependValue, TStoredKey> = [
               >
       >;
 
-const sortSpecComparator = createSortSpecComparator((item, key) =>
-    getNestedValue(item, key as PropertyKey),
+const sortSpecComparator = /* @__PURE__ */ createSortSpecComparator(
+    (item, key) => getNestedValue(item, key as PropertyKey),
 );
 
 /**

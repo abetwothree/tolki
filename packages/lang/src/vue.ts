@@ -42,7 +42,8 @@ export interface VueLang<
     readonly lang: Lang<TLines>;
 }
 
-const LANG_KEY: InjectionKey<VueLang<LangLines>> = Symbol("tolki-lang");
+const LANG_KEY: InjectionKey<VueLang<LangLines>> =
+    /* @__PURE__ */ Symbol("tolki-lang");
 
 /**
  * Create a lang that installs into a Vue app and re-renders templates when its locale changes.

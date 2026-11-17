@@ -190,8 +190,8 @@ type NullishKeyValue<K, V> = [Extract<K, null | undefined>] extends [never]
 // A default value, or a closure that produces one, as the guard helpers accept.
 type Default<TDefault> = TDefault | (() => TDefault);
 
-const sortSpecComparator = createSortSpecComparator((item, key) =>
-    getNestedValue(item, key as PropertyKey),
+const sortSpecComparator = /* @__PURE__ */ createSortSpecComparator(
+    (item, key) => getNestedValue(item, key as PropertyKey),
 );
 
 // toPhpKeyString prints a float the way PHP does (1.0E+21, 14 digits), so only an integer literal keeps its JS text.

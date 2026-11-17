@@ -26,7 +26,7 @@ export interface SvelteLang<
     readonly lang: Lang<TLines>;
 }
 
-const KEY = Symbol("@tolki/lang");
+const KEY = /* @__PURE__ */ Symbol("@tolki/lang");
 
 /**
  * Wrap a lang in reads that Svelte tracks.

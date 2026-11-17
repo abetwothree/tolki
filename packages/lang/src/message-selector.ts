@@ -589,8 +589,8 @@ const LOCALE_RULES: [string[], PluralRule][] = [
     ],
 ];
 
-const PLURAL_RULES = new Map<string, PluralRule>(
-    LOCALE_RULES.flatMap(([locales, rule]) => {
+const PLURAL_RULES = /* @__PURE__ */ new Map<string, PluralRule>(
+    /* @__PURE__ */ LOCALE_RULES.flatMap(([locales, rule]) => {
         return locales.map((locale): [string, PluralRule] => [locale, rule]);
     }),
 );

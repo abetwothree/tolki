@@ -14,7 +14,7 @@ import {
 } from "@tolki/utils";
 
 /** What reading a segment answers when the target holds no such key. */
-const absent = Symbol("absent");
+const absent = /* @__PURE__ */ Symbol("absent");
 
 /**
  * Get the values a pluck wildcard segment iterates over, mirroring

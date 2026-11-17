@@ -210,6 +210,79 @@ describe("scanFile", () => {
 
         expect(result.exports).toEqual([]);
     });
+
+    it("flags an unannotated module-scope call", () => {
+        const result = scan("export const a = make(1);\nconst b = new Map();");
+
+        expect(result.moduleScope).toMatchObject([
+            { line: 1, kind: "unannotated-call" },
+            { line: 2, kind: "unannotated-call" },
+        ]);
+    });
+
+    it("accepts an annotated call with annotated nested calls", () => {
+        const result = scan(
+            [
+                "const a = /* @__PURE__ */ new Map(/* @__PURE__ */ LIST.flatMap((x) => x));",
+                "const b = /* #__PURE__ */ define({ k: 1 } as const);",
+                "const c = /* @__PURE__ */ (() => 1)();",
+            ].join("\n"),
+        );
+
+        expect(result.moduleScope).toEqual([]);
+    });
+
+    it("flags an unannotated call nested in an annotated one", () => {
+        const result = scan(
+            "const a = /* @__PURE__ */ new Map(LIST.flatMap(f));",
+        );
+
+        expect(result.moduleScope).toMatchObject([
+            { kind: "unannotated-call", name: "LIST.flatMap(f)" },
+        ]);
+    });
+
+    it("flags class static initializers and computed keys", () => {
+        const result = scan(
+            "class A { static x = f(); static { g(); } [k()] = 1; y = h(); }",
+        );
+
+        expect(result.moduleScope.map((p) => p.name)).toEqual([
+            "f()",
+            "g()",
+            "k()",
+        ]);
+    });
+
+    it("flags a spread argument", () => {
+        const result = scan("const a = /* @__PURE__ */ make(...LIST);");
+
+        expect(result.moduleScope).toMatchObject([
+            { line: 1, kind: "spread-argument" },
+        ]);
+    });
+
+    it("flags a bare top-level statement", () => {
+        const result = scan("/* @__PURE__ */ run();");
+
+        expect(result.moduleScope).toMatchObject([
+            { line: 1, kind: "top-level-statement" },
+        ]);
+    });
+
+    it("ignores calls inside function bodies", () => {
+        const result = scan(
+            [
+                "export function a() { return f(); }",
+                "const b = () => g();",
+                "const c = { m() { return h(); }, get x() { return i(); } };",
+                "class D { y = j(); method() { return k(); } }",
+                "export default function () { return l(); }",
+            ].join("\n"),
+        );
+
+        expect(result.moduleScope).toEqual([]);
+    });
 });
 
 describe("published sources", () => {
@@ -229,6 +302,10 @@ describe("published sources", () => {
             .map((entry) => `${entry.file}:${entry.line} ${entry.name}`);
 
         expect(missing).toEqual([]);
+    });
+
+    it("has no unannotated module-scope calls", () => {
+        expect(scanResult.moduleScope).toEqual([]);
     });
 
     it("has no stale pending packages", () => {

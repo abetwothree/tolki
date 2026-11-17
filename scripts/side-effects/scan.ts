@@ -220,6 +220,144 @@ function unwrap(expression: ts.Expression): ts.Expression {
     return current;
 }
 
+const PURE_ANNOTATION = /^\/\*\s*[@#]__PURE__\s*\*\/$/;
+
+function isPureAnnotated(sourceFile: ts.SourceFile, node: ts.Node): boolean {
+    // Same-line comments are trailing trivia of the previous token, so read the raw gap.
+    const gap = sourceFile.text.slice(
+        node.getFullStart(),
+        node.getStart(sourceFile),
+    );
+    const trimmed = gap.trimEnd();
+    const last = trimmed.endsWith("*/")
+        ? trimmed.slice(trimmed.lastIndexOf("/*"))
+        : "";
+
+    return PURE_ANNOTATION.test(last);
+}
+
+/**
+ * Finds every call evaluated while the module loads, never entering function bodies.
+ */
+function scanModuleScope(
+    file: string,
+    sourceFile: ts.SourceFile,
+    report: Problem<ModuleScopeProblemKind>[],
+): void {
+    const add = (node: ts.Node, kind: ModuleScopeProblemKind): void => {
+        report.push({
+            file,
+            line: lineOf(sourceFile, node),
+            name: node.getText(sourceFile).split("\n")[0]!.slice(0, 60),
+            kind,
+        });
+    };
+
+    const visitClass = (node: ts.ClassLikeDeclaration): void => {
+        for (const clause of node.heritageClauses ?? []) {
+            visit(clause);
+        }
+
+        for (const member of node.members) {
+            if (
+                member.name !== undefined &&
+                ts.isComputedPropertyName(member.name)
+            ) {
+                visit(member.name);
+            }
+
+            if (ts.isClassStaticBlockDeclaration(member)) {
+                visit(member.body);
+            } else if (
+                ts.isPropertyDeclaration(member) &&
+                member.initializer !== undefined &&
+                ts
+                    .getModifiers(member)
+                    ?.some((m) => m.kind === ts.SyntaxKind.StaticKeyword)
+            ) {
+                visit(member.initializer);
+            }
+        }
+    };
+
+    const visit = (node: ts.Node): void => {
+        if (ts.isTypeNode(node)) {
+            return;
+        }
+
+        if (ts.isClassLike(node)) {
+            visitClass(node);
+
+            return;
+        }
+
+        if (ts.isFunctionLike(node)) {
+            if (
+                node.name !== undefined &&
+                ts.isComputedPropertyName(node.name)
+            ) {
+                visit(node.name);
+            }
+
+            return;
+        }
+
+        if (
+            ts.isCallExpression(node) ||
+            ts.isNewExpression(node) ||
+            ts.isTaggedTemplateExpression(node)
+        ) {
+            if (!isPureAnnotated(sourceFile, node)) {
+                add(node, "unannotated-call");
+            }
+
+            const args =
+                ts.isCallExpression(node) || ts.isNewExpression(node)
+                    ? (node.arguments ?? [])
+                    : [];
+
+            if (args.some((argument) => ts.isSpreadElement(argument))) {
+                add(node, "spread-argument");
+            }
+        }
+
+        ts.forEachChild(node, visit);
+    };
+
+    for (const statement of sourceFile.statements) {
+        if (ts.isVariableStatement(statement)) {
+            for (const declaration of statement.declarationList.declarations) {
+                if (declaration.initializer !== undefined) {
+                    visit(declaration.initializer);
+                }
+            }
+        } else if (ts.isExpressionStatement(statement)) {
+            add(statement, "top-level-statement");
+        } else if (ts.isExportAssignment(statement)) {
+            visit(statement.expression);
+        } else if (ts.isClassDeclaration(statement)) {
+            visitClass(statement);
+        } else if (ts.isEnumDeclaration(statement)) {
+            for (const member of statement.members) {
+                if (member.initializer !== undefined) {
+                    visit(member.initializer);
+                }
+            }
+        } else if (
+            ts.isIfStatement(statement) ||
+            ts.isBlock(statement) ||
+            ts.isTryStatement(statement) ||
+            ts.isForStatement(statement) ||
+            ts.isForOfStatement(statement) ||
+            ts.isForInStatement(statement) ||
+            ts.isWhileStatement(statement) ||
+            ts.isSwitchStatement(statement)
+        ) {
+            add(statement, "top-level-statement");
+        }
+    }
+}
+
 /**
  * Scans one source file for exported functions and their side-effect marks.
  *
@@ -411,6 +549,8 @@ export function scanFile(
 
         push(name, line, analysis.kind, analysis.category);
     }
+
+    scanModuleScope(file, sourceFile, result.moduleScope);
 
     return result;
 }

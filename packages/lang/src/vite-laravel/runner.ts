@@ -4,7 +4,7 @@ import { promisify } from "node:util";
 import { isObject, isString } from "@tolki/utils";
 import type { Logger } from "vite";
 
-const execAsync = promisify(exec);
+const execAsync = /* @__PURE__ */ promisify(exec);
 
 const LABEL = "[@tolki/lang]";
 

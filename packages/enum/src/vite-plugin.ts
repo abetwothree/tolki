@@ -10,7 +10,7 @@ import {
     type ViteDevServer,
 } from "vite";
 
-const execAsync = promisify(exec);
+const execAsync = /* @__PURE__ */ promisify(exec);
 
 export interface LaravelTsPublishOptions {
     /**
