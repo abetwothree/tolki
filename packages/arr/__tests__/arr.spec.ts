@@ -91,6 +91,18 @@ describe("Arr", () => {
     });
 
     describe("add", () => {
+        it.each([["0.a.c"], ["0.a"]])(
+            "leaves the caller's nested data alone for the array key %j",
+            (path) => {
+                const input = [{ a: { b: 1 } }];
+                const snapshot = structuredClone(input);
+
+                Arr.add(input, [path] as never, 2);
+
+                expect(input).toEqual(snapshot);
+            },
+        );
+
         it("writes a number key mid-path as PHP stores it", () => {
             // docs/php-parity/Arr/add.json, "add-nested-keeps-key-order"
             const inner = { a: 1 };
@@ -2917,6 +2929,18 @@ describe("Arr", () => {
     });
 
     describe("push", () => {
+        it.each([["0.a"], ["0.a.c"]])(
+            "leaves the caller's nested data alone for the array key %j",
+            (path) => {
+                const input = [{ a: [1], c: [3] }];
+                const snapshot = structuredClone(input);
+
+                Arr.push(input, [path] as never, 2);
+
+                expect(input).toEqual(snapshot);
+            },
+        );
+
         it("throws InvalidArgumentException, as Laravel's Arr::push does through Arr::array", () => {
             // docs/php-parity/Arr/push.json, "push requires an array at the key"
             expect(() => Arr.push([1, 2, 3], 0, 9)).toThrow(

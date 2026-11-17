@@ -398,7 +398,7 @@ function copyAlongPath(
         return root;
     }
 
-    const segments = isString(key) ? key.split(".") : [String(key)];
+    const segments = String(key).split(".");
     let cursor: Record<string, unknown> | Map<unknown, unknown> =
         root as unknown as Record<string, unknown>;
 
