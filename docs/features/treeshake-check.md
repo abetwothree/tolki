@@ -28,20 +28,27 @@ esbuild keeps identifiers because its renamer weighs the text of code it later d
 
 ## Fixtures
 
-[`fixtures.ts`](../../scripts/treeshake/fixtures.ts) builds them from each subpath's runtime exports (`Object.keys` of the staged entry) and from the [source scan](../../scripts/side-effects/scan.ts). Ids are `<check>:<specifier>[:<name>]`. A name exported by several subpaths of a package is tested once, from `"."` when it is there.
+[`fixtures.ts`](../../scripts/treeshake/fixtures.ts) builds them from each subpath's runtime exports (`Object.keys` of the staged entry) and from the [source scan](../../scripts/side-effects/scan.ts). Ids are `<check>:<specifier>[:<name>]`.
 
-| Check                      | One per                                                     | Bundlers                                     | Passes when                                                      |
-| -------------------------- | ----------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------- |
-| `bare`                     | subpath                                                     | Rollup, Rolldown, strict                     | `import "<spec>"` leaves 0 bytes of every own module             |
-| `parity`                   | exported name                                               | Rolldown, esbuild                            | esbuild keeps no own module that Rolldown drops                  |
-| `surface`                  | subpath                                                     | all five                                     | importing every name builds with no missing export               |
-| `namespace`                | subpath                                                     | Rollup, Rolldown, esbuild                    | `ns.<first name>` keeps the same own modules as the named import |
-| `drop`                     | subpath with pure names                                     | all five: esbuild `kept`, the rest `dropped` | unused calls of every pure name match the control                |
-| `drop` (`:call-site-pure`) | the same                                                    | esbuild `dropped`                            | the same calls with `/* @__PURE__ */` match the control          |
-| `keep`                     | `@sideEffects mutates` export                               | all five `kept`                              | `f(target)` on a used target differs from the control            |
-| `shape`                    | generated consumer file, with and without `:call-site-pure` | all five                                     | each bundler gives its expected outcome (below)                  |
+- **One declaration, one test.** Each runtime export is mapped to the source file that declares it: the scanned file whose `dist` module exports the identical value. A declaration exported by several subpaths is tested once, from `"."` when it is there. Two same-named declarations, such as `@tolki/lang`'s `createLang` in `lang.ts` and `vue.ts`, are each tested through the subpath that ships them.
+- **Different marks fail.** A runtime-exported name its package declares in several files with different marks is a finding of the scan (`drop:<pkg>:<name> [scan]`), naming each file.
+- **Node-only subpaths.** An entry whose `dist` imports a `node:` built-in, directly or through its own modules, runs in a Vite config and is never browser-bundled. `parity` skips it; the other checks still run.
+
+| Check                      | One per                                                     | Bundlers                                     | Passes when                                                                                |
+| -------------------------- | ----------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `bare`                     | subpath                                                     | Rollup, Rolldown, strict                     | Rollup: 0 bytes of every own module. Rolldown: the minified bundle equals an empty entry's |
+| `parity`                   | exported name, except on Node-only subpaths                 | Rolldown, esbuild                            | esbuild keeps no own module that Rolldown drops                                            |
+| `surface`                  | subpath                                                     | all five                                     | importing every name builds with no missing export                                         |
+| `namespace`                | subpath                                                     | Rollup, Rolldown, esbuild                    | `ns.<first name>` keeps the same own modules as the named import                           |
+| `drop`                     | subpath with pure names                                     | all five: esbuild `kept`, the rest `dropped` | unused calls of every pure name match the control                                          |
+| `drop` (`:call-site-pure`) | the same                                                    | esbuild `dropped`                            | the same calls with `/* @__PURE__ */` match the control                                    |
+| `keep`                     | `@sideEffects mutates` export                               | all five `kept`                              | `f(target)` on a used target differs from the control                                      |
+| `keep` (`canary`)          | one, always                                                 | all five `kept`                              | an `@tolki/enum` `from(...)` call differs from the control                                 |
+| `shape`                    | generated consumer file, with and without `:call-site-pure` | all five                                     | each bundler gives its expected outcome (below)                                            |
 
 The four shapes are the enum file (`defineEnum`, `values`), a plain `defineRoute`, and the curried `annotatePageProps()(defineRoute(...))` and `annotateRequestPayload()(defineRoute(...))`. Each entry imports only an unrelated `used` export.
+
+The canary keeps `kept` observable in every bundler whatever the packages annotate: `from` throws on bad input and is never annotated. The fixture work dir's `package.json` has no `sideEffects` key on purpose: with `false`, webpack and Rspack would drop every app-module call, and every `drop` and `shape` fixture would pass without testing anything.
 
 ## Expected outcomes
 
@@ -58,13 +65,13 @@ The `drop` call-site-pure fixture runs in esbuild only.
 
 ## Control builds
 
-`drop`, `keep` and `shape` also bundle a control: the same app module with the calls removed and the import line kept. `dropped` means the bundle is byte-identical to the control, and `kept` means it differs. esbuild stops inlining constants in a module that has an import, so a control without the import never matches.
+`drop`, `keep` and `shape` also bundle a control: the same app module with the calls removed and the import line kept. `dropped` means the bundle is byte-identical to the control, and `kept` means it differs. esbuild stops inlining constants in a module that has an import, so a control without the import never matches. Rolldown's `bare` uses the same rule against an empty entry.
 
-Per-module sizes cannot replace the control. webpack and Rspack concatenate modules and report none, and Rolldown measures before its minifier runs. A size also cannot tell a kept call from the function body a used export needs.
+Per-module sizes cannot replace the control. webpack and Rspack concatenate modules and report none, and Rolldown measures before its minifier runs. A size also cannot tell a kept call from the function body a used export needs. `runFixture` throws when a fixture that compares lacks its control or an expectation for one of its bundlers, so a check cannot pass by skipping.
 
 ## Strict mode
 
-`bare` forces every `@tolki` module side-effectful and every other module side-effect free. Any module-scope code the bundler cannot prove pure then shows up as bytes. Only Rollup and Rolldown support it. Rolldown's sizes show what its tree-shaker kept, even when its minifier removes it later.
+`bare` forces every `@tolki` module side-effectful and every other module side-effect free. Any module-scope code the bundler cannot prove pure then shows up. Only Rollup and Rolldown support it. Rollup's unminified own-module sizes give the strict view. Rolldown is judged on its final minified bundle, because its `renderedLength` counts code its minifier then removes (the lang `Translator` static block, for one).
 
 ## Failures
 
@@ -74,7 +81,7 @@ Per-module sizes cannot replace the control. webpack and Rspack concatenate modu
 
 ## Debt
 
-[`debt.json`](../../scripts/treeshake/debt.json) lists known findings as `{ id, bundler, issue, reason }`. Each entry excuses one finding with the same id and bundler. An entry that excuses nothing is stale, and stale fails, so fixed debt has to be deleted. Every entry names an issue.
+[`debt.json`](../../scripts/treeshake/debt.json) lists known findings as `{ id, bundler, issue, reason }`. Each entry excuses one finding with the same id and bundler. An entry that excuses nothing is stale, and stale fails, so fixed debt has to be deleted. Every entry names an issue. Debt never excuses a `build failed:` or `missing exports:` finding, or a scan finding.
 
 ## Running
 
@@ -91,4 +98,4 @@ CI runs it in the `build-test` job of [`test.yml`](../../.github/workflows/test.
 
 ## Wall time
 
-A full run (745 fixtures) took 25 s on an Apple M2 Max with 12 workers (`os.availableParallelism()`), against 13.9 s for `pnpm build`.
+A full run (743 fixtures) took 24.6 s on an Apple M2 Max with 12 workers (`os.availableParallelism()`), against 13.9 s for `pnpm build`.

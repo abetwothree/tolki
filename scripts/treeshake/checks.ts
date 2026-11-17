@@ -7,7 +7,8 @@ import type { CheckName, Fixture, Outcome } from "./fixtures.ts";
 
 export interface Finding {
     id: string;
-    bundler: BundlerName;
+    /** `null` for a finding of the source scan rather than of a bundle. */
+    bundler: BundlerName | null;
     check: CheckName;
     message: string;
 }
@@ -23,6 +24,8 @@ export const EXPECTATION_CHANGED =
     "expectation changed: update docs/features/treeshake-check.md and docs/vitepress/tree-shaking.md";
 
 const KEPT = "kept; expected dropped";
+const UNEXCUSABLE = /^(build failed|missing exports): /;
+const COMPARED: ReadonlySet<CheckName> = new Set(["drop", "keep", "shape"]);
 
 /** Writes a fixture's files under `dir` and returns the path of its entry. */
 function writeFiles(dir: string, files: Record<string, string>): string {
@@ -84,6 +87,10 @@ async function check(
     ];
     const result = await build(entry, bundler);
 
+    if (fixture.expect[bundler] !== undefined) {
+        return compare(fixture, bundler, result, control, workDir, build);
+    }
+
     switch (fixture.check) {
         case "bare": {
             const kept = keptModules(result).map(
@@ -92,8 +99,6 @@ async function check(
 
             return kept.length > 0 ? finding(`keeps ${kept.join(", ")}`) : [];
         }
-        case "surface":
-            return [];
         case "parity": {
             const [reference = bundler] = fixture.bundlers;
 
@@ -122,34 +127,72 @@ async function check(
                       `namespace import keeps [${namespace}]; named import keeps [${named}]`,
                   );
         }
-        case "drop":
-        case "keep":
-        case "shape": {
-            const { code } = await build(control ?? entry, bundler);
-            const outcome: Outcome = result.code === code ? "dropped" : "kept";
-            const expected = fixture.expect[bundler];
+        default:
+            // `surface` passes once the bundle builds; compared checks returned above.
+            return [];
+    }
+}
 
-            if (expected === undefined || outcome === expected) {
-                return [];
-            }
+/** Judges a fixture's bundle against its control: byte-identical is `dropped`, anything else `kept`. */
+async function compare(
+    fixture: Fixture,
+    bundler: BundlerName,
+    result: BundleResult,
+    control: string | null,
+    workDir: string,
+    build: Build,
+): Promise<Finding[]> {
+    const finding = (message: string): Finding[] => [
+        { id: fixture.id, bundler, check: fixture.check, message },
+    ];
+    const { code } = await build(control as string, bundler);
+    const outcome: Outcome = result.code === code ? "dropped" : "kept";
 
-            if (outcome === "dropped") {
-                return finding(EXPECTATION_CHANGED);
-            }
+    if (outcome === fixture.expect[bundler]) {
+        return [];
+    }
 
-            const named: Finding[] = [];
+    if (outcome === "dropped") {
+        return finding(EXPECTATION_CHANGED);
+    }
 
-            for (const part of fixture.split ?? []) {
-                named.push(
-                    ...(await runFixture(
-                        { ...part, bundlers: [bundler] },
-                        workDir,
-                    )),
-                );
-            }
+    const named: Finding[] = [];
 
-            return named.length > 0 ? named : finding(KEPT);
-        }
+    for (const part of fixture.split ?? []) {
+        named.push(
+            ...(await runFixture({ ...part, bundlers: [bundler] }, workDir)),
+        );
+    }
+
+    if (named.length > 0) {
+        return named;
+    }
+
+    return finding(
+        fixture.check === "bare"
+            ? `${KEPT} (${result.code.length} B after minify)`
+            : KEPT,
+    );
+}
+
+/** Throws when a fixture lacks the control build or an expectation its check compares against. */
+function assertComplete(fixture: Fixture): void {
+    const compared = COMPARED.has(fixture.check);
+    const needsControl =
+        compared ||
+        fixture.check === "namespace" ||
+        Object.keys(fixture.expect).length > 0;
+
+    if (needsControl && fixture.control === null) {
+        throw new Error(`${fixture.id} needs a control build`);
+    }
+
+    const missing = compared
+        ? fixture.bundlers.find((bundler) => !fixture.expect[bundler])
+        : undefined;
+
+    if (missing !== undefined) {
+        throw new Error(`${fixture.id} has no expectation for ${missing}`);
     }
 }
 
@@ -164,6 +207,8 @@ export async function runFixture(
     fixture: Fixture,
     workDir: string,
 ): Promise<Finding[]> {
+    assertComplete(fixture);
+
     const dir = mkdtempSync(
         join(workDir, `${fixture.id.replace(/[^\w.-]+/g, "-")}-`),
     );
@@ -220,12 +265,15 @@ export function applyDebt(
     const debtHit: Finding[] = [];
 
     for (const finding of findings) {
-        const index = debt.findIndex(
-            (entry, at) =>
-                !used.has(at) &&
-                entry.id === finding.id &&
-                entry.bundler === finding.bundler,
-        );
+        // A broken build or a missing export is never known debt: it would hide every check of that bundle.
+        const index = UNEXCUSABLE.test(finding.message)
+            ? -1
+            : debt.findIndex(
+                  (entry, at) =>
+                      !used.has(at) &&
+                      entry.id === finding.id &&
+                      entry.bundler === finding.bundler,
+              );
 
         if (index === -1) {
             failures.push(finding);

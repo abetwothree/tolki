@@ -17,7 +17,11 @@ import {
     runFixture,
 } from "../treeshake/checks.ts";
 import type { Fixture, SubpathExports } from "../treeshake/fixtures.ts";
-import { buildFixtures, readSubpathExports } from "../treeshake/fixtures.ts";
+import {
+    buildFixtures,
+    declarationConflicts,
+    readSubpathExports,
+} from "../treeshake/fixtures.ts";
 
 const SUBPATHS: SubpathExports[] = [
     {
@@ -41,14 +45,15 @@ const SUBPATHS: SubpathExports[] = [
     { pkg: "@tolki/b", subpath: ".", specifier: "@tolki/b", names: ["get"] },
 ];
 
-/** One scanned export of `src/x.ts`. */
+/** One scanned export, of `src/x.ts` unless a file is given. */
 function entry(
     pkg: string,
     name: string,
     kind: ExportEntry["kind"],
     category: SideEffectCategory | null = null,
+    file = "src/x.ts",
 ): ExportEntry {
-    return { pkg, file: "src/x.ts", name, line: 1, kind, category };
+    return { pkg, file, name, line: 1, kind, category };
 }
 
 const SCAN: SourceScan = {
@@ -90,9 +95,9 @@ describe("buildFixtures", () => {
             id: "bare:@tolki/a",
             check: "bare",
             files: { "entry.js": 'import "@tolki/a";\n' },
-            control: null,
+            control: { "entry.js": "" },
             bundlers: ["rollup", "rolldown"],
-            expect: {},
+            expect: { rolldown: "dropped" },
             strict: true,
         });
         expect(surface.get("surface:@tolki/a")).toEqual({
@@ -244,7 +249,10 @@ describe("buildFixtures", () => {
         const entryTarget =
             'import { target } from "./mod.js";\nconsole.log(target);\n';
 
-        expect([...keep.keys()]).toEqual(["keep:@tolki/a:pop"]);
+        expect([...keep.keys()]).toEqual([
+            "keep:@tolki/a:pop",
+            "keep:@tolki/enum:canary",
+        ]);
         expect(keep.get("keep:@tolki/a:pop")).toEqual({
             id: "keep:@tolki/a:pop",
             check: "keep",
@@ -346,6 +354,135 @@ describe("buildFixtures", () => {
     });
 });
 
+describe("shared and Node-only exports", () => {
+    const shared: SubpathExports[] = [
+        {
+            pkg: "@tolki/l",
+            subpath: ".",
+            specifier: "@tolki/l",
+            names: ["createLang"],
+            sources: { createLang: "packages/l/src/lang.ts" },
+        },
+        {
+            pkg: "@tolki/l",
+            subpath: "./vue",
+            specifier: "@tolki/l/vue",
+            names: ["createLang"],
+            sources: { createLang: "packages/l/src/vue.ts" },
+        },
+        {
+            pkg: "@tolki/l",
+            subpath: "./vite",
+            specifier: "@tolki/l/vite",
+            names: ["plugin"],
+            nodeOnly: true,
+        },
+    ];
+    const declared = (vueKind: ExportEntry["kind"]): SourceScan => ({
+        exports: [
+            entry(
+                "@tolki/l",
+                "createLang",
+                "pure",
+                null,
+                "packages/l/src/lang.ts",
+            ),
+            entry(
+                "@tolki/l",
+                "createLang",
+                vueKind,
+                vueKind === "impure" ? "state" : null,
+                "packages/l/src/vue.ts",
+            ),
+            entry("@tolki/l", "plugin", "pure", null, "packages/l/src/vite.ts"),
+        ],
+        placement: [],
+        moduleScope: [],
+    });
+    const ids = (scan: SourceScan, check: Fixture["check"]): string[] =>
+        buildFixtures(shared, scan)
+            .filter((fixture) => fixture.check === check)
+            .map(({ id }) => id);
+
+    it("tests each declaration of a shared name through the subpath that ships it", () => {
+        expect(ids(declared("pure"), "drop")).toEqual([
+            "drop:@tolki/l",
+            "drop:@tolki/l:call-site-pure",
+            "drop:@tolki/l/vue",
+            "drop:@tolki/l/vue:call-site-pure",
+            "drop:@tolki/l/vite",
+            "drop:@tolki/l/vite:call-site-pure",
+        ]);
+        expect(declarationConflicts(shared, declared("pure"))).toEqual([]);
+    });
+
+    it("reports a shared name declared with different marks", () => {
+        expect(declarationConflicts(shared, declared("impure"))).toEqual([
+            {
+                id: "drop:@tolki/l:createLang",
+                bundler: null,
+                check: "drop",
+                message:
+                    "declared with different marks: packages/l/src/lang.ts (pure), packages/l/src/vue.ts (state)",
+            },
+        ]);
+    });
+
+    it("gives an unmapped name with different marks no drop fixture", () => {
+        const unmapped = shared.map((sub) => ({ ...sub, sources: {} }));
+        const drops = buildFixtures(unmapped, declared("impure")).filter(
+            ({ check }) => check === "drop",
+        );
+
+        expect(drops.map(({ id }) => id)).toEqual([
+            "drop:@tolki/l/vite",
+            "drop:@tolki/l/vite:call-site-pure",
+        ]);
+    });
+
+    it("skips parity for Node-only subpaths", () => {
+        expect(ids(declared("pure"), "parity")).toEqual([
+            "parity:@tolki/l:createLang",
+            "parity:@tolki/l/vue:createLang",
+        ]);
+        expect(ids(declared("pure"), "surface")).toContain(
+            "surface:@tolki/l/vite",
+        );
+    });
+
+    it("adds a canary that keeps an asserting call in every bundler", () => {
+        const canary = buildFixtures([], {
+            exports: [],
+            placement: [],
+            moduleScope: [],
+        }).find(({ id }) => id === "keep:@tolki/enum:canary");
+
+        expect(canary).toEqual({
+            id: "keep:@tolki/enum:canary",
+            check: "keep",
+            files: {
+                "mod.js":
+                    'import { from } from "@tolki/enum";\nfrom({ A: "a", _cases: ["A"] }, "b");\nexport const used = 1;\n',
+                "entry.js": ENTRY_USED,
+            },
+            control: {
+                "mod.js":
+                    'import { from } from "@tolki/enum";\nexport const used = 1;\n',
+                "entry.js": ENTRY_USED,
+            },
+            bundlers: BUNDLERS,
+            expect: {
+                rollup: "kept",
+                rolldown: "kept",
+                esbuild: "kept",
+                webpack: "kept",
+                rspack: "kept",
+            },
+            strict: false,
+        });
+    });
+});
+
 describe("applyDebt", () => {
     it("splits debt into failures, debt hits and stale entries", () => {
         const finding = (id: string, bundler: Finding["bundler"]): Finding => ({
@@ -381,6 +518,40 @@ describe("applyDebt", () => {
             stale: [entries[1], entries[2], entries[3]],
         });
     });
+
+    it("never excuses a build failure, a missing export or a scan finding", () => {
+        const findings: Finding[] = [
+            {
+                id: "surface:a",
+                bundler: "webpack",
+                check: "surface",
+                message: "build failed: Module not found",
+            },
+            {
+                id: "surface:a",
+                bundler: "rollup",
+                check: "surface",
+                message: "missing exports: nope",
+            },
+            {
+                id: "drop:a:f",
+                bundler: null,
+                check: "drop",
+                message:
+                    "declared with different marks: a.ts (pure), b.ts (state)",
+            },
+        ];
+        const entries: DebtEntry[] = [
+            { id: "surface:a", bundler: "webpack", issue: "#1", reason: "r" },
+            { id: "surface:a", bundler: "rollup", issue: "#1", reason: "r" },
+        ];
+
+        expect(applyDebt(findings, entries)).toEqual({
+            failures: findings,
+            debtHit: [],
+            stale: entries,
+        });
+    });
 });
 
 /** Writes a file, creating its directories. */
@@ -404,23 +575,55 @@ describe("runFixture", () => {
                 name: "@tolki/fx",
                 type: "module",
                 sideEffects: false,
-                exports: { ".": "./index.js", "./setup": "./setup.js" },
+                exports: {
+                    ".": "./dist/index.js",
+                    "./setup": "./dist/setup.js",
+                    "./template": "./dist/template.js",
+                    "./vue": "./dist/vue.js",
+                    "./vite": "./dist/vite.js",
+                },
             }),
         );
         put(
             app,
-            "node_modules/@tolki/fx/index.js",
+            "node_modules/@tolki/fx/dist/index.js",
             [
                 "/* @__NO_SIDE_EFFECTS__ */",
                 "export function pure(value) { return { value }; }",
                 "export function plain(value) { globalThis.seen = value; return value; }",
+                'export { make } from "./lang.js";',
                 "",
             ].join("\n"),
         );
         put(
             app,
-            "node_modules/@tolki/fx/setup.js",
+            "node_modules/@tolki/fx/dist/lang.js",
+            "export function make() { return 1; }\n",
+        );
+        put(
+            app,
+            "node_modules/@tolki/fx/dist/vue.js",
+            "export function make() { return 2; }\n",
+        );
+        put(
+            app,
+            "node_modules/@tolki/fx/dist/vite.js",
+            'export { run } from "./runner.js";\n',
+        );
+        put(
+            app,
+            "node_modules/@tolki/fx/dist/runner.js",
+            'import { exec } from "node:child_process";\nexport function run() { return exec; }\n',
+        );
+        put(
+            app,
+            "node_modules/@tolki/fx/dist/setup.js",
             'import { plain } from "./index.js";\nplain(1);\nexport const ready = true;\n',
+        );
+        put(
+            app,
+            "node_modules/@tolki/fx/dist/template.js",
+            'var e = "virtual:fx", t = `\\0${e}`;\nexport { t as RESOLVED, e as ID };\n',
         );
     });
 
@@ -505,6 +708,42 @@ describe("runFixture", () => {
             "rolldown",
         ]);
         expect(findings[0]?.message).toMatch(/^keeps @tolki\/fx\//);
+        expect(findings[1]?.message).toMatch(/^kept; expected dropped/);
+    });
+
+    it("judges a Rolldown bare import by its minified output", async () => {
+        const bare = buildFixtures(
+            [
+                {
+                    pkg: "@tolki/fx",
+                    subpath: "./template",
+                    specifier: "@tolki/fx/template",
+                    names: ["RESOLVED"],
+                },
+            ],
+            { exports: [], placement: [], moduleScope: [] },
+        ).find(({ id }) => id === "bare:@tolki/fx/template") as Fixture;
+
+        expect(
+            await runFixture({ ...bare, bundlers: ["rolldown"] }, app),
+        ).toEqual([]);
+    });
+
+    it("throws when a fixture lacks its control or an expectation", async () => {
+        const keep = buildFixtures([], {
+            exports: [],
+            placement: [],
+            moduleScope: [],
+        }).find(({ id }) => id === "keep:@tolki/enum:canary") as Fixture;
+
+        await expect(
+            runFixture({ ...keep, control: null }, app),
+        ).rejects.toThrow("keep:@tolki/enum:canary needs a control build");
+        await expect(
+            runFixture({ ...keep, expect: { rollup: "kept" } }, app),
+        ).rejects.toThrow(
+            "keep:@tolki/enum:canary has no expectation for rolldown",
+        );
     });
 
     it("reports a missing export on the surface", async () => {
@@ -535,27 +774,80 @@ describe("runFixture", () => {
         ]);
     });
 
-    it("reads each staged subpath's export names", async () => {
-        const subpaths = await readSubpathExports([
-            {
-                name: "@tolki/fx",
-                root: join(app, "node_modules/@tolki/fx"),
-                subpaths: [".", "./setup"],
-            },
-        ]);
+    it("reads each staged subpath's names, declaring files and Node-only flag", async () => {
+        const scan: SourceScan = {
+            exports: [
+                entry(
+                    "@tolki/fx",
+                    "make",
+                    "pure",
+                    null,
+                    "packages/fx/src/lang.ts",
+                ),
+                entry(
+                    "@tolki/fx",
+                    "make",
+                    "pure",
+                    null,
+                    "packages/fx/src/vue.ts",
+                ),
+                entry(
+                    "@tolki/fx",
+                    "pure",
+                    "pure",
+                    null,
+                    "packages/fx/src/index.ts",
+                ),
+            ],
+            placement: [],
+            moduleScope: [],
+        };
+        const subpaths = await readSubpathExports(
+            [
+                {
+                    name: "@tolki/fx",
+                    root: join(app, "node_modules/@tolki/fx"),
+                    subpaths: [".", "./setup", "./vue", "./vite"],
+                },
+            ],
+            scan,
+        );
 
         expect(subpaths).toEqual([
             {
                 pkg: "@tolki/fx",
                 subpath: ".",
                 specifier: "@tolki/fx",
-                names: ["plain", "pure"],
+                names: ["make", "plain", "pure"],
+                sources: {
+                    make: "packages/fx/src/lang.ts",
+                    pure: "packages/fx/src/index.ts",
+                },
+                nodeOnly: false,
             },
             {
                 pkg: "@tolki/fx",
                 subpath: "./setup",
                 specifier: "@tolki/fx/setup",
                 names: ["ready"],
+                sources: {},
+                nodeOnly: false,
+            },
+            {
+                pkg: "@tolki/fx",
+                subpath: "./vue",
+                specifier: "@tolki/fx/vue",
+                names: ["make"],
+                sources: { make: "packages/fx/src/vue.ts" },
+                nodeOnly: false,
+            },
+            {
+                pkg: "@tolki/fx",
+                subpath: "./vite",
+                specifier: "@tolki/fx/vite",
+                names: ["run"],
+                sources: {},
+                nodeOnly: true,
             },
         ]);
     });

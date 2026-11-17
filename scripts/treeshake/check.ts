@@ -19,7 +19,11 @@ import { BUNDLERS } from "./bundlers.ts";
 import type { DebtEntry, Finding } from "./checks.ts";
 import { applyDebt, runFixture } from "./checks.ts";
 import type { CheckName, Fixture } from "./fixtures.ts";
-import { buildFixtures, readSubpathExports } from "./fixtures.ts";
+import {
+    buildFixtures,
+    declarationConflicts,
+    readSubpathExports,
+} from "./fixtures.ts";
 import { stagePackages } from "./stage.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -91,9 +95,15 @@ async function runAll(
     return results.flat();
 }
 
-/** The `id [bundler]` label of a finding or debt entry. */
-function label({ id, bundler }: { id: string; bundler: string }): string {
-    return `${id} [${bundler}]`;
+/** The `id [bundler]` label of a finding or debt entry; a source-scan finding shows `[scan]`. */
+function label({
+    id,
+    bundler,
+}: {
+    id: string;
+    bundler: string | null;
+}): string {
+    return `${id} [${bundler ?? "scan"}]`;
 }
 
 interface Report {
@@ -218,20 +228,19 @@ async function main(argv: string[]): Promise<number> {
     const workDir = mkdtempSync(join(tmpdir(), "treeshake-check-"));
 
     try {
+        // No `sideEffects`: `false` makes webpack and Rspack drop every app-module call, so drops pass vacuously.
         writeFileSync(
             join(workDir, "package.json"),
             JSON.stringify({ private: true, type: "module" }),
         );
 
         const staged = stagePackages(ROOT, workDir);
-        const fixtures = buildFixtures(
-            await readSubpathExports(staged),
-            scanPublishedSources(ROOT),
-        ).filter(
-            ({ check, id }) =>
-                only.includes(check) &&
-                (values.filter === undefined || id.includes(values.filter)),
-        );
+        const scan = scanPublishedSources(ROOT);
+        const subpaths = await readSubpathExports(staged, scan);
+        const selected = ({ check, id }: { check: CheckName; id: string }) =>
+            only.includes(check) &&
+            (values.filter === undefined || id.includes(values.filter));
+        const fixtures = buildFixtures(subpaths, scan).filter(selected);
         const filtered =
             values.check !== undefined || values.filter !== undefined;
         const ran = new Set(
@@ -251,7 +260,10 @@ async function main(argv: string[]): Promise<number> {
         const order = [...fixtures].sort(
             (a, b) => b.bundlers.length - a.bundlers.length,
         );
-        const findings = await runAll(order, workDir, availableParallelism());
+        const findings = [
+            ...declarationConflicts(subpaths, scan).filter(selected),
+            ...(await runAll(order, workDir, availableParallelism())),
+        ];
         const report: Report = {
             fixtures,
             ...applyDebt(findings, debt),

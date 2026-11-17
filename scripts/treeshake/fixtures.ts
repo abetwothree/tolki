@@ -1,10 +1,13 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import type { SourceScan } from "../side-effects/scan.ts";
+import ts from "typescript";
+
+import type { ExportEntry, SourceScan } from "../side-effects/scan.ts";
 import type { BundlerName } from "./bundlers.ts";
 import { BUNDLERS } from "./bundlers.ts";
+import type { Finding } from "./checks.ts";
 import type { PackageJson, StagedPackage } from "./stage.ts";
 
 export type CheckName =
@@ -35,6 +38,10 @@ export interface SubpathExports {
     subpath: string;
     specifier: string;
     names: string[];
+    /** The source file (as the scan names it) that declares each name the package declares itself. */
+    sources?: Record<string, string>;
+    /** Whether the entry imports a `node:` built-in, so it only ever runs in Node. */
+    nodeOnly?: boolean;
 }
 
 type Expectations = Partial<Record<BundlerName, Outcome>>;
@@ -56,6 +63,8 @@ const DROPPED_BUT_ESBUILD: Expectations = {
     esbuild: "kept",
 };
 const CURRIED: Expectations = { ...all("kept"), rollup: "dropped" };
+
+const CANARY_IMPORT = 'import { from } from "@tolki/enum";\n';
 
 const ENUM_IMPORT = 'import { defineEnum, values } from "@tolki/ts";';
 const ROUTE_IMPORT =
@@ -141,22 +150,98 @@ function exportsBySubpath(manifest: PackageJson): Record<string, unknown> {
         : { ".": field };
 }
 
+/** Whether a module, or a module it imports from its own package, imports a `node:` built-in. */
+function importsNodeBuiltin(file: string, seen = new Set<string>()): boolean {
+    if (seen.has(file) || !existsSync(file)) {
+        return false;
+    }
+
+    seen.add(file);
+
+    const specifiers = ts
+        .preProcessFile(readFileSync(file, "utf8"), true, true)
+        .importedFiles.map(({ fileName }) => fileName);
+
+    return specifiers.some(
+        (specifier) =>
+            specifier.startsWith("node:") ||
+            (specifier.startsWith(".") &&
+                importsNodeBuiltin(resolve(dirname(file), specifier), seen)),
+    );
+}
+
+/** The staged `dist` module built from a scanned `src` file, one entry per source file as `scripts/entries.ts` builds. */
+function distModule(root: string, file: string): string {
+    const relative = file.slice(file.indexOf("/src/") + "/src/".length);
+
+    return join(root, "dist", relative.replace(/\.ts$/, ".js").toLowerCase());
+}
+
+/**
+ * Maps each name of a subpath to the source file whose declaration the subpath ships.
+ *
+ * @param root - The staged package root.
+ * @param module - The subpath's imported module.
+ * @param declarations - The package's own declaring files per name.
+ * @returns The declaring file per name; a name the package does not declare, or re-exports from elsewhere, is absent.
+ */
+async function declaringFiles(
+    root: string,
+    module: Record<string, unknown>,
+    declarations: Map<string, string[]>,
+): Promise<Record<string, string>> {
+    const sources: Record<string, string> = {};
+
+    for (const name of Object.keys(module)) {
+        for (const file of declarations.get(name) ?? []) {
+            const path = distModule(root, file);
+
+            if (!existsSync(path)) {
+                continue;
+            }
+
+            const declaring = (await import(
+                pathToFileURL(path).href
+            )) as Record<string, unknown>;
+
+            if (declaring[name] === module[name]) {
+                sources[name] = file;
+                break;
+            }
+        }
+    }
+
+    return sources;
+}
+
 /**
  * Reads the runtime export names of every staged subpath.
  *
  * @param staged - The packages `stagePackages` wrote.
+ * @param scan - The source scan; when given, each subpath also maps its names to their declaring files.
  * @returns One entry per subpath, names as `Object.keys` of the imported module.
  */
 export async function readSubpathExports(
     staged: StagedPackage[],
+    scan?: SourceScan,
 ): Promise<SubpathExports[]> {
     const pending = staged.flatMap((pkg) => {
         const manifest = JSON.parse(
             readFileSync(join(pkg.root, "package.json"), "utf8"),
         ) as PackageJson;
         const targets = exportsBySubpath(manifest);
+        const declarations = new Map<string, string[]>();
 
-        return pkg.subpaths.map(async (subpath) => {
+        for (const { pkg: owner, name, file } of scan?.exports ?? []) {
+            if (owner === pkg.name) {
+                declarations.set(name, [
+                    ...(declarations.get(name) ?? []),
+                    file,
+                ]);
+            }
+        }
+
+        return pkg.subpaths.map(async (subpath): Promise<SubpathExports> => {
             const target = importTarget(targets[subpath]);
 
             if (target === null) {
@@ -165,11 +250,12 @@ export async function readSubpathExports(
                 );
             }
 
-            const module = (await import(
-                pathToFileURL(join(pkg.root, target)).href
-            )) as Record<string, unknown>;
-
-            return {
+            const entry = join(pkg.root, target);
+            const module = (await import(pathToFileURL(entry).href)) as Record<
+                string,
+                unknown
+            >;
+            const read: SubpathExports = {
                 pkg: pkg.name,
                 subpath,
                 specifier:
@@ -178,6 +264,18 @@ export async function readSubpathExports(
                         : `${pkg.name}/${subpath.slice(2)}`,
                 names: Object.keys(module),
             };
+
+            return scan === undefined
+                ? read
+                : {
+                      ...read,
+                      sources: await declaringFiles(
+                          pkg.root,
+                          module,
+                          declarations,
+                      ),
+                      nodeOnly: importsNodeBuiltin(entry),
+                  };
         });
     });
 
@@ -203,7 +301,12 @@ function logEntry(names: string[], specifier: string): string {
     return `${importLine(names, specifier)}console.log(${names.map(local).join(", ")});\n`;
 }
 
-/** Maps each `pkg` and name to the subpath its fixtures import it from: `"."` when exported there, else the first. */
+/** Identifies the declaration a subpath ships for a name: its file when known, else just the package and name. */
+function declarationKey(sub: SubpathExports, name: string): string {
+    return `${sub.pkg} ${sub.sources?.[name] ?? ""} ${name}`;
+}
+
+/** Maps each declaration to the subpath its fixtures import it from: `"."` when exported there, else the first. */
 function homes(subpaths: SubpathExports[]): Map<string, SubpathExports> {
     const home = new Map<string, SubpathExports>();
     const rootFirst = [
@@ -213,7 +316,7 @@ function homes(subpaths: SubpathExports[]): Map<string, SubpathExports> {
 
     for (const sub of rootFirst) {
         for (const name of sub.names) {
-            const key = `${sub.pkg} ${name}`;
+            const key = declarationKey(sub, name);
 
             if (!home.has(key)) {
                 home.set(key, sub);
@@ -222,6 +325,61 @@ function homes(subpaths: SubpathExports[]): Map<string, SubpathExports> {
     }
 
     return home;
+}
+
+/** The mark a fixture acts on: `pure`, `mutates`, or the export's kind otherwise. */
+function mark({ kind, category }: ExportEntry): string {
+    return category === "mutates" ? "mutates" : kind;
+}
+
+/** Groups the scanned declarations by package and name. */
+function declarationsByName(scan: SourceScan): Map<string, ExportEntry[]> {
+    const grouped = new Map<string, ExportEntry[]>();
+
+    for (const entry of scan.exports) {
+        const key = `${entry.pkg} ${entry.name}`;
+
+        grouped.set(key, [...(grouped.get(key) ?? []), entry]);
+    }
+
+    return grouped;
+}
+
+/**
+ * Reports each runtime-exported name its package declares in several files with different marks.
+ *
+ * @param subpaths - Each published subpath and its runtime export names.
+ * @param scan - The source scan.
+ * @returns One finding per such name, naming each file and its mark; debt never excuses it.
+ */
+export function declarationConflicts(
+    subpaths: SubpathExports[],
+    scan: SourceScan,
+): Finding[] {
+    const exported = new Set(
+        subpaths.flatMap((sub) =>
+            sub.names.map((name) => `${sub.pkg} ${name}`),
+        ),
+    );
+
+    return [...declarationsByName(scan).entries()]
+        .filter(
+            ([key, entries]) =>
+                exported.has(key) && new Set(entries.map(mark)).size > 1,
+        )
+        .map(([, entries]): Finding => {
+            const { pkg, name } = entries[0] as ExportEntry;
+            const files = entries.map(
+                (entry) => `${entry.file} (${entry.category ?? entry.kind})`,
+            );
+
+            return {
+                id: `drop:${pkg}:${name}`,
+                bundler: null,
+                check: "drop",
+                message: `declared with different marks: ${files.join(", ")}`,
+            };
+        });
 }
 
 /** A `drop` fixture: unused calls of `names` in an app module, against the module without the calls. */
@@ -284,6 +442,20 @@ function keepFixture(sub: SubpathExports, name: string): Fixture {
     };
 }
 
+/** A call every bundler keeps, so `kept` stays observable in each one whatever the packages annotate. */
+const CANARY: Fixture = {
+    id: "keep:@tolki/enum:canary",
+    check: "keep",
+    files: {
+        "mod.js": `${CANARY_IMPORT}from({ A: "a", _cases: ["A"] }, "b");\n${USED}`,
+        "entry.js": ENTRY_USED,
+    },
+    control: { "mod.js": `${CANARY_IMPORT}${USED}`, "entry.js": ENTRY_USED },
+    bundlers: BUNDLERS,
+    expect: all("kept"),
+    strict: false,
+};
+
 /** A `shape` fixture: one generated consumer file, against its import line alone. */
 function shapeFixture(shape: Shape, pure: boolean): Fixture {
     const lines = [shape.head, ...shape.exports(pure ? PURE : "")];
@@ -314,23 +486,34 @@ export function buildFixtures(
     scan: SourceScan,
 ): Fixture[] {
     const home = homes(subpaths);
-    const kinds = new Map<string, string>();
+    const marks = new Map<string, string>();
 
-    for (const entry of scan.exports) {
-        const key = `${entry.pkg} ${entry.name}`;
-        const kind = entry.category === "mutates" ? "mutates" : entry.kind;
-        const seen = kinds.get(key);
+    for (const [key, entries] of declarationsByName(scan)) {
+        const found = new Set(entries.map(mark));
 
-        // A name that two source files export with different marks cannot be pinned to either.
-        kinds.set(key, seen === undefined || seen === kind ? kind : "mixed");
+        // Without its declaring file, a name with different marks cannot be pinned to either.
+        marks.set(key, found.size === 1 ? [...found].join("") : "mixed");
+
+        for (const entry of entries) {
+            marks.set(`${entry.pkg} ${entry.file} ${entry.name}`, mark(entry));
+        }
     }
 
-    const homed = (sub: SubpathExports, kind: string): string[] =>
-        sub.names.filter((name) => {
-            const key = `${sub.pkg} ${name}`;
+    const markOf = (sub: SubpathExports, name: string): string | undefined => {
+        const file = sub.sources?.[name];
 
-            return home.get(key) === sub && kinds.get(key) === kind;
-        });
+        return marks.get(
+            file === undefined
+                ? `${sub.pkg} ${name}`
+                : `${sub.pkg} ${file} ${name}`,
+        );
+    };
+    const homed = (sub: SubpathExports, kind: string): string[] =>
+        sub.names.filter(
+            (name) =>
+                home.get(declarationKey(sub, name)) === sub &&
+                markOf(sub, name) === kind,
+        );
     const named = subpaths.filter(({ names }) => names.length > 0);
 
     return [
@@ -339,15 +522,21 @@ export function buildFixtures(
                 id: `bare:${sub.specifier}`,
                 check: "bare",
                 files: { "entry.js": `import "${sub.specifier}";\n` },
-                control: null,
+                // Rolldown measures module sizes before its minifier, so its final bundle is judged instead.
+                control: { "entry.js": "" },
                 bundlers: ["rollup", "rolldown"],
-                expect: {},
+                expect: { rolldown: "dropped" },
                 strict: true,
             }),
         ),
+        // A Node-only entry runs in a Vite config and is never bundled for the browser.
         ...subpaths.flatMap((sub) =>
             sub.names
-                .filter((name) => home.get(`${sub.pkg} ${name}`) === sub)
+                .filter(
+                    (name) =>
+                        !sub.nodeOnly &&
+                        home.get(declarationKey(sub, name)) === sub,
+                )
                 .map(
                     (name): Fixture => ({
                         id: `parity:${sub.specifier}:${name}`,
@@ -399,6 +588,7 @@ export function buildFixtures(
         ...subpaths.flatMap((sub) =>
             homed(sub, "mutates").map((name) => keepFixture(sub, name)),
         ),
+        CANARY,
         ...SHAPES.flatMap((shape) => [
             shapeFixture(shape, false),
             shapeFixture(shape, true),
