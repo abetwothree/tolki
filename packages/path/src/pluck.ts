@@ -27,6 +27,7 @@ const absent = /* @__PURE__ */ Symbol("absent");
  * `null` before this runs for anything that isn't an array or an object.
  * @returns The values to recurse into.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function getPluckWildcardValues(
     target:
         | unknown[]
@@ -52,6 +53,7 @@ export function getPluckWildcardValues(
  * @param segments - The already-split path segments, each read as one literal key.
  * @returns The resolved value, an array of values for a `*` segment, or null.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function resolvePluckPath(
     item: unknown,
     segments: readonly string[],
@@ -91,6 +93,7 @@ export function resolvePluckPath(
  * @param segments - The already-split path segments; none at all is no path, which `data_has` answers false for.
  * @returns True when every segment names a key the value before it holds.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function hasPluckPath(
     item: unknown,
     segments: readonly string[],
@@ -119,6 +122,7 @@ export function hasPluckPath(
  * @param segment - The key, read as one literal segment.
  * @returns `[true, value]` when the target holds the key, else `[false, undefined]`.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function readPluckKey(
     target: unknown,
     segment: string,
@@ -139,6 +143,7 @@ export function readPluckKey(
  * @param path - The path to split.
  * @returns The path segments.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function explodePluckPath(
     path: string | readonly string[] | null,
 ): string[] {
@@ -199,6 +204,7 @@ function readSegment(target: unknown, segment: string): unknown {
  * @param value - The value to test.
  * @returns True for an object other than a plain one with both methods; a plain object is data.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isArrayAccess(value: unknown): value is {
     offsetExists(offset: string): unknown;
     offsetGet(offset: string): unknown;
@@ -217,6 +223,7 @@ export function isArrayAccess(value: unknown): value is {
  * @param value - The value to test.
  * @returns True for an object other than a plain one with an `all` method; a plain object is data.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isEnumerable(value: unknown): value is { all(): unknown } {
     return isObject(value) && !isPlainObject(value) && isFunction(value["all"]);
 }

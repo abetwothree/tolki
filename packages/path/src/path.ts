@@ -57,6 +57,7 @@ import {
  * parseSegments("0.01"); -> [0, "01"] (a non-canonical index is a string key)
  * parseSegments(null); -> []
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function parseSegments(key: PathKey): (number | string)[] | null {
     if (isNull(key) || isUndefined(key)) {
         return [];
@@ -114,6 +115,7 @@ export function parseSegments(key: PathKey): (number | string)[] | null {
  * hasPath({items: ['a', 'b']}, "items.1"); -> true
  * hasPath([{0: 'x'}], "0.0"); -> true
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
     root: TValue[] | Record<TKey, TValue>,
     key: PathKey,
@@ -190,6 +192,7 @@ export function hasPath<TValue, TKey extends PropertyKey = PropertyKey>(
  * getRaw({items: ['a', 'b']}, "items.1"); -> { found: true, value: 'b' }
  * getRaw([{0: 'x'}], "0.0"); -> { found: true, value: 'x' }
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function getRaw<TValue, TKey extends PropertyKey = PropertyKey>(
     root: TValue[] | Record<TKey, TValue>,
     key: PathKey,
@@ -258,6 +261,7 @@ export function getRaw<TValue, TKey extends PropertyKey = PropertyKey>(
  * forgetKeys(['x', 'y', 'z'], 1); -> ['x', 'z']
  * forgetKeys([{name: 'John', age: 30}], '0.age'); -> [{name: 'John'}]
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function forgetKeys<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | ArrayItems<TValue>,
     keys: PathKeys,
@@ -307,6 +311,7 @@ export function forgetKeys<TValue, TKey extends PropertyKey = PropertyKey>(
  * forgetKeysObject({a: {c: 5}}, 'a.b.c'); -> {a: {c: 5}}
  * forgetKeysObject({products: {desk: ['a', 'b']}}, 'products.desk.0'); -> {products: {desk: ['b']}}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function forgetKeysObject<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -485,6 +490,7 @@ export function forgetKeysObject<
  * forgetKeysArray(['a', 'b', 'c'], [0, 2]); -> ['b']
  * forgetKeysArray([{a: 1, b: 2}, {a: 3}], ['0.a', '1.a']); -> [{b: 2}, {}]
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function forgetKeysArray<TValue>(
     data: ArrayItems<TValue>,
     keys: PathKeys,
@@ -619,6 +625,7 @@ export function forgetKeysArray<TValue>(
  * setImmutable([['old']], "0.0", 'new'); -> [['new']]
  * setImmutable([], 0, 'first'); -> ['first']
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function setImmutable<TValue>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -720,6 +727,7 @@ export function setImmutable<TValue>(
  * Push an item into an array using "dot" notation, walking lists, plain objects and Maps and replacing anything else
  * along the path, as Arr::set does.
  *
+ * @sideEffects mutates - Pushes onto the given array and writes missing containers into it.
  * @param data - The array to push values into.
  * @param key - The path where to push values (number, string, null, or undefined).
  * @param values - The values to push.
@@ -906,6 +914,7 @@ export function pushWithPath<TValue>(
  * dotFlatten({a: {b: 1}, c: [2, 3]}); -> {'a.b': 1, 'c.0': 2, 'c.1': 3}
  * dotFlatten(['x', {y: 'z'}], 'prefix'); -> {prefix0: 'x', 'prefix1.y': 'z'}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function dotFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | ArrayItems<TValue> | unknown,
     prepend: string = "",
@@ -945,6 +954,7 @@ export function dotFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
  * dotFlattenObject({a: {b: {c: 1}}}); -> {'a.b.c': 1}
  * dotFlattenObject({user: {name: 'John'}}, 'data'); -> {'datauser.name': 'John'}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function dotFlattenObject<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -1013,6 +1023,7 @@ export function dotFlattenObject<
  * dotFlattenArray(['a', ['b', 'c']]); -> { '0': 'a', '1.0': 'b', '1.1': 'c' }
  * dotFlattenArray([['x']], "prefix"); -> { 'prefix0.0': 'x' }
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function dotFlattenArray<TValue>(
     data: ArrayItems<TValue> | unknown,
     prepend: string = "",
@@ -1087,6 +1098,7 @@ export function undotExpand<TMap>(
 export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue>,
 ): TValue[] | Record<TKey, TValue>;
+/* @__NO_SIDE_EFFECTS__ */
 export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue>,
 ): TValue[] | Record<TKey, TValue> {
@@ -1171,6 +1183,7 @@ export function undotExpandObject<
     TValue,
     TKey extends PropertyKey = PropertyKey,
 >(map: Record<TKey, TValue>): Record<TKey, TValue>;
+/* @__NO_SIDE_EFFECTS__ */
 export function undotExpandObject<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -1216,6 +1229,7 @@ export const MAX_UNDOT_INDEX = 2 ** 24 - 2;
  * @param segment - The path segment to check.
  * @returns True if `segment` is a safe, canonical array index.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isCanonicalUndotIndex(segment: string): boolean {
     return isIntegerLikeKey(segment) && Number(segment) <= MAX_UNDOT_INDEX;
 }
@@ -1243,6 +1257,7 @@ export function undotExpandArray<
     TValue,
     TKey extends PropertyKey = PropertyKey,
 >(map: Record<TKey, TValue>): TValue[];
+/* @__NO_SIDE_EFFECTS__ */
 export function undotExpandArray<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -1321,6 +1336,7 @@ export function undotExpandArray<
  * Path not found
  * getNestedValue([{items: ['x']}], '0.items.5'); -> undefined
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function getNestedValue<TReturn>(
     obj: unknown,
     path: PropertyKey,
@@ -1394,6 +1410,7 @@ export function getNestedValue<TReturn>(
  * getMixedValue(['a', 'b'], 1); -> 'b'
  * getMixedValue([], '0', 'default'); -> 'default'
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function getMixedValue<TValue, TDefault = null>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -1477,6 +1494,7 @@ function isWritableContainer(value: unknown): boolean {
  * Set a value in an array using mixed array/object dot notation (mutable version).
  * Supports both numeric array indices and object property names in paths.
  *
+ * @sideEffects mutates - Writes into the given array and the containers along the path.
  * @param The root array to modify.
  * @param key - The path where to set the value.
  * @param value - The value to set.
@@ -1644,6 +1662,7 @@ export function setMixed<TValue>(
  * Push values to an array at the specified mixed path.
  * Supports both numeric array indices and object property names in paths.
  *
+ * @sideEffects mutates - Pushes onto the given array and the containers along the path.
  * @param data - The data to push values into.
  * @param key - The path where to push (supports mixed array/object paths).
  * @param values - The values to push.
@@ -1768,6 +1787,7 @@ export function pushMixed<TValue>(
  * setMixedImmutable([{ name: "John" }], "0.age", 30); -> [{ name: "John", age: 30 }]
  * setMixedImmutable([], "user.name", "John"); -> [{ user: { name: "John" } }]
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function setMixedImmutable<TValue>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -1841,6 +1861,7 @@ export function setMixedImmutable<TValue>(
  *
  * hasMixed([{ name: "John" }], "0.name"); -> true
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function hasMixed(data: unknown, key: PathKey): boolean {
     if (isNull(key) || isUndefined(key)) {
         // Check if data exists and has accessible values
@@ -1907,6 +1928,7 @@ export function hasMixed(data: unknown, key: PathKey): boolean {
  * @param defaultValue - The default value if the key is not found.
  * @returns The value or the default value.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function getObjectValue<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -1963,6 +1985,7 @@ export function getObjectValue<
  * @param value - The value to set.
  * @returns A new object with the value set.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
     obj: Record<TKey, TValue>,
     key: PathKey | null,
@@ -2047,6 +2070,7 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param key - The key or dot-notated path.
  * @returns True if the key exists, false otherwise.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function hasObjectKey<TValue, TKey extends PropertyKey = PropertyKey>(
     obj: Record<TKey, TValue> | unknown,
     key: PathKey,

@@ -160,6 +160,7 @@ type VisitedPairs = Map<object, Set<object>>;
  * compareValues(0, ""); -> 1
  * compareValues([1], [1, 2]); -> -1
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function compareValues(a: unknown, b: unknown): number {
     return comparePhpValues(a, b, undefined);
 }
@@ -329,6 +330,7 @@ function comparePhpEntries(
  * looseEqual('1e1', '10'); -> true
  * looseEqual(['a'], ['a']); -> true
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function looseEqual(a: unknown, b: unknown): boolean {
     if (a === b) {
         return true;
@@ -553,6 +555,7 @@ function phpScalarToString(value: unknown): string {
  * strictEqual({a: 1}, {a: 1}); -> true (same object content)
  * strictEqual({a: 1, b: 2}, {b: 2, a: 1}); -> false (same pairs, another order)
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function strictEqual(a: unknown, b: unknown): boolean {
     // Use JavaScript's strict equality first (handles primitives and same reference)
     if (a === b) {
@@ -653,6 +656,7 @@ export function strictEqual(a: unknown, b: unknown): boolean {
  * operatorMatch(1, '>', null); -> true (PHP casts null to false and 1 to true)
  * operatorMatch(1, 'nonsense', '1'); -> true (unknown operators compare loosely)
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function operatorMatch(
     retrieved: unknown,
     operator: string,

@@ -28,6 +28,7 @@ export type SortValueResolver = (item: unknown, key: PathKey) => unknown;
  * @param resolve - Reads a descriptor's key off an item.
  * @returns A function building the comparator one sort descriptor implies.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function createSortSpecComparator(resolve: SortValueResolver) {
     return function sortSpecComparator<TValue>(
         spec: SortSpec<TValue>,
@@ -93,6 +94,7 @@ function isComparator<TValue>(
  * [3, 1, 2].sort(phpSortComparator((a, b) => a > b)); -> [1, 2, 3]
  * [3, 1, 2].sort(phpSortComparator((a, b) => (a - b) / 10)); -> [3, 1, 2]
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function phpSortComparator<TValue>(
     compare: (a: TValue, b: TValue) => unknown,
 ): (a: TValue, b: TValue) => number {
