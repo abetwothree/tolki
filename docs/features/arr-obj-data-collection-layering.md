@@ -45,7 +45,7 @@ An intersection can only widen what a call accepts. It cannot make `dataX` rejec
 
 ### The build transform
 
-Bundlers read `/* @__NO_SIDE_EFFECTS__ */` off a function declaration, and webpack and Rspack lose it through a `const` alias. The Vite plugin in [scripts/build/alias-exports.ts](../../scripts/build/alias-exports.ts), used by `packages/data/vite.config.ts`, rewrites each `export const dataX = dataXImpl as …` to `export { dataXImpl as dataX }`. The dist then exports the annotated declaration, while the `.d.ts`, emitted from the source, keeps the alias's type.
+Bundlers read `/* @__NO_SIDE_EFFECTS__ */` off a function declaration. Built without the transform, data's dist exports each helper through a `var` alias, and Rolldown, webpack and Rspack keep every unused call through it, where Rollup drops them. The Vite plugin in [scripts/build/alias-exports.ts](../../scripts/build/alias-exports.ts), used by `packages/data/vite.config.ts`, rewrites each `export const dataX = dataXImpl as …` to `export { dataXImpl as dataX }`. The dist then exports the annotated declaration, while the `.d.ts`, emitted from the source, keeps the alias's type. It fails the build when the module uses an alias's own name, which `export { … }` leaves unbound.
 
 `dispatch(arrFn, objFn)` builds the same forwarder in one call. Only the type sweeps use it.
 
