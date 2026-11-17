@@ -381,7 +381,7 @@ A backed enum's `->value` publishes its `{Name}Type`, and its `->name` publishes
 
 A case you write out can send only its own value, so it publishes that value: `PostStatus::Published->value` publishes `1`, and `PostStatus::Published->name` publishes `'Published'`. A ternary between two cases publishes both values. Beside a read of the same enum, a case's value folds into the alias: `$draft ? PostStatus::Draft->value : $this->status->value` publishes `PostStatusType`. `PostStatus::from($value)->value` publishes `PostStatusType`, and after `PostStatus::tryFrom()`, `?->value` publishes `PostStatusType | null`. A method you call on a case publishes its return type.
 
-A `->value` or `->name` read off a method you call on `$this`, `self`, `static` or `parent` publishes the cases that method returns, when it doesn't declare the enum as its return type. When `draft(): mixed` returns `PostStatus::Draft`, `$this->draft()->value` publishes `0`. With `draft(): PostStatus`, the read publishes `PostStatusType`. A method with no return type that can end without returning a value leaves the read `unknown`.
+A `->value` or `->name` read off a method you call on `$this`, `self`, `static` or `parent` publishes the value or name of each case that method returns, when it declares no return type, or `mixed`. When `draft(): mixed` returns `PostStatus::Draft`, `$this->draft()->value` publishes `0`. With `draft(): PostStatus`, the read publishes `PostStatusType`. A method with no return type that can end without returning a value leaves the read `unknown`.
 
 In an API resource, `PostStatus::cases()` publishes a list of the alias. A map over the cases publishes what its callback reads from each case, with or without a type hint:
 
