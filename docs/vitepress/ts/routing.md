@@ -520,6 +520,19 @@ export const store = annotateRequestPayload<StorePostRequest>()(
 );
 ```
 
+## Bundling
+
+A route nobody uses drops out of your bundle: `defineRoute`, the route-default getters and the other runtime helpers are marked as free of side effects. A plain `export const index = defineRoute({...})` drops in Vite (Rolldown), Rollup, webpack and Rspack. esbuild keeps it unless the call site is marked:
+
+```typescript
+export const index = /* @__PURE__ */ defineRoute({
+  url: "/users",
+  methods: ["get"],
+});
+```
+
+The curried shapes, `annotatePageProps<T>()(defineRoute({...}))` and `annotateRequestPayload<T>()(defineRoute({...}))`, drop in Rollup and Rspack as they are. Rolldown, esbuild and webpack need `/* @__PURE__ */` before each call: the outer one and the inner `defineRoute`.
+
 ## Filtering & Excluding Routes
 
 These settings leave routes out of the published output:

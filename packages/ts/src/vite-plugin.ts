@@ -187,6 +187,7 @@ function shellArg(value: string): string {
  * });
  * ```
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function laravelTsPublish(
     options: LaravelTsPublishOptions = {},
 ): Plugin {

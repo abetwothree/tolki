@@ -14,13 +14,11 @@ const PENDING_PACKAGES: ReadonlySet<string> = new Set([
     "@tolki/arr",
     "@tolki/collection",
     "@tolki/data",
-    "@tolki/enum",
     "@tolki/lang",
     "@tolki/num",
     "@tolki/obj",
     "@tolki/path",
     "@tolki/str",
-    "@tolki/ts",
     "@tolki/utils",
 ]);
 

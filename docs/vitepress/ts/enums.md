@@ -593,6 +593,22 @@ A unit enum publishes each case name as its value, so `values` returns its case 
 
 `values` and `keys` read the `_cases` list, so they need `enums.metadata_enabled` and return an empty array without it. `defineEnum()` doesn't add `values` or `keys` to the enum. An enum that publishes its own `values()` or `keys()` static method keeps that published value under the name, so `Status.values` is the static method's published output while `values(Status)` returns the case values.
 
+## Bundling
+
+An enum nobody uses drops out of your bundle in Vite (Rolldown), Rollup, webpack and Rspack, because `defineEnum` and the other runtime utilities are marked as free of side effects.
+
+esbuild doesn't follow that mark across files, so it keeps the call unless the call site says it is safe to remove:
+
+```typescript
+export const Status = /* @__PURE__ */ defineEnum({
+  Active: "active",
+  Inactive: "inactive",
+  _cases: ["Active", "Inactive"],
+});
+```
+
+Rspack also needs the call-site form when the same module derives a list from the enum, such as `export const STATUSES = /* @__PURE__ */ values(Status)`.
+
 ## Vite Plugin
 
 The `@tolki/ts` package ships a Vite plugin that republishes enums and routes automatically during development. See the [Vite Plugin documentation](./vite-plugin.md).
