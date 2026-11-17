@@ -270,6 +270,24 @@ describe("scanFile", () => {
         ]);
     });
 
+    it("walks the extends clause of a class", () => {
+        const flagged = scan("class A extends make(B) {}");
+        const accepted = scan("class A extends /* @__PURE__ */ make(B) {}");
+
+        expect(flagged.moduleScope).toMatchObject([
+            { kind: "unannotated-call", name: "make(B)" },
+        ]);
+        expect(accepted.moduleScope).toEqual([]);
+    });
+
+    it("does not let a head annotation cover the inner call of a chain", () => {
+        const result = scan("const a = /* @__PURE__ */ foo().bar();");
+
+        expect(result.moduleScope).toMatchObject([
+            { kind: "unannotated-call", name: "foo()" },
+        ]);
+    });
+
     it("ignores calls inside function bodies", () => {
         const result = scan(
             [

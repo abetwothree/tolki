@@ -223,6 +223,23 @@ function unwrap(expression: ts.Expression): ts.Expression {
 const PURE_ANNOTATION = /^\/\*\s*[@#]__PURE__\s*\*\/$/;
 
 function isPureAnnotated(sourceFile: ts.SourceFile, node: ts.Node): boolean {
+    // Bundlers apply the annotation to the outermost call at that position only.
+    const start = node.getStart(sourceFile);
+
+    for (
+        let parent = node.parent;
+        parent.getStart(sourceFile) === start;
+        parent = parent.parent
+    ) {
+        if (
+            ts.isCallExpression(parent) ||
+            ts.isNewExpression(parent) ||
+            ts.isTaggedTemplateExpression(parent)
+        ) {
+            return false;
+        }
+    }
+
     // Same-line comments are trailing trivia of the previous token, so read the raw gap.
     const gap = sourceFile.text.slice(
         node.getFullStart(),
@@ -255,7 +272,9 @@ function scanModuleScope(
 
     const visitClass = (node: ts.ClassLikeDeclaration): void => {
         for (const clause of node.heritageClauses ?? []) {
-            visit(clause);
+            for (const type of clause.types) {
+                visit(type.expression);
+            }
         }
 
         for (const member of node.members) {
