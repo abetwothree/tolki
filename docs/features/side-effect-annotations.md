@@ -11,7 +11,7 @@ A function is pure when deleting a call with an unused result changes nothing ob
 - It does no I/O.
 - It is not called mainly to throw.
 
-Reading globals is fine. Calling a caller's callback is fine when the result comes from its return values. Throwing an error on invalid input while computing a value is fine.
+Reading globals is fine. Calling a caller's callback is fine when the result comes from its return values, or from its effects on a value the function itself creates and returns. The callback's other effects are the caller's. Throwing an error on invalid input while computing a value is fine.
 
 Any other function gets `@sideEffects <category>` in its docblock, after the description and before `@param`, with an optional reason after the category:
 
@@ -28,6 +28,7 @@ Any other function gets `@sideEffects <category>` in its docblock, after the des
 - **Calls inside functions.** The annotation also drops an unused call inside a function body, not only at module scope, so a function that registers or subscribes its caller is `state`: the React `useLang` subscribes the calling component, and the Vue `useLang` shares its mark (it only calls `inject`, during setup).
 - **Factory sequences.** `random`, `uuid` and `ulid` are pure even though, under a `create*UsingSequence` factory, a call advances the sequence. Like `Math.random`, that sequence is test-support state, and dropping an unused call shifts nothing a program relies on.
 - **Lazy pluralize setup.** `plural`, `counted`, `pluralStudly`, `pluralPascal`, `singular`, `isPlural` and `isSingular` are pure. Their first call registers tolki's uncountable rules on the shared `pluralize` instance, which code importing `pluralize` directly can observe. That is a one-time, idempotent memoized setup, so dropping an unused call only delays it to the first used call. `inflector` itself is `state`: it hands out the shared `pluralize` instance and registers rules on it, so it stays conservative by ruling.
+- **Plugins on a fresh value.** `markdown`, `inlineMarkdown` and `markDownRenderer` are pure, not `callback`. Each markdown-it plugin configures the renderer the function creates and returns, so its effect is the result, as a `map` callback's return is. A plugin writing to the caller's `opts` is the caller's concern, as with a `map` callback that logs.
 - **One-shot iterators.** Helpers that iterate a caller's iterator or generator are pure: `arrayableValues`/`arrayableItems`, arr `first`/`from`, and obj's diff/intersect/union family. Draining the iterator is accepted, like the caller-callback rule.
 
 ## Annotation form
