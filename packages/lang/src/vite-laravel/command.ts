@@ -75,6 +75,7 @@ function withFlags(
  * @param quiet - Whether to silence the exporter's console output.
  * @returns The shell command to run.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function exportCommand(
     base: string,
     flags: ExportFlags,
@@ -92,6 +93,7 @@ export function exportCommand(
  * @param quiet - Whether to silence the exporter's console output.
  * @returns The shell command to run.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function sourceExportCommand(
     template: string,
     file: string,

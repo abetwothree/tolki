@@ -22,6 +22,7 @@ type PluralRule = (number: unknown) => number;
  *
  * choose("{0} none|one|[2,*] many", 5, "en"); // "many"
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function choose(
     line: string,
     number: number,
@@ -135,6 +136,7 @@ function stripConditions(segments: string[]): string[] {
  *
  * getPluralIndex("ru", 5); // 2
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function getPluralIndex(locale: string | null, number: number): number {
     const value = isPhpNumeric(number) ? Math.abs(Number(number)) : number;
 

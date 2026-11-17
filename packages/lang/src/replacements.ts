@@ -59,6 +59,7 @@ function castReplacement(value: unknown): string {
  * makeReplacements(":Name :NAME", { name: "ann" }); -> "Ann ANN"
  * makeReplacements("<b>hi</b>", { b: (c) => `[${c}]` }); -> "[hi]"
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function makeReplacements(
     line: string,
     replace: Replacements,

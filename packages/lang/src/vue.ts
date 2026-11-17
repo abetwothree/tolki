@@ -51,6 +51,7 @@ const LANG_KEY: InjectionKey<VueLang<LangLines>> =
  * @param options - The locale, fallback and where the lines come from
  * @returns The lang, usable as a plugin
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function createLang<TLines extends LangLines = RegisteredLines>(
     options: LangOptions<TLines>,
 ): LangPlugin<TLines> {
@@ -98,6 +99,7 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
  * @returns The tracked reads, the locale ref and the lang itself
  * @throws Error when no lang was installed
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function useLang<
     TLines extends LangLines = RegisteredLines,
 >(): VueLang<TLines> {

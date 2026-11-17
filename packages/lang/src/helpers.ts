@@ -22,6 +22,7 @@ import type { TranslationHelpers } from "./types";
  * const { __ } = createHelpers(new Translator({ en: { g: { a: "A" } } }, "en"));
  * __("g.a"); // "A"
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function createHelpers<TLines extends LangLines>(
     translator: Translator<TLines>,
 ): TranslationHelpers<TLines> {

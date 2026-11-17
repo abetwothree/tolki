@@ -175,6 +175,8 @@ function parseBasicSegments(key: string): [group: string, item: string | null] {
 /**
  * Merge one locale's lines into a translator, each top-level key replacing the one it held.
  *
+ * @sideEffects mutates writes the lines into the passed translator
+ *
  * @param translator - The translator to add to
  * @param locale - The locale the lines belong to
  * @param lines - The locale's lines, such as a lang JSON file holds them

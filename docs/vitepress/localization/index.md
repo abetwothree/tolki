@@ -353,6 +353,18 @@ await lang.setLocale("../secrets");
 
 Call `subscribe(listener)` to hear about every change. It returns a function that stops the calls. `getVersion()` counts the changes, which is the snapshot that React's `useSyncExternalStore` wants. The [Vue](./vue.md), [React](./react.md) and [Svelte](./svelte.md) pages show the bindings that use them.
 
+## Bundling
+
+A call whose result nothing uses drops out of your bundle in Rollup, Rolldown (Vite 8), webpack and Rspack, because `createLang`, the translation helpers and the framework `useLang`, `getLang` and `langContext` are marked as free of side effects. This holds for a call at the top level of a module too.
+
+The exception is Rspack, where an unused top-level call to `createLang`, or to the React `LangProvider` and `useLang`, drops the call but can keep code behind it. Writing `/* @__PURE__ */` before the call drops everything:
+
+```typescript
+export const lang = /* @__PURE__ */ createLang({ locale: "en" });
+```
+
+The Svelte `setLang` writes the component context, so a call to it is always kept.
+
 ## Next
 
 - [Vite Plugin](./vite.md) exports your lang files and serves them as a module.

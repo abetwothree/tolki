@@ -10,10 +10,7 @@ const ANNOTATION = "/* @__NO_SIDE_EFFECTS__ */";
 /**
  * Packages whose exports are not yet all classified.
  */
-const PENDING_PACKAGES: ReadonlySet<string> = new Set([
-    "@tolki/lang",
-    "@tolki/num",
-]);
+const PENDING_PACKAGES: ReadonlySet<string> = new Set([]);
 
 /**
  * Scans one inline source as a file of package `@tolki/x`.

@@ -78,6 +78,7 @@ function failureMessage(error: unknown): string {
  * @param options - The commands, working directory and callbacks.
  * @returns The runner.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function createExportRunner(options: ExportRunnerOptions): ExportRunner {
     const { fullCommand, sourceCommand, cwd, logger, shouldThrow, onSuccess } =
         options;

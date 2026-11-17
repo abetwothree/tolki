@@ -42,6 +42,7 @@ function missingLocaleGuard(table: string, locales: readonly string[]): string {
  * @param ssr - Whether to import every locale eagerly.
  * @returns The module source.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function virtualModuleCode(
     locales: readonly string[],
     outputDir: string,

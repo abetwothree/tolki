@@ -51,6 +51,7 @@ const LangContext = /* @__PURE__ */ createContext<Lang<LangLines> | null>(null);
  * @param props - The lang and the tree that reads it
  * @returns The provider element
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function LangProvider(props: LangProviderProps): ReactElement {
     return createElement(LangContext, { value: props.lang }, props.children);
 }
@@ -61,6 +62,7 @@ export function LangProvider(props: LangProviderProps): ReactElement {
  * @returns The reads, the locale, `setLocale` and the lang itself
  * @throws Error when no provider is above the component
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function useLang<
     TLines extends LangLines = RegisteredLines,
 >(): ReactLang<TLines> {
