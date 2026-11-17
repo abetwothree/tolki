@@ -1,0 +1,104 @@
+[
+    {
+        "id": "shape:@tolki/ts:enum-file",
+        "bundler": "rollup",
+        "issue": "#141",
+        "reason": "needs Task 5 annotations"
+    },
+    {
+        "id": "shape:@tolki/ts:enum-file",
+        "bundler": "rolldown",
+        "issue": "#141",
+        "reason": "needs Task 5 annotations"
+    },
+    {
+        "id": "shape:@tolki/ts:enum-file",
+        "bundler": "webpack",
+        "issue": "#141",
+        "reason": "needs Task 5 annotations"
+    },
+    {
+        "id": "shape:@tolki/ts:enum-file",
+        "bundler": "rspack",
+        "issue": "#141",
+        "reason": "needs Task 5 annotations"
+    },
+    {
+        "id": "shape:@tolki/ts:define-route",
+        "bundler": "rollup",
+        "issue": "#141",
+        "reason": "needs Task 5 annotations"
+    },
+    {
+        "id": "shape:@tolki/ts:define-route",
+        "bundler": "rolldown",
+        "issue": "#141",
+        "reason": "needs Task 5 annotations"
+    },
+    {
+        "id": "shape:@tolki/ts:define-route",
+        "bundler": "webpack",
+        "issue": "#141",
+        "reason": "needs Task 5 annotations"
+    },
+    {
+        "id": "shape:@tolki/ts:define-route",
+        "bundler": "rspack",
+        "issue": "#141",
+        "reason": "needs Task 5 annotations"
+    },
+    {
+        "id": "shape:@tolki/ts:annotate-page-props",
+        "bundler": "rollup",
+        "issue": "#141",
+        "reason": "needs Task 5 annotations"
+    },
+    {
+        "id": "shape:@tolki/ts:annotate-request-payload",
+        "bundler": "rollup",
+        "issue": "#141",
+        "reason": "needs Task 5 annotations"
+    },
+    {
+        "id": "bare:@tolki/lang",
+        "bundler": "rolldown",
+        "issue": "#141",
+        "reason": "Translator's static block assigns a module binding, so Rolldown keeps the class until its minifier drops it"
+    },
+    {
+        "id": "bare:@tolki/lang/translator",
+        "bundler": "rolldown",
+        "issue": "#141",
+        "reason": "Translator's static block assigns a module binding, so Rolldown keeps the class until its minifier drops it"
+    },
+    {
+        "id": "bare:@tolki/lang/vue",
+        "bundler": "rolldown",
+        "issue": "#141",
+        "reason": "Translator's static block assigns a module binding, so Rolldown keeps the class until its minifier drops it"
+    },
+    {
+        "id": "bare:@tolki/lang/react",
+        "bundler": "rolldown",
+        "issue": "#141",
+        "reason": "Translator's static block assigns a module binding, so Rolldown keeps the class until its minifier drops it"
+    },
+    {
+        "id": "bare:@tolki/lang/svelte",
+        "bundler": "rolldown",
+        "issue": "#141",
+        "reason": "Translator's static block assigns a module binding, so Rolldown keeps the class until its minifier drops it"
+    },
+    {
+        "id": "bare:@tolki/lang/vite-laravel",
+        "bundler": "rolldown",
+        "issue": "#141",
+        "reason": "Rolldown keeps the RESOLVED_VIRTUAL_MODULE_ID template literal until its minifier drops it"
+    },
+    {
+        "id": "parity:@tolki/ts/vite:escapeShellArg",
+        "bundler": "esbuild",
+        "issue": "#141",
+        "reason": "esbuild keeps vite-plugin.js's external node: and vite imports when only the re-exported escapeShellArg is used"
+    }
+]

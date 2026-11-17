@@ -33,6 +33,9 @@ jobs:
       - name: Run build
         run: pnpm run build
 
+      - name: Tree-shake check
+        run: pnpm run treeshake:check
+
   unit-test:
     runs-on: ubuntu-latest
     strategy:

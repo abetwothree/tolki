@@ -23,6 +23,8 @@ The `@tolki` monorepo is a collection of packages that provide a JavaScript/Type
 - Run `pnpm list:functions <file-path>` to list all functions in a file
   - Example: `pnpm run list:functions packages/arr/src/arr.ts`
 - Run `pnpm run stubs:create-lists` to create function list file from PHP stubs
+- Run `pnpm run treeshake:check` after `pnpm run build` to bundle the built packages with five bundlers and check tree-shaking
+  - Details: [docs/features/treeshake-check.md](docs/features/treeshake-check.md)
 
 ## Use AI tools
 
