@@ -210,6 +210,56 @@ describe("scanFile", () => {
         expect(result.exports).toEqual([]);
     });
 
+    it("classifies a function exported through a local export list", () => {
+        const listed = scan(
+            "function f() { return 1; }\nexport { f };",
+        );
+
+        expect(listed.exports).toMatchObject([
+            { name: "f", line: 1, kind: "unclassified", category: null },
+        ]);
+
+        const renamed = scan(
+            "function f() { return 1; }\nexport { f as g };",
+        );
+
+        expect(renamed.exports).toMatchObject([
+            { name: "g", kind: "unclassified" },
+        ]);
+    });
+
+    it("classifies a default export of a same-file function", () => {
+        const result = scan("function f() { return 1; }\nexport default f;");
+
+        expect(result.exports).toMatchObject([
+            { name: "default", kind: "unclassified" },
+        ]);
+    });
+
+    it("reads the annotation on a listed function", () => {
+        const result = scan(
+            `${ANNOTATION}\nfunction f() { return 1; }\nexport { f };`,
+        );
+
+        expect(result.exports).toMatchObject([{ name: "f", kind: "pure" }]);
+        expect(result.placement).toEqual([]);
+    });
+
+    it("leaves a listed imported name and a re-export unscanned", () => {
+        const result = scan(
+            [
+                'import { h } from "./h.ts";',
+                "export { h };",
+                'export { k } from "./k.ts";',
+                "const n = 1;",
+                "export { n };",
+                "export default n;",
+            ].join("\n"),
+        );
+
+        expect(result.exports).toEqual([]);
+    });
+
     it("flags an unannotated module-scope call", () => {
         const result = scan("export const a = make(1);\nconst b = new Map();");
 

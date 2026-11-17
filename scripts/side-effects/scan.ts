@@ -441,7 +441,44 @@ export function scanFile(
         result.exports.push({ pkg, file, name, line, kind, category });
     };
 
+    const pushListed = (exported: string, local: string): void => {
+        const analysis = analysisOf(local);
+
+        if (analysis !== undefined) {
+            push(exported, analysis.line, analysis.kind, analysis.category);
+        }
+    };
+
     for (const statement of sourceFile.statements) {
+        if (
+            ts.isExportDeclaration(statement) &&
+            statement.moduleSpecifier === undefined &&
+            !statement.isTypeOnly &&
+            statement.exportClause !== undefined &&
+            ts.isNamedExports(statement.exportClause)
+        ) {
+            for (const specifier of statement.exportClause.elements) {
+                if (!specifier.isTypeOnly) {
+                    pushListed(
+                        specifier.name.text,
+                        (specifier.propertyName ?? specifier.name).text,
+                    );
+                }
+            }
+
+            continue;
+        }
+
+        if (
+            ts.isExportAssignment(statement) &&
+            !statement.isExportEquals &&
+            ts.isIdentifier(statement.expression)
+        ) {
+            pushListed("default", statement.expression.text);
+
+            continue;
+        }
+
         if (!hasExportModifier(statement)) {
             continue;
         }
