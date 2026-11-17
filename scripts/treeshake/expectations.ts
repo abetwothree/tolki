@@ -8,10 +8,8 @@ export interface KeptDrop {
 
 const EXPORT_LIST =
     "Rolldown 1.3.2 honours the annotation only on an inline export, so an export list keeps the helper's side-effectful dependency";
-const RSPACK_LIST =
-    "Rspack 2.3.3 shows the same residue through an export list";
 const COLLECTION_CLASS =
-    "the Collection class and the helpers it references stay after the call is dropped";
+    "Rolldown 1.3.2 keeps Collection's class cycle after the call is dropped, and Rspack 2.3.3 does the same";
 
 const BOTH: BundlerName[] = ["rolldown", "rspack"];
 
@@ -23,7 +21,7 @@ function entries(
     return Object.fromEntries(
         names.map((name) => [
             `${specifier}:${name}`,
-            { bundlers: BOTH, reason: `${reason}; ${RSPACK_LIST}` },
+            { bundlers: BOTH, reason },
         ]),
     );
 }
@@ -34,8 +32,16 @@ function entries(
  */
 export const KEPT_DROPS: Record<string, KeptDrop> = {
     ...entries("@tolki/collection", ["collect"], COLLECTION_CLASS),
-    ...entries("@tolki/str", ["uuid", "uuid7"], `${EXPORT_LIST} (uuid)`),
-    ...entries("@tolki/str", ["ulid"], `${EXPORT_LIST} (ulid)`),
+    ...entries(
+        "@tolki/str",
+        ["uuid", "uuid7"],
+        `${EXPORT_LIST}, and Rspack 2.3.3 shows the same residue (uuid)`,
+    ),
+    ...entries(
+        "@tolki/str",
+        ["ulid"],
+        `${EXPORT_LIST}, and Rspack 2.3.3 shows the same residue (ulid)`,
+    ),
     ...entries(
         "@tolki/str",
         [
@@ -49,21 +55,21 @@ export const KEPT_DROPS: Record<string, KeptDrop> = {
             "singular",
             "uncountable",
         ],
-        `${EXPORT_LIST} (pluralize)`,
+        `${EXPORT_LIST}, and Rspack 2.3.3 shows the same residue (pluralize)`,
     ),
     ...entries(
         "@tolki/str",
         ["markdown", "inlineMarkdown", "markDownRenderer"],
-        `${EXPORT_LIST} (markdown-it)`,
+        `${EXPORT_LIST}, and Rspack 2.3.3 shows the same residue (markdown-it)`,
     ),
     ...entries(
         "@tolki/str",
         ["ascii", "slug"],
-        `${EXPORT_LIST} (transliteration)`,
+        `${EXPORT_LIST}, and Rspack 2.3.3 shows the same residue (transliteration)`,
     ),
     ...entries(
         "@tolki/str",
         ["of", "str"],
-        `${EXPORT_LIST} (Stringable pulls every dependency)`,
+        `${EXPORT_LIST}, and Rspack 2.3.3 shows the same residue (Stringable pulls every dependency)`,
     ),
 };

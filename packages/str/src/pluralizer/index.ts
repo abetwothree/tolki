@@ -238,7 +238,7 @@ export function matchCase(value: string, comparison: string): string {
 /**
  * Get the pluralize instance
  *
- * @sideEffects state - sets `inflection` and registers the uncountable rules on the shared pluralize instance.
+ * @sideEffects state - Registers tolki's uncountable rules on the shared pluralize instance.
  *
  * @returns The pluralize instance.
  */

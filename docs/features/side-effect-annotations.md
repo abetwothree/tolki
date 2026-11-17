@@ -23,6 +23,11 @@ Any other function gets `@sideEffects <category>` in its docblock, after the des
 | `asserts`  | Called to throw on invalid input; its result is optional | enum `from`; lang `assertLocale`                               |
 | `io`       | Console, DOM writes, fs, child processes, network        | none yet                                                       |
 
+## Judgement calls
+
+- **Factory sequences.** `random`, `uuid` and `ulid` are pure even though, under a `create*UsingSequence` factory, a call advances the sequence. Like `Math.random`, that sequence is test-support state, and dropping an unused call shifts nothing a program relies on.
+- **Lazy pluralize setup.** `plural`, `counted`, `pluralStudly`, `pluralPascal`, `singular`, `isPlural` and `isSingular` are pure. Their first call registers tolki's uncountable rules on the shared `pluralize` instance, which code importing `pluralize` directly can observe. That is a one-time, idempotent memoized setup, so dropping an unused call only delays it to the first used call. `inflector` itself is `state`.
+
 ## Annotation form
 
 A line holding only `/* @__NO_SIDE_EFFECTS__ */`, after the docblock and directly above the `export function` that has the body. On an overloaded function that is the implementation signature.

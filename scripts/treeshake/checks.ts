@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 
 import type { BundleResult, BundlerName } from "./bundlers.ts";
 import { bundle } from "./bundlers.ts";
+import { KEPT_DROPS } from "./expectations.ts";
 import type { CheckName, Fixture, Outcome } from "./fixtures.ts";
 
 export interface Finding {
@@ -23,7 +24,21 @@ export interface DebtEntry {
 export const EXPECTATION_CHANGED =
     "expectation changed: update docs/features/treeshake-check.md and docs/vitepress/tree-shaking.md";
 
+export const KEPT_DROP_CHANGED =
+    "expectation changed: update scripts/treeshake/expectations.ts and the Bundling sections of docs/vitepress/strings/index.md and docs/vitepress/collections/index.md";
+
 const KEPT = "kept; expected dropped";
+
+/** The expectation-changed message for a fixture: a kept drop points at its table and docs, the rest at the shape docs. */
+export function expectationChangedMessage(fixture: Fixture): string {
+    const listed = Object.keys(KEPT_DROPS).some(
+        (key) =>
+            fixture.id === `drop:${key}` ||
+            fixture.id === `drop:${key.replace(":", ":call-site-pure:")}`,
+    );
+
+    return listed ? KEPT_DROP_CHANGED : EXPECTATION_CHANGED;
+}
 const UNEXCUSABLE = /^(build failed|missing exports): /;
 const COMPARED: ReadonlySet<CheckName> = new Set(["drop", "keep", "shape"]);
 
@@ -153,7 +168,7 @@ async function compare(
     }
 
     if (outcome === "dropped") {
-        return finding(EXPECTATION_CHANGED);
+        return finding(expectationChangedMessage(fixture));
     }
 
     const named: Finding[] = [];

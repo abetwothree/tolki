@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -9,11 +9,14 @@ import type {
     SideEffectCategory,
     SourceScan,
 } from "../side-effects/scan.ts";
+import { scanPublishedSources } from "../side-effects/scan.ts";
 import { BUNDLERS } from "../treeshake/bundlers.ts";
 import type { DebtEntry, Finding } from "../treeshake/checks.ts";
 import {
     applyDebt,
     EXPECTATION_CHANGED,
+    expectationChangedMessage,
+    KEPT_DROP_CHANGED,
     runFixture,
 } from "../treeshake/checks.ts";
 import { KEPT_DROPS } from "../treeshake/expectations.ts";
@@ -298,6 +301,49 @@ describe("buildFixtures", () => {
         expect(
             drop.get("drop:@tolki/str:call-site-pure:uuid")?.files["mod.js"],
         ).toContain("/* @__PURE__ */ uuid()");
+    });
+
+    it("names expectations.ts for a kept drop and the shape docs for anything else", () => {
+        const fixture = (id: string) => ({ id }) as Fixture;
+
+        expect(expectationChangedMessage(fixture("drop:@tolki/str:uuid"))).toBe(
+            KEPT_DROP_CHANGED,
+        );
+        expect(
+            expectationChangedMessage(
+                fixture("drop:@tolki/str:call-site-pure:uuid"),
+            ),
+        ).toBe(KEPT_DROP_CHANGED);
+        expect(KEPT_DROP_CHANGED).toContain(
+            "scripts/treeshake/expectations.ts",
+        );
+        expect(KEPT_DROP_CHANGED).toContain("strings/index.md");
+        expect(KEPT_DROP_CHANGED).toContain("collections/index.md");
+        expect(
+            expectationChangedMessage(fixture("shape:@tolki/ts:enum-only")),
+        ).toBe(EXPECTATION_CHANGED);
+        expect(
+            expectationChangedMessage(fixture("drop:@tolki/str:after")),
+        ).toBe(EXPECTATION_CHANGED);
+    });
+
+    it("lists only exports the source scan classifies as pure", () => {
+        const published = scanPublishedSources(resolve(__dirname, "../.."));
+
+        for (const key of Object.keys(KEPT_DROPS)) {
+            const [specifier = "", name = ""] = key.split(":");
+            const pkg = specifier.split("/").slice(0, 2).join("/");
+
+            expect(
+                published.exports.some(
+                    (found) =>
+                        found.pkg === pkg &&
+                        found.name === name &&
+                        found.kind === "pure",
+                ),
+                key,
+            ).toBe(true);
+        }
     });
 
     it("gives every KEPT_DROPS entry a reason and a bundler", () => {

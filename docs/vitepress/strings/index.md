@@ -50,9 +50,9 @@ However, if you are working on a backend project where bundle size is not a conc
 
 ## Bundling
 
-A helper call whose result nothing uses drops out of your bundle in Rollup and webpack, because the helpers are marked as free of side effects. This holds for a call at the top level of a module too.
+A helper call whose result nothing uses drops out of your bundle in Rollup, Rolldown (Vite 8), webpack and Rspack, because the helpers are marked as free of side effects. This holds for a call at the top level of a module too.
 
-In Vite 8 (Rolldown) and Rspack, an unused top-level call to `uuid`, `uuid7`, `ulid`, `slug`, `ascii`, `markdown`, `inlineMarkdown`, `markDownRenderer`, `str`, `of`, `plural`, `singular`, `counted`, `isPlural`, `isSingular`, `pluralStudly`, `pluralPascal`, `matchCase` or `uncountable` drops the call but can keep the code of the package behind it (uuid, ulid, pluralize, markdown-it, transliteration). Writing `/* @__PURE__ */` before the call drops everything:
+The exception is Vite 8 (Rolldown) and Rspack, where an unused top-level call to `uuid`, `uuid7`, `ulid`, `slug`, `ascii`, `markdown`, `inlineMarkdown`, `markDownRenderer`, `str`, `of`, `plural`, `singular`, `counted`, `isPlural`, `isSingular`, `pluralStudly`, `pluralPascal`, `matchCase` or `uncountable` drops the call but can keep the code of the package behind it (uuid, ulid, pluralize, markdown-it, transliteration). Writing `/* @__PURE__ */` before the call drops everything:
 
 ```typescript
 export const id = /* @__PURE__ */ uuid();
@@ -60,4 +60,4 @@ export const id = /* @__PURE__ */ uuid();
 
 esbuild doesn't follow the mark across files, so it needs the same comment on any helper call.
 
-The functions that set or clear a generator or the casing caches (`createRandomStringsUsing`, `createUuidsUsing`, `createUlidsUsing`, `freezeUuids`, `freezeUlids`, `flushCache`, `resetFactoryState`, `inflector` and the other `create*` helpers) change module state, so a call to them is always kept.
+The functions that set or clear a generator or the casing caches (`createRandomStringsUsing`, `createUuidsUsing`, `createUlidsUsing`, `freezeUuids`, `freezeUlids`, `flushCache`, `resetFactoryState` and the other `create*` helpers) change module state, and so does `inflector`, which registers the pluralizer's rules on the shared `pluralize` instance. A call to any of them is always kept.
