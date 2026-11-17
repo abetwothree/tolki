@@ -41,7 +41,7 @@ esbuild keeps identifiers because its renamer weighs the text of code it later d
 | `surface`                  | subpath                                                     | all five                                                                  | importing every name builds with no missing export                                         |
 | `namespace`                | subpath                                                     | Rollup, Rolldown, esbuild                                                 | `ns.<first name>` keeps the same own modules as the named import                           |
 | `drop`                     | subpath with pure names                                     | all five: esbuild `kept`, the rest `dropped`                              | unused calls of every pure name match the control                                          |
-| `drop` (`:call-site-pure`) | the same                                                    | esbuild `dropped`, plus Rolldown and Rspack for the names in `KEPT_DROPS` | the same calls with `/* @__PURE__ */` match the control                                    |
+| `drop` (`:call-site-pure`) | the same                                                    | esbuild `dropped`, plus the listed bundlers for the names in `KEPT_DROPS` | the same calls with `/* @__PURE__ */` match the control                                    |
 | `keep`                     | `@sideEffects mutates` export                               | all five `kept`                                                           | `f(target)` on a used target differs from the control                                      |
 | `keep` (`canary`)          | one, always                                                 | all five `kept`                                                           | an `@tolki/enum` `from(...)` call differs from the control                                 |
 | `shape`                    | generated consumer file, with and without `:call-site-pure` | all five                                                                  | each bundler gives its expected outcome (below)                                            |
@@ -69,7 +69,7 @@ The `drop` call-site-pure fixture runs in esbuild only, except for the names in 
 [`expectations.ts`](../../scripts/treeshake/expectations.ts) lists pure names whose unused module-level call still leaves code behind, keyed `<specifier>:<name>`, each with the bundlers that keep it and a one-line reason. They are measured expectations, not debt, and `debt.json` stays `[]`.
 
 - **Root cause.** Rolldown 1.3.2 honours `@__NO_SIDE_EFFECTS__` at link time only on an inline `export function f`. Vite always emits export lists (`export { f }`), so the call is dropped but the helper module's side-effectful dependency (pluralize, markdown-it, transliteration, uuid, ulid) stays. Rspack shows the same residue. `collect` keeps the `Collection` class and its helpers. Rollup and webpack drop everything.
-- **Fixtures.** A listed name gets its own `drop` fixture that expects `kept` in the listed bundlers, so the combined fixture still fails when a lost annotation hides elsewhere. A second fixture with a call-site `/* @__PURE__ */` expects `dropped` in esbuild, Rolldown and Rspack, which proves the workaround the docs give.
+- **Fixtures.** A listed name gets its own `drop` fixture that expects `kept` in the listed bundlers, so the combined fixture still fails when a lost annotation hides elsewhere. A second fixture with a call-site `/* @__PURE__ */` expects `dropped` in esbuild and in the listed bundlers (Rolldown and Rspack; Rspack alone for num `spell` and `spellOrdinal` and lang `createLang` twice, which run it in esbuild and Rspack only), which proves the workaround the docs give.
 - **Tripwire.** A listed name that drops fails with the expectation-changed message, so a bundler fix shows up as a failure to delete the entry.
 
 ## Control builds
@@ -107,4 +107,4 @@ CI runs it in the `build-test` job of [`test.yml`](../../.github/workflows/test.
 
 ## Wall time
 
-A full run (743 fixtures) took 24.6 s on an Apple M2 Max with 12 workers (`os.availableParallelism()`), against 13.9 s for `pnpm build`.
+A full run (836 fixtures) took 41.8 s on an Apple M2 Max with 12 workers (`os.availableParallelism()`), against 13.9 s for `pnpm build`.

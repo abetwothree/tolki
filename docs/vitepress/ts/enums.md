@@ -595,7 +595,7 @@ A unit enum publishes each case name as its value, so `values` returns its case 
 
 ## Bundling
 
-An enum nobody uses drops out of your bundle in Vite (Rolldown), Rollup, webpack and Rspack, because `defineEnum` and the other runtime utilities are marked as free of side effects.
+An enum nobody uses drops out of your bundle in Vite (Rolldown), Rollup, webpack and Rspack, because `defineEnum` and the other runtime utilities are marked as free of side effects, except `from`, which throws on an unknown value and is always kept.
 
 esbuild doesn't follow that mark across files, so it keeps the call unless the call site says it is safe to remove:
 

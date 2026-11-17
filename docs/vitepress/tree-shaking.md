@@ -30,13 +30,13 @@ Two uses keep the whole package, because the bundler can no longer tell which me
 
 ## Per bundler
 
-| Bundler           | An unused call to a helper                                                                                                              | What you do                                                                                   |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Rollup            | Dropped, and nothing is left behind.                                                                                                    | Nothing.                                                                                      |
-| Rolldown (Vite 8) | Dropped. For the helpers in [Dependency residue](#dependency-residue), the code behind them can stay.                                   | Nothing, or `/* @__PURE__ */` on those calls.                                                 |
-| esbuild           | Kept. esbuild never follows `/* @__NO_SIDE_EFFECTS__ */` from one file to another.                                                      | Write `/* @__PURE__ */ fn(...)` on every call you want removed.                               |
-| webpack           | Dropped, and nothing is left behind. In the generated route shape, the curried helpers are kept (see below).                            | Nothing for helpers. `/* @__PURE__ */` for the [curried routes](#generated-enums-and-routes). |
-| Rspack            | Dropped. A few helpers leave code behind (see [Dependency residue](#dependency-residue)), and so does an enum file that derives a list. | Nothing, or `/* @__PURE__ */` on those calls.                                                 |
+| Bundler           | An unused call to a helper                                                                                                                                                    | What you do                                                                                                                        |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Rollup            | Dropped, and nothing is left behind.                                                                                                                                          | Nothing.                                                                                                                           |
+| Rolldown (Vite 8) | Dropped. For the helpers in [Dependency residue](#dependency-residue), the code behind them can stay. In the generated route shape, the curried helpers are kept (see below). | Nothing for helpers. `/* @__PURE__ */` for the [curried routes](#generated-enums-and-routes), and on the dependency-residue calls. |
+| esbuild           | Kept. esbuild never follows `/* @__NO_SIDE_EFFECTS__ */` from one file to another.                                                                                            | Write `/* @__PURE__ */ fn(...)` on every call you want removed.                                                                    |
+| webpack           | Dropped, and nothing is left behind. In the generated route shape, the curried helpers are kept (see below).                                                                  | Nothing for helpers. `/* @__PURE__ */` for the [curried routes](#generated-enums-and-routes).                                      |
+| Rspack            | Dropped. A few helpers leave code behind (see [Dependency residue](#dependency-residue)), and so does an enum file that derives a list.                                       | Nothing, or `/* @__PURE__ */` on those calls.                                                                                      |
 
 <!-- scripts/treeshake/expectations.ts, "KEPT_DROPS" -->
 
@@ -54,7 +54,7 @@ You need it in these cases:
 
 - **esbuild.** It drops the call only with the comment. With it, an unused call drops in all five bundlers. <!-- scripts/treeshake/fixtures.ts, "drop:@tolki/str:call-site-pure" -->
 - **Generated routes with a curried helper.** See below.
-- **A class.** `new Collection(...)`, `new Translator(...)` and `new Stringable(...)` stay in the bundle without it, because a bundler cannot mark a constructor. Write `/* @__PURE__ */ new Collection(...)`.
+- **A class.** `new Collection(...)`, `new Translator(...)` and `new Stringable(...)` can stay in the bundle without it, because a bundler cannot mark a constructor. A call-site `/* @__PURE__ */ new Collection(...)` drops them in every bundler.
 - **A helper that leaves dependency code behind** in Rolldown or Rspack. See below.
 
 ## Dependency residue

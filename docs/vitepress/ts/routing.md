@@ -522,7 +522,7 @@ export const store = annotateRequestPayload<StorePostRequest>()(
 
 ## Bundling
 
-A route nobody uses drops out of your bundle: `defineRoute`, `getRouteDefaults` and the other runtime helpers are marked as free of side effects. A plain `export const index = defineRoute({...})` drops in Vite (Rolldown), Rollup, webpack and Rspack. esbuild keeps it unless the call site is marked:
+A route nobody uses drops out of your bundle: `defineRoute`, `getRouteDefaults` and the other runtime helpers are marked as free of side effects, except `setRouteDefaults`, `addRouteDefault` and `resetRouteDefaults`, which change shared state and are always kept. A plain `export const index = defineRoute({...})` drops in Vite (Rolldown), Rollup, webpack and Rspack. esbuild keeps it unless the call site is marked:
 
 ```typescript
 export const index = /* @__PURE__ */ defineRoute({
