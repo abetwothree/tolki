@@ -106,6 +106,7 @@ export type ConditionableClosure =
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#of
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function of(value: string = ""): Stringable {
     return new Stringable(value);
 }
@@ -118,6 +119,7 @@ export function of(value: string = ""): Stringable {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#str
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function str(value: string = ""): Stringable {
     return new Stringable(value);
 }

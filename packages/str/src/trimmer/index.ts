@@ -92,6 +92,7 @@ function trimmedClass(charlist: string | null): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#trim
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function trim(value: string, charlist: string | null = null): string {
     const characterClass = trimmedClass(charlist);
 
@@ -107,6 +108,7 @@ export function trim(value: string, charlist: string | null = null): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#ltrim
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function ltrim(value: string, charlist: string | null = null): string {
     return stripStart(value, trimmedClass(charlist));
 }
@@ -120,6 +122,7 @@ export function ltrim(value: string, charlist: string | null = null): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#rtrim
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function rtrim(value: string, charlist: string | null = null): string {
     return stripEnd(value, trimmedClass(charlist));
 }
