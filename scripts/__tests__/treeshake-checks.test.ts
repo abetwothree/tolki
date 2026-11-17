@@ -16,6 +16,7 @@ import {
     EXPECTATION_CHANGED,
     runFixture,
 } from "../treeshake/checks.ts";
+import { KEPT_DROPS } from "../treeshake/expectations.ts";
 import type { Fixture, SubpathExports } from "../treeshake/fixtures.ts";
 import {
     buildFixtures,
@@ -242,6 +243,71 @@ describe("buildFixtures", () => {
             "drop:@tolki/a:call-site-pure:get",
             "drop:@tolki/a:call-site-pure:set",
         ]);
+    });
+
+    it("tests each KEPT_DROPS name alone, expecting kept where the table says and dropped with a call-site PURE", () => {
+        const subpaths: SubpathExports[] = [
+            {
+                pkg: "@tolki/str",
+                subpath: ".",
+                specifier: "@tolki/str",
+                names: ["after", "uuid"],
+            },
+        ];
+        const scan: SourceScan = {
+            exports: [
+                entry("@tolki/str", "after", "pure"),
+                entry("@tolki/str", "uuid", "pure"),
+            ],
+            placement: [],
+            moduleScope: [],
+        };
+        const drop = new Map(
+            buildFixtures(subpaths, scan)
+                .filter((fixture) => fixture.check === "drop")
+                .map((fixture) => [fixture.id, fixture]),
+        );
+
+        expect([...drop.keys()]).toEqual([
+            "drop:@tolki/str",
+            "drop:@tolki/str:uuid",
+            "drop:@tolki/str:call-site-pure",
+            "drop:@tolki/str:call-site-pure:uuid",
+        ]);
+        expect(drop.get("drop:@tolki/str")?.files["mod.js"]).toContain(
+            "after()",
+        );
+        expect(drop.get("drop:@tolki/str")?.files["mod.js"]).not.toContain(
+            "uuid",
+        );
+        expect(drop.get("drop:@tolki/str:uuid")?.expect).toEqual({
+            rollup: "dropped",
+            rolldown: "kept",
+            esbuild: "kept",
+            webpack: "dropped",
+            rspack: "kept",
+        });
+        expect(drop.get("drop:@tolki/str:call-site-pure:uuid")).toMatchObject({
+            bundlers: ["esbuild", "rolldown", "rspack"],
+            expect: {
+                esbuild: "dropped",
+                rolldown: "dropped",
+                rspack: "dropped",
+            },
+        });
+        expect(
+            drop.get("drop:@tolki/str:call-site-pure:uuid")?.files["mod.js"],
+        ).toContain("/* @__PURE__ */ uuid()");
+    });
+
+    it("gives every KEPT_DROPS entry a reason and a bundler", () => {
+        for (const [key, entry] of Object.entries(KEPT_DROPS)) {
+            expect(key).toMatch(/^@tolki\/\w+:\w+$/);
+            expect(entry.reason.length).toBeGreaterThan(0);
+            expect(entry.bundlers.length).toBeGreaterThan(0);
+        }
+
+        expect(Object.keys(KEPT_DROPS)).toHaveLength(20);
     });
 
     it("builds keep fixtures only for mutates exports", () => {

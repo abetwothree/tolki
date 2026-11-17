@@ -8,6 +8,8 @@ import type { ExportEntry, SourceScan } from "../side-effects/scan.ts";
 import type { BundlerName } from "./bundlers.ts";
 import { BUNDLERS } from "./bundlers.ts";
 import type { Finding } from "./checks.ts";
+import type { KeptDrop } from "./expectations.ts";
+import { KEPT_DROPS } from "./expectations.ts";
 import type { PackageJson, StagedPackage } from "./stage.ts";
 
 export type CheckName =
@@ -403,6 +405,7 @@ function dropFixture(
     names: string[],
     pure: boolean,
     id = `drop:${sub.specifier}${pure ? PURE_SUFFIX : ""}`,
+    outcome?: { bundlers: readonly BundlerName[]; expect: Expectations },
 ): Fixture {
     const head = importLine(names, sub.specifier);
     const calls = names
@@ -417,26 +420,64 @@ function dropFixture(
         check: "drop",
         files: { "mod.js": `${head}${calls}${USED}`, "entry.js": ENTRY_USED },
         control: { "mod.js": `${head}${USED}`, "entry.js": ENTRY_USED },
-        bundlers: pure ? ["esbuild"] : BUNDLERS,
-        expect: pure ? { esbuild: "dropped" } : DROPPED_BUT_ESBUILD,
+        bundlers: outcome?.bundlers ?? (pure ? ["esbuild"] : BUNDLERS),
+        expect:
+            outcome?.expect ??
+            (pure ? { esbuild: "dropped" } : DROPPED_BUT_ESBUILD),
         strict: false,
     };
 }
 
-/** The combined `drop` fixture of one subpath plus its per-name split. */
+/**
+ * The `drop` fixtures of one subpath: a combined one with its per-name split, plus one fixture per name `KEPT_DROPS`
+ * lists. A listed name expects `kept` in its bundlers, and with a call-site PURE it expects `dropped` there too.
+ */
 function dropWithSplit(
     sub: SubpathExports,
     names: string[],
     pure: boolean,
-): Fixture {
-    const combined = dropFixture(sub, names, pure);
+): Fixture[] {
+    const known = names.filter(
+        (name) => `${sub.specifier}:${name}` in KEPT_DROPS,
+    );
+    const rest = names.filter((name) => !known.includes(name));
+    const fixtures: Fixture[] = [];
 
-    return {
-        ...combined,
-        split: names.map((name) =>
-            dropFixture(sub, [name], pure, `${combined.id}:${name}`),
-        ),
-    };
+    if (rest.length > 0) {
+        const combined = dropFixture(sub, rest, pure);
+
+        fixtures.push({
+            ...combined,
+            split: rest.map((name) =>
+                dropFixture(sub, [name], pure, `${combined.id}:${name}`),
+            ),
+        });
+    }
+
+    for (const name of known) {
+        const kept = (KEPT_DROPS[`${sub.specifier}:${name}`] as KeptDrop)
+            .bundlers;
+        const id = `drop:${sub.specifier}${pure ? PURE_SUFFIX : ""}:${name}`;
+
+        fixtures.push(
+            pure
+                ? dropFixture(sub, [name], true, id, {
+                      bundlers: ["esbuild", ...kept],
+                      expect: all("dropped"),
+                  })
+                : dropFixture(sub, [name], false, id, {
+                      bundlers: BUNDLERS,
+                      expect: {
+                          ...DROPPED_BUT_ESBUILD,
+                          ...Object.fromEntries(
+                              kept.map((bundler) => [bundler, "kept"]),
+                          ),
+                      },
+                  }),
+        );
+    }
+
+    return fixtures;
 }
 
 /** A `keep` fixture: a call that writes to a used target, against the module without the call. */
@@ -597,8 +638,8 @@ export function buildFixtures(
             return pure.length === 0 || sub.nodeOnly
                 ? []
                 : [
-                      dropWithSplit(sub, pure, false),
-                      dropWithSplit(sub, pure, true),
+                      ...dropWithSplit(sub, pure, false),
+                      ...dropWithSplit(sub, pure, true),
                   ];
         }),
         ...subpaths.flatMap((sub) =>

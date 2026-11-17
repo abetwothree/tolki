@@ -34,17 +34,17 @@ esbuild keeps identifiers because its renamer weighs the text of code it later d
 - **Different marks fail.** A runtime-exported name its package declares in several files with different marks is a finding of the scan (`drop:<pkg>:<name> [scan]`), naming each file.
 - **Node-only subpaths.** An entry whose `dist` imports a `node:` built-in, directly or through its own modules, runs in a Vite config and is never browser-bundled. `parity` and `drop` skip it, because any kept call there is `node:` or `vite` import residue, not package code; the other checks still run.
 
-| Check                      | One per                                                     | Bundlers                                     | Passes when                                                                                |
-| -------------------------- | ----------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `bare`                     | subpath                                                     | Rollup, Rolldown, strict                     | Rollup: 0 bytes of every own module. Rolldown: the minified bundle equals an empty entry's |
-| `parity`                   | exported name, except on Node-only subpaths                 | Rolldown, esbuild                            | esbuild keeps no own module that Rolldown drops                                            |
-| `surface`                  | subpath                                                     | all five                                     | importing every name builds with no missing export                                         |
-| `namespace`                | subpath                                                     | Rollup, Rolldown, esbuild                    | `ns.<first name>` keeps the same own modules as the named import                           |
-| `drop`                     | subpath with pure names                                     | all five: esbuild `kept`, the rest `dropped` | unused calls of every pure name match the control                                          |
-| `drop` (`:call-site-pure`) | the same                                                    | esbuild `dropped`                            | the same calls with `/* @__PURE__ */` match the control                                    |
-| `keep`                     | `@sideEffects mutates` export                               | all five `kept`                              | `f(target)` on a used target differs from the control                                      |
-| `keep` (`canary`)          | one, always                                                 | all five `kept`                              | an `@tolki/enum` `from(...)` call differs from the control                                 |
-| `shape`                    | generated consumer file, with and without `:call-site-pure` | all five                                     | each bundler gives its expected outcome (below)                                            |
+| Check                      | One per                                                     | Bundlers                                                                  | Passes when                                                                                |
+| -------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `bare`                     | subpath                                                     | Rollup, Rolldown, strict                                                  | Rollup: 0 bytes of every own module. Rolldown: the minified bundle equals an empty entry's |
+| `parity`                   | exported name, except on Node-only subpaths                 | Rolldown, esbuild                                                         | esbuild keeps no own module that Rolldown drops                                            |
+| `surface`                  | subpath                                                     | all five                                                                  | importing every name builds with no missing export                                         |
+| `namespace`                | subpath                                                     | Rollup, Rolldown, esbuild                                                 | `ns.<first name>` keeps the same own modules as the named import                           |
+| `drop`                     | subpath with pure names                                     | all five: esbuild `kept`, the rest `dropped`                              | unused calls of every pure name match the control                                          |
+| `drop` (`:call-site-pure`) | the same                                                    | esbuild `dropped`, plus Rolldown and Rspack for the names in `KEPT_DROPS` | the same calls with `/* @__PURE__ */` match the control                                    |
+| `keep`                     | `@sideEffects mutates` export                               | all five `kept`                                                           | `f(target)` on a used target differs from the control                                      |
+| `keep` (`canary`)          | one, always                                                 | all five `kept`                                                           | an `@tolki/enum` `from(...)` call differs from the control                                 |
+| `shape`                    | generated consumer file, with and without `:call-site-pure` | all five                                                                  | each bundler gives its expected outcome (below)                                            |
 
 The five shapes are the enum file (`defineEnum`, `values`), the enum alone (`enum-only`, the generated file's real form), a plain `defineRoute`, and the curried `annotatePageProps()(defineRoute(...))` and `annotateRequestPayload()(defineRoute(...))`. Each entry imports only an unrelated `used` export.
 
@@ -62,7 +62,15 @@ Measured in Appendix B, table 4 of the [plan](../superpowers/plans/2026-11-17-tr
 | any `:call-site-pure` fixture                         | dropped | dropped  | dropped | dropped | dropped |
 | `keep`                                                | kept    | kept     | kept    | kept    | kept    |
 
-The `drop` call-site-pure fixture runs in esbuild only.
+The `drop` call-site-pure fixture runs in esbuild only, except for the names in `KEPT_DROPS`, which also run in Rolldown and Rspack.
+
+### Kept drops
+
+[`expectations.ts`](../../scripts/treeshake/expectations.ts) lists pure names whose unused module-level call still leaves code behind, keyed `<specifier>:<name>`, each with the bundlers that keep it and a one-line reason. They are measured expectations, not debt, and `debt.json` stays `[]`.
+
+- **Root cause.** Rolldown 1.3.2 honours `@__NO_SIDE_EFFECTS__` at link time only on an inline `export function f`. Vite always emits export lists (`export { f }`), so the call is dropped but the helper module's side-effectful dependency (pluralize, markdown-it, transliteration, uuid, ulid) stays. Rspack shows the same residue. `collect` keeps the `Collection` class and its helpers. Rollup and webpack drop everything.
+- **Fixtures.** A listed name gets its own `drop` fixture that expects `kept` in the listed bundlers, so the combined fixture still fails when a lost annotation hides elsewhere. A second fixture with a call-site `/* @__PURE__ */` expects `dropped` in esbuild, Rolldown and Rspack, which proves the workaround the docs give.
+- **Tripwire.** A listed name that drops fails with the expectation-changed message, so a bundler fix shows up as a failure to delete the entry.
 
 ## Control builds
 
