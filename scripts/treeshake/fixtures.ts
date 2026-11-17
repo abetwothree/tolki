@@ -210,7 +210,7 @@ function frameworkPeers(file: string, seen = new Set<string>()): string[] {
     return [...new Set([...peers, ...nested])].sort();
 }
 
-/** The staged `dist` module built from a scanned `src` file, one entry per source file as `scripts/entries.ts` builds. */
+/** The staged `dist` module for a scanned `src` file, one per source file as `scripts/entries.ts` builds. */
 function distModule(root: string, file: string): string {
     const relative = file.slice(file.indexOf("/src/") + "/src/".length);
 

@@ -22,15 +22,22 @@ export interface DebtEntry {
 }
 
 export const EXPECTATION_CHANGED =
-    "expectation changed: update docs/features/treeshake-check.md and docs/vitepress/tree-shaking.md";
+    "expectation changed: update docs/features/treeshake-check.md, docs/vitepress/tree-shaking.md, docs/vitepress/ts/enums.md and docs/vitepress/ts/routing.md";
 
 export const KEPT_DROP_CHANGED =
-    "expectation changed: update scripts/treeshake/expectations.ts and the Bundling sections of docs/vitepress/strings/index.md, collections/index.md, numbers/index.md and localization/index.md";
+    "expectation changed: update scripts/treeshake/expectations.ts, the Dependency residue section of docs/vitepress/tree-shaking.md and the Bundling sections of docs/vitepress/strings/index.md, collections/index.md, numbers/index.md and localization/index.md";
+
+export const KEEP_DROPPED =
+    "correctness failure, not a docs update: a call that must stay was dropped, so an impure function lost its side effect; check the function's @__NO_SIDE_EFFECTS__ mark in its source against the classification rules in docs/features/side-effect-annotations.md";
 
 const KEPT = "kept; expected dropped";
 
-/** The expectation-changed message for a fixture: a kept drop points at its table and docs, the rest at the shape docs. */
+/** The message for a fixture that came out dropped: a `keep` one is a correctness failure, the rest name their docs. */
 export function expectationChangedMessage(fixture: Fixture): string {
+    if (fixture.check === "keep") {
+        return KEEP_DROPPED;
+    }
+
     const listed = Object.keys(KEPT_DROPS).some(
         (key) =>
             fixture.id === `drop:${key}` ||
@@ -39,6 +46,7 @@ export function expectationChangedMessage(fixture: Fixture): string {
 
     return listed ? KEPT_DROP_CHANGED : EXPECTATION_CHANGED;
 }
+
 const UNEXCUSABLE = /^(build failed|missing exports): /;
 const COMPARED: ReadonlySet<CheckName> = new Set(["drop", "keep", "shape"]);
 

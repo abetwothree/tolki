@@ -16,6 +16,7 @@ import {
     applyDebt,
     EXPECTATION_CHANGED,
     expectationChangedMessage,
+    KEEP_DROPPED,
     KEPT_DROP_CHANGED,
     runFixture,
     withoutPeerImports,
@@ -318,14 +319,28 @@ describe("buildFixtures", () => {
         expect(KEPT_DROP_CHANGED).toContain(
             "scripts/treeshake/expectations.ts",
         );
+        expect(KEPT_DROP_CHANGED).toContain("Dependency residue");
         expect(KEPT_DROP_CHANGED).toContain("strings/index.md");
         expect(KEPT_DROP_CHANGED).toContain("collections/index.md");
+        expect(EXPECTATION_CHANGED).toContain("ts/enums.md");
+        expect(EXPECTATION_CHANGED).toContain("ts/routing.md");
         expect(
             expectationChangedMessage(fixture("shape:@tolki/ts:enum-only")),
         ).toBe(EXPECTATION_CHANGED);
         expect(
             expectationChangedMessage(fixture("drop:@tolki/str:after")),
         ).toBe(EXPECTATION_CHANGED);
+    });
+
+    it("calls a dropped keep fixture a correctness failure naming the mark", () => {
+        const keep = { id: "keep:@tolki/a:pop", check: "keep" } as Fixture;
+
+        expect(expectationChangedMessage(keep)).toBe(KEEP_DROPPED);
+        expect(KEEP_DROPPED).toContain("@__NO_SIDE_EFFECTS__");
+        expect(KEEP_DROPPED).toContain(
+            "docs/features/side-effect-annotations.md",
+        );
+        expect(KEEP_DROPPED).toContain("correctness failure");
     });
 
     it("lists only exports the source scan classifies as pure", () => {
