@@ -1,6 +1,6 @@
 # Tree-shake check
 
-`pnpm treeshake:check` bundles the built `@tolki/*` packages with five bundlers and fails on a tree-shaking regression. It is the bundle-level half of the guard; [side-effect-annotations.md](./side-effect-annotations.md) is the source-level half. Source of truth: [`scripts/treeshake/`](../../scripts/treeshake/).
+`pnpm treeshake:check` bundles the built `@tolki/*` packages with five bundlers and fails on a tree-shaking regression. It is the bundle-level half of the guard; [side-effect-annotations.md](./side-effect-annotations.md) is the source-level half. Source of truth: [`scripts/treeshake/`](../../scripts/treeshake/). The user-facing page that states these outcomes is [`docs/vitepress/tree-shaking.md`](../vitepress/tree-shaking.md), and every claim there names its fixture id in an HTML comment such as `<!-- scripts/treeshake/fixtures.ts, "shape:@tolki/ts:enum-only" -->`.
 
 ## Staging
 

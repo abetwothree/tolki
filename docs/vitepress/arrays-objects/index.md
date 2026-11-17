@@ -62,7 +62,7 @@ The return types follow the same split. `dataGet` is typed as the two packages' 
 
 ## Importing the Package
 
-You can import individual functions for better tree-shaking or the entire package (not recommended). On the docs site, each tab below imports from its own package and checks one small call:
+You can import individual functions or the package as a namespace. Both tree-shake the same way. On the docs site, each tab below imports from its own package and checks one small call:
 
 ::: code-group
 
@@ -92,15 +92,13 @@ dataGet({ desk: { price: 100 } }, "desk.price");
 
 :::
 
-Import only the functions you use. Importing the entire package with `import * as Arr from "@tolki/arr"` is not recommended: it can pull every function into your bundle, even the ones you never call, which makes the bundles larger. Importing individual functions lets your build ship only the code that runs.
-
-However, if you are working on a backend project where bundle size is not a concern, importing the entire package can be more convenient.
+Importing the package as a namespace, as in `import * as Arr from "@tolki/arr"`, tree-shakes the same way when you read its members by name, such as `Arr.get(...)`: your bundle holds only the members you use. Passing the namespace object around, or reading a computed member such as `Arr[name]`, keeps every function. See [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html#namespace-imports).
 
 ## Bundling
 
 A helper call whose result nothing uses drops out of your bundle in Vite (Rolldown), Rollup, webpack and Rspack, because the helpers are marked as free of side effects. This holds for the `data*` helpers as it does for `@tolki/arr` and `@tolki/obj`, including a call at the top level of a module.
 
-esbuild doesn't follow that mark across files, so it keeps the call unless the call site says it is safe to remove:
+esbuild doesn't follow that mark across files, so it keeps the call unless the call site says it is safe to remove (see [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html)):
 
 ```typescript
 export const prices = /* @__PURE__ */ dataPluck(products, "price");

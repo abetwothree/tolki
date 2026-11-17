@@ -20,7 +20,7 @@ pnpm add @tolki/str
 
 ## Importing the Package
 
-You can import individual functions for better tree-shaking or the entire package (not recommended).:
+You can import individual functions or the whole package as a namespace. Both tree-shake the same way:
 
 Importing individual functions:
 
@@ -33,10 +33,10 @@ const camelCaseString = camel("hello world"); // 'helloWorld'
 const choppedString = chopEnd("HelloWorld", 5); // 'Hello'
 ```
 
-Importing the entire package:
+Importing the package as a namespace:
 
 ```typescript
-// Import the entire package (not recommended for tree-shaking)
+// Import the package as a namespace
 import * as Str from "@tolki/str";
 
 // Example usage
@@ -44,9 +44,7 @@ const camelCaseString = Str.camel("hello world"); // 'helloWorld'
 const choppedString = Str.chopEnd("HelloWorld", 5); // 'Hello'
 ```
 
-The reason that importing the entire package is not recommended is that it will include all functions in your bundle, even the ones you don't use, which can lead to larger bundle sizes. Importing individual functions allows your end files to only include the code that is actually used, resulting in smaller and more efficient bundles.
-
-However, if you are working on a backend project where bundle size is not a concern, importing the entire package can be more convenient.
+A namespace import that reads its members by name, such as `Str.camel(...)`, shakes exactly like named imports in Rollup, Rolldown (Vite 8), esbuild, webpack and Rspack: your bundle holds only the members you use. Passing the namespace object around, or reading a computed member such as `Str[name]`, keeps every function. See [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html#namespace-imports).
 
 ## Bundling
 
@@ -58,6 +56,6 @@ The exception is Vite 8 (Rolldown) and Rspack, where an unused top-level call to
 export const id = /* @__PURE__ */ uuid();
 ```
 
-esbuild doesn't follow the mark across files, so it needs the same comment on any helper call.
+esbuild doesn't follow the mark across files, so it needs the same comment on any helper call. [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html) covers every bundler.
 
 The functions that set or clear a generator or the casing caches (`createRandomStringsUsing`, `createUuidsUsing`, `createUlidsUsing`, `freezeUuids`, `freezeUlids`, `flushCache`, `resetFactoryState` and the other `create*` helpers) change module state, and so does `inflector`, which registers the pluralizer's rules on the shared `pluralize` instance. A call to any of them is always kept.
