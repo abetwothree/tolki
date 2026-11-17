@@ -292,7 +292,7 @@ describe("buildFixtures", () => {
             rolldown: "kept",
             esbuild: "kept",
             webpack: "kept",
-            rspack: "kept",
+            rspack: "dropped",
         };
 
         expect(
@@ -303,8 +303,14 @@ describe("buildFixtures", () => {
                 ]),
             ),
         ).toEqual({
-            "shape:@tolki/ts:enum-file": { ...dropped, esbuild: "kept" },
+            "shape:@tolki/ts:enum-file": {
+                ...dropped,
+                esbuild: "kept",
+                rspack: "kept",
+            },
             "shape:@tolki/ts:enum-file:call-site-pure": allDropped,
+            "shape:@tolki/ts:enum-only": { ...dropped, esbuild: "kept" },
+            "shape:@tolki/ts:enum-only:call-site-pure": allDropped,
             "shape:@tolki/ts:define-route": { ...dropped, esbuild: "kept" },
             "shape:@tolki/ts:define-route:call-site-pure": allDropped,
             "shape:@tolki/ts:annotate-page-props": curried,
@@ -338,6 +344,14 @@ describe("buildFixtures", () => {
             [
                 'import { annotatePageProps, annotateRequestPayload, defineRoute } from "@tolki/ts";',
                 'export const show = /* @__PURE__ */ annotatePageProps()(/* @__PURE__ */ defineRoute({ url: "/users/{user}", methods: ["get"], args: [{ name: "user", required: true }] }));',
+                "export const used = 1;",
+                "",
+            ].join("\n"),
+        );
+        expect(shape.get("shape:@tolki/ts:enum-only")?.files["mod.js"]).toBe(
+            [
+                'import { defineEnum } from "@tolki/ts";',
+                'export const Status = defineEnum({ Active: "active", Inactive: "inactive", backed: true, _cases: ["Active", "Inactive"] });',
                 "export const used = 1;",
                 "",
             ].join("\n"),
@@ -410,8 +424,6 @@ describe("shared and Node-only exports", () => {
             "drop:@tolki/l:call-site-pure",
             "drop:@tolki/l/vue",
             "drop:@tolki/l/vue:call-site-pure",
-            "drop:@tolki/l/vite",
-            "drop:@tolki/l/vite:call-site-pure",
         ]);
         expect(declarationConflicts(shared, declared("pure"))).toEqual([]);
     });
@@ -434,10 +446,7 @@ describe("shared and Node-only exports", () => {
             ({ check }) => check === "drop",
         );
 
-        expect(drops.map(({ id }) => id)).toEqual([
-            "drop:@tolki/l/vite",
-            "drop:@tolki/l/vite:call-site-pure",
-        ]);
+        expect(drops.map(({ id }) => id)).toEqual([]);
     });
 
     it("skips parity for Node-only subpaths", () => {

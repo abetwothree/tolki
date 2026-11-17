@@ -62,11 +62,17 @@ const DROPPED_BUT_ESBUILD: Expectations = {
     ...all("dropped"),
     esbuild: "kept",
 };
-const CURRIED: Expectations = { ...all("kept"), rollup: "dropped" };
+const CURRIED: Expectations = {
+    ...all("kept"),
+    rollup: "dropped",
+    rspack: "dropped",
+};
+const RSPACK_KEEPS: Expectations = { ...DROPPED_BUT_ESBUILD, rspack: "kept" };
 
 const CANARY_IMPORT = 'import { from } from "@tolki/enum";\n';
 
 const ENUM_IMPORT = 'import { defineEnum, values } from "@tolki/ts";';
+const ENUM_ONLY_IMPORT = 'import { defineEnum } from "@tolki/ts";';
 const ROUTE_IMPORT =
     'import { annotatePageProps, annotateRequestPayload, defineRoute } from "@tolki/ts";';
 
@@ -85,6 +91,15 @@ const SHAPES: Shape[] = [
         exports: (pure) => [
             `export const Status = ${pure}defineEnum({ Active: "active", Inactive: "inactive", backed: true, _cases: ["Active", "Inactive"] });`,
             `export const STATUSES = ${pure}values(Status);`,
+        ],
+        // Rspack keeps defineEnum's body once the module also derives a list from the enum.
+        expect: RSPACK_KEEPS,
+    },
+    {
+        name: "enum-only",
+        head: ENUM_ONLY_IMPORT,
+        exports: (pure) => [
+            `export const Status = ${pure}defineEnum({ Active: "active", Inactive: "inactive", backed: true, _cases: ["Active", "Inactive"] });`,
         ],
         expect: DROPPED_BUT_ESBUILD,
     },
@@ -575,10 +590,11 @@ export function buildFixtures(
                 strict: false,
             };
         }),
+        // A Node-only entry is never bundled for the browser, so its kept imports are not ours to drop.
         ...subpaths.flatMap((sub) => {
             const pure = homed(sub, "pure");
 
-            return pure.length === 0
+            return pure.length === 0 || sub.nodeOnly
                 ? []
                 : [
                       dropWithSplit(sub, pure, false),

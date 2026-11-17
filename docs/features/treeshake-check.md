@@ -32,7 +32,7 @@ esbuild keeps identifiers because its renamer weighs the text of code it later d
 
 - **One declaration, one test.** Each runtime export is mapped to the source file that declares it: the scanned file whose `dist` module exports the identical value. A declaration exported by several subpaths is tested once, from `"."` when it is there. Two same-named declarations, such as `@tolki/lang`'s `createLang` in `lang.ts` and `vue.ts`, are each tested through the subpath that ships them.
 - **Different marks fail.** A runtime-exported name its package declares in several files with different marks is a finding of the scan (`drop:<pkg>:<name> [scan]`), naming each file.
-- **Node-only subpaths.** An entry whose `dist` imports a `node:` built-in, directly or through its own modules, runs in a Vite config and is never browser-bundled. `parity` skips it; the other checks still run.
+- **Node-only subpaths.** An entry whose `dist` imports a `node:` built-in, directly or through its own modules, runs in a Vite config and is never browser-bundled. `parity` and `drop` skip it, because any kept call there is `node:` or `vite` import residue, not package code; the other checks still run.
 
 | Check                      | One per                                                     | Bundlers                                     | Passes when                                                                                |
 | -------------------------- | ----------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------ |
@@ -46,7 +46,7 @@ esbuild keeps identifiers because its renamer weighs the text of code it later d
 | `keep` (`canary`)          | one, always                                                 | all five `kept`                              | an `@tolki/enum` `from(...)` call differs from the control                                 |
 | `shape`                    | generated consumer file, with and without `:call-site-pure` | all five                                     | each bundler gives its expected outcome (below)                                            |
 
-The four shapes are the enum file (`defineEnum`, `values`), a plain `defineRoute`, and the curried `annotatePageProps()(defineRoute(...))` and `annotateRequestPayload()(defineRoute(...))`. Each entry imports only an unrelated `used` export.
+The five shapes are the enum file (`defineEnum`, `values`), the enum alone (`enum-only`, the generated file's real form), a plain `defineRoute`, and the curried `annotatePageProps()(defineRoute(...))` and `annotateRequestPayload()(defineRoute(...))`. Each entry imports only an unrelated `used` export.
 
 The canary keeps `kept` observable in every bundler whatever the packages annotate: `from` throws on bad input and is never annotated. The fixture work dir's `package.json` has no `sideEffects` key on purpose: with `false`, webpack and Rspack would drop every app-module call, and every `drop` and `shape` fixture would pass without testing anything.
 
@@ -56,8 +56,9 @@ Measured in Appendix B, table 4 of the [plan](../superpowers/plans/2026-11-17-tr
 
 | Fixture                                               | Rollup  | Rolldown | esbuild | webpack | Rspack  |
 | ----------------------------------------------------- | ------- | -------- | ------- | ------- | ------- |
-| `drop`, enum file, plain `defineRoute`                | dropped | dropped  | kept    | dropped | dropped |
-| curried `annotatePageProps`, `annotateRequestPayload` | dropped | kept     | kept    | kept    | kept    |
+| `drop`, enum alone, plain `defineRoute`               | dropped | dropped  | kept    | dropped | dropped |
+| enum file (`defineEnum` plus `values(Status)`)        | dropped | dropped  | kept    | dropped | kept    |
+| curried `annotatePageProps`, `annotateRequestPayload` | dropped | kept     | kept    | kept    | dropped |
 | any `:call-site-pure` fixture                         | dropped | dropped  | dropped | dropped | dropped |
 | `keep`                                                | kept    | kept     | kept    | kept    | kept    |
 
