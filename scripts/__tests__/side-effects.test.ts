@@ -8,11 +8,6 @@ const ROOT = resolve(__dirname, "../..");
 const ANNOTATION = "/* @__NO_SIDE_EFFECTS__ */";
 
 /**
- * Packages whose exports are not yet all classified.
- */
-const PENDING_PACKAGES: ReadonlySet<string> = new Set([]);
-
-/**
  * Scans one inline source as a file of package `@tolki/x`.
  */
 function scan(source: string) {
@@ -326,13 +321,9 @@ describe("published sources", () => {
         expect(scanResult.placement).toEqual([]);
     });
 
-    it("classifies every export of non-pending packages", () => {
+    it("classifies every export", () => {
         const missing = scanResult.exports
-            .filter(
-                (entry) =>
-                    entry.kind === "unclassified" &&
-                    !PENDING_PACKAGES.has(entry.pkg),
-            )
+            .filter((entry) => entry.kind === "unclassified")
             .map((entry) => `${entry.file}:${entry.line} ${entry.name}`);
 
         expect(missing).toEqual([]);
@@ -340,17 +331,5 @@ describe("published sources", () => {
 
     it("has no unannotated module-scope calls", () => {
         expect(scanResult.moduleScope).toEqual([]);
-    });
-
-    it("has no stale pending packages", () => {
-        const stale = [...PENDING_PACKAGES].filter(
-            (pkg) =>
-                !scanResult.exports.some(
-                    (entry) =>
-                        entry.pkg === pkg && entry.kind === "unclassified",
-                ),
-        );
-
-        expect(stale).toEqual([]);
     });
 });
