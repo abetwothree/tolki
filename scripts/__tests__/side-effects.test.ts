@@ -11,7 +11,6 @@ const ANNOTATION = "/* @__NO_SIDE_EFFECTS__ */";
  * Packages whose exports are not yet all classified.
  */
 const PENDING_PACKAGES: ReadonlySet<string> = new Set([
-    "@tolki/arr",
     "@tolki/collection",
     "@tolki/data",
     "@tolki/lang",

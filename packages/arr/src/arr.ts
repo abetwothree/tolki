@@ -1,4 +1,4 @@
-import { SortDirection } from "@tolki/enum";
+import type { SortDirection } from "@tolki/enum";
 import {
     collapse as objCollapse,
     crossJoin as objCrossJoin,
@@ -302,9 +302,21 @@ type ListPrependRecord<TValue, TPrependValue, TStoredKey> = [
               >
       >;
 
-const sortSpecComparator = /* @__PURE__ */ createSortSpecComparator(
-    (item, key) => getNestedValue(item, key as PropertyKey),
-);
+/**
+ * Build the comparator one sort descriptor implies, resolving keys with a dot-path read.
+ *
+ * @param spec - The sort descriptor.
+ * @param forceDescending - Whether every descriptor sorts descending.
+ * @returns The comparator for the descriptor.
+ */
+function sortSpecComparator<TValue>(
+    spec: SortSpec<TValue>,
+    forceDescending: boolean,
+): (a: TValue, b: TValue) => number | boolean {
+    return createSortSpecComparator((item, key) =>
+        getNestedValue(item, key as PropertyKey),
+    )(spec, forceDescending);
+}
 
 /**
  * Determine whether the given value is array accessible.
@@ -315,6 +327,7 @@ const sortSpecComparator = /* @__PURE__ */ createSortSpecComparator(
  * accessible([1, 2]); // true
  * accessible({ a: 1, b: 2 }); // false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function accessible<TValue>(value: TValue): value is TValue & unknown[] {
     return isArray(value);
 }
@@ -328,6 +341,7 @@ export function accessible<TValue>(value: TValue): value is TValue & unknown[] {
  * arrayable([1, 2]); // true
  * arrayable({ a: 1, b: 2 }); // false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function arrayable(value: unknown): value is unknown[] {
     return isArray(value);
 }
@@ -477,6 +491,7 @@ function copyAlongPath(
  * add(['products', ['desk', [100]]], '1.1', 200); -> ['products', ['desk', [100, 200]]]
  * add(['products', ['desk', [100]]], '2', ['chair', [150]]); -> ['products', ['desk', [100]], ['chair', [150]]]
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function add<TValue, TAddValue>(
     data: ArrayItems<TValue>,
     key: PathKey,
@@ -536,6 +551,7 @@ export function arrayItem<TDefault = null>(
     key: PathKey,
     defaultValue?: TDefault | (() => TDefault) | null,
 ): unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function arrayItem<TValue, TDefault = null>(
     data: TValue[] | unknown,
     key: PathKey,
@@ -579,6 +595,7 @@ export function boolean<TDefault = null>(
     defaultValue?: TDefault | (() => TDefault) | null,
 ): boolean;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function boolean<TValue, TDefault = null>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -621,6 +638,7 @@ export function chunk<TValue>(
     size: number,
     preserveKeys: boolean | undefined,
 ): TValue[][] | Record<number, TValue>[];
+/* @__NO_SIDE_EFFECTS__ */
 export function chunk<TValue>(
     data: ArrayItems<TValue>,
     size: number,
@@ -668,6 +686,7 @@ export function chunk<TValue>(
  *
  * chunkWhile(['A', 'A', 'B'], (value, index, chunk) => chunk.at(-1) === value); -> [['A', 'A'], ['B']]
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function chunkWhile<TValue>(
     data: ArrayItems<TValue>,
     callback: (value: TValue, index: number, chunk: TValue[]) => unknown,
@@ -706,6 +725,7 @@ export function chunkWhile<TValue>(
  * chunkBy([1, 1, 2, 2, 1], (value) => value); -> [[1, 1], [2, 2], [1]]
  * chunkBy([{ p: 'a' }, { p: 'a' }, { p: 'b' }], 'p'); -> [[{ p: 'a' }, { p: 'a' }], [{ p: 'b' }]]
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function chunkBy<TValue>(
     data: ArrayItems<TValue>,
     key: PathKey | ((value: TValue, index: number) => unknown),
@@ -758,6 +778,7 @@ export function collapse<TItem extends object>(
 export function collapse<TValue extends ArrayItems<unknown>>(
     data: TValue,
 ): Record<string, unknown> | ArrayInnerValue<TValue[number]>[] | unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function collapse<TValue extends ArrayItems<unknown>>(
     data: TValue,
 ): Record<string, unknown> | ArrayInnerValue<TValue[number]>[] | unknown[] {
@@ -798,6 +819,7 @@ export function collapse<TValue extends ArrayItems<unknown>>(
  * @returns A new object mapping each key to its corresponding value.
  * @throws Error if `keys` and `values` do not have the same length.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function combine<TKey, TValue>(
     keys: ArrayItems<TKey>,
     values: ArrayItems<TValue> | Record<PropertyKey, TValue>,
@@ -864,6 +886,7 @@ export function crossJoin<A, B, C, D, E, F>(
 export function crossJoin(
     ...arrays: readonly (readonly unknown[])[]
 ): unknown[][];
+/* @__NO_SIDE_EFFECTS__ */
 export function crossJoin(...arrays: readonly object[]): unknown[][] {
     // Keying each argument by its position makes obj's rows list their values in argument order.
     return objCrossJoin(
@@ -883,6 +906,7 @@ export function crossJoin(...arrays: readonly object[]): unknown[][] {
  */
 export function divide(array: readonly []): [number[], unknown[]];
 export function divide<TValue>(array: readonly TValue[]): [number[], TValue[]];
+/* @__NO_SIDE_EFFECTS__ */
 export function divide<TValue>(array: readonly TValue[]): [number[], TValue[]] {
     const keys = array.map((_, i) => i);
     return [keys, array.slice() as TValue[]];
@@ -915,6 +939,7 @@ export function dot<TValue>(
     prepend?: string,
     depth?: number,
 ): Record<string, TValue>;
+/* @__NO_SIDE_EFFECTS__ */
 export function dot<TValue>(
     data: ArrayItems<TValue> | unknown,
     prepend: string = "",
@@ -948,6 +973,7 @@ function isArrayIndexPath(key: string): boolean {
  *
  * undot({ '0': 'a', '1.0': 'b', '1.1': 'c' }); -> ['a', ['b', 'c']]
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function undot<TValue, TKey extends UndotArrayKey = number>(
     map: Record<TKey, TValue>,
 ): UndotResult<TKey, TValue> {
@@ -1039,6 +1065,7 @@ export function union<A, B, C, D, E, F>(
 export function union(
     ...arrays: (readonly unknown[] | null | undefined)[]
 ): unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function union(
     ...arrays: (readonly unknown[] | object | null | undefined)[]
 ): unknown[] {
@@ -1083,6 +1110,7 @@ function unionValues(
  * @see Collection::unshift — `packages/collection/stubs/Collection.php:1106`.
  *      Wraps `array_unshift`; mutates.
  *
+ * @sideEffects mutates - Prepends the items onto the given array.
  * @param data - The array to prepend items to. Mutated in place.
  * @param items - The items to prepend.
  * @returns The same array reference, mutated.
@@ -1137,6 +1165,7 @@ export function unshift<TValue>(
  * except(["a", "b", "c"], 1); -> ['a', 'c']
  * except(["a", "b", "c"], [0, 2]); -> ['b']
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function except<TValue>(
     data: readonly TValue[],
     keys: PathKeys,
@@ -1158,6 +1187,7 @@ export function except<TValue>(
  * exceptValues([1, 2, 3, 4, 5], [3, 4]); -> [0 => 1, 1 => 2, 4 => 5]
  * exceptValues([1, '1', 2, '2', 3], [1, 2, 3], true); -> [1 => '1', 3 => '2']
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function exceptValues<TValue>(
     data: readonly TValue[],
     values: TValue | readonly TValue[],
@@ -1185,6 +1215,7 @@ export function exceptValues<TValue>(
  * exists([1, 2, 3], 3); -> false
  * exists([1, 2, 3], '01'); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function exists<TValue>(data: readonly TValue[], key: PathKey): boolean {
     // Arr::exists casts a null or float key to string; a list holds only canonical integer keys, so "01" misses.
     const index = phpArrayKey(toPhpKeyString(key));
@@ -1261,6 +1292,7 @@ export function first<TValue, TFirstDefault = null>(
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function first<TValue, TFirstDefault = null>(
     data: ArrayItems<TValue> | unknown,
     callback?: ((value: TValue, key: number) => unknown) | null,
@@ -1404,6 +1436,7 @@ export function last<TValue, TFirstDefault = null>(
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function last<TValue, TFirstDefault = null>(
     data: ArrayItems<TValue> | unknown,
     callback?: ((value: TValue, key: number) => unknown) | null,
@@ -1509,6 +1542,7 @@ export function last<TValue, TFirstDefault = null>(
  * take([1, 2, 3, 4, 5], -2); -> [4, 5]
  * take([1, 2, 3], 5); -> [1, 2, 3]
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function take<TValue>(
     data: readonly TValue[] | null | undefined,
     limit: number,
@@ -1573,6 +1607,7 @@ export function flatten(
     data: readonly unknown[] | null | undefined,
     depth?: number,
 ): unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function flatten<TValue>(
     data: ArrayItems<TValue> | unknown,
     depth: number = Infinity,
@@ -1622,6 +1657,7 @@ export function flip(
     data: readonly unknown[] | null | undefined,
 ): Record<string, number>;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function flip<TValue>(
     data: readonly TValue[] | unknown,
 ): Record<string, number> {
@@ -1679,6 +1715,7 @@ export function float<TDefault = null>(
     defaultValue?: TDefault | (() => TDefault) | null,
 ): number;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function float<TValue, TDefault = null>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -1711,6 +1748,7 @@ export function float<TValue, TDefault = null>(
  * forget(['products', ['desk', [100]]], '1.1'); -> ['products', ['desk']]
  * forget(['products', ['desk', [100]]], 2); -> ['products', ['desk', [100]]]
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function forget<TValue>(
     data: ArrayItems<TValue>,
     keys: PathKeys,
@@ -1744,6 +1782,7 @@ export function from(
 ): never;
 export function from<TValue>(items: Iterable<TValue>): TValue[];
 export function from(items: readonly unknown[] | Iterable<unknown>): unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function from(items: unknown): unknown {
     return fromItems(items);
 }
@@ -1841,6 +1880,7 @@ export function get<TValue, TDefault = unknown>(
     key: PathKey | null | undefined,
     defaultValue?: TDefault | (() => TDefault) | null,
 ): TValue | TValue[] | TDefault | null;
+/* @__NO_SIDE_EFFECTS__ */
 export function get<TValue, TDefault = unknown>(
     array: ArrayItems<TValue> | unknown,
     key: PathKey | null | undefined,
@@ -1893,6 +1933,7 @@ export function has(
     keys: PathKeys,
 ): boolean;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function has<TValue>(
     data: ArrayItems<TValue> | unknown,
     keys: PathKeys,
@@ -1939,6 +1980,7 @@ export function hasAll(
     keys: PathKeys,
 ): boolean;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function hasAll<TValue>(
     data: ArrayItems<TValue> | unknown,
     keys: PathKeys,
@@ -1982,6 +2024,7 @@ export function hasAny(
     keys: PathKeys,
 ): boolean;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function hasAny<TValue>(
     data: ArrayItems<TValue> | unknown,
     keys: PathKeys,
@@ -2041,6 +2084,7 @@ export function every<TValue>(
     callback: (value: TValue, key: number) => unknown,
 ): boolean;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function every<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback: (value: TValue, key: number) => unknown,
@@ -2104,6 +2148,7 @@ export function some<TValue>(
     callback: (value: TValue, key: number) => unknown,
 ): boolean;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function some<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback: (value: TValue, key: number) => unknown,
@@ -2166,6 +2211,7 @@ export function integer<TDefault = null>(
     defaultValue?: TDefault | (() => TDefault) | null,
 ): number;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function integer<TValue, TDefault = null>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -2209,6 +2255,7 @@ export function join(
     finalGlue?: string,
 ): string;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function join<TValue>(
     data: ArrayItems<TValue> | unknown,
     glue: string,
@@ -2279,6 +2326,7 @@ export function keyBy<TValue extends object>(
         | ((item: TValue, key: number) => string | number | null | undefined),
 ): Record<string, unknown>;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function keyBy<TValue extends object>(
     data: ArrayItems<TValue> | unknown,
     keyBy:
@@ -2330,6 +2378,7 @@ export function prependKeysWith(
     prependWith: string,
 ): Record<string, unknown>;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function prependKeysWith<TValue>(
     data: ArrayItems<TValue> | unknown,
     prependWith: string,
@@ -2369,6 +2418,7 @@ export function only(
     data: readonly unknown[] | null | undefined,
     keys: number | number[] | null,
 ): unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function only<TValue>(
     data: ArrayItems<TValue> | unknown,
     keys: number | number[] | null,
@@ -2396,6 +2446,7 @@ export function only<TValue>(
  * onlyValues([1, 2, 3, 4, 5], [3, 4]); -> [2 => 3, 3 => 4]
  * onlyValues([1, '1', 2, '2', 3], [1, 2, 3], true); -> [0 => 1, 2 => 2, 4 => 3]
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function onlyValues<TValue>(
     data: readonly TValue[],
     values: TValue | readonly TValue[],
@@ -2438,6 +2489,7 @@ export function select(
     keys: PathKeys,
 ): Record<string, unknown>[];
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function select<TValue extends object>(
     data: ArrayItems<TValue> | unknown,
     keys: PathKeys,
@@ -2532,6 +2584,7 @@ export function pluck<TValue extends object>(
     key?: string | readonly string[] | ((item: TValue) => unknown) | null,
 ): unknown[] | Record<string | number, unknown>;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function pluck<TValue extends object>(
     data: ArrayItems<TValue> | unknown,
     value:
@@ -2600,6 +2653,7 @@ export function pluck<TValue extends object>(
  * @see Collection::pop — `packages/collection/stubs/Collection.php:1040`.
  *      Mirrors `array_pop`, called `$count` times from the end; mutates.
  *
+ * @sideEffects mutates - Removes the popped items from the given array.
  * @param data - The array to pop items from. Mutated in place.
  * @param count - The number of items to pop. Defaults to 1; a fraction is dropped, and NAN pops every item.
  * @returns The popped item when count is 1, an array of popped items
@@ -2669,6 +2723,7 @@ export function map<TValue, TMapReturn>(
     callback: (value: TValue, index: number) => TMapReturn,
 ): TMapReturn[];
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function map<TValue, TMapReturn>(
     data: ArrayItems<TValue> | unknown,
     callback: (value: TValue, index: number) => TMapReturn,
@@ -2723,6 +2778,7 @@ export function mapWithKeys<
     ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
 ): Record<TMapWithKeysKey, TMapWithKeysValue>;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function mapWithKeys<
     TValue,
     TMapWithKeysValue,
@@ -2815,6 +2871,7 @@ export function mapSpread<TMapReturn>(
 // `any[]` here (only in the implementation signature) is TypeScript's standard escape
 // for satisfying every typed overload above with a variadic parameter; `unknown[]`
 // fails the overload-compatibility check (TS2394). Invisible to callers.
+/* @__NO_SIDE_EFFECTS__ */
 export function mapSpread<TMapReturn>(
     data: unknown,
     callback: (...args: any[]) => TMapReturn,
@@ -2887,6 +2944,7 @@ export function prepend(
     key: PropertyKey | null | undefined,
 ): unknown[] | Record<string | number, unknown>;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function prepend<TValue>(
     data: ArrayItems<TValue> | unknown,
     value: TValue,
@@ -2938,6 +2996,7 @@ export function pull<TValue, TDefault = null>(
     defaultValue?: TDefault | (() => TDefault) | null,
 ): { value: TValue | TDefault | null; data: TValue[] };
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function pull<TValue, TDefault = null>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -2995,6 +3054,7 @@ export function query<TValue>(data: ArrayItems<TValue>): string;
 // Overload: untyped array or nullish fallback
 export function query(data: readonly unknown[] | null | undefined): string;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function query(data: unknown): string {
     if (isNull(data) || isUndefined(data)) {
         return "";
@@ -3108,6 +3168,7 @@ export function random<TValue>(
     number?: number | string | null,
     preserveKeys?: boolean,
 ): TValue | TValue[] | Record<number, TValue> | null;
+/* @__NO_SIDE_EFFECTS__ */
 export function random<TValue>(
     data: ArrayItems<TValue> | unknown,
     number?: number | string | null,
@@ -3210,6 +3271,7 @@ function pickArrayKeysCount(requested: unknown): number {
  * @see Collection::shift — `packages/collection/stubs/Collection.php:1291`.
  *      Mirrors `array_shift`-style removal from the front, driven by `$count`; mutates.
  *
+ * @sideEffects mutates - Removes the shifted items from the given array.
  * @param data - The array to shift items from. Mutated in place.
  * @param count - The number of items to shift. Defaults to 1; a fraction is dropped, and NAN shifts every item.
  * @returns The shifted item when count is 1, or null if there was none; an array of the shifted items otherwise.
@@ -3329,6 +3391,7 @@ export function set<TValue, TSetValue>(
     key: PathKey,
     value: TSetValue,
 ): TValue[] | NoInfer<TSetValue>;
+/* @__NO_SIDE_EFFECTS__ */
 export function set(
     array: unknown,
     key: PathKey | null,
@@ -3362,6 +3425,7 @@ export function push<TValue>(
     ...values: TValue[]
 ): TValue[];
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function push<TValue>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -3389,6 +3453,7 @@ export function push<TValue>(
  */
 export function shuffle<TValue>(data: ArrayItems<TValue>): TValue[];
 export function shuffle(data: readonly unknown[] | null | undefined): unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function shuffle<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
     const values = getAccessibleValues(data) as TValue[];
     const result = values.slice();
@@ -3425,6 +3490,7 @@ export function skipUntil(
     data: readonly unknown[] | null | undefined,
     value: AnyValueOr<(value: unknown, index: number) => unknown>,
 ): unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function skipUntil<TValue>(
     data: ArrayItems<TValue> | null | undefined,
     value: TValue | ((value: TValue, index: number) => unknown),
@@ -3460,6 +3526,7 @@ export function skipWhile(
     data: readonly unknown[] | null | undefined,
     value: AnyValueOr<(value: unknown, index: number) => unknown>,
 ): unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function skipWhile<TValue>(
     data: ArrayItems<TValue> | null | undefined,
     value: TValue | ((value: TValue, index: number) => unknown),
@@ -3497,6 +3564,7 @@ export function slice<TValue>(
     offset: number,
     length?: number | null,
 ): TValue[];
+/* @__NO_SIDE_EFFECTS__ */
 export function slice<TValue>(
     data: ArrayItems<TValue> | unknown,
     offset: number,
@@ -3544,6 +3612,7 @@ export function sole<TValue>(
     callback?: (value: TValue, index: number) => unknown,
 ): TValue;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function sole<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback?: (value: TValue, index: number) => unknown,
@@ -3660,6 +3729,7 @@ export function sort<TValue>(
         | null,
 ): TValue[];
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function sort<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback:
@@ -3759,6 +3829,7 @@ export function sortDesc<TValue>(
         | null,
 ): TValue[];
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function sortDesc<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback?:
@@ -3840,6 +3911,7 @@ export function sortRecursive<TValue>(
     data: readonly unknown[] | null | undefined,
     descending?: CaseValue<typeof SortDirection> | boolean,
 ): TValue[] | Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function sortRecursive<TValue>(
     data: ArrayItems<TValue> | Record<string, unknown> | unknown,
     descending: CaseValue<typeof SortDirection> | boolean = false,
@@ -3863,8 +3935,7 @@ function sortRecursiveValue(
     data: unknown,
     descending: CaseValue<typeof SortDirection> | boolean,
 ): unknown[] | Record<string, unknown> {
-    const isDesc =
-        descending === true || descending === SortDirection.Descending;
+    const isDesc = descending === true || descending === "Descending";
     if (!accessible(data) && !isObject(data)) {
         return data as unknown[];
     }
@@ -3952,10 +4023,11 @@ export function sortRecursiveDesc<TValue>(data: ArrayItems<TValue>): TValue[];
 export function sortRecursiveDesc<TValue>(
     data: readonly unknown[] | null | undefined,
 ): TValue[] | Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function sortRecursiveDesc<TValue>(
     data: ArrayItems<TValue> | Record<string, unknown> | unknown,
 ): TValue[] | Record<string, unknown> {
-    return sortRecursiveValue(data, SortDirection.Descending) as
+    return sortRecursiveValue(data, "Descending") as
         | TValue[]
         | Record<string, unknown>;
 }
@@ -3967,6 +4039,7 @@ export function sortRecursiveDesc<TValue>(
  *
  * @see Collection::splice — `packages/collection/stubs/Collection.php:1778`. Wraps `array_splice`; mutates.
  *
+ * @sideEffects mutates - Splices the given array in place.
  * @param data - The array to splice. Mutated in place.
  * @param offset - The starting index; a fraction is dropped, as array_splice()'s int parameter drops it
  * @param length - The number of items to remove, a fraction dropped. Null or none removes everything from offset on.
@@ -4028,6 +4101,7 @@ export function takeUntil(
     data: readonly unknown[] | null | undefined,
     value: AnyValueOr<(value: unknown, index: number) => unknown>,
 ): unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function takeUntil<TValue>(
     data: ArrayItems<TValue> | null | undefined,
     value: TValue | ((value: TValue, index: number) => unknown),
@@ -4064,6 +4138,7 @@ export function takeWhile(
     data: readonly unknown[] | null | undefined,
     value: AnyValueOr<(value: unknown, index: number) => unknown>,
 ): unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function takeWhile<TValue>(
     data: ArrayItems<TValue> | null | undefined,
     value: TValue | ((value: TValue, index: number) => unknown),
@@ -4105,6 +4180,7 @@ export function string<TDefault = null>(
     defaultValue?: TDefault | (() => TDefault) | null,
 ): string;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function string<TValue, TDefault = null>(
     data: ArrayItems<TValue> | unknown,
     key: PathKey,
@@ -4140,6 +4216,7 @@ export function toCssClasses(
     data: readonly unknown[] | null | undefined,
 ): string;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function toCssClasses(
     data: ArrayItems<unknown> | Record<string, unknown> | unknown,
 ): string {
@@ -4198,6 +4275,7 @@ export function toCssStyles(
     data: readonly unknown[] | null | undefined,
 ): string;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function toCssStyles(
     data: ArrayItems<unknown> | Record<string, unknown> | unknown,
 ): string {
@@ -4260,6 +4338,7 @@ export function where<TValue>(
     callback: (value: TValue, index: number) => unknown,
 ): TValue[];
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function where<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback: (value: TValue, index: number) => unknown,
@@ -4300,6 +4379,7 @@ export function reject<TValue>(
     callback: (value: TValue, index: number) => unknown,
 ): TValue[];
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function reject<TValue>(
     data: ArrayItems<TValue> | null | undefined,
     callback: (value: TValue, index: number) => unknown,
@@ -4351,6 +4431,7 @@ export function replace<TValue, TReplace = TValue>(
     data: readonly unknown[] | null | undefined,
     replacerData: ArrayItems<TReplace> | Record<number, TReplace> | unknown,
 ): (TValue | TReplace | undefined)[];
+/* @__NO_SIDE_EFFECTS__ */
 export function replace<TValue, TReplace = TValue>(
     data: ArrayItems<TValue> | unknown,
     replacerData: ArrayItems<TReplace> | Record<number, TReplace> | unknown,
@@ -4412,6 +4493,7 @@ export function replaceRecursive<TValue, TReplace = TValue>(
     data: readonly unknown[] | null | undefined,
     replacerData: ArrayItems<TReplace> | Record<number, TReplace> | unknown,
 ): (TValue | TReplace | undefined)[];
+/* @__NO_SIDE_EFFECTS__ */
 export function replaceRecursive<TValue, TReplace = TValue>(
     data: ArrayItems<TValue> | unknown,
     replacerData: ArrayItems<TReplace> | Record<number, TReplace> | unknown,
@@ -4459,6 +4541,7 @@ export function replaceRecursive<TValue, TReplace = TValue>(
  */
 export function reverse<TValue>(data: ArrayItems<TValue>): TValue[];
 export function reverse(data: readonly unknown[] | null | undefined): unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function reverse<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
     const values = getAccessibleValues(data) as TValue[];
 
@@ -4486,6 +4569,7 @@ export function reverse<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
  * pad([1, 2, 3], 5, 0); -> [1, 2, 3, 0, 0]
  * pad([1, 2, 3], -5, 0); -> [0, 0, 1, 2, 3]
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function pad<TPadValue, TValue>(
     data: ArrayItems<TValue>,
     size: number,
@@ -4536,6 +4620,7 @@ export function partition<TValue>(
     callback: (value: TValue, index: number) => unknown,
 ): [TValue[], TValue[]];
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function partition<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback: (value: TValue, index: number) => unknown,
@@ -4576,6 +4661,7 @@ export function whereNotNull(
     data: readonly unknown[] | null | undefined,
 ): unknown[];
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function whereNotNull<TValue>(
     data: ArrayItems<TValue> | null | undefined,
 ): TValue[] {
@@ -4694,6 +4780,7 @@ export function contains<TValue>(
     value: NonBooleanValue,
 ): boolean;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function contains<TValue>(
     data: ArrayItems<TValue> | unknown,
     value: TValue | ((value: TValue, key: number) => unknown),
@@ -4776,6 +4863,7 @@ export function containsStrict(
     key: unknown,
     value?: unknown,
 ): boolean;
+/* @__NO_SIDE_EFFECTS__ */
 export function containsStrict<TValue>(
     data: ArrayItems<TValue> | unknown,
     key: TValue | ((value: TValue, index: number) => unknown),
@@ -4823,6 +4911,7 @@ export function filter<TValue>(
     callback?: (value: TValue, index: number) => unknown,
 ): TValue[];
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function filter<TValue>(
     data: ArrayItems<TValue> | unknown,
     callback?: (value: TValue, index: number) => unknown,
@@ -4865,6 +4954,7 @@ export function wrap<TValue>(value: TValue[]): TValue[];
 // return type here would allow writes through to the readonly source.
 export function wrap<TValue>(value: readonly TValue[]): readonly TValue[];
 export function wrap<TValue>(value: TValue): WrapResult<TValue>;
+/* @__NO_SIDE_EFFECTS__ */
 export function wrap<TValue>(value: TValue | null): TValue[] | [] {
     if (isNull(value)) {
         return [];
@@ -4892,6 +4982,7 @@ export function keys<TValue>(data: ArrayItems<TValue>): number[];
 // Overload: untyped array or nullish fallback
 export function keys(data: readonly unknown[] | null | undefined): number[];
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function keys<TValue>(data: ArrayItems<TValue> | unknown): number[] {
     if (!accessible(data)) {
         return [];
@@ -4916,6 +5007,7 @@ export function keys<TValue>(data: ArrayItems<TValue> | unknown): number[] {
  */
 export function values<TValue>(data: ArrayItems<TValue>): TValue[];
 export function values(data: readonly unknown[] | null | undefined): unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function values<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
     if (!accessible(data)) {
         return [];
@@ -4944,6 +5036,7 @@ export function diff<TValue>(
     data: readonly unknown[] | null | undefined,
     other: ArrayItems<TValue> | unknown,
 ): TValue[];
+/* @__NO_SIDE_EFFECTS__ */
 export function diff<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TValue> | unknown,
@@ -4986,6 +5079,7 @@ export function diffAssoc(
     data: readonly unknown[] | null | undefined,
     other: unknown,
 ): unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function diffAssoc<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TValue> | unknown,
@@ -5030,6 +5124,7 @@ export function diffKeys(
     data: readonly unknown[] | null | undefined,
     other: unknown,
 ): unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function diffKeys<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: unknown,
@@ -5073,6 +5168,7 @@ export function diffUsing<TValue, TOther>(
     other: unknown,
     callable: (a: TValue, b: TOther) => boolean,
 ): TValue[];
+/* @__NO_SIDE_EFFECTS__ */
 export function diffUsing<TValue, TOther = TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TOther> | unknown,
@@ -5121,6 +5217,7 @@ export function diffAssocUsing(
     other: unknown,
     callback: (keyA: number, keyB: string | number) => boolean,
 ): unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function diffAssocUsing<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: unknown,
@@ -5159,6 +5256,7 @@ export function diffKeysUsing(
     other: unknown,
     callback: (keyA: number, keyB: string | number) => boolean,
 ): unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function diffKeysUsing<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: unknown,
@@ -5235,6 +5333,7 @@ export function intersect<TValue, TOther>(
     callable?: ((a: TValue, b: TOther) => boolean) | null,
 ): TValue[];
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function intersect<TValue, TOther = TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TOther> | unknown,
@@ -5298,6 +5397,7 @@ export function intersectUsing<TValue, TOther>(
     other: unknown,
     callable: (a: TValue, b: TOther) => boolean,
 ): TValue[];
+/* @__NO_SIDE_EFFECTS__ */
 export function intersectUsing<TValue, TOther = TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TOther> | unknown,
@@ -5341,6 +5441,7 @@ export function intersectAssoc(
     other: unknown,
 ): unknown[];
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function intersectAssoc<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TValue> | unknown,
@@ -5396,6 +5497,7 @@ export function intersectAssocUsing<TValue>(
     other: unknown,
     callback: (keyA: number, keyB: number | string) => boolean,
 ): TValue[];
+/* @__NO_SIDE_EFFECTS__ */
 export function intersectAssocUsing<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TValue> | unknown,
@@ -5439,6 +5541,7 @@ export function intersectByKeys<TValue>(
     data: readonly unknown[] | null | undefined,
     other: ArrayItems<TValue> | unknown,
 ): TValue[];
+/* @__NO_SIDE_EFFECTS__ */
 export function intersectByKeys<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TValue> | unknown,
