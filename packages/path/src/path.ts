@@ -1175,7 +1175,7 @@ function promoteConsecutiveIntegerContainers(
         for (const segment of segments.slice(0, -1)) {
             parent = ownedChild(parent, segment, owned);
 
-            if (!isObject(parent) || !owned.has(parent)) {
+            if (!owned.has(parent as object)) {
                 break;
             }
         }

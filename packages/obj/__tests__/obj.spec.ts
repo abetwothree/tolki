@@ -1766,6 +1766,15 @@ describe("Obj", () => {
             });
             expect(nested).toEqual({ a: { 0: "p" } });
         });
+
+        it("still turns a consecutive-integer container below a list into a list", () => {
+            expect(Obj.undot({ l: [{ k: {} }], "l.0.k.0": "p" })).toEqual({
+                l: [{ k: ["p"] }],
+            });
+            expect(
+                Obj.undot({ "x.l.0.k.z": 1, x: { l: [{ k: { 0: "p" } }] } }),
+            ).toEqual({ x: { l: [{ k: ["p"] }] } });
+        });
     });
 
     describe("undot", () => {

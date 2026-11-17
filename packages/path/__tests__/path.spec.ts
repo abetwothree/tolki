@@ -3081,7 +3081,10 @@ describe("Path Functions", () => {
                     "n.m.k.z": 1,
                     n: map,
                 }),
-            ).toBeDefined();
+            ).toEqual({
+                l: [{ k: ["p"] }],
+                n: new Map([["m", { k: ["p"] }]]),
+            });
             expect({ list, map, inner }).toEqual(snapshot);
         });
     });
