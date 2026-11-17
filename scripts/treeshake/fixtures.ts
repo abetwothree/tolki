@@ -381,6 +381,11 @@ function mark({ kind, category }: ExportEntry): string {
     return category === "mutates" ? "mutates" : kind;
 }
 
+/** The kind and category of a declaration, finer than the `mark` that selects fixtures. */
+function declaredAs({ kind, category }: ExportEntry): string {
+    return `${kind}:${category ?? ""}`;
+}
+
 /** Groups the scanned declarations by package and name. */
 function declarationsByName(scan: SourceScan): Map<string, ExportEntry[]> {
     const grouped = new Map<string, ExportEntry[]>();
@@ -414,7 +419,7 @@ export function declarationConflicts(
     return [...declarationsByName(scan).entries()]
         .filter(
             ([key, entries]) =>
-                exported.has(key) && new Set(entries.map(mark)).size > 1,
+                exported.has(key) && new Set(entries.map(declaredAs)).size > 1,
         )
         .map(([, entries]): Finding => {
             const { pkg, name } = entries[0] as ExportEntry;

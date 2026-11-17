@@ -633,6 +633,37 @@ describe("shared and Node-only exports", () => {
         ]);
     });
 
+    it("reports a shared name declared with different categories", () => {
+        const scan: SourceScan = {
+            exports: [
+                entry(
+                    "@tolki/l",
+                    "createLang",
+                    "impure",
+                    "state",
+                    "packages/l/src/lang.ts",
+                ),
+                entry(
+                    "@tolki/l",
+                    "createLang",
+                    "impure",
+                    "callback",
+                    "packages/l/src/vue.ts",
+                ),
+            ],
+            placement: [],
+            moduleScope: [],
+        };
+
+        expect(declarationConflicts(shared, scan)).toMatchObject([
+            {
+                id: "drop:@tolki/l:createLang",
+                message:
+                    "declared with different marks: packages/l/src/lang.ts (state), packages/l/src/vue.ts (callback)",
+            },
+        ]);
+    });
+
     it("gives an unmapped name with different marks no drop fixture", () => {
         const unmapped = shared.map((sub) => ({ ...sub, sources: {} }));
         const drops = buildFixtures(unmapped, declared("impure")).filter(
