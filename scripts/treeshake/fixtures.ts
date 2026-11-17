@@ -44,6 +44,8 @@ export interface SubpathExports {
     sources?: Record<string, string>;
     /** Whether the entry imports a `node:` built-in, so it only ever runs in Node. */
     nodeOnly?: boolean;
+    /** The framework peers (`vue`, `react`, `svelte` and their subpaths) the entry imports, transitively. */
+    peers?: string[];
 }
 
 type Expectations = Partial<Record<BundlerName, Outcome>>;
@@ -187,6 +189,29 @@ function importsNodeBuiltin(file: string, seen = new Set<string>()): boolean {
     );
 }
 
+/** The framework peers a module, or a module it imports from its own package, imports. */
+function frameworkPeers(file: string, seen = new Set<string>()): string[] {
+    if (seen.has(file) || !existsSync(file)) {
+        return [];
+    }
+
+    seen.add(file);
+
+    const specifiers = ts
+        .preProcessFile(readFileSync(file, "utf8"), true, true)
+        .importedFiles.map(({ fileName }) => fileName);
+    const peers = specifiers.filter((specifier) =>
+        /^(vue|react|svelte)(\/|$)/.test(specifier),
+    );
+    const nested = specifiers
+        .filter((specifier) => specifier.startsWith("."))
+        .flatMap((specifier) =>
+            frameworkPeers(resolve(dirname(file), specifier), seen),
+        );
+
+    return [...new Set([...peers, ...nested])].sort();
+}
+
 /** The staged `dist` module built from a scanned `src` file, one entry per source file as `scripts/entries.ts` builds. */
 function distModule(root: string, file: string): string {
     const relative = file.slice(file.indexOf("/src/") + "/src/".length);
@@ -292,6 +317,7 @@ export async function readSubpathExports(
                           declarations,
                       ),
                       nodeOnly: importsNodeBuiltin(entry),
+                      peers: frameworkPeers(entry),
                   };
         });
     });
@@ -311,6 +337,14 @@ function importLine(names: string[], specifier: string): string {
     );
 
     return `import { ${bindings.join(", ")} } from "${specifier}";\n`;
+}
+
+/**
+ * Bare imports of a subpath's framework peers. A real app already imports its framework, so a leftover import of it
+ * costs nothing; both a fixture and its control carry them, which leaves only the library's own residue to compare.
+ */
+function peerImports(sub: SubpathExports): string {
+    return (sub.peers ?? []).map((peer) => `import "${peer}";\n`).join("");
 }
 
 /** An entry that imports `names` and logs them, so none can be shaken away. */
@@ -407,7 +441,7 @@ function dropFixture(
     id = `drop:${sub.specifier}${pure ? PURE_SUFFIX : ""}`,
     outcome?: { bundlers: readonly BundlerName[]; expect: Expectations },
 ): Fixture {
-    const head = importLine(names, sub.specifier);
+    const head = `${peerImports(sub)}${importLine(names, sub.specifier)}`;
     const calls = names
         .map(
             (name, index) =>
@@ -482,7 +516,7 @@ function dropWithSplit(
 
 /** A `keep` fixture: a call that writes to a used target, against the module without the call. */
 function keepFixture(sub: SubpathExports, name: string): Fixture {
-    const head = `${importLine([name], sub.specifier)}export const target = [];\n`;
+    const head = `${peerImports(sub)}${importLine([name], sub.specifier)}export const target = [];\n`;
 
     return {
         id: `keep:${sub.specifier}:${name}`,

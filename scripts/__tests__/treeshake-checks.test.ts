@@ -348,12 +348,12 @@ describe("buildFixtures", () => {
 
     it("gives every KEPT_DROPS entry a reason and a bundler", () => {
         for (const [key, entry] of Object.entries(KEPT_DROPS)) {
-            expect(key).toMatch(/^@tolki\/\w+:\w+$/);
+            expect(key).toMatch(/^@tolki\/[\w/]+:\w+$/);
             expect(entry.reason.length).toBeGreaterThan(0);
             expect(entry.bundlers.length).toBeGreaterThan(0);
         }
 
-        expect(Object.keys(KEPT_DROPS)).toHaveLength(20);
+        expect(Object.keys(KEPT_DROPS)).toHaveLength(26);
     });
 
     it("builds keep fixtures only for mutates exports", () => {
@@ -477,6 +477,49 @@ describe("buildFixtures", () => {
                 "",
             ].join("\n"),
         );
+    });
+});
+
+describe("framework peers", () => {
+    const peered: SubpathExports[] = [
+        {
+            pkg: "@tolki/a",
+            subpath: "./vue",
+            specifier: "@tolki/a/vue",
+            names: ["get", "pop"],
+            peers: ["svelte", "svelte/reactivity"],
+        },
+    ];
+    const scan: SourceScan = {
+        exports: [
+            entry("@tolki/a", "get", "pure"),
+            entry("@tolki/a", "pop", "impure", "mutates"),
+        ],
+        placement: [],
+        moduleScope: [],
+    };
+
+    it("imports each peer in a drop fixture and its control", () => {
+        const drop = buildFixtures(peered, scan).find(
+            ({ id }) => id === "drop:@tolki/a/vue",
+        ) as Fixture;
+        const head = 'import "svelte";\nimport "svelte/reactivity";\n';
+
+        expect(drop.files["mod.js"]).toBe(
+            `${head}import { get } from "@tolki/a/vue";\nexport const __u0 = get();\nexport const used = 1;\n`,
+        );
+        expect(drop.control?.["mod.js"]).toBe(
+            `${head}import { get } from "@tolki/a/vue";\nexport const used = 1;\n`,
+        );
+    });
+
+    it("imports each peer in a keep fixture and its control", () => {
+        const keep = buildFixtures(peered, scan).find(
+            ({ id }) => id === "keep:@tolki/a/vue:pop",
+        ) as Fixture;
+
+        expect(keep.files["mod.js"]).toMatch(/^import "svelte";\n/);
+        expect(keep.control?.["mod.js"]).toMatch(/^import "svelte";\n/);
     });
 });
 
@@ -724,7 +767,13 @@ describe("runFixture", () => {
         put(
             app,
             "node_modules/@tolki/fx/dist/vue.js",
-            "export function make() { return 2; }\n",
+            'import "vue";\nexport function make() { return 2; }\n',
+        );
+        put(app, "node_modules/vue/index.js", "export const ref = 1;\n");
+        put(
+            app,
+            "node_modules/vue/package.json",
+            '{"name":"vue","type":"module","main":"index.js"}',
         );
         put(
             app,
@@ -945,6 +994,7 @@ describe("runFixture", () => {
                     pure: "packages/fx/src/index.ts",
                 },
                 nodeOnly: false,
+                peers: [],
             },
             {
                 pkg: "@tolki/fx",
@@ -953,6 +1003,7 @@ describe("runFixture", () => {
                 names: ["ready"],
                 sources: {},
                 nodeOnly: false,
+                peers: [],
             },
             {
                 pkg: "@tolki/fx",
@@ -961,6 +1012,7 @@ describe("runFixture", () => {
                 names: ["make"],
                 sources: { make: "packages/fx/src/vue.ts" },
                 nodeOnly: false,
+                peers: ["vue"],
             },
             {
                 pkg: "@tolki/fx",
@@ -969,6 +1021,7 @@ describe("runFixture", () => {
                 names: ["run"],
                 sources: {},
                 nodeOnly: true,
+                peers: [],
             },
         ]);
     });

@@ -25,7 +25,7 @@ export const EXPECTATION_CHANGED =
     "expectation changed: update docs/features/treeshake-check.md and docs/vitepress/tree-shaking.md";
 
 export const KEPT_DROP_CHANGED =
-    "expectation changed: update scripts/treeshake/expectations.ts and the Bundling sections of docs/vitepress/strings/index.md and docs/vitepress/collections/index.md";
+    "expectation changed: update scripts/treeshake/expectations.ts and the Bundling sections of docs/vitepress/strings/index.md, collections/index.md, numbers/index.md and localization/index.md";
 
 const KEPT = "kept; expected dropped";
 
