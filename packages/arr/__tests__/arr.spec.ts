@@ -91,6 +91,12 @@ describe("Arr", () => {
     });
 
     describe("add", () => {
+        it("keeps the caller's element for a fractional number key", () => {
+            const input = [{ a: 1 }, { b: 2 }];
+
+            expect(Arr.add(input, 1.5, 9)[1]).toBe(input[1]);
+        });
+
         it.each([["0.a.c"], ["0.a"]])(
             "leaves the caller's nested data alone for the array key %j",
             (path) => {
@@ -2929,6 +2935,12 @@ describe("Arr", () => {
     });
 
     describe("push", () => {
+        it("keeps the caller's element for a fractional number key", () => {
+            const input = [{ a: 1 }, [2]];
+
+            expect(Arr.push(input, 1.5, 9)[1]).toBe(input[1]);
+        });
+
         it.each([["0.a"], ["0.a.c"]])(
             "leaves the caller's nested data alone for the array key %j",
             (path) => {
