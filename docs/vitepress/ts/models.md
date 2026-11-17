@@ -763,7 +763,7 @@ A column or accessor typed as a backed or unit enum publishes in two ways:
 - **The main interface**: `User` uses the enum's `{Enum}Type` union, which is how Laravel serializes the enum when it converts a model to JSON.
 - **A parallel `Resource` interface**: `{Model}Resource` types the same property as [`AsEnum<typeof Enum>`](./enums.md#type-reference), and the split template adds `{Model}MutatorsResource` for accessors and `{Model}AllResource`. `AsEnum` is the shape you get once the raw value is a full enum instance, either from `Status.from(user.status)` or from an API resource that serialized the enum with [`EnumResource`](./enum-api-resource.md).
 
-A property is rewritten only when its type is a single enum or a list of one, either optionally `| null`. A list becomes `AsEnum<typeof Enum>[]`. A shape, or a union with other types, keeps its own type.
+A property is rewritten only when its type is a single enum or a list of one, either optionally `| null`. A list becomes `AsEnum<typeof Enum>[]`. A shape, or a union with other types, keeps its own type. An accessor that returns an enum's `->value` or `->name` keeps the enum's alias in `{Model}MutatorsResource`, because it sends the scalar, not the enum. Only an accessor that returns the enum itself takes `AsEnum<typeof Enum>`.
 
 This helper resolves the raw `role` value into the type `UserResource` declares:
 
