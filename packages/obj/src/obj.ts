@@ -1,4 +1,4 @@
-import { SortDirection } from "@tolki/enum";
+import type { SortDirection } from "@tolki/enum";
 import {
     dotFlatten,
     explodePluckPath,
@@ -190,9 +190,21 @@ type NullishKeyValue<K, V> = [Extract<K, null | undefined>] extends [never]
 // A default value, or a closure that produces one, as the guard helpers accept.
 type Default<TDefault> = TDefault | (() => TDefault);
 
-const sortSpecComparator = /* @__PURE__ */ createSortSpecComparator(
-    (item, key) => getNestedValue(item, key as PropertyKey),
-);
+/**
+ * Build the comparator one sort descriptor implies, resolving keys with a dot-path read.
+ *
+ * @param spec - The sort descriptor.
+ * @param forceDescending - Whether every descriptor sorts descending.
+ * @returns The comparator for the descriptor.
+ */
+function sortSpecComparator<TValue>(
+    spec: SortSpec<TValue>,
+    forceDescending: boolean,
+): (a: TValue, b: TValue) => number | boolean {
+    return createSortSpecComparator((item, key) =>
+        getNestedValue(item, key as PropertyKey),
+    )(spec, forceDescending);
+}
 
 // toPhpKeyString prints a float the way PHP does (1.0E+21, 14 digits), so only an integer literal keeps its JS text.
 type PhpKeyString<V> = V extends string
@@ -5345,7 +5357,7 @@ export function sortRecursive<T extends Record<PropertyKey, unknown>>(
     descending: CaseValue<typeof SortDirection> | boolean = false,
 ): T | Record<PropertyKey, unknown> {
     const isDesc =
-        descending === true || descending === SortDirection.Descending;
+        descending === true || descending === "Descending";
 
     if (!accessible(data)) {
         return {} as T;
@@ -5422,7 +5434,7 @@ export function sortRecursiveDesc(data: unknown): Record<string, unknown>;
 export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
     data: T | unknown,
 ): T | Record<PropertyKey, unknown> {
-    return sortRecursive(data, SortDirection.Descending);
+    return sortRecursive(data, "Descending");
 }
 
 /**
