@@ -6,3 +6,4 @@
 - `pop`, `shift`, `unshift` and `splice` change the array you pass, so a call to them is always kept.
 - arr no longer builds its sort comparator or reads the `SortDirection` enum at import time.
 - `add` and `push` no longer change the caller's nested data when the key is an array or another unusual value.
+- esbuild keeps an unused call unless the call site is written `/* @__PURE__ */ fn(...)`.
