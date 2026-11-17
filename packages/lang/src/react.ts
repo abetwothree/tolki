@@ -59,10 +59,11 @@ export function LangProvider(props: LangProviderProps): ReactElement {
 /**
  * Read the lang of the nearest provider; the component renders again when the lang changes.
  *
+ * @sideEffects state Subscribes the calling component to the lang.
+ *
  * @returns The reads, the locale, `setLocale` and the lang itself
  * @throws Error when no provider is above the component
  */
-/* @__NO_SIDE_EFFECTS__ */
 export function useLang<
     TLines extends LangLines = RegisteredLines,
 >(): ReactLang<TLines> {

@@ -96,10 +96,11 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
 /**
  * Read the lang that `app.use(createLang(…))` installed.
  *
+ * @sideEffects state Subscribes the calling component to the lang.
+ *
  * @returns The tracked reads, the locale ref and the lang itself
  * @throws Error when no lang was installed
  */
-/* @__NO_SIDE_EFFECTS__ */
 export function useLang<
     TLines extends LangLines = RegisteredLines,
 >(): VueLang<TLines> {

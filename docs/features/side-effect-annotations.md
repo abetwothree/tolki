@@ -25,6 +25,7 @@ Any other function gets `@sideEffects <category>` in its docblock, after the des
 
 ## Judgement calls
 
+- **Calls inside functions.** The annotation also drops an unused call inside a function body, not only at module scope, so a hook or function that registers or subscribes its caller (React and Vue `useLang`) is `state`.
 - **Factory sequences.** `random`, `uuid` and `ulid` are pure even though, under a `create*UsingSequence` factory, a call advances the sequence. Like `Math.random`, that sequence is test-support state, and dropping an unused call shifts nothing a program relies on.
 - **Lazy pluralize setup.** `plural`, `counted`, `pluralStudly`, `pluralPascal`, `singular`, `isPlural` and `isSingular` are pure. Their first call registers tolki's uncountable rules on the shared `pluralize` instance, which code importing `pluralize` directly can observe. That is a one-time, idempotent memoized setup, so dropping an unused call only delays it to the first used call. `inflector` itself is `state`.
 

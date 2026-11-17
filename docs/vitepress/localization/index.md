@@ -355,15 +355,15 @@ Call `subscribe(listener)` to hear about every change. It returns a function tha
 
 ## Bundling
 
-A call whose result nothing uses drops out of your bundle in Rollup, Rolldown (Vite 8), webpack and Rspack, because `createLang`, the translation helpers and the framework `useLang`, `getLang` and `langContext` are marked as free of side effects. This holds for a call at the top level of a module too.
+A call whose result nothing uses drops out of your bundle in Rollup, Rolldown (Vite 8), webpack and Rspack, because `createLang`, the translation helpers and the Svelte `getLang` and `langContext` are marked as free of side effects. This holds for a call at the top level of a module too.
 
-The exception is Rspack, where an unused top-level call to `createLang`, or to the React `LangProvider` and `useLang`, drops the call but can keep code behind it. Writing `/* @__PURE__ */` before the call drops everything:
+The exception is Rspack, where an unused top-level call to `createLang` drops the call but keeps dead `@tolki/utils` code, because its default minifier makes a single compress pass. Writing `/* @__PURE__ */` before the call drops everything, as does `compress.passes: 3` in an SWC `optimization.minimizer`:
 
 ```typescript
 export const lang = /* @__PURE__ */ createLang({ locale: "en" });
 ```
 
-The Svelte `setLang` writes the component context, so a call to it is always kept.
+The Svelte `setLang` writes the component context, and the React and Vue `useLang` subscribe the calling component, so a call to any of them is always kept.
 
 ## Next
 

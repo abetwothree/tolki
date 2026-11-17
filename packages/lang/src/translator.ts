@@ -187,7 +187,7 @@ export function mergeLocaleLines<TLines extends LangLines>(
     locale: string,
     lines: LocaleLines,
 ): void {
-    // The `*.` group makes addLines keep each key whole, dots included, as a JSON line.
+    // The `*.` group makes addLines keep each top-level key whole, dots included.
     translator.addLines(
         Object.fromEntries(
             Object.entries(lines).map(([key, value]) => [`*.${key}`, value]),
