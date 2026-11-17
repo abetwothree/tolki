@@ -18,6 +18,7 @@ import {
     expectationChangedMessage,
     KEPT_DROP_CHANGED,
     runFixture,
+    withoutPeerImports,
 } from "../treeshake/checks.ts";
 import { KEPT_DROPS } from "../treeshake/expectations.ts";
 import type { Fixture, SubpathExports } from "../treeshake/fixtures.ts";
@@ -353,7 +354,7 @@ describe("buildFixtures", () => {
             expect(entry.bundlers.length).toBeGreaterThan(0);
         }
 
-        expect(Object.keys(KEPT_DROPS)).toHaveLength(26);
+        expect(Object.keys(KEPT_DROPS)).toHaveLength(24);
     });
 
     it("builds keep fixtures only for mutates exports", () => {
@@ -477,6 +478,27 @@ describe("buildFixtures", () => {
                 "",
             ].join("\n"),
         );
+    });
+});
+
+describe("withoutPeerImports", () => {
+    it("drops bare and bound peer requires and imports", () => {
+        expect(
+            withoutPeerImports(
+                '(()=>{"use strict";let e=require("react");require("vue"),console.log(1)})();',
+            ),
+        ).toBe('(()=>{"use strict";console.log(1)})();');
+        expect(
+            withoutPeerImports(
+                'import"svelte";import{ref as r}from"vue";import "svelte/reactivity";console.log(1);',
+            ),
+        ).toBe("console.log(1);");
+    });
+
+    it("keeps other imports", () => {
+        const code = 'import"@tolki/utils";require("lodash");console.log(1);';
+
+        expect(withoutPeerImports(code)).toBe(code);
     });
 });
 
@@ -744,6 +766,7 @@ describe("runFixture", () => {
                     "./setup": "./dist/setup.js",
                     "./template": "./dist/template.js",
                     "./vue": "./dist/vue.js",
+                    "./react": "./dist/react.js",
                     "./vite": "./dist/vite.js",
                 },
             }),
@@ -768,6 +791,26 @@ describe("runFixture", () => {
             app,
             "node_modules/@tolki/fx/dist/vue.js",
             'import "vue";\nexport function make() { return 2; }\n',
+        );
+        put(
+            app,
+            "node_modules/@tolki/fx/dist/react.js",
+            'export { hook } from "./hook.js";\n',
+        );
+        put(
+            app,
+            "node_modules/@tolki/fx/dist/hook.js",
+            'import "react/jsx-runtime";\nexport function hook() { return 3; }\n',
+        );
+        put(
+            app,
+            "node_modules/react/jsx-runtime.js",
+            "export const jsx = 1;\n",
+        );
+        put(
+            app,
+            "node_modules/react/package.json",
+            '{"name":"react","type":"module","exports":{"./jsx-runtime":"./jsx-runtime.js"}}',
         );
         put(app, "node_modules/vue/index.js", "export const ref = 1;\n");
         put(
@@ -977,7 +1020,7 @@ describe("runFixture", () => {
                 {
                     name: "@tolki/fx",
                     root: join(app, "node_modules/@tolki/fx"),
-                    subpaths: [".", "./setup", "./vue", "./vite"],
+                    subpaths: [".", "./setup", "./vue", "./react", "./vite"],
                 },
             ],
             scan,
@@ -1013,6 +1056,15 @@ describe("runFixture", () => {
                 sources: { make: "packages/fx/src/vue.ts" },
                 nodeOnly: false,
                 peers: ["vue"],
+            },
+            {
+                pkg: "@tolki/fx",
+                subpath: "./react",
+                specifier: "@tolki/fx/react",
+                names: ["hook"],
+                sources: {},
+                nodeOnly: false,
+                peers: ["react/jsx-runtime"],
             },
             {
                 pkg: "@tolki/fx",

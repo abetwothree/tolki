@@ -148,6 +148,27 @@ async function check(
     }
 }
 
+const PEER_ID = "(?:vue|react|svelte)(?:/[\\w./-]+)?";
+const PEER_REQUIRE = new RegExp(
+    `(?:(?:let|var|const)\\s+[\\w$]+\\s*=\\s*)?require\\((["'])${PEER_ID}\\1\\)\\s*[,;]?`,
+    "g",
+);
+const PEER_IMPORT = new RegExp(
+    `import\\s*(?:[\\w$*{}\\s,]+from\\s*)?(["'])${PEER_ID}\\1\\s*;?`,
+    "g",
+);
+
+/**
+ * Drops the framework-peer imports of a bundle, bare or bound. A real app already loads its framework, and bundlers
+ * differ in whether they keep, bind or drop that import around an unused call, so it is no residue of the library.
+ *
+ * @param code - The bundle text.
+ * @returns The bundle without `require("vue")`, `import "react"` and their bound forms.
+ */
+export function withoutPeerImports(code: string): string {
+    return code.replace(PEER_REQUIRE, "").replace(PEER_IMPORT, "");
+}
+
 /** Judges a fixture's bundle against its control: byte-identical is `dropped`, anything else `kept`. */
 async function compare(
     fixture: Fixture,
@@ -161,7 +182,10 @@ async function compare(
         { id: fixture.id, bundler, check: fixture.check, message },
     ];
     const { code } = await build(control as string, bundler);
-    const outcome: Outcome = result.code === code ? "dropped" : "kept";
+    const outcome: Outcome =
+        withoutPeerImports(result.code) === withoutPeerImports(code)
+            ? "dropped"
+            : "kept";
 
     if (outcome === fixture.expect[bundler]) {
         return [];

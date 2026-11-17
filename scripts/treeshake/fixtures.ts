@@ -6,7 +6,7 @@ import ts from "typescript";
 
 import type { ExportEntry, SourceScan } from "../side-effects/scan.ts";
 import type { BundlerName } from "./bundlers.ts";
-import { BUNDLERS } from "./bundlers.ts";
+import { BUNDLERS, isFrameworkPeer } from "./bundlers.ts";
 import type { Finding } from "./checks.ts";
 import type { KeptDrop } from "./expectations.ts";
 import { KEPT_DROPS } from "./expectations.ts";
@@ -200,9 +200,7 @@ function frameworkPeers(file: string, seen = new Set<string>()): string[] {
     const specifiers = ts
         .preProcessFile(readFileSync(file, "utf8"), true, true)
         .importedFiles.map(({ fileName }) => fileName);
-    const peers = specifiers.filter((specifier) =>
-        /^(vue|react|svelte)(\/|$)/.test(specifier),
-    );
+    const peers = specifiers.filter(isFrameworkPeer);
     const nested = specifiers
         .filter((specifier) => specifier.startsWith("."))
         .flatMap((specifier) =>

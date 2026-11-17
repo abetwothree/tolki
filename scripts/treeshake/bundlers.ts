@@ -42,11 +42,22 @@ const OWN_MODULE = /\/node_modules\/@tolki\//;
 function isOwnModule(id: string): boolean {
     return OWN_MODULE.test(id.replaceAll("\\", "/"));
 }
-const PEERS = new Set(["vue", "react", "svelte", "vite"]);
+
+/** The UI frameworks the packages take as peers. */
+export const FRAMEWORKS = ["vue", "react", "svelte"] as const;
+
+const PEERS = new Set<string>([...FRAMEWORKS, "vite"]);
+
+/** Whether an import specifier names a UI framework or one of its subpaths. */
+export function isFrameworkPeer(id: string): boolean {
+    return FRAMEWORKS.some(
+        (framework) => id === framework || id.startsWith(`${framework}/`),
+    );
+}
 
 /** Peer dependencies and Node built-ins stay external so a bundle holds only the code under test. */
 function isExternal(id: string): boolean {
-    return PEERS.has(id) || id.startsWith("svelte/") || id.startsWith("node:");
+    return PEERS.has(id) || isFrameworkPeer(id) || id.startsWith("node:");
 }
 
 /** The path of a staged module relative to `node_modules/`, or null for any other module. */

@@ -12,6 +12,8 @@ const COLLECTION_CLASS =
     "Rolldown 1.3.2 keeps Collection's class cycle after the call is dropped, and Rspack 2.3.3 does the same";
 
 const BOTH: BundlerName[] = ["rolldown", "rspack"];
+const CREATE_LANG_RESIDUE =
+    "Rspack 2.3.3's default SWC compress leaves the dead annotated @tolki/utils declarations (compareValues, looseEqual, phpIntCast); optimization.minimizer with SWC compress.passes 3 removes them";
 const RSPACK: BundlerName[] = ["rspack"];
 
 function entries(
@@ -77,22 +79,6 @@ export const KEPT_DROPS: Record<string, KeptDrop> = {
         "Rspack 2.3.3 keeps its chunk-loading runtime for the dynamic `import()` after the call is dropped",
         RSPACK,
     ),
-    ...entries(
-        "@tolki/lang",
-        ["createLang"],
-        "Rspack 2.3.3 keeps the @tolki/utils helpers that Translator uses after the call is dropped",
-        RSPACK,
-    ),
-    ...entries(
-        "@tolki/lang/vue",
-        ["createLang"],
-        "Rspack 2.3.3 keeps the @tolki/utils helpers that Translator uses after the call is dropped",
-        RSPACK,
-    ),
-    ...entries(
-        "@tolki/lang/react",
-        ["LangProvider", "useLang"],
-        "Rspack 2.3.3 treats the React import differently from the control once the call is dropped",
-        RSPACK,
-    ),
+    ...entries("@tolki/lang", ["createLang"], CREATE_LANG_RESIDUE, RSPACK),
+    ...entries("@tolki/lang/vue", ["createLang"], CREATE_LANG_RESIDUE, RSPACK),
 };
