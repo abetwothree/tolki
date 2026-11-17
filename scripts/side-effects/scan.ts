@@ -441,11 +441,55 @@ export function scanFile(
         result.exports.push({ pkg, file, name, line, kind, category });
     };
 
+    // A listed const is not rewritten by the data build, so an alias stays unclassified.
+    const listedConsts = new Map<
+        string,
+        { statement: ts.VariableStatement; initializer: ts.Expression }
+    >();
+
+    for (const statement of sourceFile.statements) {
+        if (
+            ts.isVariableStatement(statement) &&
+            !hasExportModifier(statement)
+        ) {
+            for (const declaration of statement.declarationList.declarations) {
+                if (
+                    ts.isIdentifier(declaration.name) &&
+                    declaration.initializer
+                ) {
+                    listedConsts.set(declaration.name.text, {
+                        statement,
+                        initializer: unwrapAliasTarget(declaration.initializer),
+                    });
+                }
+            }
+        }
+    }
+
     const pushListed = (exported: string, local: string): void => {
         const analysis = analysisOf(local);
 
         if (analysis !== undefined) {
             push(exported, analysis.line, analysis.kind, analysis.category);
+
+            return;
+        }
+
+        const listed = listedConsts.get(local);
+
+        if (listed === undefined) {
+            return;
+        }
+
+        const line = lineOf(sourceFile, listed.statement);
+
+        if (
+            ts.isArrowFunction(listed.initializer) ||
+            ts.isFunctionExpression(listed.initializer)
+        ) {
+            scanArrow(listed.statement, exported, line);
+        } else if (ts.isIdentifier(listed.initializer)) {
+            push(exported, line, "unclassified", null);
         }
     };
 
@@ -521,20 +565,7 @@ export function scanFile(
                 ts.isArrowFunction(initializer) ||
                 ts.isFunctionExpression(initializer)
             ) {
-                if (
-                    leadingComments(sourceFile, statement).some((comment) =>
-                        ANNOTATION.test(comment.text),
-                    )
-                ) {
-                    result.placement.push({
-                        file,
-                        line,
-                        name,
-                        kind: "annotated-arrow",
-                    });
-                }
-
-                push(name, line, "unclassified", null);
+                scanArrow(statement, name, line);
             } else if (ts.isIdentifier(initializer)) {
                 // Only the alias shape the data build rewrites ships its declaration, and with it the annotation.
                 if (aliasExportOf(statement, localFunctions) === null) {
@@ -549,6 +580,33 @@ export function scanFile(
             ) {
                 push(name, line, "unclassified", null);
             }
+        }
+    }
+
+    function scanArrow(
+        statement: ts.VariableStatement,
+        name: string,
+        line: number,
+    ): void {
+        if (
+            leadingComments(sourceFile, statement).some((comment) =>
+                ANNOTATION.test(comment.text),
+            )
+        ) {
+            result.placement.push({
+                file,
+                line,
+                name,
+                kind: "annotated-arrow",
+            });
+        }
+
+        const tag = readTag(statement);
+
+        if (tag.present && !tag.unknown) {
+            push(name, line, "impure", tag.category);
+        } else {
+            push(name, line, "unclassified", null);
         }
     }
 

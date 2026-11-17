@@ -241,6 +241,62 @@ describe("scanFile", () => {
         expect(result.placement).toEqual([]);
     });
 
+    it("classifies arrow and function-expression consts exported through a list", () => {
+        const result = scan(
+            [
+                "const f = () => 1;",
+                "const g = function () { return 1; };",
+                "export { f, g as h };",
+                "const i = () => 1;",
+                "export default i;",
+            ].join("\n"),
+        );
+
+        expect(result.exports).toMatchObject([
+            { name: "f", line: 1, kind: "unclassified" },
+            { name: "h", line: 2, kind: "unclassified" },
+            { name: "default", line: 4, kind: "unclassified" },
+        ]);
+        expect(result.placement).toEqual([]);
+    });
+
+    it("rejects an annotated arrow const exported through a list", () => {
+        const result = scan(`${ANNOTATION}\nconst f = () => 1;\nexport { f };`);
+
+        expect(result.exports).toMatchObject([
+            { name: "f", kind: "unclassified" },
+        ]);
+        expect(result.placement).toMatchObject([
+            { name: "f", kind: "annotated-arrow" },
+        ]);
+    });
+
+    it("reads @sideEffects on an arrow const exported through a list", () => {
+        const result = scan(
+            "/**\n * Doc.\n *\n * @sideEffects state - Writes.\n */\nconst f = () => 1;\nexport { f };",
+        );
+
+        expect(result.exports).toMatchObject([
+            { name: "f", kind: "impure", category: "state" },
+        ]);
+        expect(result.placement).toEqual([]);
+    });
+
+    it("leaves an alias const exported through a list unclassified", () => {
+        const result = scan(
+            [
+                ANNOTATION,
+                "function fImpl(): unknown { return 1; }",
+                "const x = fImpl as unknown as () => number;",
+                "export { x };",
+            ].join("\n"),
+        );
+
+        expect(result.exports).toMatchObject([
+            { name: "x", kind: "unclassified" },
+        ]);
+    });
+
     it("leaves a listed imported name and a re-export unscanned", () => {
         const result = scan(
             [
