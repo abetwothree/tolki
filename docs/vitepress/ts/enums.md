@@ -607,7 +607,7 @@ export const Status = /* @__PURE__ */ defineEnum({
 });
 ```
 
-Rspack also needs the call-site form when the same module derives a list from the enum, such as `export const STATUSES = /* @__PURE__ */ values(Status)`.
+Rspack also needs the call-site form when the same module derives a list from the enum, such as `export const STATUSES = /* @__PURE__ */ values(Status)`. [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html) lists every bundler.
 
 ## Vite Plugin
 

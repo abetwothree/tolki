@@ -96,7 +96,7 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
 /**
  * Read the lang that `app.use(createLang(…))` installed.
  *
- * @sideEffects state Subscribes the calling component to the lang.
+ * @sideEffects state Shares React useLang's mark; call it only during setup.
  *
  * @returns The tracked reads, the locale ref and the lang itself
  * @throws Error when no lang was installed
