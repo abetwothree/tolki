@@ -19,6 +19,7 @@ import {
     KEEP_DROPPED,
     KEPT_DROP_CHANGED,
     runFixture,
+    selectFixtures,
     withoutPeerImports,
 } from "../treeshake/checks.ts";
 import { KEPT_DROPS } from "../treeshake/expectations.ts";
@@ -681,6 +682,39 @@ describe("shared and Node-only exports", () => {
             },
             strict: false,
         });
+    });
+});
+
+describe("selectFixtures", () => {
+    const part = (id: string) => ({ id, check: "drop" }) as Fixture;
+    const combined = {
+        id: "drop:@tolki/x",
+        check: "drop",
+        split: [part("drop:@tolki/x:f"), part("drop:@tolki/x:g")],
+    } as Fixture;
+    const keep = { id: "keep:@tolki/x:f", check: "keep" } as Fixture;
+    const all = [combined, keep];
+    const ids = (fixtures: Fixture[]) => fixtures.map((f) => f.id);
+
+    it("selects everything without a filter", () => {
+        expect(selectFixtures(all, ["drop", "keep"], undefined)).toEqual(all);
+    });
+
+    it("keeps the combined run when its id matches", () => {
+        expect(ids(selectFixtures(all, ["drop"], "drop:@tolki/x"))).toEqual([
+            "drop:@tolki/x",
+        ]);
+    });
+
+    it("selects the split fixtures whose ids match when the parent does not", () => {
+        expect(ids(selectFixtures(all, ["drop"], "drop:@tolki/x:f"))).toEqual([
+            "drop:@tolki/x:f",
+        ]);
+    });
+
+    it("honours the check list and selects nothing for an unknown filter", () => {
+        expect(selectFixtures(all, ["bare"], "@tolki/x")).toEqual([]);
+        expect(selectFixtures(all, ["drop", "keep"], "nope")).toEqual([]);
     });
 });
 

@@ -17,7 +17,7 @@ import { parseArgs } from "node:util";
 import { scanPublishedSources } from "../side-effects/scan.ts";
 import { BUNDLERS } from "./bundlers.ts";
 import type { DebtEntry, Finding } from "./checks.ts";
-import { applyDebt, runFixture } from "./checks.ts";
+import { applyDebt, runFixture, selectFixtures } from "./checks.ts";
 import type { CheckName, Fixture } from "./fixtures.ts";
 import {
     buildFixtures,
@@ -240,9 +240,22 @@ async function main(argv: string[]): Promise<number> {
         const selected = ({ check, id }: { check: CheckName; id: string }) =>
             only.includes(check) &&
             (values.filter === undefined || id.includes(values.filter));
-        const fixtures = buildFixtures(subpaths, scan).filter(selected);
+        const fixtures = selectFixtures(
+            buildFixtures(subpaths, scan),
+            only,
+            values.filter,
+        );
         const filtered =
             values.check !== undefined || values.filter !== undefined;
+
+        if (filtered && fixtures.length === 0) {
+            console.error(
+                `treeshake:check: no fixture matches ${JSON.stringify(values)}`,
+            );
+
+            return 1;
+        }
+
         const ran = new Set(
             fixtures.flatMap((fixture) =>
                 [fixture, ...(fixture.split ?? [])].flatMap((part) =>

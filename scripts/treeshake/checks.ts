@@ -32,6 +32,30 @@ export const KEEP_DROPPED =
 
 const KEPT = "kept; expected dropped";
 
+/**
+ * Picks the fixtures a run covers: a matching parent runs combined, a non-matching one contributes its matching splits.
+ *
+ * @param fixtures - Every built fixture.
+ * @param only - The check names to run.
+ * @param filter - A substring of a fixture id, or undefined for all.
+ * @returns The fixtures to run.
+ */
+export function selectFixtures(
+    fixtures: Fixture[],
+    only: string[],
+    filter: string | undefined,
+): Fixture[] {
+    return fixtures
+        .filter((fixture) => only.includes(fixture.check))
+        .flatMap((fixture) =>
+            filter === undefined || fixture.id.includes(filter)
+                ? [fixture]
+                : (fixture.split ?? []).filter((part) =>
+                      part.id.includes(filter),
+                  ),
+        );
+}
+
 /** The message for a fixture that came out dropped: a `keep` one is a correctness failure, the rest name their docs. */
 export function expectationChangedMessage(fixture: Fixture): string {
     if (fixture.check === "keep") {
