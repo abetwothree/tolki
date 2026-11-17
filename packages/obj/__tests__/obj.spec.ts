@@ -1757,6 +1757,17 @@ describe("Obj", () => {
         });
     });
 
+    describe("undot input", () => {
+        it("leaves the nested objects of its input unchanged", () => {
+            const nested = { a: { 0: "p" } };
+
+            expect(Obj.undot({ "x.a.b": 1, x: nested })).toEqual({
+                x: { a: ["p"] },
+            });
+            expect(nested).toEqual({ a: { 0: "p" } });
+        });
+    });
+
     describe("undot", () => {
         it("should expand dot notation back to nested objects", () => {
             const obj = {

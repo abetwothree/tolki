@@ -3016,6 +3016,76 @@ describe("Path Functions", () => {
         });
     });
 
+    describe("undot input immutability", () => {
+        it("undotExpandArray leaves an array value it descends into unchanged", () => {
+            const nested = ["a"];
+            const input = { "0": nested, "0.1": "b" };
+
+            expect(Path.undotExpandArray(input)).toEqual([["a", "b"]]);
+            expect(nested).toEqual(["a"]);
+            expect(input).toEqual({ "0": ["a"], "0.1": "b" });
+        });
+
+        it("undotExpandArray leaves a Map input's array value unchanged", () => {
+            const nested = ["a"];
+            const input = new Map<string, unknown>([
+                ["0", nested],
+                ["0.1", "b"],
+            ]);
+
+            expect(Path.undotExpandArray(input)).toEqual([["a", "b"]]);
+            expect(nested).toEqual(["a"]);
+            expect(input.get("0")).toBe(nested);
+        });
+
+        it("undotExpandObject leaves a nested object value unchanged", () => {
+            const nested = { a: { 0: "p" } };
+            const input = { "x.a.b": 1, x: nested };
+
+            expect(Path.undotExpandObject(input)).toEqual({ x: { a: ["p"] } });
+            expect(nested).toEqual({ a: { 0: "p" } });
+            expect(input.x).toBe(nested);
+        });
+
+        it("undotExpand leaves a nested object value unchanged", () => {
+            const nested = { a: { 0: "p" } };
+
+            expect(Path.undotExpand({ "x.a.b": 1, x: nested })).toEqual({
+                x: { a: ["p"] },
+            });
+            expect(nested).toEqual({ a: { 0: "p" } });
+        });
+
+        it("undotExpandObject leaves a class instance value untouched", () => {
+            class Holder {
+                a = { 0: "p" };
+            }
+            const holder = new Holder();
+
+            const result = Path.undotExpandObject({ "x.a.b": 1, x: holder });
+
+            expect(result["x"]).toBe(holder);
+            expect(holder.a).toEqual({ 0: "p" });
+        });
+
+        it("undotExpandObject leaves containers reached through arrays and Maps unchanged", () => {
+            const inner = { 0: "p" };
+            const list = [{ k: inner }];
+            const map = new Map<string, unknown>([["m", { k: inner }]]);
+            const snapshot = structuredClone({ list, map, inner });
+
+            expect(
+                Path.undotExpandObject({
+                    "l.0.k.z": 1,
+                    l: list,
+                    "n.m.k.z": 1,
+                    n: map,
+                }),
+            ).toBeDefined();
+            expect({ list, map, inner }).toEqual(snapshot);
+        });
+    });
+
     describe("undotExpandArray", () => {
         it("handles non-string keys", () => {
             const input = { 123: "value" };

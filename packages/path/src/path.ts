@@ -1111,9 +1111,49 @@ export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
+ * Give the expansion its own shallow copy of the container a segment names, unless it already owns it.
+ * A caller's value stored by reference is never written to; only a copy relinked into an owned holder is.
+ *
+ * @param holder - A container the expansion owns.
+ * @param segment - The path segment naming a child of the holder.
+ * @param owned - The containers the expansion created or copied.
+ * @returns The owned child, or the child as found (or undefined) when it cannot be copied.
+ */
+function ownedChild(
+    holder: unknown,
+    segment: string,
+    owned: WeakSet<object>,
+): unknown {
+    const child = getNestedValue<unknown>(holder, segment);
+
+    if (
+        !(isArray(child) || isMap(child) || isPlainObject(child)) ||
+        owned.has(child)
+    ) {
+        return child;
+    }
+
+    const copy = isArray(child)
+        ? child.slice()
+        : isMap(child)
+          ? new Map(child)
+          : { ...(child as Record<string, unknown>) };
+
+    if (isMap(holder)) {
+        writeMapKey(holder, segment, copy);
+    } else {
+        defineKey(holder as Record<string, unknown>, segment, copy);
+    }
+
+    owned.add(copy);
+
+    return copy;
+}
+
+/**
  * Replace a nested container with a real array when its own keys are exactly
- * "0".."n-1", mirroring PHP's `array_is_list`. Only touches containers the
- * expansion itself created, walked deepest-first.
+ * "0".."n-1", mirroring PHP's `array_is_list`. Walked deepest-first; a container the
+ * caller supplied is copied before it is changed, so the input is never written to.
  *
  * @param results - The expanded structure to mutate in place.
  * @param containerPaths - Dot-paths of containers the expansion created.
@@ -1122,6 +1162,7 @@ function promoteConsecutiveIntegerContainers(
     results: Record<string, unknown>,
     containerPaths: Set<string>,
 ): void {
+    const owned = new WeakSet<object>([results]);
     const sortedPaths = [...containerPaths].sort(
         (a, b) => b.split(".").length - a.split(".").length,
     );
@@ -1129,14 +1170,17 @@ function promoteConsecutiveIntegerContainers(
     for (const path of sortedPaths) {
         const segments = path.split(".");
         const lastSegment = segments[segments.length - 1] as string;
-        const parentSegments = segments.slice(0, -1);
+        let parent: unknown = results;
 
-        const parent: unknown =
-            parentSegments.length === 0
-                ? results
-                : getNestedValue(results, parentSegments.join("."));
+        for (const segment of segments.slice(0, -1)) {
+            parent = ownedChild(parent, segment, owned);
 
-        if (!isObject(parent)) {
+            if (!isObject(parent) || !owned.has(parent)) {
+                break;
+            }
+        }
+
+        if (!isObject(parent) || !owned.has(parent)) {
             continue;
         }
 
@@ -1263,6 +1307,7 @@ export function undotExpandArray<
     TKey extends PropertyKey = PropertyKey,
 >(map: Record<TKey, TValue>): TValue[] {
     const root: unknown[] = [];
+    const owned = new WeakSet<object>([root]);
     // A Map keeps its insertion order, so the later of two writes to one place wins, as in PHP, except that a
     // dotted key running through a scalar an earlier key wrote is skipped, where PHP's later write replaces it.
     for (const [rawKey, value] of keyedEntries<TValue>(map ?? {})) {
@@ -1287,9 +1332,15 @@ export function undotExpandArray<
                 if (isNull(next) || isUndefined(next)) {
                     const child: unknown[] = [];
                     cursor[idx] = child;
+                    owned.add(child);
                     cursor = child;
                 } else if (isArray(next)) {
-                    cursor = next as unknown[];
+                    // A caller's array is copied before it is written to.
+                    const own = owned.has(next) ? next : next.slice();
+
+                    cursor[idx] = own;
+                    owned.add(own);
+                    cursor = own as unknown[];
                 } else {
                     // Non-array value found at intermediate segment, skip this key
                     break;

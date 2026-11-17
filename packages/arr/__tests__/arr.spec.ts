@@ -3618,6 +3618,16 @@ describe("Arr", () => {
         });
     });
 
+    describe("undot input", () => {
+        it("leaves the nested arrays of its input unchanged", () => {
+            const nested = ["a"];
+            const input = { "0": nested, "0.1": "b" };
+
+            expect(Arr.undot(input)).toEqual([["a", "b"]]);
+            expect(nested).toEqual(["a"]);
+        });
+    });
+
     describe("undot", () => {
         it("undot", () => {
             expect(Arr.undot({})).toEqual([]);
