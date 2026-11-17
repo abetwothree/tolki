@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { collapse as arrCollapse, first as arrFirst } from "@tolki/arr";
 import { collapse as objCollapse, first as objFirst } from "@tolki/obj";
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -271,29 +272,112 @@ describe("forwardData", () => {
 });
 
 describe("data helper exports", () => {
-    // The build ships an alias of a same-file function as that function, which keeps the function's annotation.
-    it("aliases a same-file function declaration in every exported const", () => {
-        const source = readFileSync(
+    const file = ts.createSourceFile(
+        "data.ts",
+        readFileSync(
             path.resolve(
                 fileURLToPath(import.meta.url),
                 "../..",
                 "src/data.ts",
             ),
             "utf-8",
-        );
-        const aliases = [
-            ...source.matchAll(/^export const (\w+)[^=]*=\s*(\S+)/gm),
-        ];
+        ),
+        ts.ScriptTarget.Latest,
+        true,
+        ts.ScriptKind.TS,
+    );
+    const functions = new Map(
+        file.statements
+            .filter(ts.isFunctionDeclaration)
+            .flatMap((fn) => (fn.name && fn.body ? [[fn.name.text, fn]] : [])),
+    );
+    const helpers = file.statements
+        .filter(ts.isVariableStatement)
+        .filter((statement) =>
+            ts
+                .getModifiers(statement)
+                ?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword),
+        )
+        .flatMap((statement) => [...statement.declarationList.declarations]);
 
-        expect(aliases.length).toBeGreaterThan(0);
+    /**
+     * Reads the delegate pair a helper's `Dispatched<typeof A, typeof B>` cast names.
+     */
+    const typedPair = (cast: ts.Expression): string[] => {
+        const type = ts.isAsExpression(cast) ? cast.type : undefined;
+
+        return type !== undefined &&
+            ts.isTypeReferenceNode(type) &&
+            type.typeName.getText(file) === "Dispatched"
+            ? (type.typeArguments ?? []).map((arg) =>
+                  ts.isTypeQueryNode(arg) ? arg.exprName.getText(file) : "?",
+              )
+            : [];
+    };
+
+    /**
+     * Reads the delegate pair each `forwardData(A, B, …)` call in a function body names.
+     */
+    const forwardedPairs = (fn: ts.Node): string[][] => {
+        const pairs: string[][] = [];
+        const visit = (node: ts.Node): void => {
+            if (
+                ts.isCallExpression(node) &&
+                node.expression.getText(file) === "forwardData"
+            ) {
+                pairs.push(
+                    node.arguments.slice(0, 2).map((arg) => arg.getText(file)),
+                );
+            }
+
+            ts.forEachChild(node, visit);
+        };
+
+        visit(fn);
+
+        return pairs;
+    };
+
+    it("finds every exported helper", () => {
+        expect(helpers.length).toBe(83);
+    });
+
+    // The build ships an alias of a same-file function as that function, which keeps the function's annotation.
+    it("aliases a same-file function declaration in every exported const", () => {
         expect(
-            aliases
-                .filter(
-                    ([, name, target]) =>
-                        target !== `${name}Impl` ||
-                        !source.includes(`\nfunction ${target}(`),
-                )
-                .map(([, name]) => name),
+            helpers
+                .filter((helper) => {
+                    let target = helper.initializer;
+
+                    while (target !== undefined && ts.isAsExpression(target)) {
+                        target = target.expression;
+                    }
+
+                    return (
+                        target?.getText(file) !==
+                            `${helper.name.getText(file)}Impl` ||
+                        !functions.has(target.getText(file))
+                    );
+                })
+                .map((helper) => helper.name.getText(file)),
+        ).toEqual([]);
+    });
+
+    it("names the same delegate pair in each helper's type and its forwardData call", () => {
+        expect(
+            helpers.flatMap((helper) => {
+                const name = helper.name.getText(file);
+                const typed = typedPair(helper.initializer!);
+                const forwarded = forwardedPairs(functions.get(`${name}Impl`)!);
+
+                return forwarded.length === 1 &&
+                    typed.length === 2 &&
+                    typed.join() === forwarded[0]!.join()
+                    ? []
+                    : [
+                          `${name}: Dispatched<${typed.join()}> vs forwardData(${forwarded.join(" | ")})`,
+                      ];
+            }),
         ).toEqual([]);
     });
 });
