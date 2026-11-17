@@ -399,6 +399,7 @@ type WrapResult<T> = T extends null
 export function accessible(
     value: unknown,
 ): value is Record<PropertyKey, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function accessible(value: unknown): value is object {
     return isObject(value) && isPhpAccessible(value);
 }
@@ -533,6 +534,7 @@ function appendAfterIntegerKeys(
  * objectifiable([]); -> false
  */
 export function objectifiable(value: unknown): value is Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function objectifiable(
     value: unknown,
 ): value is Record<string, unknown> {
@@ -574,6 +576,7 @@ export function add(
     key: PathKey,
     value: unknown,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function add<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey,
@@ -624,6 +627,7 @@ export function objectItem(
     key: PathKey,
     defaultValue?: unknown,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function objectItem<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -666,6 +670,7 @@ export function boolean(
     key: PathKey,
     defaultValue?: Default<boolean> | null,
 ): boolean;
+/* @__NO_SIDE_EFFECTS__ */
 export function boolean<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -755,6 +760,7 @@ export function chunk(
     size: number,
     preserveKeys?: boolean,
 ): Record<number, Record<string, unknown>>;
+/* @__NO_SIDE_EFFECTS__ */
 export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     size: number,
@@ -874,6 +880,7 @@ export function chunkWhile(
         chunk: Record<string, unknown>,
     ) => unknown,
 ): Record<number, Record<string, unknown>>;
+/* @__NO_SIDE_EFFECTS__ */
 export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback: (
@@ -956,6 +963,7 @@ export function chunkBy(
     data: unknown,
     key: PathKey | ((value: unknown, key: string | number) => unknown),
 ): Record<number, Record<string, unknown>>;
+/* @__NO_SIDE_EFFECTS__ */
 export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey | ((value: TValue, key: TKey) => unknown),
@@ -1036,6 +1044,7 @@ export function collapse(
 ): Record<string | number, unknown>;
 export function collapse<T extends object>(data: T): CollapsedObject<T>;
 export function collapse(data: unknown): Record<string | number, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function collapse<
     TValue extends Record<
         PropertyKey,
@@ -1107,6 +1116,7 @@ export function combine(
     keys: unknown,
     values: unknown,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function combine<TKeys, TValues, TCombineValue = TValues>(
     keysObject: Record<PropertyKey, TKeys> | readonly TKeys[] | unknown,
     valuesObject: Record<PropertyKey, TValues> | readonly TValues[] | unknown,
@@ -1162,6 +1172,7 @@ export function crossJoin(): Record<string, never>[];
 export function crossJoin<T extends readonly object[]>(
     ...objects: T
 ): CrossJoinRow<T>[];
+/* @__NO_SIDE_EFFECTS__ */
 export function crossJoin<TValues, TCombineValue = TValues>(
     ...objects: Record<PropertyKey, TValues>[]
 ): Record<PropertyKey, TCombineValue>[] {
@@ -1246,6 +1257,7 @@ export function divide<T extends object>(
     data: T,
 ): [ObjectKey<T>[], ObjectValue<T>[]];
 export function divide(data: unknown): [(string | number)[], unknown[]];
+/* @__NO_SIDE_EFFECTS__ */
 export function divide<TValue, TKey extends PropertyKey = PropertyKey>(
     object: Record<TKey, TValue> | unknown,
 ): [TKey[], TValue[]] {
@@ -1317,6 +1329,7 @@ export function dot(
     prepend?: string,
     depth?: number,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function dot<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     prepend: string = "",
@@ -1356,6 +1369,7 @@ export function undot<T extends object>(
     data: T,
 ): Record<string, UndotObjectValue<ObjectValue<T>>>;
 export function undot(data: unknown): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue> | unknown,
 ): Record<TKey, TValue> {
@@ -1383,6 +1397,7 @@ export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
 export function union<T extends readonly unknown[]>(
     ...objects: T
 ): Simplify<MergeObjects<T>>;
+/* @__NO_SIDE_EFFECTS__ */
 export function union<TValue, TKey extends PropertyKey = PropertyKey>(
     ...objects: Record<TKey, TValue>[] | unknown[]
 ): Record<TKey, TValue> {
@@ -1414,6 +1429,7 @@ export function union<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * @see Collection::unshift — `packages/collection/stubs/Collection.php:1106`. Wraps `array_unshift`; mutates.
  *
+ * @sideEffects mutates - Rewrites the given object or Map with the new items in front.
  * @param items - The items to prepend; the first is the target object or Map, mutated in place when object-accessible.
  * @returns The same object or Map reference, mutated (or a new object when the first item isn't object-accessible).
  *
@@ -1531,6 +1547,7 @@ export function except<T extends object>(
     keys: PathKeys,
 ): ObjectDeepPartial<T>;
 export function except(data: unknown, keys: PathKeys): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function except<TValue extends Record<PropertyKey, unknown>>(
     data: TValue,
     keys: PathKeys,
@@ -1567,6 +1584,7 @@ export function exceptValues(
     values: unknown,
     strict?: boolean,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function exceptValues<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     values: TValue | TValue[],
@@ -1606,6 +1624,7 @@ export function exceptValues<TValue, TKey extends PropertyKey = PropertyKey>(
  * exists({ name: 'John', age: 30 }, 'email'); -> false
  */
 export function exists(data: unknown, key: PathKey): boolean;
+/* @__NO_SIDE_EFFECTS__ */
 export function exists<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
     key: PathKey,
@@ -1682,6 +1701,7 @@ export function first<TDefault = null>(
     callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): unknown;
+/* @__NO_SIDE_EFFECTS__ */
 export function first<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -1787,6 +1807,7 @@ export function last<TDefault = null>(
     callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): unknown;
+/* @__NO_SIDE_EFFECTS__ */
 export function last<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -1871,6 +1892,7 @@ export function take(
 ): Record<string, unknown>;
 export function take<T extends object>(data: T, limit: number): Partial<T>;
 export function take(data: unknown, limit: number): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function take<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
     limit: number,
@@ -1957,6 +1979,7 @@ export function flatten<T extends object>(
     depth: number,
 ): FlattenReach<ObjectValue<T>>[];
 export function flatten(data: unknown, depth?: number): unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function flatten<TValue>(
     data: Record<PropertyKey, TValue> | TValue,
     depth: number = Infinity,
@@ -2054,6 +2077,7 @@ export function flattenDot(
     data: unknown,
     depth?: number,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     depth: number = Infinity,
@@ -2134,6 +2158,7 @@ export function flip(data: NonKeyedItems): Record<string, never>;
 export function flip(data: NonObjectItems): Record<string, string | number>;
 export function flip<T extends object>(data: T): FlipObject<T>;
 export function flip(data: unknown): Record<string, string | number>;
+/* @__NO_SIDE_EFFECTS__ */
 export function flip<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
 ): Record<string, string | number> {
@@ -2181,6 +2206,7 @@ export function float(
     key: PathKey,
     defaultValue?: Default<number> | null,
 ): number;
+/* @__NO_SIDE_EFFECTS__ */
 export function float<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -2243,6 +2269,7 @@ export function forget<T extends object>(
     keys: PathKeys,
 ): ObjectDeepPartial<T>;
 export function forget(data: unknown, keys: PathKeys): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function forget<TValue extends Record<PropertyKey, unknown>>(
     data: TValue,
     keys: PathKeys,
@@ -2301,6 +2328,7 @@ export function from(
 export function from(items: NonObjectItems): Record<string, unknown>;
 export function from<T extends object>(items: T): SpreadItems<T>;
 export function from(items: unknown): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function from(items: unknown): Record<string, unknown> {
     if (isMap(items)) {
         const out: Record<string, unknown> = {};
@@ -2402,6 +2430,7 @@ export function get(
     key: PathKey,
     defaultValue?: unknown,
 ): unknown;
+/* @__NO_SIDE_EFFECTS__ */
 export function get<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -2511,6 +2540,7 @@ export function get<
  * has({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.country']); -> false
  */
 export function has(data: unknown, keys: PathKeys): boolean;
+/* @__NO_SIDE_EFFECTS__ */
 export function has<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
     keys: PathKeys,
@@ -2549,6 +2579,7 @@ export function has<TValue extends Record<PropertyKey, unknown>>(
  * hasAll({ name: 'John', address: { city: 'NYC' } }, ['name', 'address.country']); -> false
  */
 export function hasAll(data: unknown, keys: PathKeys): boolean;
+/* @__NO_SIDE_EFFECTS__ */
 export function hasAll<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
     keys: PathKeys,
@@ -2582,6 +2613,7 @@ export function hasAll<TValue extends Record<PropertyKey, unknown>>(
  * hasAny({ name: 'John', address: { city: 'NYC' } }, ['email', 'phone']); -> false
  */
 export function hasAny(data: unknown, keys: PathKeys): boolean;
+/* @__NO_SIDE_EFFECTS__ */
 export function hasAny<TValue extends Record<PropertyKey, unknown>>(
     data: TValue | unknown,
     keys: PathKeys,
@@ -2649,6 +2681,7 @@ export function every(
     data: unknown,
     callback: (value: unknown, key: string | number) => unknown,
 ): boolean;
+/* @__NO_SIDE_EFFECTS__ */
 export function every<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback: (value: TValue, key: TKey) => unknown,
@@ -2706,6 +2739,7 @@ export function some(
     data: unknown,
     callback: (value: unknown, key: string | number) => unknown,
 ): boolean;
+/* @__NO_SIDE_EFFECTS__ */
 export function some<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback: (value: TValue, key: TKey) => unknown,
@@ -2745,6 +2779,7 @@ export function integer(
     key: PathKey,
     defaultValue?: Default<number> | null,
 ): number;
+/* @__NO_SIDE_EFFECTS__ */
 export function integer<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -2790,6 +2825,7 @@ export function join(
 ): string;
 export function join(data: unknown, glue: string, finalGlue?: string): string;
 
+/* @__NO_SIDE_EFFECTS__ */
 export function join(
     data: unknown,
     glue: string,
@@ -2914,6 +2950,7 @@ export function keyBy(
               key: string | number,
           ) => PropertyKey | boolean | null | undefined),
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function keyBy<TValue extends Record<PropertyKey, unknown>>(
     data: Record<PropertyKey, TValue> | unknown,
     keyBy:
@@ -2984,6 +3021,7 @@ export function prependKeysWith(
     data: unknown,
     prependWith: string,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function prependKeysWith<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     prependWith: string,
@@ -3048,6 +3086,7 @@ export function only<T extends object, const Ks extends readonly (keyof T)[]>(
 ): Simplify<Pick<T, Ks[number]>>;
 export function only<T extends object>(data: T, keys: PathKeys): Partial<T>;
 export function only(data: unknown, keys: PathKeys): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function only<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     keys: string | string[] | null | unknown,
@@ -3116,6 +3155,7 @@ export function onlyValues(
     values: unknown,
     strict?: boolean,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function onlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     values: TValue | TValue[],
@@ -3186,6 +3226,7 @@ export function select(
     data: unknown,
     keys: PathKeys,
 ): Record<string, Record<string, unknown>>;
+/* @__NO_SIDE_EFFECTS__ */
 export function select<TValue extends Record<PropertyKey, unknown>>(
     data: Record<PropertyKey, TValue> | unknown,
     keys: PathKeys,
@@ -3453,6 +3494,7 @@ export function pluck(
         | undefined,
     key?: PluckKey<unknown> | null,
 ): unknown[] | Record<string | number, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     value:
@@ -3527,6 +3569,7 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
  * @see Collection::pop — `packages/collection/stubs/Collection.php:1040`.
  *      Mirrors `array_pop`, called `$count` times from the end; mutates.
  *
+ * @sideEffects mutates - Deletes the popped keys from the given object, or rewrites the given Map.
  * @param data - The object or Map to pop items from. Mutated in place.
  * @param count - The number of items to pop. Defaults to 1; a fraction is dropped, and NAN pops every item.
  * @returns The popped item(s) or null/empty array if none.
@@ -3696,6 +3739,7 @@ export function map<R>(
     data: unknown,
     callback: (value: unknown, key: string | number) => R,
 ): Record<string, R>;
+/* @__NO_SIDE_EFFECTS__ */
 export function map<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -3822,6 +3866,7 @@ export function mapWithKeys<TMapKey extends PropertyKey, TMapValue>(
         key: string | number,
     ) => Record<TMapKey, TMapValue>,
 ): Record<TMapKey, TMapValue>;
+/* @__NO_SIDE_EFFECTS__ */
 export function mapWithKeys<
     TValue,
     TMapWithKeysValue,
@@ -3900,6 +3945,7 @@ export function mapSpread<R>(
     data: unknown,
     callback: (...args: unknown[]) => R,
 ): Record<string, R>;
+/* @__NO_SIDE_EFFECTS__ */
 export function mapSpread<
     TValue extends Record<PropertyKey, unknown>,
     TMapSpreadValue,
@@ -3998,6 +4044,7 @@ export function prepend(
     value: unknown,
     key?: PropertyKey | null,
 ): Record<string | number, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function prepend<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     value: TValue,
@@ -4101,6 +4148,7 @@ export function pull(
     key: PathKey,
     defaultValue?: unknown,
 ): { value: unknown; data: Record<string, unknown> };
+/* @__NO_SIDE_EFFECTS__ */
 export function pull<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -4158,6 +4206,7 @@ export function pull<
 export function query(data: ReadonlyMap<unknown, unknown>): string;
 export function query(data: unknown): string;
 
+/* @__NO_SIDE_EFFECTS__ */
 export function query(data: unknown): string {
     if (isNull(data) || isUndefined(data)) {
         return "";
@@ -4345,6 +4394,7 @@ export function random(
     number?: number | string | null,
     preserveKeys?: boolean,
 ): unknown;
+/* @__NO_SIDE_EFFECTS__ */
 export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     number?: number | string | null,
@@ -4452,6 +4502,7 @@ function pickArrayKeysCount(requested: unknown): number {
  *
  * @see Collection::shift — `packages/collection/stubs/Collection.php:1291`. Mirrors `array_shift`; mutates.
  *
+ * @sideEffects mutates - Rewrites the given object or Map without the shifted entries.
  * @param data - The object or Map to shift items from. Mutated in place.
  * @param count - The number of items to shift. Defaults to 1; a fraction is dropped, and NAN shifts every item.
  * @returns The shifted item when count is 1, or null if there was none; an array of the shifted items otherwise.
@@ -4600,6 +4651,7 @@ export function set<K extends PathKey, V>(
     key: K,
     value: V,
 ): Record<string, unknown> | NullishKeyValue<K, V>;
+/* @__NO_SIDE_EFFECTS__ */
 export function set<TValue, TKey extends PropertyKey = PropertyKey>(
     object: Record<TKey, TValue> | unknown,
     key: PathKey | null,
@@ -4666,6 +4718,7 @@ export function push(
     key: PathKey,
     ...values: unknown[]
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function push<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     key: PathKey,
@@ -4733,6 +4786,7 @@ export function shuffle<T extends object>(
     data: T,
 ): Record<number, ObjectValue<T>>;
 export function shuffle(data: unknown): Record<number, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function shuffle<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
 ): Record<TKey, TValue> {
@@ -4804,6 +4858,7 @@ export function skipUntil(
     data: unknown,
     value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function skipUntil<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     value: TValue | ((value: TValue, key: TKey) => unknown),
@@ -4861,6 +4916,7 @@ export function skipWhile(
     data: unknown,
     value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function skipWhile<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     value: TValue | ((value: TValue, key: TKey) => unknown),
@@ -4929,6 +4985,7 @@ export function slice(
     offset: number,
     length?: number | null,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     offset: number,
@@ -5001,6 +5058,7 @@ export function sole(
     data: unknown,
     callback?: (value: unknown, key: string | number) => unknown,
 ): unknown;
+/* @__NO_SIDE_EFFECTS__ */
 export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback?: (value: TValue, key: TKey) => unknown,
@@ -5107,6 +5165,7 @@ export function sort(
         | readonly SortSpec<unknown>[]
         | null,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback:
@@ -5241,6 +5300,7 @@ export function sortDesc(
         | readonly SortSpec<unknown>[]
         | null,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback?:
@@ -5352,12 +5412,12 @@ export function sortRecursive(
     data: unknown,
     descending?: CaseValue<typeof SortDirection> | boolean,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function sortRecursive<T extends Record<PropertyKey, unknown>>(
     data: T | unknown,
     descending: CaseValue<typeof SortDirection> | boolean = false,
 ): T | Record<PropertyKey, unknown> {
-    const isDesc =
-        descending === true || descending === "Descending";
+    const isDesc = descending === true || descending === "Descending";
 
     if (!accessible(data)) {
         return {} as T;
@@ -5431,6 +5491,7 @@ export function sortRecursiveDesc(
 ): Record<string, unknown>;
 export function sortRecursiveDesc<T extends object>(data: T): T;
 export function sortRecursiveDesc(data: unknown): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
     data: T | unknown,
 ): T | Record<PropertyKey, unknown> {
@@ -5446,6 +5507,7 @@ export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
  *
  * @see Collection::splice — `packages/collection/stubs/Collection.php:1778`. Wraps `array_splice`; mutates.
  *
+ * @sideEffects mutates - Rewrites the given object or Map with the removed range replaced.
  * @param data - The object or Map to splice. Mutated in place.
  * @param offset - The starting index, by entry order (not by key); a fraction is dropped, as array_splice() drops it
  * @param length - The number of entries to remove, a fraction dropped. Null or none removes everything from offset on.
@@ -5599,6 +5661,7 @@ export function takeUntil(
     data: unknown,
     value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function takeUntil<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     value: TValue | ((value: TValue, key: TKey) => unknown),
@@ -5664,6 +5727,7 @@ export function takeWhile(
     data: unknown,
     value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function takeWhile<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     value: TValue | ((value: TValue, key: TKey) => unknown),
@@ -5696,6 +5760,7 @@ export function string(
     key: PathKey,
     defaultValue?: Default<string> | null,
 ): string;
+/* @__NO_SIDE_EFFECTS__ */
 export function string<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -5735,6 +5800,7 @@ export function string<
 export function toCssClasses(data: ReadonlyMap<unknown, unknown>): string;
 export function toCssClasses(data: unknown): string;
 
+/* @__NO_SIDE_EFFECTS__ */
 export function toCssClasses(data: unknown): string {
     if (!accessible(data)) {
         return "";
@@ -5776,6 +5842,7 @@ export function toCssClasses(data: unknown): string {
 export function toCssStyles(data: ReadonlyMap<unknown, unknown>): string;
 export function toCssStyles(data: unknown): string;
 
+/* @__NO_SIDE_EFFECTS__ */
 export function toCssStyles(data: unknown): string {
     if (!accessible(data)) {
         return "";
@@ -5838,6 +5905,7 @@ export function where(
     data: unknown,
     callback: (value: unknown, key: string | number) => unknown,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function where<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback: (value: TValue, key: TKey) => unknown,
@@ -5896,6 +5964,7 @@ export function reject(
     data: unknown,
     callback: (value: unknown, key: string | number) => unknown,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback: (value: TValue, key: TKey) => unknown,
@@ -5940,6 +6009,7 @@ export function replace(
     data: unknown,
     replacerData: unknown,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function replace<T1, T2>(
     data: Record<PropertyKey, T1> | unknown,
     replacerData: Record<PropertyKey, T2> | unknown,
@@ -5991,6 +6061,7 @@ export function replaceRecursive(
     data: unknown,
     replacerData: unknown,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function replaceRecursive<T1, T2>(
     data: Record<PropertyKey, T1> | unknown,
     replacerData: Record<PropertyKey, T2> | unknown,
@@ -6074,6 +6145,7 @@ export function reverse(data: NonKeyedItems): Record<string, never>;
 export function reverse(data: NonObjectItems): Record<string, unknown>;
 export function reverse<T extends object>(data: T): ReindexedObject<T>;
 export function reverse(data: unknown): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
 ): Record<TKey, TValue> {
@@ -6145,6 +6217,7 @@ export function pad<P>(
     size: number,
     value: P,
 ): Record<string | number, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     size: number,
@@ -6226,6 +6299,7 @@ export function partition(
     data: unknown,
     callback: (value: unknown, key: string | number) => unknown,
 ): [Record<string, unknown>, Record<string, unknown>];
+/* @__NO_SIDE_EFFECTS__ */
 export function partition<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<string, TValue> | unknown,
     callback: (value: TValue, key: TKey) => unknown,
@@ -6273,6 +6347,7 @@ export function whereNotNull(data: NonKeyedItems): Record<string, never>;
 export function whereNotNull(data: NonObjectItems): Record<string, unknown>;
 export function whereNotNull<T extends object>(data: T): NonNullableObject<T>;
 export function whereNotNull(data: unknown): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function whereNotNull<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue | null> | unknown,
 ): Record<TKey, TValue> {
@@ -6367,6 +6442,7 @@ export function contains<TValue>(
     key: PathKey | ((value: TValue, key: PropertyKey) => unknown),
     value: NonBooleanValue,
 ): boolean;
+/* @__NO_SIDE_EFFECTS__ */
 export function contains<TValue>(
     data: Record<PropertyKey, TValue> | unknown,
     value: TValue | ((value: TValue, key: PropertyKey) => unknown),
@@ -6511,6 +6587,7 @@ export function containsStrict(
     key: AnyValueOr<(value: unknown, key: string | number) => unknown>,
     value?: unknown,
 ): boolean;
+/* @__NO_SIDE_EFFECTS__ */
 export function containsStrict<TValue>(
     data: Record<PropertyKey, TValue> | unknown,
     key: TValue | ((value: TValue, key: PropertyKey) => unknown),
@@ -6582,6 +6659,7 @@ export function filter(
     data: unknown,
     callback?: ((value: unknown, key: string | number) => unknown) | null,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     callback?: ((value: TValue, key: TKey) => unknown) | unknown,
@@ -6630,6 +6708,7 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
 // where it belongs anyway. Deliberate, not the violation it keeps being read as.
 export function wrap(value: null): Record<string, never>;
 export function wrap<T>(value: T): WrapResult<T>;
+/* @__NO_SIDE_EFFECTS__ */
 export function wrap<TValue>(
     value: TValue | null,
 ): Record<PropertyKey, TValue> {
@@ -6667,6 +6746,7 @@ export function keys(data: NonKeyedItems): [];
 export function keys(data: NonObjectItems): (string | number)[];
 export function keys<T extends object>(data: T): BareObjectKey<T>[];
 export function keys(data: unknown): (string | number)[];
+/* @__NO_SIDE_EFFECTS__ */
 export function keys(data: unknown): (string | number)[] {
     if (!accessible(data)) {
         return [];
@@ -6704,6 +6784,7 @@ export function values(data: NonKeyedItems): [];
 export function values(data: NonObjectItems): unknown[];
 export function values<T extends object>(data: T): BareObjectValue<T>[];
 export function values(data: unknown): unknown[];
+/* @__NO_SIDE_EFFECTS__ */
 export function values<TValue>(data: unknown): TValue[] {
     if (!accessible(data)) {
         return [];
@@ -6731,6 +6812,7 @@ export function diff(
 ): Record<string, never>;
 export function diff<T1 extends object>(data: T1, other: unknown): Partial<T1>;
 export function diff(data: unknown, other: unknown): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function diff<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -6781,6 +6863,7 @@ export function diffAssoc(
     data: unknown,
     other: unknown,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function diffAssoc<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     other: Record<TKey, TValue> | unknown,
@@ -6834,6 +6917,7 @@ export function diffKeys(
     data: unknown,
     other: unknown,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function diffKeys<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     other: unknown,
@@ -6891,6 +6975,7 @@ export function diffUsing(
     other: unknown,
     callable: (a: unknown, b: unknown) => boolean,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function diffUsing<T1, T2 = T1>(
     data: Record<PropertyKey, T1> | unknown,
     other: Record<PropertyKey, T2> | unknown,
@@ -6950,6 +7035,7 @@ export function diffAssocUsing(
     other: unknown,
     callback: (keyA: string | number, keyB: string | number) => boolean,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function diffAssocUsing<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     other: Record<TKey, TValue> | unknown,
@@ -7018,6 +7104,7 @@ export function diffKeysUsing(
     other: unknown,
     callback: (keyA: string | number, keyB: string | number) => boolean,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     other: Record<TKey, TValue> | unknown,
@@ -7089,6 +7176,7 @@ export function intersect(
     other: unknown,
     callable?: ((a: unknown, b: unknown) => boolean) | null,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function intersect<T1, T2 = T1>(
     data: Record<PropertyKey, T1> | unknown,
     other: Record<PropertyKey, T2> | unknown,
@@ -7165,6 +7253,7 @@ export function intersectUsing(
     other: unknown,
     callable: (a: unknown, b: unknown) => boolean,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function intersectUsing<T1, T2 = T1>(
     data: Record<PropertyKey, T1> | unknown,
     other: Record<PropertyKey, T2> | unknown,
@@ -7204,6 +7293,7 @@ export function intersectAssoc(
     data: unknown,
     other: unknown,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function intersectAssoc<T1, T2 = T1>(
     data: Record<PropertyKey, T1> | unknown,
     other: Record<PropertyKey, T2> | unknown,
@@ -7261,6 +7351,7 @@ export function intersectAssocUsing(
     other: unknown,
     callback: (keyA: string | number, keyB: string | number) => boolean,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function intersectAssocUsing<T1, T2 = T1>(
     data: Record<PropertyKey, T1> | unknown,
     other: Record<PropertyKey, T2> | unknown,
@@ -7318,6 +7409,7 @@ export function intersectByKeys(
     data: unknown,
     other: unknown,
 ): Record<string, unknown>;
+/* @__NO_SIDE_EFFECTS__ */
 export function intersectByKeys<T1, T2 = T1>(
     data: Record<PropertyKey, T1> | unknown,
     other: Record<PropertyKey, T2> | unknown,

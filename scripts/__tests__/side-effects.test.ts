@@ -15,7 +15,6 @@ const PENDING_PACKAGES: ReadonlySet<string> = new Set([
     "@tolki/data",
     "@tolki/lang",
     "@tolki/num",
-    "@tolki/obj",
     "@tolki/str",
 ]);
 
