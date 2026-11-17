@@ -1309,4 +1309,22 @@ describe("mergeLocaleLines", () => {
 
         expect(given).toEqual({ en: { a: { x: "X" } } });
     });
+
+    // JS-only: Laravel loads a locale's files whole; this is the runtime's way in.
+    it("keeps a key with dots whole and replaces a group by its name", () => {
+        const translator = new Translator(
+            { en: { "Dear Mr. Smith": "old", "*.x": "old", g: { a: "A" } } },
+            "en",
+        );
+
+        mergeLocaleLines(translator, "en", {
+            "Dear Mr. Smith": "Hello",
+            "*.x": "star",
+            g: { b: "B" },
+        });
+
+        expect(translator.get("Dear Mr. Smith")).toBe("Hello");
+        expect(translator.get("*.x")).toBe("star");
+        expect(translator.get("g")).toEqual({ b: "B" });
+    });
 });

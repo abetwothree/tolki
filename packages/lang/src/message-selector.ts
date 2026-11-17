@@ -142,7 +142,7 @@ export function getPluralIndex(locale: string | null, number: number): number {
         return 0;
     }
 
-    return PLURAL_RULES.get(locale)?.(value) ?? 0;
+    return getPluralRules().get(locale)?.(value) ?? 0;
 }
 
 /**
@@ -589,11 +589,25 @@ const LOCALE_RULES: [string[], PluralRule][] = [
     ],
 ];
 
-const PLURAL_RULES = /* @__PURE__ */ new Map<string, PluralRule>(
-    /* @__PURE__ */ LOCALE_RULES.flatMap(([locales, rule]) => {
-        return locales.map((locale): [string, PluralRule] => [locale, rule]);
-    }),
-);
+let pluralRules: Map<string, PluralRule> | undefined;
+
+/**
+ * Index the plural rules by locale on first use, so importing the module runs no setup code.
+ *
+ * @returns The rule of each locale.
+ */
+function getPluralRules(): Map<string, PluralRule> {
+    pluralRules ??= new Map<string, PluralRule>(
+        LOCALE_RULES.flatMap(([locales, rule]) => {
+            return locales.map((locale): [string, PluralRule] => [
+                locale,
+                rule,
+            ]);
+        }),
+    );
+
+    return pluralRules;
+}
 
 /**
  * Trim the characters PHP's `trim()` strips by default; `String.prototype.trim` strips more.
