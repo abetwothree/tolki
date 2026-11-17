@@ -948,6 +948,7 @@ export function collect(
     items?: null | undefined,
 ): Collection<never, number, "list">;
 export function collect<TInput>(items: TInput): CollectCollection<TInput>;
+/* @__NO_SIDE_EFFECTS__ */
 export function collect(items?: unknown): unknown {
     return new (Collection as CollectionClass<unknown, PropertyKey>)(items);
 }

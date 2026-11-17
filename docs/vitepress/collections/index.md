@@ -73,6 +73,18 @@ Most methods return a new collection. The few that change the collection they ar
 - [`transform`](./methods-list.md#transform)
 - [`unshift`](./methods-list.md#unshift)
 
+## Bundling
+
+A `collect(...)` call whose result nothing uses drops out of your bundle in Rollup and webpack, including a call at the top level of a module. `collect()` only builds a new collection, so removing the call changes nothing.
+
+`Collection` is a class, and a bundler can't mark a constructor. A top-level `new Collection(...)` stays in the bundle unless the call site says it is safe to remove:
+
+```typescript
+export const prices = /* @__PURE__ */ new Collection([1, 2, 3]);
+```
+
+In Vite 8 (Rolldown) and Rspack, an unused top-level `collect(...)` call drops the call but can keep the `Collection` class; writing `/* @__PURE__ */` before the call drops everything. esbuild doesn't follow the mark on `collect()` across files either, so it keeps that call unless the call site carries the same comment.
+
 ## More documentation
 
 - The [Methods List](./methods-list.md) page documents every method with a live example.
