@@ -28,7 +28,7 @@ pnpm add @tolki/str
 
 ### Importing the Package
 
-You can import individual functions for better tree-shaking or the entire package (not recommended).:
+You can import individual functions or the whole package as a namespace. Both tree-shake the same way:
 
 Importing individual functions:
 
@@ -41,10 +41,10 @@ const camelCaseString = camel("hello world"); // 'helloWorld'
 const choppedString = chopEnd("HelloWorld", 5); // 'Hello'
 ```
 
-Importing the entire package:
+Importing the package as a namespace:
 
 ```typescript
-// Import the entire package (not recommended for tree-shaking)
+// Import the package as a namespace
 import * as Str from "@tolki/str";
 
 // Example usage
@@ -52,9 +52,21 @@ const camelCaseString = Str.camel("hello world"); // 'helloWorld'
 const choppedString = Str.chopEnd("HelloWorld", 5); // 'Hello'
 ```
 
-The reason that importing the entire package is not recommended is that it will include all functions in your bundle, even the ones you don't use, which can lead to larger bundle sizes. Importing individual functions allows your end files to only include the code that is actually used, resulting in smaller and more efficient bundles.
+A namespace import that reads its members by name, such as `Str.camel(...)`, shakes exactly like named imports in Rollup, Rolldown (Vite 8), esbuild, webpack and Rspack: your bundle holds only the members you use. Passing the namespace object around, or reading a computed member such as `Str[name]`, keeps every function. See [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html#namespace-imports).
 
-However, if you are working on a backend project where bundle size is not a concern, importing the entire package can be more convenient.
+### Bundling
+
+A helper call whose result nothing uses drops out of your bundle in Rollup, Rolldown (Vite 8), webpack and Rspack, because the helpers are marked as free of side effects. This holds for a call at the top level of a module too.
+
+The exception is Vite 8 (Rolldown) and Rspack, where an unused top-level call to `uuid`, `uuid7`, `ulid`, `slug`, `ascii`, `markdown`, `inlineMarkdown`, `markDownRenderer`, `str`, `of`, `plural`, `singular`, `counted`, `isPlural`, `isSingular`, `pluralStudly`, `pluralPascal`, `matchCase` or `uncountable` drops the call but can keep the code of the package behind it (uuid, ulid, pluralize, markdown-it, transliteration). Writing `/* @__PURE__ */` before the call drops everything:
+
+```typescript
+export const id = /* @__PURE__ */ uuid();
+```
+
+esbuild doesn't follow the mark across files, so it needs the same comment on any helper call. [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html) covers every bundler.
+
+The functions that set or clear a generator or the casing caches (`createRandomStringsUsing`, `createUuidsUsing`, `createUlidsUsing`, `freezeUuids`, `freezeUlids`, `flushCache`, `resetFactoryState` and the other `create*` helpers) change module state, and so does `inflector`, which registers the pluralizer's rules on the shared `pluralize` instance. A call to any of them is always kept.
 
 ## Tolki String Utilities List
 
@@ -1874,8 +1886,8 @@ const result2 = wordWrap("😀😀😀😀", 2, "\n", true);
 ```
 
 ' },
-{ name: 'cutLongWords', type: 'boolean', default: false },
-]"
+    { name: 'cutLongWords', type: 'boolean', default: false },
+  ]"
 />
 
 #### words
@@ -1910,7 +1922,7 @@ const result2 = wrap("is", "This ", " Laravel!");
 
 Using the `str` or `of` functions is discouraged for frontend projects because it will import the entire `Stringable` class, all of its methods, and all 3rd party dependencies into your final bundle, which may significantly increase its size.
 
-For frontend projects, it is recommended to use the individual string functions instead for better tree-shaking and smaller bundle sizes.
+For frontend projects, it is recommended to use the individual string functions instead for better tree-shaking and smaller bundle sizes. In Rolldown and Rspack, even an unused top-level `str(...)` or `of(...)` call can leave the class behind unless the call is written `/* @__PURE__ */`; see [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html#dependency-residue).
 
 Also unlike the standalone functions on this page, `str`/`of` return a `Stringable` class instance rather than a plain value, so there's no live playground for them here — try the fluent methods it exposes (like `.append()` or `.snake()`) directly in your own code instead.
 

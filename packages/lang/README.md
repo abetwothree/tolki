@@ -353,6 +353,18 @@ await lang.setLocale("../secrets");
 
 Call `subscribe(listener)` to hear about every change. It returns a function that stops the calls. `getVersion()` counts the changes, which is the snapshot that React's `useSyncExternalStore` wants. The [Vue](https://tolki.abe.dev/localization/vue.html), [React](https://tolki.abe.dev/localization/react.html) and [Svelte](https://tolki.abe.dev/localization/svelte.html) pages show the bindings that use them.
 
+### Bundling
+
+A call whose result nothing uses drops out of your bundle in Rollup, Rolldown (Vite 8), webpack and Rspack, because `createLang`, the translation helpers and the Svelte `getLang` and `langContext` are marked as free of side effects. This holds for a call at the top level of a module too.
+
+The exception is Rspack, where an unused top-level call to `createLang` drops the call but keeps dead `@tolki/utils` code under its default minifier settings. SWC `compress.passes: 3` in an `optimization.minimizer` removes it, and so does writing `/* @__PURE__ */` before the call:
+
+```typescript
+export const lang = /* @__PURE__ */ createLang({ locale: "en" });
+```
+
+The Svelte `setLang` writes the component context, and the React `useLang` subscribes the calling component, so a call to either is always kept. The Vue `useLang` only calls `inject` during setup, but it shares the same mark, so call it only there. [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html) covers every bundler.
+
 ### Next
 
 - [Vite Plugin](https://tolki.abe.dev/localization/vite.html) exports your lang files and serves them as a module.
@@ -552,7 +564,7 @@ Create the lang in `resources/js/app.ts` and wait for `lang.ready` before you mo
 import { createInertiaApp } from "@inertiajs/vue3";
 import { createLang } from "@tolki/lang/vue";
 import { load, locales } from "virtual:tolki-lang";
-import { createSSRApp, h } from "vue";
+import { createApp, h } from "vue";
 
 createInertiaApp({
   resolve: (name) => import(`./Pages/${name}.vue`),
@@ -563,7 +575,7 @@ createInertiaApp({
 
     await lang.ready;
 
-    createSSRApp({ render: () => h(App, props) })
+    createApp({ render: () => h(App, props) })
       .use(plugin)
       .use(lang)
       .mount(el);

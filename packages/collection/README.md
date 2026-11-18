@@ -81,6 +81,18 @@ Most methods return a new collection. The few that change the collection they ar
 - [`transform`](https://tolki.abe.dev/collections/methods-list.html#transform)
 - [`unshift`](https://tolki.abe.dev/collections/methods-list.html#unshift)
 
+### Bundling
+
+The call to `collect(...)` drops out of your bundle when its result is unused, in Rollup, Rolldown (Vite 8), webpack and Rspack, including a call at the top level of a module. `collect()` only builds a new collection, so removing the call changes nothing.
+
+`Collection` is a class, and a bundler can't mark a constructor. A top-level `new Collection(...)` stays in the bundle unless the call site says it is safe to remove:
+
+```typescript
+export const prices = /* @__PURE__ */ new Collection([1, 2, 3]);
+```
+
+In Vite 8 (Rolldown) and Rspack the call drops but the `Collection` class can stay in the bundle, because the class's own import cycle is kept. Writing `/* @__PURE__ */ collect(...)` drops everything. esbuild doesn't follow the mark on `collect()` across files either, so it keeps that call unless the call site carries the same comment. [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html) covers every bundler.
+
 ### More documentation
 
 - The [Methods List](https://tolki.abe.dev/collections/methods-list.html) page documents every method with a live example.
