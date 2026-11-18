@@ -584,7 +584,9 @@ A custom cast without [`#[TsType]`](./custom-types.md) publishes the return type
 - **A bare `array` or `object`, on a cast without the interface**: `get()`'s type, where `get()` returns a value object or an array shape. `?object` and `array|object` work the same way. Over a scalar `get()`, a bare `array` publishes `unknown[] | Record<string, unknown>`.
 - **Any other declared type**: that type, such as `string`.
 
-Laravel calls `get()` for a `NULL` column too, so a nullable column cast to a class whose `get()` declares a non-null return type publishes no `| null`. For a `coordinate_data` column that may be `NULL`, cast with a `get()` that always returns a `Coordinate`, the model publishes `coordinate_data: { lat: number; lng: number }`. Laravel sends a `null` from `get()` without calling `serialize()`, so a `get()` that declares a nullable return type, or returns `null` itself, adds `| null` to the `serialize()` type.
+Laravel calls `get()` for a `NULL` column too, so a nullable column cast to a class whose `get()` declares a non-null return type publishes no `| null`. For a `coordinate_data` column that may be `NULL`, cast with a `get()` that always returns a `Coordinate`, the model publishes `coordinate_data: { lat: number; lng: number }`. Laravel sends a `null` from `get()` without calling `serialize()`, so on a nullable column, a `get()` that declares a nullable return type, or returns `null` itself, adds `| null` to the `serialize()` type.
+
+A `NOT NULL` column never holds a `NULL`, so it publishes the `serialize()` type alone. With a cast whose `get()` returns `?CarbonImmutable` and whose `serialize()` returns `string`, a `NOT NULL` `opens_at` column publishes `opens_at: string`, and a nullable `closes_at` column publishes `closes_at: string | null`. A `Castable` that names the cast publishes the same way, and a `null` that `serialize()` itself declares or returns stays on either column. A `get()` that turns a stored value into `null`, such as an empty string, still sends that `null` from a `NOT NULL` column, which the type leaves out. Type such a column with [`#[TsCasts]`](#tscasts).
 
 When `get()`'s native type is missing or vague, such as a bare `array`, the `@return` docblock sets the type, so `@return list<LegDto>` publishes a list of `LegDto`'s public properties, the shape `json_encode()` writes. A `@return` that names a model, such as `list<User>`, or another class that doesn't publish as an inline shape keeps `unknown[]`. A `get()` that declares neither publishes `unknown`.
 
@@ -761,7 +763,7 @@ A column or accessor typed as a backed or unit enum publishes in two ways:
 - **The main interface**: `User` uses the enum's `{Enum}Type` union, which is how Laravel serializes the enum when it converts a model to JSON.
 - **A parallel `Resource` interface**: `{Model}Resource` types the same property as [`AsEnum<typeof Enum>`](./enums.md#type-reference), and the split template adds `{Model}MutatorsResource` for accessors and `{Model}AllResource`. `AsEnum` is the shape you get once the raw value is a full enum instance, either from `Status.from(user.status)` or from an API resource that serialized the enum with [`EnumResource`](./enum-api-resource.md).
 
-A property is rewritten only when its type is a single enum or a list of one, either optionally `| null`. A list becomes `AsEnum<typeof Enum>[]`. A shape, or a union with other types, keeps its own type.
+A property is rewritten only when its type is a single enum or a list of one, either optionally `| null`. A list becomes `AsEnum<typeof Enum>[]`. A shape, or a union with other types, keeps its own type. An accessor that returns an enum's `->value` or `->name` keeps the enum's alias in `{Model}Resource` and `{Model}MutatorsResource`, because it sends the scalar, not the enum. Only an accessor that returns the enum itself takes `AsEnum<typeof Enum>`.
 
 This helper resolves the raw `role` value into the type `UserResource` declares:
 

@@ -16,6 +16,7 @@ let ulidFactory: (() => string) | null = null;
  *
  * @requires {@link https://www.npmjs.com/package/ulid ulid package}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function ulid(time: Date | number | null = null): string {
     if (ulidFactory) {
         return ulidFactory();
@@ -45,6 +46,8 @@ export function ulid(time: Date | number | null = null): string {
 /**
  * Indicate that ULIDs should be created normally and not using a custom factory.
  *
+ * @sideEffects state - clears `ulidFactory`.
+ *
  * @returns void.
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#ulid
@@ -57,6 +60,8 @@ export function createUlidsNormally(): void {
 
 /**
  * Set the callable that will be used to generate ULIDs.
+ *
+ * @sideEffects state - sets `ulidFactory`.
  *
  * @param factory - The callable ULID factory.
  * @returns void.
@@ -71,6 +76,8 @@ export function createUlidsUsing(factory: (() => string) | null): void {
 
 /**
  * Set the sequence that will be used to generate ULIDs.
+ *
+ * @sideEffects state - sets `ulidFactory`.
  *
  * @param sequence - The sequence of ULID strings to return.
  * @param whenMissing - Optional callable to generate ULIDs when the sequence is exhausted.
@@ -114,6 +121,8 @@ export function createUlidsUsingSequence(
 /**
  * Always return the same ULID when generating new ULIDs.
  *
+ * @sideEffects state - sets `ulidFactory` to a fixed value.
+ *
  * @param callback - Optional callable to execute while ULIDs are frozen.
  * @returns The frozen ULID string.
  *
@@ -149,6 +158,7 @@ export function freezeUlids(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#isulid
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isUlid(value: unknown): boolean {
     if (!isString(value)) {
         return false;

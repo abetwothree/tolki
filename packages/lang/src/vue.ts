@@ -42,7 +42,8 @@ export interface VueLang<
     readonly lang: Lang<TLines>;
 }
 
-const LANG_KEY: InjectionKey<VueLang<LangLines>> = Symbol("tolki-lang");
+const LANG_KEY: InjectionKey<VueLang<LangLines>> =
+    /* @__PURE__ */ Symbol("tolki-lang");
 
 /**
  * Create a lang that installs into a Vue app and re-renders templates when its locale changes.
@@ -50,6 +51,7 @@ const LANG_KEY: InjectionKey<VueLang<LangLines>> = Symbol("tolki-lang");
  * @param options - The locale, fallback and where the lines come from
  * @returns The lang, usable as a plugin
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function createLang<TLines extends LangLines = RegisteredLines>(
     options: LangOptions<TLines>,
 ): LangPlugin<TLines> {
@@ -93,6 +95,8 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
 
 /**
  * Read the lang that `app.use(createLang(…))` installed.
+ *
+ * @sideEffects state Shares React useLang's mark; call it only during setup.
  *
  * @returns The tracked reads, the locale ref and the lang itself
  * @throws Error when no lang was installed

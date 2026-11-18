@@ -379,7 +379,9 @@ export interface PostSummaryResource {
 
 A backed enum's `->value` publishes its `{Name}Type`, and its `->name` publishes its `{Name}Kind`. A unit enum's `->name` publishes its `{Name}Type`, because its values are its case names.
 
-A case you write out can send only its own value, so it publishes that value: `PostStatus::Published->value` publishes `1`, and `PostStatus::Published->name` publishes `'Published'`. A ternary between two cases publishes both values. `PostStatus::from($value)->value` publishes `PostStatusType`, and after `PostStatus::tryFrom()`, `?->value` publishes `PostStatusType | null`. A method you call on a case publishes its return type.
+A case you write out can send only its own value, so it publishes that value: `PostStatus::Published->value` publishes `1`, and `PostStatus::Published->name` publishes `'Published'`. A ternary between two cases publishes both values. Beside a read of the same enum, the alias already holds a case's value, so the value is left out: `$draft ? PostStatus::Draft->value : $this->status->value` publishes `PostStatusType`, not `0 | PostStatusType`. `PostStatus::from($value)->value` publishes `PostStatusType`, and after `PostStatus::tryFrom()`, `?->value` publishes `PostStatusType | null`. A method you call on a case publishes its return type.
+
+A `->value` or `->name` read off a method call, `$this->m()`, `$this::m()`, `self::m()`, `static::m()` or `parent::m()`, publishes the value or name of each case that method returns, when neither its return type nor a `@return` tag names a class, as with no return type or `mixed`. When `draft(): mixed` returns `PostStatus::Draft`, `$this->draft()->value` publishes `0`. A method declared `: PostStatus`, or documented `@return PostStatus`, keeps the alias, so the read publishes `PostStatusType`. A `null` the method returns is left out, as it is for any `->` read, so `->value` off a method returning `$draft ? PostStatus::Draft : null` publishes `0`, and `?->value` publishes `0 | null`. A method with no return type that can end without returning a value leaves the read `unknown`.
 
 In an API resource, `PostStatus::cases()` publishes a list of the alias. A map over the cases publishes what its callback reads from each case, with or without a type hint:
 
@@ -592,6 +594,22 @@ values(Color); // ['red', 'green', 'blue']
 A unit enum publishes each case name as its value, so `values` returns its case names. PHP's `array_column()` returns an empty array for a unit enum.
 
 `values` and `keys` read the `_cases` list, so they need `enums.metadata_enabled` and return an empty array without it. `defineEnum()` doesn't add `values` or `keys` to the enum. An enum that publishes its own `values()` or `keys()` static method keeps that published value under the name, so `Status.values` is the static method's published output while `values(Status)` returns the case values.
+
+## Bundling
+
+An enum nobody uses drops out of your bundle in Vite (Rolldown), Rollup, webpack and Rspack, because `defineEnum` and the other runtime utilities are marked as free of side effects, except `from`, which throws on an unknown value and is always kept.
+
+esbuild doesn't follow that mark across files, so it keeps the call unless the call site says it is safe to remove:
+
+```typescript
+export const Status = /* @__PURE__ */ defineEnum({
+  Active: "active",
+  Inactive: "inactive",
+  _cases: ["Active", "Inactive"],
+});
+```
+
+Rspack also needs the call-site form when the same module derives a list from the enum, such as `export const STATUSES = /* @__PURE__ */ values(Status)`. [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html) lists every bundler.
 
 ## Vite Plugin
 

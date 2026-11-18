@@ -52,6 +52,7 @@ export type {
  * @returns A one-argument function that accepts a `defineRoute` result and returns
  *   the same value cast to carry `TPageProps`.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function annotatePageProps<TPageProps>(): <
     TMethods extends readonly string[],
     TArgs extends readonly RouteArgMeta[],
@@ -73,7 +74,7 @@ export function annotatePageProps<TPageProps>(): <
     TPageProps,
     TExistingRequestPayload
 > {
-    return function <
+    return /* @__NO_SIDE_EFFECTS__ */ function <
         TMethods extends readonly string[],
         TArgs extends readonly RouteArgMeta[],
         TComponent extends RouteComponentType | undefined,
@@ -122,6 +123,7 @@ export function annotatePageProps<TPageProps>(): <
  * @returns A one-argument function that accepts a `defineRoute` result and returns
  *   the same value cast to carry `TRequestPayload`.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function annotateRequestPayload<TRequestPayload>(): <
     TMethods extends readonly string[],
     TArgs extends readonly RouteArgMeta[],
@@ -143,7 +145,7 @@ export function annotateRequestPayload<TRequestPayload>(): <
     TPageProps,
     TRequestPayload
 > {
-    return function <
+    return /* @__NO_SIDE_EFFECTS__ */ function <
         TMethods extends readonly string[],
         TArgs extends readonly RouteArgMeta[],
         TComponent extends RouteComponentType | undefined,
@@ -196,6 +198,7 @@ let routeDefaults: () => Record<string, string | number | boolean> =
  * the caller doesn't provide them. Mirrors Laravel's `URL::defaults()`.
  * Accepts a static object or a factory function for lazy evaluation.
  *
+ * @sideEffects state - Replaces the module-level route defaults.
  * @param defaults - A record of parameter names to default values, or a factory function.
  */
 export function setRouteDefaults(
@@ -211,6 +214,7 @@ export function setRouteDefaults(
  *
  * If a default already exists for the given parameter name, it is overwritten.
  *
+ * @sideEffects state - Updates the module-level route defaults.
  * @param key - The parameter name.
  * @param value - The default value.
  */
@@ -230,12 +234,15 @@ export function addRouteDefault(
  *
  * @returns The current route defaults record.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function getRouteDefaults(): Record<string, string | number | boolean> {
     return { ...routeDefaults() };
 }
 
 /**
  * Reset route defaults to an empty object (useful for testing).
+ *
+ * @sideEffects state - Clears the module-level route defaults.
  */
 export function resetRouteDefaults(): void {
     routeDefaults = emptyDefaults;
@@ -647,6 +654,7 @@ function makeFormResult<TMethod extends string>(
  * @param options - Optional query options to merge with.
  * @returns RouteQueryOptions with `_method` injected.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function formSafeOptions(
     method: string,
     options?: RouteQueryOptions,
@@ -686,6 +694,7 @@ export function formSafeOptions(
  * @param metadata - The route metadata object with url, methods, and optional args.
  * @returns A defineRoute result — callable with per-verb methods, .url(), .form, and .definition.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function defineRoute<
     const TMethods extends readonly string[],
     const TArgs extends readonly RouteArgMeta[] = readonly [],

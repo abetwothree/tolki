@@ -22,6 +22,7 @@ export type { AsEnum, CaseValue, DefineEnumResult, EnumConst, FromResult };
  * @see https://tolki.abe.dev/ts/enums.html#metadata-the-defineenum-wrapper
  * @see https://tolki.abe.dev/ts/enums.html#from
  *
+ * @sideEffects asserts - Throws when the value matches no case.
  * @param enumObj - The enum const object to resolve from.
  * @param value - The case value to resolve. Must be one of the values defined in the enum const's cases.
  * @returns The resolved enum case with its associated methods and properties for the value provided.
@@ -89,6 +90,7 @@ export function from<
  * @param value - The case value to resolve.
  * @returns The resolved enum case, or null if the value does not match any case.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function tryFrom<
     TEnum extends EnumConst,
     const TValue extends CaseValue<TEnum>,
@@ -110,6 +112,7 @@ export function tryFrom<
  * @param enumObj - The enum const object to resolve all cases from.
  * @returns An array of resolved enum instances, one for each case.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function cases<TEnum extends EnumConst>(
     enumObj: TEnum,
 ): Array<FromResult<TEnum, CaseValue<TEnum>>> {
@@ -128,6 +131,7 @@ export function cases<TEnum extends EnumConst>(
  * @param enumObj - The enum const object to read the case values from.
  * @returns A new array with one value per case, or an empty array when the enum has no `_cases`.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function values<TEnum extends EnumConst>(
     enumObj: TEnum,
 ): ReadonlyArray<CaseValue<TEnum>> {
@@ -146,6 +150,7 @@ export function values<TEnum extends EnumConst>(
  * @param enumObj - The enum const object to read the case names from.
  * @returns A new array with one name per case, or an empty array when the enum has no `_cases`.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function keys<TEnum extends EnumConst>(
     enumObj: TEnum,
 ): ReadonlyArray<CaseKeys<TEnum>> {
@@ -166,6 +171,7 @@ export function keys<TEnum extends EnumConst>(
  * @param enumObj - The raw enum const object to enrich.
  * @returns The enum object with `from`, `tryFrom`, and `cases` methods bound to it.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function defineEnum<const TEnum extends EnumConst>(
     enumObj: TEnum,
 ): DefineEnumResult<TEnum> {

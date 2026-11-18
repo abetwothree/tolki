@@ -26,7 +26,7 @@ export interface SvelteLang<
     readonly lang: Lang<TLines>;
 }
 
-const KEY = Symbol("@tolki/lang");
+const KEY = /* @__PURE__ */ Symbol("@tolki/lang");
 
 /**
  * Wrap a lang in reads that Svelte tracks.
@@ -61,6 +61,7 @@ function createSvelteLang<TLines extends LangLines>(
  * @param lang - The lang the components read
  * @returns A context map that `getLang()` finds
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function langContext<TLines extends LangLines>(
     lang: Lang<TLines>,
 ): Map<symbol, SvelteLang<TLines>> {
@@ -69,6 +70,8 @@ export function langContext<TLines extends LangLines>(
 
 /**
  * Hand a lang to every component below; call it while a component initializes.
+ *
+ * @sideEffects state writes the Svelte component context
  *
  * @param lang - The lang the components below read
  * @returns The tracked reads, the locale accessor and the lang itself
@@ -85,6 +88,7 @@ export function setLang<TLines extends LangLines>(
  * @returns The tracked reads, the locale accessor and the lang itself
  * @throws Error when no lang is in context
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function getLang<
     TLines extends LangLines = RegisteredLines,
 >(): SvelteLang<TLines> {

@@ -91,6 +91,24 @@ describe("Arr", () => {
     });
 
     describe("add", () => {
+        it("keeps the caller's element for a fractional number key", () => {
+            const input = [{ a: 1 }, { b: 2 }];
+
+            expect(Arr.add(input, 1.5, 9)[1]).toBe(input[1]);
+        });
+
+        it.each([["0.a.c"], ["0.a"]])(
+            "leaves the caller's nested data alone for the array key %j",
+            (path) => {
+                const input = [{ a: { b: 1 } }];
+                const snapshot = structuredClone(input);
+
+                Arr.add(input, [path] as never, 2);
+
+                expect(input).toEqual(snapshot);
+            },
+        );
+
         it("writes a number key mid-path as PHP stores it", () => {
             // docs/php-parity/Arr/add.json, "add-nested-keeps-key-order"
             const inner = { a: 1 };
@@ -2917,6 +2935,24 @@ describe("Arr", () => {
     });
 
     describe("push", () => {
+        it("keeps the caller's element for a fractional number key", () => {
+            const input = [{ a: 1 }, [2]];
+
+            expect(Arr.push(input, 1.5, 9)[1]).toBe(input[1]);
+        });
+
+        it.each([["0.a"], ["0.a.c"]])(
+            "leaves the caller's nested data alone for the array key %j",
+            (path) => {
+                const input = [{ a: [1], c: [3] }];
+                const snapshot = structuredClone(input);
+
+                Arr.push(input, [path] as never, 2);
+
+                expect(input).toEqual(snapshot);
+            },
+        );
+
         it("throws InvalidArgumentException, as Laravel's Arr::push does through Arr::array", () => {
             // docs/php-parity/Arr/push.json, "push requires an array at the key"
             expect(() => Arr.push([1, 2, 3], 0, 9)).toThrow(
@@ -3615,6 +3651,16 @@ describe("Arr", () => {
         it("keeps an empty Map as a leaf", () => {
             // docs/php-parity/Arr/dot.json, "dot-nested-empty-leaf"
             expect(Arr.dot([new Map()])).toEqual({ 0: new Map() });
+        });
+    });
+
+    describe("undot input", () => {
+        it("leaves the nested arrays of its input unchanged", () => {
+            const nested = ["a"];
+            const input = { "0": nested, "0.1": "b" };
+
+            expect(Arr.undot(input)).toEqual([["a", "b"]]);
+            expect(nested).toEqual(["a"]);
         });
     });
 

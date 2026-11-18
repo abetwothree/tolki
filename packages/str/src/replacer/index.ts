@@ -10,6 +10,7 @@ import { isArray, isObject, isString } from "@tolki/utils";
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#substr
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function substr(
     string: string,
     start: number,
@@ -39,6 +40,7 @@ export function substr(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#substrcount
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function substrCount(
     haystack: string,
     needle: string,
@@ -100,6 +102,7 @@ export function substrReplace(
     offset?: number | number[],
     length?: number | number[] | null,
 ): string | string[] | Record<string, string>;
+/* @__NO_SIDE_EFFECTS__ */
 export function substrReplace(
     string: string | string[] | Record<string, string>,
     replace: string | string[] | Record<string, string>,

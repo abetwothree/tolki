@@ -5,7 +5,7 @@
 coverage/
 dist/
 node_modules/# Ignore artifacts:
-build
+/build
 coverage
 
 # Captured PHP parity transcripts must stay byte-identical to PHP's own

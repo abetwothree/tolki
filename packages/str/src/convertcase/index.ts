@@ -24,6 +24,7 @@ export type ConvertCaseMode = (typeof CaseTypes)[keyof typeof CaseTypes];
  *
  * convertCase('hello', CaseTypes.upper); -> 'HELLO'
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function convertCase(
     value: string,
     mode: ConvertCaseMode = CaseTypes.fold,
@@ -39,6 +40,7 @@ export function convertCase(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#upper
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function upper(value: string): string {
     return caseConverter(value, CaseTypes.upper);
 }
@@ -51,6 +53,7 @@ export function upper(value: string): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#title
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function title(value: string): string {
     return caseConverter(value, CaseTypes.title);
 }

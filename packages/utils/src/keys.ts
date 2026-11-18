@@ -35,6 +35,7 @@ const PHP_INT_BOUND = 2 ** 63;
  * @param value - The entry key value (number, string, or symbol)
  * @returns The entry key as a number if it can be converted, otherwise returns the original value
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function entriesKeyValue<T extends PropertyKey>(
     value: T,
 ): T extends `${number}` ? number : T {
@@ -52,6 +53,7 @@ export function entriesKeyValue<T extends PropertyKey>(
  * @param key - The key to check
  * @returns True if the key could cause prototype pollution
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isUnsafeKey(key: string): boolean {
     return key === "__proto__" || key === "constructor" || key === "prototype";
 }
@@ -65,6 +67,7 @@ export function isUnsafeKey(key: string): boolean {
  * @param value - The value to check
  * @returns True if the value can be used as a PHP array key
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isPhpArrayKey(value: unknown): value is string | number {
     if (isString(value)) {
         return true;
@@ -88,6 +91,7 @@ export function isPhpArrayKey(value: unknown): value is string | number {
  * @param key - The key to test
  * @returns True if `key` is a canonical non-negative integer string
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isIntegerLikeKey(key: string): boolean {
     return /^(0|[1-9]\d*)$/.test(key);
 }
@@ -106,6 +110,7 @@ export function isIntegerLikeKey(key: string): boolean {
  * phpArrayKey(true); -> 1
  * phpArrayKey(1.5); -> 1
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function phpArrayKey(key: unknown): string | number {
     if (isString(key)) {
         if (/^(0|-?[1-9]\d*)$/.test(key)) {
@@ -157,6 +162,7 @@ export function phpArrayKey(key: unknown): string | number {
  * phpComputedKey({ value: 2, backed: true, name: "B" }, { enumCases: true }); -> 2
  * phpComputedKey([1, 2]); -> throws TypeError("Cannot access offset of type array on array")
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function phpComputedKey(
     value: unknown,
     options: {
@@ -195,6 +201,7 @@ export function phpComputedKey(
  * isIllegalOffset(["b"]); -> true
  * isIllegalOffset(null); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isIllegalOffset(value: unknown): value is object {
     return isArray(value) || isObject(value) || isFunction(value);
 }
@@ -204,6 +211,7 @@ export function isIllegalOffset(value: unknown): value is object {
  *
  * @returns The TypeError PHP throws
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function arrayKeyExistsError(): TypeError {
     return new TypeError(
         "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
@@ -220,6 +228,7 @@ export function arrayKeyExistsError(): TypeError {
  * hasOwnToString(new (class { toString() { return "a"; } })()); -> true
  * hasOwnToString(new Date(0)); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function hasOwnToString(
     value: unknown,
 ): value is { toString(): unknown } {
@@ -256,6 +265,7 @@ function illegalOffset(type: string): TypeError {
  * keyedEntries(new Map([[2, "c"], [0, "a"]])); -> [["2", "c"], ["0", "a"]]
  * keyedEntries(new Map([[1, "a"], ["1", "b"]])); -> [["1", "b"]]
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function keyedEntries<TValue = unknown>(
     data: object,
 ): [string, TValue][] {
@@ -292,6 +302,7 @@ export function keyedEntries<TValue = unknown>(
  * readMapKey(new Map([[1, "a"]]), "1"); -> { found: true, value: "a" }
  * readMapKey(new Map([["01", "a"]]), 1); -> { found: false }
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function readMapKey(
     map: ReadonlyMap<unknown, unknown>,
     key: string | number,
@@ -312,6 +323,7 @@ export function readMapKey(
  *
  * An existing key keeps its place, and any later key PHP stores as the same one is removed.
  *
+ * @sideEffects mutates - Writes the key into the given Map.
  * @param map - The Map to write into, changed in place.
  * @param key - The key to write, cast as PHP casts an array key.
  * @param value - The value to store.
@@ -349,6 +361,7 @@ export function writeMapKey(
 /**
  * Delete every Map entry whose key PHP stores as the given key.
  *
+ * @sideEffects mutates - Deletes the key from the given Map.
  * @param map - The Map to remove from, changed in place.
  * @param key - The key to remove, cast as PHP casts an array key.
  *
@@ -380,6 +393,7 @@ export function deleteMapKey(
  * nextIntegerKey(new Map([[2, "c"], [0, "a"]])); -> 3
  * nextIntegerKey({ "-5": "n" }); -> -4
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function nextIntegerKey(container: object): number {
     let highest: number | undefined;
 
@@ -431,6 +445,7 @@ function isPhpStorableKey(key: unknown): boolean {
  * @param entries - The entries to renumber, in their intended order
  * @returns The same entries with integer-like keys renumbered from 0
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function reindexIntegerKeys<TValue>(
     entries: [string, TValue][],
 ): [string, TValue][] {
@@ -452,6 +467,7 @@ export function reindexIntegerKeys<TValue>(
  * @param entries - The entries to renumber, in their intended order
  * @returns The same entries with every integer key renumbered from 0
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function renumberPhpIntegerKeys<TValue>(
     entries: [string, TValue][],
 ): [string, TValue][] {
@@ -473,6 +489,7 @@ export function renumberPhpIntegerKeys<TValue>(
  * plain `result[key] = value` lets a `"__proto__"` key reparent `result`. A key that is already
  * non-configurable keeps its attributes and only takes the new value.
  *
+ * @sideEffects mutates - Defines the key on the given target object.
  * @param target - The object to define the key on
  * @param key - The key to define
  * @param value - The value to store under the key

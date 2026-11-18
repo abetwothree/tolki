@@ -50,6 +50,7 @@
         "docs:build": "vitepress build docs/vitepress",
         "docs:preview": "vitepress preview docs/vitepress",
         "docs:coverage": "ts-node ./scripts/docs-coverage.ts",
+        "treeshake:check": "ts-node ./scripts/treeshake/check.ts",
         "list:functions": "ts-node ./scripts/functions-list.ts",
         "stubs": "run-s stubs:*",
         "stubs:pull": "ts-node ./scripts/pull-framework-repos.ts",
@@ -70,6 +71,9 @@
         "@eslint/js": "^10.0.1",
         "@eslint/json": "^2.1.1",
         "@oxlint/migrate": "^1.90.0",
+        "@rollup/plugin-commonjs": "^29.0.3",
+        "@rollup/plugin-node-resolve": "^16.0.3",
+        "@rspack/core": "^2.3.3",
         "@tolki/all": "workspace:^",
         "@tolki/arr": "workspace:^",
         "@tolki/collection": "workspace:^",
@@ -89,6 +93,7 @@
         "@vitest/coverage-istanbul": "^5.0.5",
         "@vitest/ui": "^5.0.5",
         "dotenv": "^18.0.9",
+        "esbuild": "^0.28.2",
         "eslint": "^10.13.0",
         "eslint-plugin-oxlint": "^1.90.0",
         "eslint-plugin-simple-import-sort": "^14.0.0",
@@ -101,6 +106,8 @@
         "oxlint": "^1.90.0",
         "path": "^0.12.7",
         "prettier": "3.8.1",
+        "rolldown": "^1.3.2",
+        "rollup": "^4.68.5",
         "ts-node": "^10.9.2",
         "typescript": "npm:@typescript/typescript6@^6.0.2",
         "typescript-eslint": "^8.72.1",
@@ -109,6 +116,7 @@
         "vitepress": "2.0.0-alpha.21",
         "vitepress-plugin-group-icons": "^1.8.1",
         "vitepress-plugin-llms": "^1.14.0",
-        "vitest": "^5.0.5"
+        "vitest": "^5.0.5",
+        "webpack": "^5.112.2"
     }
 }

@@ -5,6 +5,7 @@ import { phpTypeName } from "./reflect";
 /**
  * Convert a string to lower-case.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function toLower(value: string): string {
     return value.toLowerCase();
 }
@@ -12,6 +13,7 @@ export function toLower(value: string): string {
 /**
  * Convert a string to upper-case.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function toUpper(value: string): string {
     return value.toUpperCase();
 }
@@ -19,6 +21,7 @@ export function toUpper(value: string): string {
 /**
  * Convert the first character of a string to lower-case.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function lowerFirst(value: string): string {
     const chars = [...value];
 
@@ -34,6 +37,7 @@ export function lowerFirst(value: string): string {
 /**
  * Convert the first character of a string to upper-case.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function upperFirst(value: string): string {
     const chars = [...value];
 
@@ -54,6 +58,7 @@ export function upperFirst(value: string): string {
  * @param key - The key or path used in the error message.
  * @returns The formatted error message.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function arrayValueMessage(value: unknown, key: PathKey): string {
     return `Array value for key [${String(key)}] must be an array, ${phpTypeName(value)} found.`;
 }
@@ -69,6 +74,7 @@ const SHELL_SAFE = /^[\w@%+=:,./-]+$/;
  * @param value - The raw string to escape.
  * @returns A shell-safe string.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function escapeShellArg(value: string): string {
     if (value === "") {
         return "''";
@@ -89,6 +95,7 @@ export function escapeShellArg(value: string): string {
  * @param value - The raw string to escape.
  * @returns The value bare when every character is safe, else double-quoted by the MSVCRT argv rules.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function escapeWindowsShellArg(value: string): string {
     if (value === "") {
         return '""';

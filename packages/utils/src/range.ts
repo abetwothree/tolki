@@ -34,6 +34,7 @@ export type SpliceRange = { start: number; count: number };
  * the end, or `null` to run to the end.
  * @returns The `start` and `end` bounds to slice with.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function resolveSliceRange(
     count: number,
     offset: number,
@@ -63,6 +64,7 @@ export function resolveSliceRange(
  * @throws TypeError when the offset or the length is NAN, infinite or outside PHP's int range, which array_splice()
  * refuses.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function resolveSpliceRange(
     size: number,
     offset: number,
@@ -104,6 +106,7 @@ export function resolveSpliceRange(
  * resolveTakeCount(NaN, 4); -> 4
  * resolveTakeCount(1.5, 4); -> throws Error
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function resolveTakeCount(count: number, size: number): number {
     const end = Number.isNaN(count) ? size : Math.min(count, size);
 
@@ -129,6 +132,7 @@ export function resolveTakeCount(count: number, size: number): number {
  * resolvePadLength(7.5); -> 7
  * resolvePadLength(NaN); -> throws TypeError
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function resolvePadLength(size: number): number {
     const length = phpIntArgument(
         size,
@@ -162,6 +166,7 @@ export function resolvePadLength(size: number): number {
  * resolveRangeSize(0, 1, 0.25); -> 5
  * resolveRangeSize(1, 1e19, 1); -> throws Error
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function resolveRangeSize(
     start: number,
     end: number,

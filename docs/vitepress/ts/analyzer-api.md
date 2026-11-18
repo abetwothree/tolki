@@ -137,7 +137,7 @@ Outside those cases, `analyze()` runs the same inference that resources, broadca
 
 `analyze()` and `ts:publish` both type the patterns these docs describe, including [a local you write more than once](./api-resources.md#local-variables-and-narrowing). Anything else, such as an expression neither can follow or a local that a reference can write, comes back `unknown` rather than a guess.
 
-Two cases don't widen to `unknown`. [A conditional's default that can't be typed](./api-resources.md#passing-a-default-argument) leaves the value's own type in place. [A union member that can't be typed is left out](./api-resources.md#values-left-out-of-a-union), whether it's a ternary or `?:` arm or a value that a parameter's writes join. So `$cond ? $untypable : null` publishes `null`.
+Two cases don't widen to `unknown`. [A conditional's default that can't be typed](./api-resources.md#passing-a-default-argument) leaves the value's own type in place. [A union member that can't be typed is left out](./api-resources.md#values-left-out-of-a-union), whether it's a ternary or `?:` arm or a value that a parameter's writes join. So `$cond ? $untypable : null` publishes `null`. Where the method's `@return` types the key that holds it, the docblock's type takes the left-out value's place beside the `null`, as [Values Left Out of a Union](./api-resources.md#values-left-out-of-a-union) describes.
 
 ## Configuration Reference
 

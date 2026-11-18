@@ -25,6 +25,8 @@ function isStringList(value: unknown): value is readonly string[] {
 /**
  * Read the exporter's manifest, warning and answering `null` when it is unusable.
  *
+ * @sideEffects io reads the manifest file and logs through the logger
+ *
  * @param file - The absolute path of `manifest.json`.
  * @param logger - The Vite logger to warn through.
  * @returns The manifest, or `null` when it is missing or invalid.

@@ -21,6 +21,7 @@ import { format } from "../num";
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#spell
  */
+/* @__NO_SIDE_EFFECTS__ */
 export async function spell(
     number: number | string,
     locale: string | null = null,
@@ -55,6 +56,7 @@ export async function spell(
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#spellordinal
  */
+/* @__NO_SIDE_EFFECTS__ */
 export async function spellOrdinal(
     number: number | string,
     locale: string | null = null,
