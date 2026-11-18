@@ -295,6 +295,7 @@ export type PostStatusVariants =
 
 The resource publishes its keys intersected with your type, so a check on `is_draft` narrows `status`:
 
+<!-- prettier-ignore -->
 ```typescript
 import type { PostStatusVariants } from "@/types/posts";
 import type { DraftStatusResource, PublishedStatusResource } from ".";
@@ -303,7 +304,7 @@ export type PostResource = {
   id: number;
   is_draft: boolean;
   status: DraftStatusResource | PublishedStatusResource;
-} & PostStatusVariants;
+} & (PostStatusVariants);
 ```
 
 `#[TsIntersect]` takes three parameters like `#[TsExtends]`'s: `type`, an optional `import` path, and an optional `types` list, read as [Names a Resource's Clause Imports](#names-a-resource-s-clause-imports) describes. It's repeatable, and a parent class or a trait can carry it, in the same order as `#[TsExtends]`. It has no config array. Each intersected type prints after the resource's own keys and any variants, in parentheses.
