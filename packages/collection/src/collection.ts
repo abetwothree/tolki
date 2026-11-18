@@ -55,7 +55,7 @@ import {
     dataUnshift,
     dataValues,
 } from "@tolki/data";
-import { SortDirection } from "@tolki/enum";
+import type { SortDirection } from "@tolki/enum";
 import {
     explodePluckPath,
     hasPluckPath,
@@ -146,11 +146,22 @@ import {
     UnexpectedValueException,
 } from "@tolki/utils";
 
-// Collection resolves a descriptor's key with data_get, the way
-// Collection::sortByMany does; Arr and Obj resolve with getNestedValue.
-const sortSpecComparator = createSortSpecComparator((item, key) =>
-    itemValue(item, key),
-);
+/**
+ * Build the comparator one sort descriptor implies, resolving keys with data_get as Collection::sortByMany does.
+ *
+ * @param spec - The sort descriptor.
+ * @param forceDescending - Whether every descriptor sorts descending.
+ * @returns The comparator for the descriptor.
+ */
+function sortSpecComparator<TValue>(
+    spec: SortSpec<TValue>,
+    forceDescending: boolean,
+): (a: TValue, b: TValue) => number | boolean {
+    return createSortSpecComparator((item, key) => itemValue(item, key))(
+        spec,
+        forceDescending,
+    );
+}
 
 /** A list (`TValue[]`), a keyed record holding every key its type names, or a keyed record that may lack some. */
 export type CollectionShape = "list" | "keyed" | "partial";
@@ -937,6 +948,7 @@ export function collect(
     items?: null | undefined,
 ): Collection<never, number, "list">;
 export function collect<TInput>(items: TInput): CollectCollection<TInput>;
+/* @__NO_SIDE_EFFECTS__ */
 export function collect(items?: unknown): unknown {
     return new (Collection as CollectionClass<unknown, PropertyKey>)(items);
 }
@@ -4714,8 +4726,7 @@ export class Collection<
         callback: SortByCallback<TValue, TKey>,
         descending: CaseValue<typeof SortDirection> | boolean = false,
     ): unknown {
-        const isDesc =
-            descending === true || descending === SortDirection.Descending;
+        const isDesc = descending === true || descending === "Descending";
         if (
             isArray<SortDescriptor<TValue>>(callback) &&
             !isFunction(callback)
@@ -4777,7 +4788,7 @@ export class Collection<
             return this.sortByMany(callback, true);
         }
 
-        return this.sortBy(callback, SortDirection.Descending);
+        return this.sortBy(callback, "Descending");
     }
 
     /**
@@ -4806,8 +4817,7 @@ export class Collection<
     sortKeys(
         descending: CaseValue<typeof SortDirection> | boolean = false,
     ): unknown {
-        const isDesc =
-            descending === true || descending === SortDirection.Descending;
+        const isDesc = descending === true || descending === "Descending";
         const keys = Object.keys(this.items);
 
         keys.sort((a, b) => {
@@ -4856,7 +4866,7 @@ export class Collection<
     sortKeysDesc(this: StableKeyed<TValue, TKey, TShape>): this;
     sortKeysDesc(): Collection<TValue, SplicedKey<TKey>, TShape>;
     sortKeysDesc(): unknown {
-        return this.sortKeys(SortDirection.Descending);
+        return this.sortKeys("Descending");
     }
 
     /**
@@ -7663,8 +7673,7 @@ export class Collection<
         comparisons: readonly SortDescriptor<TValue>[],
         descending: CaseValue<typeof SortDirection> | boolean = false,
     ) {
-        const isDescGlobal =
-            descending === true || descending === SortDirection.Descending;
+        const isDescGlobal = descending === true || descending === "Descending";
 
         const comparators = comparisons.map((comparison) =>
             sortSpecComparator<TValue>(
@@ -8440,7 +8449,7 @@ type EnsuredType<TSpec> = TSpec extends keyof EnsureTypeMap
         : unknown;
 
 /** Items a builder created for a new instance; the constructor adopts them instead of copying. */
-const owned = new WeakSet<object>();
+const owned = /* @__PURE__ */ new WeakSet<object>();
 
 /**
  * Hand items a builder just created to the constructor it calls next, which adopts them without a copy.

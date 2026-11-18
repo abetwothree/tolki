@@ -16,6 +16,7 @@ import { bytesToBase64 } from "../base64";
  * randomString(); // 16 chars
  * randomString(40); // 40 chars
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function randomString(length = 16): string {
     if (!Number.isFinite(length) || length <= 0) {
         return "";
@@ -43,6 +44,7 @@ export function randomString(length = 16): string {
  * @throws TypeError if bounds are not safe integers.
  * @throws RangeError if min > max or bounds exceed MAX_SAFE_INTEGER.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function randomInt(min: number, max: number): number {
     if (!Number.isInteger(min) || !Number.isInteger(max)) {
         throw new TypeError("randomInt bounds must be safe integers");

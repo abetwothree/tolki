@@ -23,6 +23,8 @@ The `@tolki` monorepo is a collection of packages that provide a JavaScript/Type
 - Run `pnpm list:functions <file-path>` to list all functions in a file
   - Example: `pnpm run list:functions packages/arr/src/arr.ts`
 - Run `pnpm run stubs:create-lists` to create function list file from PHP stubs
+- Run `pnpm run treeshake:check` after `pnpm run build` to bundle the built packages with five bundlers and check tree-shaking
+  - Details: [docs/features/treeshake-check.md](docs/features/treeshake-check.md)
 
 ## Use AI tools
 
@@ -73,6 +75,19 @@ pop(count: number = 1): TValue | null | Collection<TValue[], number> {
 If you need to create utility functions that are not specific to implement a Laravel helper function, then they should be added to the `@tolki/utils` package. This package is for general utility functions that don't fit in other packages.
 
 Once added to the `@tolki/utils` package, they can be used in any other package in the monorepo.
+
+## Tree-shaking and side effects
+
+- Every exported function of a published package is marked: pure ones carry `/* @__NO_SIDE_EFFECTS__ */`, the rest `@sideEffects <category>` in the docblock.
+- The annotation goes on its own line after the docblock, directly above the `export function` with the body (the implementation signature when overloaded).
+- Never put it above the first overload, inside a docblock or on an arrow `const`; bundlers drop it there.
+- Categories: `mutates`, `state`, `callback`, `asserts`, `io`. One function never has both markers.
+- A new exported function is unclassified until it has one of them, and the guard (`npx vitest run --project scripts side-effects`) fails.
+- Calling a caller's callback stays pure when the result comes from its return values or from its effects on a value the function itself creates and returns; its other effects are the caller's.
+- The annotation also drops unused calls inside function bodies, so a hook or function that registers or subscribes its caller is `state`.
+- Classes are exempt. Alias exports (`export const x = xImpl as ...`) take their mark from the same-file function.
+- Module scope: every call or `new` at module scope carries `/* @__PURE__ */`, nested calls too, and no argument is a spread.
+- Details: [docs/features/side-effect-annotations.md](docs/features/side-effect-annotations.md).
 
 ## Test structure
 
@@ -242,7 +257,15 @@ if (condition) {
     - The files are named like `Arr-Function-List.txt` for the `Arr.php` stub and are located in the `fn-lists` in the same folder root.
 - Functions should be written in the same order as in the Laravel stub for easier reference.
 - Functions should be defined with named exports, e.g. `export function functionName() {}` instead of `export const functionName = () => {}` for easier reference and consistency.
-  - **Exception — `@tolki/data` only, and only for the helpers built by `dispatch`.** A `data*` helper that forwards to an `@tolki/arr` delegate and an `@tolki/obj` delegate is written `export const dataX = dispatch(arrX, objX)`. The whole value of `dispatch` is its return type, an intersection of the two delegates' types: TypeScript re-runs overload resolution against an intersection at every call site, so `data` inherits `arr`'s and `obj`'s return types automatically and never restates them. A `function` declaration cannot carry that type, because `ReturnType<typeof f>` on an overloaded `f` resolves only its **last** overload, which would collapse every other row. The 11 `data*` helpers that have no delegate pair are still `export function`, and **no other package may use the `export const` form for a function.**
+  - **Exception — `@tolki/data` only, and only for the helpers that forward to a delegate pair.** A `data*` helper that forwards to an `@tolki/arr` delegate and an `@tolki/obj` delegate is a `function dataXImpl(data, ...rest)` that returns `forwardData(arrX, objX, data, rest)`, plus `export const dataX = dataXImpl as unknown as Dispatched<typeof arrX, typeof objX>`. The whole value of the alias is its type, an intersection of the two delegates' types: TypeScript re-runs overload resolution against an intersection at every call site, so `data` inherits `arr`'s and `obj`'s return types automatically and never restates them. The declaration cannot carry that type, because `ReturnType<typeof f>` on an overloaded `f` resolves only its **last** overload, which would collapse every other row. The annotation goes on `dataXImpl`, and the data-only Vite transform in `scripts/build/alias-exports.ts` rewrites each alias to `export { dataXImpl as dataX }`, so the bundle ships the annotated declaration itself: through a `const` alias, Rolldown, webpack and Rspack keep every unused call. The 10 `data*` helpers that have no delegate pair are still `export function`, and **no other package may use the `export const` form for a function.**
+
+## Docs
+
+The documentation in `docs/features` contains detailed information about the project's architecture, components, and functionality. When adding or editing doc files, make sure to provide clear and concise explanations, avoid repeating what the code already self-explains, and focus on describing the purpose and behavior of the code while linking to the relevant source files as the source of truth.
+
+The purpose of the `docs/features` directory is to provide AI agents a quick overview of the project's source code. But the code is the actual source of truth, and the documentation should not repeat what is already evident from the code itself.
+
+Keep it extremely concise and focused on the key points with minimal elaboration. The source code is the ultimate reference for implementation details.
 
 ## Comments
 

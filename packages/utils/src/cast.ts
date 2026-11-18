@@ -35,6 +35,7 @@ const PHP_FLOAT_PRECISION = 14;
  * toPhpKeyString(true); -> "1"
  * toPhpKeyString(0.1 + 0.2); -> "0.3"
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function toPhpKeyString(value: unknown): string {
     if (isNull(value) || isUndefined(value) || value === false) {
         return "";
@@ -144,6 +145,7 @@ function phpFloatDigits(value: number): [digits: string, point: number] {
  * isArrayable([1, 2, 3]); -> false
  * isArrayable("hello"); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function toArrayable<T>(value: unknown): value is { toArray(): T[] } {
     return (
         isObject(value) &&
@@ -163,6 +165,7 @@ export function toArrayable<T>(value: unknown): value is { toArray(): T[] } {
  * isJsonable({ toJSON: () => ({ a: 1 }) }); -> true
  * isJsonable("hello"); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function toJsonable<T>(
     value: unknown,
 ): value is { toJson(): T } | { toJSON(): T } {
@@ -187,6 +190,7 @@ export function toJsonable<T>(
  * isJsonSerializable({ jsonSerialize: () => ({ a: 1 }) }); -> true
  * isJsonSerializable("hello"); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function toJsonSerializable<T>(
     value: unknown,
 ): value is { jsonSerialize(): T } {
@@ -209,6 +213,7 @@ export function toJsonSerializable<T>(
  * toArray("hello"); -> null
  * toArray({}); -> null
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function castableToArray<T>(value: unknown): T[] | null {
     if (isArray(value)) return value as T[];
     return null;
@@ -225,6 +230,7 @@ export function castableToArray<T>(value: unknown): T[] | null {
  * normalizeToArray([1, 2, 3]); -> [1, 2, 3]
  * normalizeToArray('hello'); -> null
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function normalizeToArray<T>(
     data: ReadonlyArray<T> | unknown,
 ): T[] | null {
@@ -245,6 +251,7 @@ export function normalizeToArray<T>(
  * getAccessibleValues([1, 2, 3]); -> [1, 2, 3]
  * getAccessibleValues('hello'); -> []
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function getAccessibleValues<T>(data: ReadonlyArray<T> | unknown): T[] {
     const normalized = normalizeToArray<T>(data);
     return normalized || [];
@@ -286,6 +293,7 @@ function unwrapArrayable(items: unknown): unknown {
  * arrayableValues({ x: 20 }); -> [20]
  * arrayableValues(collect([20])); -> [20]
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function arrayableValues<T>(items: unknown): T[] {
     const unwrapped = unwrapArrayable(items);
 
@@ -327,6 +335,7 @@ export function arrayableValues<T>(items: unknown): T[] {
  * arrayableItems(collect({ a: 1 })); -> { a: 1 }
  * arrayableItems(new Map([[1, "a"], ["1", "b"]])); -> { 1: "b" }
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function arrayableItems(items: unknown): Record<string, unknown> {
     const unwrapped = unwrapArrayable(items);
 
@@ -371,6 +380,7 @@ export function arrayableItems(items: unknown): Record<string, unknown> {
  * @param value - The CSS class or style fragment to cast.
  * @returns The string PHP would have interpolated.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function cssListItemToString(value: unknown): string {
     if (isNull(value) || isUndefined(value)) {
         return "";
@@ -395,6 +405,7 @@ export function cssListItemToString(value: unknown): string {
  * phpIntArgument(7.5, "array_pad(): Argument #2 ($length) must be of type int, float given"); -> 7
  * phpIntArgument(NaN, "array_pad(): Argument #2 ($length) must be of type int, float given"); -> throws TypeError
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function phpIntArgument(value: number, message: string): number {
     // PHP_INT_MAX (2^63 - 1) rounds up to 2^63 as a double, so the upper bound is exclusive.
     if (!isFiniteNumber(value) || value < -(2 ** 63) || value >= 2 ** 63) {
@@ -416,6 +427,7 @@ export function phpIntArgument(value: number, message: string): number {
  * phpIntCast(1e19); -> -8446744073709551616
  * phpIntCast(NaN); -> 0
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function phpIntCast(value: number): number {
     if (!isFiniteNumber(value)) {
         return 0;
@@ -444,6 +456,7 @@ export function phpIntCast(value: number): number {
  * phpStringCast(true); -> "1"
  * phpStringCast(() => 1); -> throws Error("Object of class Closure could not be converted to string")
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function phpStringCast(value: unknown): string {
     // PHP prints an array as "Array", with a warning the port cannot raise.
     if (isPhpAccessible(value)) {

@@ -22,6 +22,7 @@ type PluralRule = (number: unknown) => number;
  *
  * choose("{0} none|one|[2,*] many", 5, "en"); // "many"
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function choose(
     line: string,
     number: number,
@@ -135,6 +136,7 @@ function stripConditions(segments: string[]): string[] {
  *
  * getPluralIndex("ru", 5); // 2
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function getPluralIndex(locale: string | null, number: number): number {
     const value = isPhpNumeric(number) ? Math.abs(Number(number)) : number;
 
@@ -142,7 +144,7 @@ export function getPluralIndex(locale: string | null, number: number): number {
         return 0;
     }
 
-    return PLURAL_RULES.get(locale)?.(value) ?? 0;
+    return getPluralRules().get(locale)?.(value) ?? 0;
 }
 
 /**
@@ -589,11 +591,25 @@ const LOCALE_RULES: [string[], PluralRule][] = [
     ],
 ];
 
-const PLURAL_RULES = new Map<string, PluralRule>(
-    LOCALE_RULES.flatMap(([locales, rule]) => {
-        return locales.map((locale): [string, PluralRule] => [locale, rule]);
-    }),
-);
+let pluralRules: Map<string, PluralRule> | undefined;
+
+/**
+ * Index the plural rules by locale on first use, so importing the module runs no setup code.
+ *
+ * @returns The rule of each locale.
+ */
+function getPluralRules(): Map<string, PluralRule> {
+    pluralRules ??= new Map<string, PluralRule>(
+        LOCALE_RULES.flatMap(([locales, rule]) => {
+            return locales.map((locale): [string, PluralRule] => [
+                locale,
+                rule,
+            ]);
+        }),
+    );
+
+    return pluralRules;
+}
 
 /**
  * Trim the characters PHP's `trim()` strips by default; `String.prototype.trim` strips more.

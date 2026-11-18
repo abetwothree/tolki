@@ -11,7 +11,7 @@ import {
     type ViteDevServer,
 } from "vite";
 
-const execAsync = promisify(exec);
+const execAsync = /* @__PURE__ */ promisify(exec);
 
 export { escapeShellArg };
 
@@ -187,6 +187,7 @@ function shellArg(value: string): string {
  * });
  * ```
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function laravelTsPublish(
     options: LaravelTsPublishOptions = {},
 ): Plugin {

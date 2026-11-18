@@ -203,7 +203,8 @@ import {
 
 import {
     copyKeyedData,
-    dispatch,
+    type Dispatched,
+    forwardData,
     isKeyedData,
     streamPositionalData,
     toKeyedData,
@@ -269,7 +270,7 @@ type ListWhenIndexed<TRecord> = TRecord | TRecord[keyof TRecord][];
 /** A read-only list resolves to `unknown[]`, which it is not assignable to, so `DataAdd` rejects it. */
 type MutableBacking<T> = T extends readonly unknown[] ? unknown[] : unknown;
 
-/** The backings `dispatch` wraps into a one-element list: everything that is not an object. */
+/** The backings `forwardData` wraps into a one-element list: everything that is not an object. */
 type NonObjectBacking =
     | string
     | number
@@ -304,7 +305,7 @@ interface DataAdd {
         value: unknown,
     ): ReturnType<typeof objAdd>;
     // A Set is typed from obj's widest row, as it is on every sibling helper, even though
-    // `dispatch` materializes it and answers from `arr.add`. Part B owns closing that gap.
+    // `forwardData` materializes it and answers from `arr.add`. Part B owns closing that gap.
     (
         data: ReadonlySet<unknown>,
         key: PathKey,
@@ -335,12 +336,23 @@ interface DataAdd {
  * dataAdd([1, 2], 2, 3); -> [1, 2, 3]
  * dataAdd({a: 1}, 'b', 2); -> {a: 1, b: 2}
  */
-export const dataAdd: DataAdd = /* @__PURE__ */ dispatch(
-    arrAdd,
-    objAdd,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataAdd: DataAdd = dataAddImpl as unknown as Dispatched<
+    typeof arrAdd,
+    typeof objAdd
+>;
+
+/** Forwards `dataAdd` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataAddImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrAdd,
+        objAdd,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Get an item from data or return default value.
@@ -355,12 +367,23 @@ export const dataAdd: DataAdd = /* @__PURE__ */ dispatch(
  * dataItem([['a', 'b'], ['c', 'd']], 0); -> ['a', 'b']
  * dataItem({items: {x: 1, y: 2}}, 'items'); -> {x: 1, y: 2}
  */
-export const dataItem = /* @__PURE__ */ dispatch(
-    arrayItem,
-    objectItem,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataItem = dataItemImpl as unknown as Dispatched<
+    typeof arrayItem,
+    typeof objectItem
+>;
+
+/** Forwards `dataItem` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataItemImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrayItem,
+        objectItem,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Get a boolean value from data.
@@ -375,12 +398,23 @@ export const dataItem = /* @__PURE__ */ dispatch(
  * dataBoolean([true, false], 0, false); -> true
  * dataBoolean({active: true}, 'active', false); -> true
  */
-export const dataBoolean = /* @__PURE__ */ dispatch(
-    arrBoolean,
-    objBoolean,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataBoolean = dataBooleanImpl as unknown as Dispatched<
+    typeof arrBoolean,
+    typeof objBoolean
+>;
+
+/** Forwards `dataBoolean` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataBooleanImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrBoolean,
+        objBoolean,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Chunk the data into chunks of the given size.
@@ -399,7 +433,16 @@ export const dataBoolean = /* @__PURE__ */ dispatch(
  * dataChunk([1, 2, 3], 2); -> [[1, 2], [3]]
  * dataChunk(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 2, false); -> { 0: { 0: 'c', 1: 'a' }, 1: { 0: 'b' } }
  */
-export const dataChunk = /* @__PURE__ */ dispatch(arrChunk, objChunk);
+export const dataChunk = dataChunkImpl as unknown as Dispatched<
+    typeof arrChunk,
+    typeof objChunk
+>;
+
+/** Forwards `dataChunk` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataChunkImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrChunk, objChunk, data, rest);
+}
 
 /**
  * Chunk the data into chunks with a callback.
@@ -420,10 +463,19 @@ export const dataChunk = /* @__PURE__ */ dispatch(arrChunk, objChunk);
  * -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
  * dataChunkWhile(new Map([[2, 'c'], [0, 'a']]), () => false); -> { 0: { 2: 'c' }, 1: { 0: 'a' } }
  */
-export const dataChunkWhile = /* @__PURE__ */ dispatch(
-    arrChunkWhile,
-    objChunkWhile,
-);
+export const dataChunkWhile = dataChunkWhileImpl as unknown as Dispatched<
+    typeof arrChunkWhile,
+    typeof objChunkWhile
+>;
+
+/** Forwards `dataChunkWhile` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataChunkWhileImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(arrChunkWhile, objChunkWhile, data, rest);
+}
 
 /**
  * Chunk the data into chunks by comparing adjacent values using the given key or callback.
@@ -440,7 +492,16 @@ export const dataChunkWhile = /* @__PURE__ */ dispatch(
  * dataChunkBy({ a: 1, b: 1, c: 2 }, (value) => value); -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
  * dataChunkBy(new Map([[2, 1], [0, 1], [1, 2]]), (value) => value); -> { 0: { 0: 1, 2: 1 }, 1: { 1: 2 } }
  */
-export const dataChunkBy = /* @__PURE__ */ dispatch(arrChunkBy, objChunkBy);
+export const dataChunkBy = dataChunkByImpl as unknown as Dispatched<
+    typeof arrChunkBy,
+    typeof objChunkBy
+>;
+
+/** Forwards `dataChunkBy` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataChunkByImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrChunkBy, objChunkBy, data, rest);
+}
 
 /**
  * Collapse nested data into a single level.
@@ -457,7 +518,16 @@ export const dataChunkBy = /* @__PURE__ */ dispatch(arrChunkBy, objChunkBy);
  * dataCollapse({a: {x: 1, y: 2}, b: {z: 3}}); -> {x: 1, y: 2, z: 3}
  * dataCollapse(new Map([[2, ['c']], [0, ['a']]])); -> {0: 'c', 1: 'a'}
  */
-export const dataCollapse = /* @__PURE__ */ dispatch(arrCollapse, objCollapse);
+export const dataCollapse = dataCollapseImpl as unknown as Dispatched<
+    typeof arrCollapse,
+    typeof objCollapse
+>;
+
+/** Forwards `dataCollapse` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataCollapseImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrCollapse, objCollapse, data, rest);
+}
 
 /** The value each delegate answers with for the call `dataCombine` actually makes it. */
 type ArrCombineRow<TKeys, TValues> = ReturnType<
@@ -513,11 +583,12 @@ export function dataCombine<TKeys, TValues>(
     itemsA: Iterable<TKeys> | CombineKeysBacking,
     itemsB: DataItems<TValues>,
 ): ArrCombineRow<TKeys, TValues>;
+/* @__NO_SIDE_EFFECTS__ */
 export function dataCombine<TKeys, TValues>(
     itemsA: DataItems<TKeys> | ReadonlyMap<PropertyKey, TKeys> | unknown,
     itemsB: DataItems<TValues>,
 ) {
-    // No dispatch pair serves this, so the keys backing is normalized the way dispatch would.
+    // No delegate pair serves this, so the keys backing is normalized as forwardData would.
     if (isKeyedData(itemsA)) {
         // Collection::combine keys by $this->all(), which never unwraps; handing obj a list keeps it from doing so.
         // keyedEntries keeps a Map's insertion order, which the record toKeyedData builds would lose.
@@ -541,6 +612,7 @@ export function dataCombine<TKeys, TValues>(
  * dataCount([1, 2, 3]); -> 3
  * dataCount({a: 1, b: 2}); -> 2
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function dataCount<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
 ): number {
@@ -549,7 +621,7 @@ export function dataCount<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     // Object.values sees nothing on a Set or generator, so normalize first, exactly as
-    // `dispatch` does for every sibling: a Set or generator is materialized to its elements.
+    // `forwardData` does for every sibling: a Set or generator is materialized to its elements.
     return (toPositionalBacking(data) as unknown[]).length;
 }
 
@@ -570,10 +642,19 @@ export function dataCount<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataCrossJoin(new Map([['b', [1, 2]]]), new Map([['a', ['x']]])); -> [{b: 1, a: 'x'}, {b: 2, a: 'x'}]
  * dataCrossJoin([1, 2], new Map([['a', ['x', 'y']]])); -> [[1, ['x', 'y']], [2, ['x', 'y']]]
  */
-export const dataCrossJoin = /* @__PURE__ */ dispatch(
-    arrCrossJoin,
-    objCrossJoin,
-);
+export const dataCrossJoin = dataCrossJoinImpl as unknown as Dispatched<
+    typeof arrCrossJoin,
+    typeof objCrossJoin
+>;
+
+/** Forwards `dataCrossJoin` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataCrossJoinImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(arrCrossJoin, objCrossJoin, data, rest);
+}
 
 /**
  * Divide data into keys and values.
@@ -591,7 +672,16 @@ export const dataCrossJoin = /* @__PURE__ */ dispatch(
  * dataDivide({a: 1, b: 2}); -> [['a', 'b'], [1, 2]]
  * dataDivide(new Map([['x', 1], [0, 2]])); -> [['x', 0], [1, 2]]
  */
-export const dataDivide = /* @__PURE__ */ dispatch(arrDivide, objDivide);
+export const dataDivide = dataDivideImpl as unknown as Dispatched<
+    typeof arrDivide,
+    typeof objDivide
+>;
+
+/** Forwards `dataDivide` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataDivideImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrDivide, objDivide, data, rest);
+}
 
 /**
  * Convert data to dot notation.
@@ -610,7 +700,16 @@ export const dataDivide = /* @__PURE__ */ dispatch(arrDivide, objDivide);
  * dataDot(new Map([[2, 'c'], [0, 'a']]), 'p.'); -> {'p.2': 'c', 'p.0': 'a'}
  * dataDot(new Map([[2, 'c'], [0, 'a']]), '1'); -> {10: 'a', 12: 'c'} (PHP: [12 => 'c', 10 => 'a'])
  */
-export const dataDot = /* @__PURE__ */ dispatch(arrDot, objDot);
+export const dataDot = dataDotImpl as unknown as Dispatched<
+    typeof arrDot,
+    typeof objDot
+>;
+
+/** Forwards `dataDot` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataDotImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrDot, objDot, data, rest);
+}
 
 /**
  * Convert dot notation back to nested data.
@@ -663,11 +762,12 @@ export function dataUndot(
     data: unknown,
     asArray?: boolean,
 ): ReturnType<typeof objUndot>;
+/* @__NO_SIDE_EFFECTS__ */
 export function dataUndot<TValue, TKey extends PropertyKey>(
     data: DataItems<TValue, TKey> | unknown,
     asArray: boolean = false,
 ): unknown {
-    // No dispatch pair serves this, so the backing is normalized the way dispatch would: a Map or record goes on as it
+    // No delegate pair serves this, so the backing is normalized as forwardData would: a Map or record goes on as it
     // arrived, and a scalar, string or Traversable becomes a list. isObject would send a Set or a generator down the
     // keyed branch, which reads them as empty.
     if (isKeyedData(data)) {
@@ -687,7 +787,7 @@ export function dataUndot<TValue, TKey extends PropertyKey>(
  *
  * The first item that isn't nullish is the backing, and each other item may be a list or an object. A list backing
  * stays a list while every item extends its keys as `0..n-1` in order, and otherwise becomes an object, as PHP's is.
- * Not a `dispatch` pair: `arr.union` drops a non-integer-like key and fills a gap with `undefined`, which `+` does not.
+ * Not a delegate pair: `arr.union` drops a non-integer-like key and fills a gap with `undefined`, which `+` does not.
  *
  * @param items - the data items to union
  * @return A new object or array containing all values
@@ -697,6 +797,7 @@ export function dataUndot<TValue, TKey extends PropertyKey>(
  * dataUnion(['a'], new Map([[1, 'b'], [2, 'c']])); -> ['a', 'b', 'c']
  * dataUnion(['a'], new Map([[2, 'c'], [1, 'b']])); -> {0: 'a', 1: 'b', 2: 'c'}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function dataUnion<TValue>(
     ...items: (
         | TValue[]
@@ -714,7 +815,7 @@ export function dataUnion<TValue>(
         (item) => !isNull(item) && !isUndefined(item),
     ) as (TValue[] | Record<PropertyKey, TValue>)[];
 
-    // No dispatch pair serves this, so the backing is normalized here. A Map backing can become a record: `+` keeps
+    // No delegate pair serves this, so the backing is normalized here. A Map backing can become a record: `+` keeps
     // the same value for a key in any order, and the result is a record either way.
     if (isKeyedData(backing)) {
         return objUnion(toKeyedData<PropertyKey, TValue>(backing), ...operands);
@@ -750,12 +851,23 @@ export function dataUnion<TValue>(
  * dataExcept([1, 2, 3, 4], [1, 3]); -> [1, 3] (indices 0 and 2)
  * dataExcept({a: 1, b: 2, c: 3}, ['b']); -> {a: 1, c: 3}
  */
-export const dataExcept = /* @__PURE__ */ dispatch(
-    arrExcept,
-    objExcept,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataExcept = dataExceptImpl as unknown as Dispatched<
+    typeof arrExcept,
+    typeof objExcept
+>;
+
+/** Forwards `dataExcept` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataExceptImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrExcept,
+        objExcept,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Get all data except for specified values.
@@ -773,12 +885,26 @@ export const dataExcept = /* @__PURE__ */ dispatch(
  * dataExceptValues(['foo', 'bar', 'baz'], ['foo', 'baz']); -> ['bar']
  * dataExceptValues({name: 'taylor', age: 26}, [26]); -> {name: 'taylor'}
  */
-export const dataExceptValues = /* @__PURE__ */ dispatch(
-    arrExceptValues,
-    objExceptValues,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataExceptValues = dataExceptValuesImpl as unknown as Dispatched<
+    typeof arrExceptValues,
+    typeof objExceptValues
+>;
+
+/** Forwards `dataExceptValues` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataExceptValuesImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(
+        arrExceptValues,
+        objExceptValues,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Check if a key exists in data.
@@ -792,12 +918,23 @@ export const dataExceptValues = /* @__PURE__ */ dispatch(
  * dataExists([1, 2, 3], 1); -> true
  * dataExists({a: 1, b: 2}, 'c'); -> false
  */
-export const dataExists = /* @__PURE__ */ dispatch(
-    arrExists,
-    objExists,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataExists = dataExistsImpl as unknown as Dispatched<
+    typeof arrExists,
+    typeof objExists
+>;
+
+/** Forwards `dataExists` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataExistsImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrExists,
+        objExists,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Take a limited number of items from data.
@@ -817,7 +954,16 @@ export const dataExists = /* @__PURE__ */ dispatch(
  * dataTake({a: 1, b: 2, c: 3, d: 4}, 2); -> {a: 1, b: 2}
  * dataTake(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 2); -> {2: 'c', 0: 'a'}
  */
-export const dataTake = /* @__PURE__ */ dispatch(arrTake, objTake);
+export const dataTake = dataTakeImpl as unknown as Dispatched<
+    typeof arrTake,
+    typeof objTake
+>;
+
+/** Forwards `dataTake` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataTakeImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrTake, objTake, data, rest);
+}
 
 /**
  * Flatten nested data to a specified depth.
@@ -834,7 +980,16 @@ export const dataTake = /* @__PURE__ */ dispatch(arrTake, objTake);
  * dataFlatten({a: {b: {c: 1}}}, 1); -> [{c: 1}]
  * dataFlatten(new Map([[2, ['c']], [0, 'a']])); -> ['c', 'a']
  */
-export const dataFlatten = /* @__PURE__ */ dispatch(arrFlatten, objFlatten);
+export const dataFlatten = dataFlattenImpl as unknown as Dispatched<
+    typeof arrFlatten,
+    typeof objFlatten
+>;
+
+/** Forwards `dataFlatten` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataFlattenImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrFlatten, objFlatten, data, rest);
+}
 
 /**
  * Flip the keys and values of an object or array.
@@ -850,7 +1005,16 @@ export const dataFlatten = /* @__PURE__ */ dispatch(arrFlatten, objFlatten);
  * dataFlip(['a', 'b']); -> {a: 0, b: 1}
  * dataFlip(new Map([[2, 'v'], [0, 'v']])); -> {v: 0}
  */
-export const dataFlip = /* @__PURE__ */ dispatch(arrFlip, objFlip);
+export const dataFlip = dataFlipImpl as unknown as Dispatched<
+    typeof arrFlip,
+    typeof objFlip
+>;
+
+/** Forwards `dataFlip` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataFlipImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrFlip, objFlip, data, rest);
+}
 
 /**
  * Get a float value from data.
@@ -865,12 +1029,23 @@ export const dataFlip = /* @__PURE__ */ dispatch(arrFlip, objFlip);
  * dataFloat([1.5, 2.7], 0, 0.0); -> 1.5
  * dataFloat({price: 9.99}, 'price', 0.0); -> 9.99
  */
-export const dataFloat = /* @__PURE__ */ dispatch(
-    arrFloat,
-    objFloat,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataFloat = dataFloatImpl as unknown as Dispatched<
+    typeof arrFloat,
+    typeof objFloat
+>;
+
+/** Forwards `dataFloat` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataFloatImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrFloat,
+        objFloat,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Remove keys from data.
@@ -884,12 +1059,23 @@ export const dataFloat = /* @__PURE__ */ dispatch(
  * dataForget([1, 2, 3, 4], [1, 3]); -> [1, 3] (removes indices 1 and 3)
  * dataForget({a: 1, b: 2, c: 3}, ['b']); -> {a: 1, c: 3}
  */
-export const dataForget = /* @__PURE__ */ dispatch(
-    arrForget,
-    objForget,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataForget = dataForgetImpl as unknown as Dispatched<
+    typeof arrForget,
+    typeof objForget
+>;
+
+/** Forwards `dataForget` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataForgetImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrForget,
+        objForget,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Create data from various item types.
@@ -906,12 +1092,23 @@ export const dataForget = /* @__PURE__ */ dispatch(
  */
 // `arr.from` is itself the normalizer — it walks Maps, Sets and generators and rejects
 // scalars — so normalizing before it would swallow its own guard.
-export const dataFrom = /* @__PURE__ */ dispatch(
-    arrFrom,
-    objFrom,
-    (items) => items,
-    toKeyedData,
-);
+export const dataFrom = dataFromImpl as unknown as Dispatched<
+    typeof arrFrom,
+    typeof objFrom
+>;
+
+/** Forwards `dataFrom` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataFromImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrFrom,
+        objFrom,
+        data,
+        rest,
+        (items) => items,
+        toKeyedData,
+    );
+}
 
 /**
  * Get a value from data by key.
@@ -926,12 +1123,23 @@ export const dataFrom = /* @__PURE__ */ dispatch(
  * dataGet([1, 2, 3], 1, 'default'); -> 2
  * dataGet({a: 1, b: 2}, 'c', 'default'); -> 'default'
  */
-export const dataGet = /* @__PURE__ */ dispatch(
-    arrGet,
-    objGet,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataGet = dataGetImpl as unknown as Dispatched<
+    typeof arrGet,
+    typeof objGet
+>;
+
+/** Forwards `dataGet` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataGetImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrGet,
+        objGet,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Check if data has specified keys.
@@ -945,12 +1153,23 @@ export const dataGet = /* @__PURE__ */ dispatch(
  * dataHas([1, 2, 3], [0, 1]); -> true
  * dataHas({a: 1, b: 2}, ['a', 'c']); -> false
  */
-export const dataHas = /* @__PURE__ */ dispatch(
-    arrHas,
-    objHas,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataHas = dataHasImpl as unknown as Dispatched<
+    typeof arrHas,
+    typeof objHas
+>;
+
+/** Forwards `dataHas` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataHasImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrHas,
+        objHas,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Check if data has all specified keys.
@@ -964,12 +1183,23 @@ export const dataHas = /* @__PURE__ */ dispatch(
  * dataHasAll([1, 2, 3], [0, 1]); -> true
  * dataHasAll({a: 1, b: 2}, ['a', 'c']); -> false
  */
-export const dataHasAll = /* @__PURE__ */ dispatch(
-    arrHasAll,
-    objHasAll,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataHasAll = dataHasAllImpl as unknown as Dispatched<
+    typeof arrHasAll,
+    typeof objHasAll
+>;
+
+/** Forwards `dataHasAll` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataHasAllImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrHasAll,
+        objHasAll,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Check if data has any of the specified keys.
@@ -983,12 +1213,23 @@ export const dataHasAll = /* @__PURE__ */ dispatch(
  * dataHasAny([1, 2, 3], [0, 5]); -> true
  * dataHasAny({a: 1, b: 2}, ['c', 'd']); -> false
  */
-export const dataHasAny = /* @__PURE__ */ dispatch(
-    arrHasAny,
-    objHasAny,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataHasAny = dataHasAnyImpl as unknown as Dispatched<
+    typeof arrHasAny,
+    typeof objHasAny
+>;
+
+/** Forwards `dataHasAny` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataHasAnyImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrHasAny,
+        objHasAny,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Test if every item in data passes a test.
@@ -1011,11 +1252,16 @@ export const dataHasAny = /* @__PURE__ */ dispatch(
  */
 // A Set or generator must reach `arrEvery` UNREAD, so an infinite generator still answers;
 // this normalises with `streamPositionalData` rather than the materialising default.
-export const dataEvery = /* @__PURE__ */ dispatch(
-    arrEvery,
-    objEvery,
-    streamPositionalData,
-);
+export const dataEvery = dataEveryImpl as unknown as Dispatched<
+    typeof arrEvery,
+    typeof objEvery
+>;
+
+/** Forwards `dataEvery` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataEveryImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrEvery, objEvery, data, rest, streamPositionalData);
+}
 
 /**
  * Test if some items in data pass a test.
@@ -1038,11 +1284,16 @@ export const dataEvery = /* @__PURE__ */ dispatch(
  */
 // A Set or generator must reach `arrSome` UNREAD, so an infinite generator still answers;
 // this normalises with `streamPositionalData` rather than the materialising default.
-export const dataSome = /* @__PURE__ */ dispatch(
-    arrSome,
-    objSome,
-    streamPositionalData,
-);
+export const dataSome = dataSomeImpl as unknown as Dispatched<
+    typeof arrSome,
+    typeof objSome
+>;
+
+/** Forwards `dataSome` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataSomeImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrSome, objSome, data, rest, streamPositionalData);
+}
 
 /**
  * Get an integer value from data.
@@ -1057,12 +1308,23 @@ export const dataSome = /* @__PURE__ */ dispatch(
  * dataInteger([1, 2, 3], 0, 0); -> 1
  * dataInteger({count: 42}, 'count', 0); -> 42
  */
-export const dataInteger = /* @__PURE__ */ dispatch(
-    arrInteger,
-    objInteger,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataInteger = dataIntegerImpl as unknown as Dispatched<
+    typeof arrInteger,
+    typeof objInteger
+>;
+
+/** Forwards `dataInteger` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataIntegerImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrInteger,
+        objInteger,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Join data elements with a glue string.
@@ -1081,7 +1343,16 @@ export const dataInteger = /* @__PURE__ */ dispatch(
  * dataJoin(['a', 'b', 'c'], ', ', ' and '); -> 'a, b and c'
  * dataJoin(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), ', ', ' and '); -> 'c, a and b'
  */
-export const dataJoin = /* @__PURE__ */ dispatch(arrJoin, objJoin);
+export const dataJoin = dataJoinImpl as unknown as Dispatched<
+    typeof arrJoin,
+    typeof objJoin
+>;
+
+/** Forwards `dataJoin` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataJoinImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrJoin, objJoin, data, rest);
+}
 
 /**
  * Key data by a given key or callback.
@@ -1099,7 +1370,16 @@ export const dataJoin = /* @__PURE__ */ dispatch(arrJoin, objJoin);
  * -> {1: {id: 1, name: 'John'}, 2: {id: 2, name: 'Jane'}}
  * dataKeyBy(new Map([[2, {id: 'r'}], [0, {id: 'p'}]]), 'id'); -> {r: {id: 'r'}, p: {id: 'p'}}
  */
-export const dataKeyBy = /* @__PURE__ */ dispatch(arrKeyBy, objKeyBy);
+export const dataKeyBy = dataKeyByImpl as unknown as Dispatched<
+    typeof arrKeyBy,
+    typeof objKeyBy
+>;
+
+/** Forwards `dataKeyBy` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataKeyByImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrKeyBy, objKeyBy, data, rest);
+}
 
 /**
  * Prepend keys with a given prefix.
@@ -1118,10 +1398,20 @@ export const dataKeyBy = /* @__PURE__ */ dispatch(arrKeyBy, objKeyBy);
  * dataPrependKeysWith(new Map([[2, 'c'], [0, 'a']]), 'k'); -> {k2: 'c', k0: 'a'}
  * dataPrependKeysWith(new Map([['x', 1], [2, 'c'], [0, 'a']]), '1'); -> {10: 'a', 12: 'c', '1x': 1}
  */
-export const dataPrependKeysWith = /* @__PURE__ */ dispatch(
-    arrPrependKeysWith,
-    objPrependKeysWith,
-);
+export const dataPrependKeysWith =
+    dataPrependKeysWithImpl as unknown as Dispatched<
+        typeof arrPrependKeysWith,
+        typeof objPrependKeysWith
+    >;
+
+/** Forwards `dataPrependKeysWith` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataPrependKeysWithImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(arrPrependKeysWith, objPrependKeysWith, data, rest);
+}
 
 /**
  * Get only specified keys from data.
@@ -1141,7 +1431,16 @@ export const dataPrependKeysWith = /* @__PURE__ */ dispatch(
  * dataOnly({a: 1, b: 2, c: 3}, ['a', 'c']); -> {a: 1, c: 3}
  * dataOnly(new Map([['b', 1], [0, 2], ['a', 3]]), ['a', 'b']); -> {b: 1, a: 3}
  */
-export const dataOnly = /* @__PURE__ */ dispatch(arrOnly, objOnly);
+export const dataOnly = dataOnlyImpl as unknown as Dispatched<
+    typeof arrOnly,
+    typeof objOnly
+>;
+
+/** Forwards `dataOnly` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataOnlyImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrOnly, objOnly, data, rest);
+}
 
 /**
  * Get only items with specified values from data.
@@ -1159,12 +1458,26 @@ export const dataOnly = /* @__PURE__ */ dispatch(arrOnly, objOnly);
  * dataOnlyValues(['foo', 'bar', 'baz'], ['foo', 'baz']); -> ['foo', 'baz']
  * dataOnlyValues({name: 'taylor', age: 26}, [26]); -> {age: 26}
  */
-export const dataOnlyValues = /* @__PURE__ */ dispatch(
-    arrOnlyValues,
-    objOnlyValues,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataOnlyValues = dataOnlyValuesImpl as unknown as Dispatched<
+    typeof arrOnlyValues,
+    typeof objOnlyValues
+>;
+
+/** Forwards `dataOnlyValues` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataOnlyValuesImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(
+        arrOnlyValues,
+        objOnlyValues,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Select specific keys from data items.
@@ -1177,18 +1490,29 @@ export const dataOnlyValues = /* @__PURE__ */ dispatch(
  *
  * dataSelect([{a: 1, b: 2, c: 3}], ['a', 'c']); -> [{a: 1, c: 3}]
  */
-export const dataSelect = /* @__PURE__ */ dispatch(
-    arrSelect,
-    objSelect,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataSelect = dataSelectImpl as unknown as Dispatched<
+    typeof arrSelect,
+    typeof objSelect
+>;
+
+/** Forwards `dataSelect` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataSelectImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrSelect,
+        objSelect,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Map data with keys using a callback.
  *
- * Not a `dispatch` pair: the callback's tuple return has to be normalized to a single-pair
- * record before either delegate folds it, and `dispatch` forwards its arguments untouched.
+ * Not a delegate pair: the callback's tuple return has to be normalized to a single-pair
+ * record before either delegate folds it, and `forwardData` passes its arguments on untouched.
  *
  * A Map is walked in its insertion order, which orders the string keys returned and decides who wins a shared key.
  *
@@ -1273,6 +1597,7 @@ export function dataMapWithKeys<
         key: TKey,
     ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
 ): Record<TMapWithKeysKey, TMapWithKeysValue>;
+/* @__NO_SIDE_EFFECTS__ */
 export function dataMapWithKeys<
     TValue,
     TMapWithKeysValue,
@@ -1338,10 +1663,19 @@ export function dataMapWithKeys<
  * dataMapSpread([[1, 2], [3, 4]], (a, b) => a + b); -> [3, 7]
  * dataMapSpread(new Map([[2, ['c', 1]], [0, ['a', 2]]]), (x) => x + ++calls); -> {2: 'c1', 0: 'a2'}
  */
-export const dataMapSpread = /* @__PURE__ */ dispatch(
-    arrMapSpread,
-    objMapSpread,
-);
+export const dataMapSpread = dataMapSpreadImpl as unknown as Dispatched<
+    typeof arrMapSpread,
+    typeof objMapSpread
+>;
+
+/** Forwards `dataMapSpread` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataMapSpreadImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(arrMapSpread, objMapSpread, data, rest);
+}
 
 /**
  * Prepend a value to data.
@@ -1361,7 +1695,16 @@ export const dataMapSpread = /* @__PURE__ */ dispatch(
  * dataPrepend({b: 2, c: 3}, 1, 'a'); -> {a: 1, b: 2, c: 3}
  * dataPrepend(new Map([[2, 'c'], [0, 'a']]), 'z'); -> {0: 'z', 1: 'c', 2: 'a'}
  */
-export const dataPrepend = /* @__PURE__ */ dispatch(arrPrepend, objPrepend);
+export const dataPrepend = dataPrependImpl as unknown as Dispatched<
+    typeof arrPrepend,
+    typeof objPrepend
+>;
+
+/** Forwards `dataPrepend` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataPrependImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrPrepend, objPrepend, data, rest);
+}
 
 /**
  * Pull and remove a value from data.
@@ -1376,12 +1719,23 @@ export const dataPrepend = /* @__PURE__ */ dispatch(arrPrepend, objPrepend);
  * dataPull([1, 2, 3], 1, 'default'); -> {value: 2, data: [1, 3]}
  * dataPull({a: 1, b: 2}, 'b', 'default'); -> {value: 2, data: {a: 1}}
  */
-export const dataPull = /* @__PURE__ */ dispatch(
-    arrPull,
-    objPull,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataPull = dataPullImpl as unknown as Dispatched<
+    typeof arrPull,
+    typeof objPull
+>;
+
+/** Forwards `dataPull` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataPullImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrPull,
+        objPull,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Convert data to a query string.
@@ -1398,7 +1752,16 @@ export const dataPull = /* @__PURE__ */ dispatch(
  * dataQuery([1, 2, 3]); -> '0=1&1=2&2=3'
  * dataQuery(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> '2=c&0=a&1=b'
  */
-export const dataQuery = /* @__PURE__ */ dispatch(arrQuery, objQuery);
+export const dataQuery = dataQueryImpl as unknown as Dispatched<
+    typeof arrQuery,
+    typeof objQuery
+>;
+
+/** Forwards `dataQuery` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataQueryImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrQuery, objQuery, data, rest);
+}
 
 /**
  * Get random elements from data.
@@ -1418,7 +1781,16 @@ export const dataQuery = /* @__PURE__ */ dispatch(arrQuery, objQuery);
  * dataRandom({a: 1, b: 2, c: 3}, 1, true); -> {b: 2} (random, keys kept)
  * dataRandom(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 3); -> {0: 'c', 1: 'a', 2: 'b'}
  */
-export const dataRandom = /* @__PURE__ */ dispatch(arrRandom, objRandom);
+export const dataRandom = dataRandomImpl as unknown as Dispatched<
+    typeof arrRandom,
+    typeof objRandom
+>;
+
+/** Forwards `dataRandom` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataRandomImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrRandom, objRandom, data, rest);
+}
 
 /**
  * Read the entries `dataSearch`, `dataBefore` and `dataAfter` walk, in the order PHP walks the array.
@@ -1526,6 +1898,7 @@ export function dataSearch<TValue, TKey extends PropertyKey>(
     strict?: boolean,
 ): TKey | number | false;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
     value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
@@ -1582,6 +1955,7 @@ export function dataBefore<TValue, TKey extends PropertyKey>(
     strict?: boolean,
 ): TValue | null;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
     value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
@@ -1656,6 +2030,7 @@ export function dataAfter<TValue, TKey extends PropertyKey>(
     strict?: boolean,
 ): TValue | null;
 // Implementation
+/* @__NO_SIDE_EFFECTS__ */
 export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
     value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
@@ -1688,6 +2063,7 @@ export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
  * A count of zero returns an empty array. An empty source returns null for a count of 1 and an empty array for any
  * other. A Map is shifted from the start of its insertion order.
  *
+ * @sideEffects mutates - Removes the shifted items from a given array or record.
  * @param items - The data to shift from. Mutated in place for an array or record backing; a Map,
  * Set or generator backing is copied first, so the write lands on the copy and is discarded.
  * @param count - Number of items to shift; a fraction is dropped, and NAN shifts every item
@@ -1700,12 +2076,22 @@ export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataShift([1, 2, 3]); -> 1
  * dataShift(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 2); -> ['c', 'a'], the Map left as it was
  */
-export const dataShift = /* @__PURE__ */ dispatch(
-    arrShift,
-    objShift,
-    toPositionalBacking,
-    copyKeyedData,
-);
+export const dataShift = dataShiftImpl as unknown as Dispatched<
+    typeof arrShift,
+    typeof objShift
+>;
+
+/** Forwards `dataShift` to its delegate. */
+function dataShiftImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrShift,
+        objShift,
+        data,
+        rest,
+        toPositionalBacking,
+        copyKeyedData,
+    );
+}
 
 /**
  * Set a value in data by key.
@@ -1720,12 +2106,23 @@ export const dataShift = /* @__PURE__ */ dispatch(
  * dataSet([1, 2, 3], 1, 'new'); -> [1, 'new', 3]
  * dataSet({a: 1, b: 2}, 'c', 3); -> {a: 1, b: 2, c: 3}
  */
-export const dataSet = /* @__PURE__ */ dispatch(
-    arrSet,
-    objSet,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataSet = dataSetImpl as unknown as Dispatched<
+    typeof arrSet,
+    typeof objSet
+>;
+
+/** Forwards `dataSet` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataSetImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrSet,
+        objSet,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Push values to data.
@@ -1740,25 +2137,30 @@ export const dataSet = /* @__PURE__ */ dispatch(
  * dataPush([1, 2], null, 3, 4); -> [1, 2, 3, 4]
  * dataPush({a: [1, 2]}, 'a', 3, 4); -> {a: [1, 2, 3, 4]}
  */
-export const dataPush = /* @__PURE__ */ dispatch(
-    arrPush,
-    objPush,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataPush = dataPushImpl as unknown as Dispatched<
+    typeof arrPush,
+    typeof objPush
+>;
 
-const unshiftBacking = /* @__PURE__ */ dispatch(
-    arrUnshift,
-    objUnshift,
-    toPositionalBacking,
-    copyKeyedData,
-);
+/** Forwards `dataPush` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataPushImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrPush,
+        objPush,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Prepend one or more items to the beginning of the data items, mutating it in place.
  *
  * A Map's integer keys are renumbered in its insertion order, so each value lands on the key PHP's unshift gives it.
  *
+ * @sideEffects mutates - Writes the new items into a given array or record.
  * @param data - The data to unshift to. Mutated in place for an array or record backing; a Map,
  * Set or generator backing is copied first, so the write lands on the copy and is discarded.
  * @param items - The items to prepend
@@ -1769,14 +2171,25 @@ const unshiftBacking = /* @__PURE__ */ dispatch(
  * dataUnshift([2, 3], 1); -> [1, 2, 3]
  * dataUnshift(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'U'); -> {0: 'U', 1: 'c', 2: 'a', 3: 'b'}
  */
-export const dataUnshift = ((...args: readonly unknown[]): unknown => {
-    const result = (unshiftBacking as (...args: readonly unknown[]) => unknown)(
-        ...args,
+export const dataUnshift = dataUnshiftImpl as unknown as Dispatched<
+    typeof arrUnshift,
+    typeof objUnshift
+>;
+
+/** Forwards `dataUnshift` to its delegate. */
+function dataUnshiftImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    const result = forwardData(
+        arrUnshift,
+        objUnshift,
+        data,
+        rest,
+        toPositionalBacking,
+        copyKeyedData,
     );
 
     // obj.unshift hands back the Map copy it rewrote; every other keyed answer here is a record.
     return isMap(result) ? objFrom(result) : result;
-}) as typeof unshiftBacking;
+}
 
 /**
  * Shuffle data randomly.
@@ -1789,12 +2202,23 @@ export const dataUnshift = ((...args: readonly unknown[]): unknown => {
  * dataShuffle([1, 2, 3, 4]); -> [3, 1, 4, 2] (random order)
  * dataShuffle({a: 1, b: 2, c: 3}); -> {0: 3, 1: 1, 2: 2} (random order, reindexed 0..n-1)
  */
-export const dataShuffle = /* @__PURE__ */ dispatch(
-    arrShuffle,
-    objShuffle,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataShuffle = dataShuffleImpl as unknown as Dispatched<
+    typeof arrShuffle,
+    typeof objShuffle
+>;
+
+/** Forwards `dataShuffle` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataShuffleImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrShuffle,
+        objShuffle,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Skip items in the data until the given condition is met.
@@ -1812,10 +2236,19 @@ export const dataShuffle = /* @__PURE__ */ dispatch(
  * dataSkipUntil({a: 1, b: 2, c: 3}, (value, key) => key === 'b'); -> {b: 2, c: 3}
  * dataSkipUntil(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'a'); -> {0: 'a', 1: 'b'}
  */
-export const dataSkipUntil = /* @__PURE__ */ dispatch(
-    arrSkipUntil,
-    objSkipUntil,
-);
+export const dataSkipUntil = dataSkipUntilImpl as unknown as Dispatched<
+    typeof arrSkipUntil,
+    typeof objSkipUntil
+>;
+
+/** Forwards `dataSkipUntil` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataSkipUntilImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(arrSkipUntil, objSkipUntil, data, rest);
+}
 
 /**
  * Skip items in the data while the given condition is met.
@@ -1833,10 +2266,19 @@ export const dataSkipUntil = /* @__PURE__ */ dispatch(
  * dataSkipWhile({a: 1, b: 2, c: 1}, 1); -> {b: 2, c: 1}
  * dataSkipWhile(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'c'); -> {0: 'a', 1: 'b'}
  */
-export const dataSkipWhile = /* @__PURE__ */ dispatch(
-    arrSkipWhile,
-    objSkipWhile,
-);
+export const dataSkipWhile = dataSkipWhileImpl as unknown as Dispatched<
+    typeof arrSkipWhile,
+    typeof objSkipWhile
+>;
+
+/** Forwards `dataSkipWhile` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataSkipWhileImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(arrSkipWhile, objSkipWhile, data, rest);
+}
 
 /**
  * Slice the underlying data items
@@ -1854,7 +2296,16 @@ export const dataSkipWhile = /* @__PURE__ */ dispatch(
  * dataSlice([1, 2, 3, 4], 1, 2); -> [2, 3]
  * dataSlice(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 1); -> {0: 'a', 1: 'b'}
  */
-export const dataSlice = /* @__PURE__ */ dispatch(arrSlice, objSlice);
+export const dataSlice = dataSliceImpl as unknown as Dispatched<
+    typeof arrSlice,
+    typeof objSlice
+>;
+
+/** Forwards `dataSlice` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataSliceImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrSlice, objSlice, data, rest);
+}
 
 /**
  * Get the sole item that passes a test.
@@ -1876,7 +2327,16 @@ export const dataSlice = /* @__PURE__ */ dispatch(arrSlice, objSlice);
  * dataSole(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), (value) => value === 'c'); -> 'c' (keys seen: 2, 0, 1)
  * dataSole(new Map([[1, 'a'], ['1', 'b']])); -> 'b'
  */
-export const dataSole = /* @__PURE__ */ dispatch(arrSole, objSole);
+export const dataSole = dataSoleImpl as unknown as Dispatched<
+    typeof arrSole,
+    typeof objSole
+>;
+
+/** Forwards `dataSole` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataSoleImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrSole, objSole, data, rest);
+}
 
 /**
  * Sort data using a callback.
@@ -1895,7 +2355,16 @@ export const dataSole = /* @__PURE__ */ dispatch(arrSole, objSole);
  * dataSort(new Map([[2, {n: 1, id: 'p'}], [0, {n: 1, id: 'q'}], [1, {n: 0, id: 'r'}]]), 'n');
  * -> {0: {n: 0, id: 'r'}, 1: {n: 1, id: 'p'}, 2: {n: 1, id: 'q'}}
  */
-export const dataSort = /* @__PURE__ */ dispatch(arrSort, objSort);
+export const dataSort = dataSortImpl as unknown as Dispatched<
+    typeof arrSort,
+    typeof objSort
+>;
+
+/** Forwards `dataSort` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataSortImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrSort, objSort, data, rest);
+}
 
 /**
  * Sort data in descending order using a callback.
@@ -1914,7 +2383,16 @@ export const dataSort = /* @__PURE__ */ dispatch(arrSort, objSort);
  * dataSortDesc(new Map([[2, {n: 1, id: 'p'}], [0, {n: 1, id: 'q'}], [1, {n: 0, id: 'r'}]]), 'n');
  * -> {0: {n: 1, id: 'p'}, 1: {n: 1, id: 'q'}, 2: {n: 0, id: 'r'}}
  */
-export const dataSortDesc = /* @__PURE__ */ dispatch(arrSortDesc, objSortDesc);
+export const dataSortDesc = dataSortDescImpl as unknown as Dispatched<
+    typeof arrSortDesc,
+    typeof objSortDesc
+>;
+
+/** Forwards `dataSortDesc` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataSortDescImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrSortDesc, objSortDesc, data, rest);
+}
 
 /**
  * Sort data recursively.
@@ -1932,10 +2410,19 @@ export const dataSortDesc = /* @__PURE__ */ dispatch(arrSortDesc, objSortDesc);
  * dataSortRecursive({b: {y: 2, x: 1}, a: {z: 3, w: 4}}); -> {a: {w: 4, z: 3}, b: {x: 1, y: 2}}
  * dataSortRecursive(new Map([[1, 'a'], [0, 'b']])); -> {0: 'b', 1: 'a'}
  */
-export const dataSortRecursive = /* @__PURE__ */ dispatch(
-    arrSortRecursive,
-    objSortRecursive,
-);
+export const dataSortRecursive = dataSortRecursiveImpl as unknown as Dispatched<
+    typeof arrSortRecursive,
+    typeof objSortRecursive
+>;
+
+/** Forwards `dataSortRecursive` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataSortRecursiveImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(arrSortRecursive, objSortRecursive, data, rest);
+}
 
 /**
  * Sort data recursively in descending order.
@@ -1953,16 +2440,27 @@ export const dataSortRecursive = /* @__PURE__ */ dispatch(
  * dataSortRecursiveDesc({a: {w: 4, z: 3}, b: {x: 1, y: 2}}); -> {b: {y: 2, x: 1}, a: {z: 3, w: 4}}
  * dataSortRecursiveDesc(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> {0: 'a', 1: 'b', 2: 'c'}
  */
-export const dataSortRecursiveDesc = /* @__PURE__ */ dispatch(
-    arrSortRecursiveDesc,
-    objSortRecursiveDesc,
-);
+export const dataSortRecursiveDesc =
+    dataSortRecursiveDescImpl as unknown as Dispatched<
+        typeof arrSortRecursiveDesc,
+        typeof objSortRecursiveDesc
+    >;
+
+/** Forwards `dataSortRecursiveDesc` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataSortRecursiveDescImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(arrSortRecursiveDesc, objSortRecursiveDesc, data, rest);
+}
 
 /**
  * Splice a portion of the data items, mutating it in place, and return only what was removed.
  *
  * A Map is spliced in its insertion order. What is removed keeps its string keys and renumbers integer keys from 0.
  *
+ * @sideEffects mutates - Removes the spliced range from a given array or record.
  * @param data - The data to splice. Mutated in place for an array or record backing; a Map, Set
  * or generator backing is copied first, so the write lands on the copy and is discarded.
  * @param offset - The starting index; a fraction is dropped
@@ -1978,12 +2476,22 @@ export const dataSortRecursiveDesc = /* @__PURE__ */ dispatch(
  * dataSplice([1, 2, 3, 4], 1, 2); -> [2, 3]
  * dataSplice(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 1); -> {0: 'a', 1: 'b'}
  */
-export const dataSplice = /* @__PURE__ */ dispatch(
-    arrSplice,
-    objSplice,
-    toPositionalBacking,
-    copyKeyedData,
-);
+export const dataSplice = dataSpliceImpl as unknown as Dispatched<
+    typeof arrSplice,
+    typeof objSplice
+>;
+
+/** Forwards `dataSplice` to its delegate. */
+function dataSpliceImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrSplice,
+        objSplice,
+        data,
+        rest,
+        toPositionalBacking,
+        copyKeyedData,
+    );
+}
 
 /**
  * Take items in the data until the given condition is met.
@@ -2001,10 +2509,19 @@ export const dataSplice = /* @__PURE__ */ dispatch(
  * dataTakeUntil({a: 1, b: 2, c: 3}, (value, key) => key === 'c'); -> {a: 1, b: 2}
  * dataTakeUntil(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'a'); -> {2: 'c'}
  */
-export const dataTakeUntil = /* @__PURE__ */ dispatch(
-    arrTakeUntil,
-    objTakeUntil,
-);
+export const dataTakeUntil = dataTakeUntilImpl as unknown as Dispatched<
+    typeof arrTakeUntil,
+    typeof objTakeUntil
+>;
+
+/** Forwards `dataTakeUntil` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataTakeUntilImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(arrTakeUntil, objTakeUntil, data, rest);
+}
 
 /**
  * Take items in the data while the given condition is met.
@@ -2022,10 +2539,19 @@ export const dataTakeUntil = /* @__PURE__ */ dispatch(
  * dataTakeWhile({a: 1, b: 1, c: 2, d: 1}, 1); -> {a: 1, b: 1}
  * dataTakeWhile(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'c'); -> {2: 'c'}
  */
-export const dataTakeWhile = /* @__PURE__ */ dispatch(
-    arrTakeWhile,
-    objTakeWhile,
-);
+export const dataTakeWhile = dataTakeWhileImpl as unknown as Dispatched<
+    typeof arrTakeWhile,
+    typeof objTakeWhile
+>;
+
+/** Forwards `dataTakeWhile` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataTakeWhileImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(arrTakeWhile, objTakeWhile, data, rest);
+}
 
 /**
  * Get a string value from data.
@@ -2040,12 +2566,23 @@ export const dataTakeWhile = /* @__PURE__ */ dispatch(
  * dataString(['hello', 'world'], 0, ''); -> 'hello'
  * dataString({name: 'John'}, 'name', ''); -> 'John'
  */
-export const dataString = /* @__PURE__ */ dispatch(
-    arrString,
-    objString,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataString = dataStringImpl as unknown as Dispatched<
+    typeof arrString,
+    typeof objString
+>;
+
+/** Forwards `dataString` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataStringImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrString,
+        objString,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Convert data to CSS classes string.
@@ -2062,10 +2599,19 @@ export const dataString = /* @__PURE__ */ dispatch(
  * dataToCssClasses({btn: true, 'btn-primary': true, disabled: false}); -> 'btn btn-primary'
  * dataToCssClasses(new Map([[2, 'c2'], ['x', true], [0, 'c0']])); -> 'c2 x c0'
  */
-export const dataToCssClasses = /* @__PURE__ */ dispatch(
-    arrToCssClasses,
-    objToCssClasses,
-);
+export const dataToCssClasses = dataToCssClassesImpl as unknown as Dispatched<
+    typeof arrToCssClasses,
+    typeof objToCssClasses
+>;
+
+/** Forwards `dataToCssClasses` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataToCssClassesImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(arrToCssClasses, objToCssClasses, data, rest);
+}
 
 /**
  * Convert data to CSS styles string.
@@ -2082,10 +2628,19 @@ export const dataToCssClasses = /* @__PURE__ */ dispatch(
  * dataToCssStyles({'color:red': true, 'display:none': false}); -> 'color:red;'
  * dataToCssStyles(new Map([['x:1', true], [0, 'z:0'], ['y:1', true]])); -> 'x:1; z:0; y:1;'
  */
-export const dataToCssStyles = /* @__PURE__ */ dispatch(
-    arrToCssStyles,
-    objToCssStyles,
-);
+export const dataToCssStyles = dataToCssStylesImpl as unknown as Dispatched<
+    typeof arrToCssStyles,
+    typeof objToCssStyles
+>;
+
+/** Forwards `dataToCssStyles` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataToCssStylesImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(arrToCssStyles, objToCssStyles, data, rest);
+}
 
 /**
  * Filter data where callback returns true.
@@ -2105,14 +2660,23 @@ export const dataToCssStyles = /* @__PURE__ */ dispatch(
  * dataWhere({a: 1, b: 2, c: 3}, (value) => value > 1); -> {b: 2, c: 3}
  * dataWhere(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), () => ++calls <= 2); -> {2: 'c', 0: 'a'}
  */
-export const dataWhere = /* @__PURE__ */ dispatch(arrWhere, objWhere);
+export const dataWhere = dataWhereImpl as unknown as Dispatched<
+    typeof arrWhere,
+    typeof objWhere
+>;
+
+/** Forwards `dataWhere` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataWhereImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrWhere, objWhere, data, rest);
+}
 
 /**
  * Replace the data items with the given items.
  *
  * `replacerData` may be a list or an object on either backing. A list backing stays a list while the result's keys run
  * `0..n-1` in order; a string key, a gap or a Map adding `2` before `1` makes it an object, as PHP's result is keyed.
- * Not a `dispatch` pair: `arr.replace` returns `TValue[]`, which drops a string key and fills a gap with `undefined`.
+ * Not a delegate pair: `arr.replace` returns `TValue[]`, which drops a string key and fills a gap with `undefined`.
  *
  * @param data - The original data
  * @param replacerData - The items to replace with. `null`/`undefined` is a no-op.
@@ -2144,6 +2708,7 @@ export function dataReplace(
     data: unknown,
     replacerData: unknown,
 ): ReturnType<typeof objReplace>;
+/* @__NO_SIDE_EFFECTS__ */
 export function dataReplace<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -2168,7 +2733,7 @@ export function dataReplace<
  * Recursively replace the data items with the given items recursively.
  *
  * `replacerData` may take either shape, and a list backing becomes an object for a keyed result, as for `dataReplace`.
- * Not a `dispatch` pair for the same reason: `arr.replaceRecursive` returns `TValue[]`, which cannot hold PHP's keys.
+ * Not a delegate pair for the same reason: `arr.replaceRecursive` returns `TValue[]`, which cannot hold PHP's keys.
  *
  * @param data - The original data
  * @param replacerData - The items to replace with. `null`/`undefined` is a no-op.
@@ -2200,6 +2765,7 @@ export function dataReplaceRecursive(
     data: unknown,
     replacerData: unknown,
 ): ReturnType<typeof objReplaceRecursive>;
+/* @__NO_SIDE_EFFECTS__ */
 export function dataReplaceRecursive<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -2243,7 +2809,16 @@ export function dataReplaceRecursive<
  * dataReject({a: 1, b: 2, c: 3}, (value) => value > 1); -> {a: 1}
  * dataReject(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), () => ++calls <= 1); -> {0: 'a', 1: 'b'}
  */
-export const dataReject = /* @__PURE__ */ dispatch(arrReject, objReject);
+export const dataReject = dataRejectImpl as unknown as Dispatched<
+    typeof arrReject,
+    typeof objReject
+>;
+
+/** Forwards `dataReject` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataRejectImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrReject, objReject, data, rest);
+}
 
 /**
  * Reverse the data items.
@@ -2261,7 +2836,16 @@ export const dataReject = /* @__PURE__ */ dispatch(arrReject, objReject);
  * dataReverse([1, 2, 3]); -> [3, 2, 1]
  * dataReverse(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> {0: 'b', 1: 'a', 2: 'c'}
  */
-export const dataReverse = /* @__PURE__ */ dispatch(arrReverse, objReverse);
+export const dataReverse = dataReverseImpl as unknown as Dispatched<
+    typeof arrReverse,
+    typeof objReverse
+>;
+
+/** Forwards `dataReverse` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataReverseImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrReverse, objReverse, data, rest);
+}
 
 /**
  * Pad data to the specified length with a value.
@@ -2281,7 +2865,16 @@ export const dataReverse = /* @__PURE__ */ dispatch(arrReverse, objReverse);
  * dataPad([1, 2], 4, 0); -> [1, 2, 0, 0]
  * dataPad(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 4, 'P'); -> {0: 'c', 1: 'a', 2: 'b', 3: 'P'}
  */
-export const dataPad = /* @__PURE__ */ dispatch(arrPad, objPad);
+export const dataPad = dataPadImpl as unknown as Dispatched<
+    typeof arrPad,
+    typeof objPad
+>;
+
+/** Forwards `dataPad` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataPadImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrPad, objPad, data, rest);
+}
 
 /**
  * Partition data into two groups based on callback.
@@ -2301,10 +2894,19 @@ export const dataPad = /* @__PURE__ */ dispatch(arrPad, objPad);
  * dataPartition({a: 1, b: 2, c: 3}, (value) => value > 1); -> [{b: 2, c: 3}, {a: 1}]
  * dataPartition(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), () => ++calls <= 1); -> [{2: 'c'}, {0: 'a', 1: 'b'}]
  */
-export const dataPartition = /* @__PURE__ */ dispatch(
-    arrPartition,
-    objPartition,
-);
+export const dataPartition = dataPartitionImpl as unknown as Dispatched<
+    typeof arrPartition,
+    typeof objPartition
+>;
+
+/** Forwards `dataPartition` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataPartitionImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(arrPartition, objPartition, data, rest);
+}
 
 /**
  * Filter out null values from data.
@@ -2323,10 +2925,19 @@ export const dataPartition = /* @__PURE__ */ dispatch(
  * dataWhereNotNull({a: 1, b: null, c: 2}); -> {a: 1, c: 2}
  * dataWhereNotNull(new Map([[1, 'a'], ['x', 'm'], ['1', null]])); -> {x: 'm'}
  */
-export const dataWhereNotNull = /* @__PURE__ */ dispatch(
-    arrWhereNotNull,
-    objWhereNotNull,
-);
+export const dataWhereNotNull = dataWhereNotNullImpl as unknown as Dispatched<
+    typeof arrWhereNotNull,
+    typeof objWhereNotNull
+>;
+
+/** Forwards `dataWhereNotNull` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataWhereNotNullImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(arrWhereNotNull, objWhereNotNull, data, rest);
+}
 
 /**
  * Get all values from data (array or object).
@@ -2342,7 +2953,16 @@ export const dataWhereNotNull = /* @__PURE__ */ dispatch(
  * dataValues({a: 1, b: 2, c: 3}); -> [1, 2, 3]
  * dataValues(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> ['c', 'a', 'b']
  */
-export const dataValues = /* @__PURE__ */ dispatch(arrValues, objValues);
+export const dataValues = dataValuesImpl as unknown as Dispatched<
+    typeof arrValues,
+    typeof objValues
+>;
+
+/** Forwards `dataValues` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataValuesImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrValues, objValues, data, rest);
+}
 
 /**
  * Get all keys from data (array or object).
@@ -2359,7 +2979,16 @@ export const dataValues = /* @__PURE__ */ dispatch(arrValues, objValues);
  * dataKeys({a: 1, b: 2, c: 3}); -> ['a', 'b', 'c']
  * dataKeys(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> [2, 0, 1]
  */
-export const dataKeys = /* @__PURE__ */ dispatch(arrKeys, objKeys);
+export const dataKeys = dataKeysImpl as unknown as Dispatched<
+    typeof arrKeys,
+    typeof objKeys
+>;
+
+/** Forwards `dataKeys` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataKeysImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrKeys, objKeys, data, rest);
+}
 
 /**
  * Filter data using a callback function.
@@ -2376,7 +3005,16 @@ export const dataKeys = /* @__PURE__ */ dispatch(arrKeys, objKeys);
  * dataFilter({a: 1, b: 2, c: 3, d: 4}, (value) => value > 2); -> {c: 3, d: 4}
  * dataFilter(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), () => ++calls <= 2); -> {2: 'c', 0: 'a'}
  */
-export const dataFilter = /* @__PURE__ */ dispatch(arrFilter, objFilter);
+export const dataFilter = dataFilterImpl as unknown as Dispatched<
+    typeof arrFilter,
+    typeof objFilter
+>;
+
+/** Forwards `dataFilter` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataFilterImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrFilter, objFilter, data, rest);
+}
 
 /**
  * Transform data using a callback function.
@@ -2393,7 +3031,16 @@ export const dataFilter = /* @__PURE__ */ dispatch(arrFilter, objFilter);
  * dataMap({a: 1, b: 2}, (value) => value * 2); -> {a: 2, b: 4}
  * dataMap(new Map([[2, 'c'], [0, 'a']]), (value) => value + ++calls); -> {2: 'c1', 0: 'a2'}
  */
-export const dataMap = /* @__PURE__ */ dispatch(arrMap, objMap);
+export const dataMap = dataMapImpl as unknown as Dispatched<
+    typeof arrMap,
+    typeof objMap
+>;
+
+/** Forwards `dataMap` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataMapImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrMap, objMap, data, rest);
+}
 
 /**
  * Get the first value from data that passes a test.
@@ -2417,11 +3064,16 @@ export const dataMap = /* @__PURE__ */ dispatch(arrMap, objMap);
  */
 // A Set or generator reaches `arrFirst` UNREAD via `streamPositionalData`, and `arrFirst` stops at the first match,
 // so an endless generator answers with or without a callback.
-export const dataFirst = /* @__PURE__ */ dispatch(
-    arrFirst,
-    objFirst,
-    streamPositionalData,
-);
+export const dataFirst = dataFirstImpl as unknown as Dispatched<
+    typeof arrFirst,
+    typeof objFirst
+>;
+
+/** Forwards `dataFirst` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataFirstImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrFirst, objFirst, data, rest, streamPositionalData);
+}
 
 /**
  * Get the last value from data that passes a test.
@@ -2445,11 +3097,16 @@ export const dataFirst = /* @__PURE__ */ dispatch(
  */
 // A Set or generator reaches `arrLast` UNREAD via `streamPositionalData`, but `last` has to walk to
 // the end whatever it is handed, so the backing must still be finite.
-export const dataLast = /* @__PURE__ */ dispatch(
-    arrLast,
-    objLast,
-    streamPositionalData,
-);
+export const dataLast = dataLastImpl as unknown as Dispatched<
+    typeof arrLast,
+    typeof objLast
+>;
+
+/** Forwards `dataLast` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataLastImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrLast, objLast, data, rest, streamPositionalData);
+}
 
 /**
  * Determine if data contains a value.
@@ -2468,7 +3125,16 @@ export const dataLast = /* @__PURE__ */ dispatch(
  * dataContains(new Map([[2, null], [0, 'a']]), () => true, true); -> true (a match holding null counts)
  * dataContains(new Map([[1, 'a'], ['1', 'b']]), 'a'); -> false
  */
-export const dataContains = /* @__PURE__ */ dispatch(arrContains, objContains);
+export const dataContains = dataContainsImpl as unknown as Dispatched<
+    typeof arrContains,
+    typeof objContains
+>;
+
+/** Forwards `dataContains` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataContainsImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrContains, objContains, data, rest);
+}
 
 /**
  * Determine if data contains a value, using strict comparison.
@@ -2490,10 +3156,20 @@ export const dataContains = /* @__PURE__ */ dispatch(arrContains, objContains);
  * dataContainsStrict([{ tags: ['a', 'b'] }], 'tags', ['a', 'b']); -> true
  * dataContainsStrict([{ user: { id: 2 } }], 'user.id', 2); -> true
  */
-export const dataContainsStrict = /* @__PURE__ */ dispatch(
-    arrContainsStrict,
-    objContainsStrict,
-);
+export const dataContainsStrict =
+    dataContainsStrictImpl as unknown as Dispatched<
+        typeof arrContainsStrict,
+        typeof objContainsStrict
+    >;
+
+/** Forwards `dataContainsStrict` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataContainsStrictImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(arrContainsStrict, objContainsStrict, data, rest);
+}
 
 /**
  * Get the differences between data collections.
@@ -2510,12 +3186,23 @@ export const dataContainsStrict = /* @__PURE__ */ dispatch(
  *
  * dataDiff([1, 2, 3, 4], [2, 4]); -> [1, 3]
  */
-export const dataDiff = /* @__PURE__ */ dispatch(
-    arrDiff,
-    objDiff,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataDiff = dataDiffImpl as unknown as Dispatched<
+    typeof arrDiff,
+    typeof objDiff
+>;
+
+/** Forwards `dataDiff` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataDiffImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrDiff,
+        objDiff,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Get the items whose key and value are not both present in the given other data.
@@ -2532,12 +3219,26 @@ export const dataDiff = /* @__PURE__ */ dispatch(
  *
  * dataDiffAssoc({a: 1, b: 2, c: 3}, {b: 2}); -> {a: 1, c: 3}
  */
-export const dataDiffAssoc = /* @__PURE__ */ dispatch(
-    arrDiffAssoc,
-    objDiffAssoc,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataDiffAssoc = dataDiffAssocImpl as unknown as Dispatched<
+    typeof arrDiffAssoc,
+    typeof objDiffAssoc
+>;
+
+/** Forwards `dataDiffAssoc` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataDiffAssocImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(
+        arrDiffAssoc,
+        objDiffAssoc,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Get the items whose keys are not present in the given other data.
@@ -2553,12 +3254,23 @@ export const dataDiffAssoc = /* @__PURE__ */ dispatch(
  * dataDiffKeys({id: 1, first_word: 'Hello'}, {id: 123, foo_bar: 'Hello'}); -> {first_word: 'Hello'}
  * dataDiffKeys([1, 2, 3], [9, 9]); -> [3]
  */
-export const dataDiffKeys = /* @__PURE__ */ dispatch(
-    arrDiffKeys,
-    objDiffKeys,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataDiffKeys = dataDiffKeysImpl as unknown as Dispatched<
+    typeof arrDiffKeys,
+    typeof objDiffKeys
+>;
+
+/** Forwards `dataDiffKeys` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataDiffKeysImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrDiffKeys,
+        objDiffKeys,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Get the items whose value is not present in the given other data, comparing with the callback.
@@ -2575,12 +3287,26 @@ export const dataDiffKeys = /* @__PURE__ */ dispatch(
  * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
  * dataDiffUsing(['green', 'brown', 'blue'], ['GREEN', 'yellow'], strcasecmp); -> ['brown', 'blue']
  */
-export const dataDiffUsing = /* @__PURE__ */ dispatch(
-    arrDiffUsing,
-    objDiffUsing,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataDiffUsing = dataDiffUsingImpl as unknown as Dispatched<
+    typeof arrDiffUsing,
+    typeof objDiffUsing
+>;
+
+/** Forwards `dataDiffUsing` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataDiffUsingImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(
+        arrDiffUsing,
+        objDiffUsing,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Diff data with the given other data using a callback for key comparison.
@@ -2598,12 +3324,27 @@ export const dataDiffUsing = /* @__PURE__ */ dispatch(
  * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
  * dataDiffAssocUsing({a: 'green', b: 'brown'}, {A: 'green', c: 'blue'}, strcasecmp); -> {b: 'brown'}
  */
-export const dataDiffAssocUsing = /* @__PURE__ */ dispatch(
-    arrDiffAssocUsing,
-    objDiffAssocUsing,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataDiffAssocUsing =
+    dataDiffAssocUsingImpl as unknown as Dispatched<
+        typeof arrDiffAssocUsing,
+        typeof objDiffAssocUsing
+    >;
+
+/** Forwards `dataDiffAssocUsing` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataDiffAssocUsingImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(
+        arrDiffAssocUsing,
+        objDiffAssocUsing,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Diff data keys with the given other data using a callback for key comparison only.
@@ -2621,12 +3362,26 @@ export const dataDiffAssocUsing = /* @__PURE__ */ dispatch(
  * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
  * dataDiffKeysUsing({id: 1, first_word: 'Hello'}, {ID: 123, foo_bar: 'Hello'}, strcasecmp); -> {first_word: 'Hello'}
  */
-export const dataDiffKeysUsing = /* @__PURE__ */ dispatch(
-    arrDiffKeysUsing,
-    objDiffKeysUsing,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataDiffKeysUsing = dataDiffKeysUsingImpl as unknown as Dispatched<
+    typeof arrDiffKeysUsing,
+    typeof objDiffKeysUsing
+>;
+
+/** Forwards `dataDiffKeysUsing` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataDiffKeysUsingImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(
+        arrDiffKeysUsing,
+        objDiffKeysUsing,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Pluck values from data by a key path.
@@ -2645,13 +3400,23 @@ export const dataDiffKeysUsing = /* @__PURE__ */ dispatch(
  * dataPluck({a: {name: 'John'}, b: {name: 'Jane'}}, 'name'); -> ['John', 'Jane']
  * dataPluck(new Map([[2, {n: 'c'}], [0, {n: 'a'}], [1, {n: 'b'}]]), 'n'); -> ['c', 'a', 'b']
  */
-export const dataPluck = /* @__PURE__ */ dispatch(arrPluck, objPluck);
+export const dataPluck = dataPluckImpl as unknown as Dispatched<
+    typeof arrPluck,
+    typeof objPluck
+>;
+
+/** Forwards `dataPluck` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataPluckImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(arrPluck, objPluck, data, rest);
+}
 
 /**
  * Get and remove the last N items from the data, mutating it in place.
  *
  * A count above one returns the items in reverse order. A Map is popped from the end of its insertion order.
  *
+ * @sideEffects mutates - Removes the popped items from a given array or record.
  * @param data - The data to pop from. Mutated in place for an array or record backing; a Map, Set
  * or generator backing is copied first, so the write lands on the copy and is discarded.
  * @param count - The number of items to pop; a fraction is dropped, and NAN pops every item
@@ -2663,12 +3428,22 @@ export const dataPluck = /* @__PURE__ */ dispatch(arrPluck, objPluck);
  * dataPop([1, 2, 3]); -> 3
  * dataPop(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 2); -> ['b', 'a'], the Map left as it was
  */
-export const dataPop = /* @__PURE__ */ dispatch(
-    arrPop,
-    objPop,
-    toPositionalBacking,
-    copyKeyedData,
-);
+export const dataPop = dataPopImpl as unknown as Dispatched<
+    typeof arrPop,
+    typeof objPop
+>;
+
+/** Forwards `dataPop` to its delegate. */
+function dataPopImpl(data: unknown, ...rest: readonly unknown[]): unknown {
+    return forwardData(
+        arrPop,
+        objPop,
+        data,
+        rest,
+        toPositionalBacking,
+        copyKeyedData,
+    );
+}
 
 /**
  * Intersect the data with the given items.
@@ -2683,12 +3458,26 @@ export const dataPop = /* @__PURE__ */ dispatch(
  * @param callable - Optional comparison function
  * @returns The intersected data
  */
-export const dataIntersect = /* @__PURE__ */ dispatch(
-    arrIntersect,
-    objIntersect,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataIntersect = dataIntersectImpl as unknown as Dispatched<
+    typeof arrIntersect,
+    typeof objIntersect
+>;
+
+/** Forwards `dataIntersect` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataIntersectImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(
+        arrIntersect,
+        objIntersect,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Intersect the data with the given items, comparing values with the callback.
@@ -2705,12 +3494,27 @@ export const dataIntersect = /* @__PURE__ */ dispatch(
  * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
  * dataIntersectUsing({a: 'green', b: 'brown'}, {A: 'GREEN'}, strcasecmp); -> {a: 'green'}
  */
-export const dataIntersectUsing = /* @__PURE__ */ dispatch(
-    arrIntersectUsing,
-    objIntersectUsing,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataIntersectUsing =
+    dataIntersectUsingImpl as unknown as Dispatched<
+        typeof arrIntersectUsing,
+        typeof objIntersectUsing
+    >;
+
+/** Forwards `dataIntersectUsing` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataIntersectUsingImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(
+        arrIntersectUsing,
+        objIntersectUsing,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Intersect the data with the given items with additional key check.
@@ -2728,12 +3532,27 @@ export const dataIntersectUsing = /* @__PURE__ */ dispatch(
  * dataIntersectAssoc({a: 'green', b: 'brown'}, {a: 'green', b: 'yellow'}); -> {a: 'green'}
  * dataIntersectAssoc([1, 2, 3], [2, 3, 4]); -> []
  */
-export const dataIntersectAssoc = /* @__PURE__ */ dispatch(
-    arrIntersectAssoc,
-    objIntersectAssoc,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataIntersectAssoc =
+    dataIntersectAssocImpl as unknown as Dispatched<
+        typeof arrIntersectAssoc,
+        typeof objIntersectAssoc
+    >;
+
+/** Forwards `dataIntersectAssoc` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataIntersectAssocImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(
+        arrIntersectAssoc,
+        objIntersectAssoc,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Intersect the data with the given items with additional key check, using the callback.
@@ -2750,12 +3569,27 @@ export const dataIntersectAssoc = /* @__PURE__ */ dispatch(
  * const strcasecmpKeys = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
  * dataIntersectAssocUsing({a: 'green', b: 'brown'}, {A: 'GREEN', B: 'brown'}, strcasecmpKeys); -> {b: 'brown'}
  */
-export const dataIntersectAssocUsing = /* @__PURE__ */ dispatch(
-    arrIntersectAssocUsing,
-    objIntersectAssocUsing,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataIntersectAssocUsing =
+    dataIntersectAssocUsingImpl as unknown as Dispatched<
+        typeof arrIntersectAssocUsing,
+        typeof objIntersectAssocUsing
+    >;
+
+/** Forwards `dataIntersectAssocUsing` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataIntersectAssocUsingImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(
+        arrIntersectAssocUsing,
+        objIntersectAssocUsing,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}
 
 /**
  * Intersect the data with the given items by key.
@@ -2765,9 +3599,24 @@ export const dataIntersectAssocUsing = /* @__PURE__ */ dispatch(
  * @param items - The items to intersect with
  * @returns The intersected data
  */
-export const dataIntersectByKeys = /* @__PURE__ */ dispatch(
-    arrIntersectByKeys,
-    objIntersectByKeys,
-    toPositionalBacking,
-    toKeyedData,
-);
+export const dataIntersectByKeys =
+    dataIntersectByKeysImpl as unknown as Dispatched<
+        typeof arrIntersectByKeys,
+        typeof objIntersectByKeys
+    >;
+
+/** Forwards `dataIntersectByKeys` to its delegate. */
+/* @__NO_SIDE_EFFECTS__ */
+function dataIntersectByKeysImpl(
+    data: unknown,
+    ...rest: readonly unknown[]
+): unknown {
+    return forwardData(
+        arrIntersectByKeys,
+        objIntersectByKeys,
+        data,
+        rest,
+        toPositionalBacking,
+        toKeyedData,
+    );
+}

@@ -10,7 +10,7 @@ import {
     type ViteDevServer,
 } from "vite";
 
-const execAsync = promisify(exec);
+const execAsync = /* @__PURE__ */ promisify(exec);
 
 export interface LaravelTsPublishOptions {
     /**
@@ -171,6 +171,7 @@ export interface LaravelTsPublishOptions {
  * });
  * ```
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function laravelTsPublish(
     options: LaravelTsPublishOptions = {},
 ): Plugin {

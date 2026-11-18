@@ -30,6 +30,7 @@ Arrays and objects share one reference page because `@tolki/data` forwards to th
 ## Nav and sidebar
 
 - The nav is `Home`, `Packages`, `TS & Laravel`, a `Utilities` dropdown, then `TS Types`. The dropdown holds `Strings`, `Numbers`, `Arrays & Objects`, `Collections` and `Localization`, and its `activeMatch` regex is `^/(strings|numbers|arrays-objects|collections|localization)/`, so the dropdown shows as active on every page of those families. Add a new utility family to both the dropdown and that regex.
+- The `Introduction` sidebar group also holds `Bundling & Tree-Shaking` (`/tree-shaking`), the hub for per-bundler guidance. [treeshake-check.md](./treeshake-check.md) keeps it in step with the measured outcomes. Each package page's `## Bundling` section links to it with an absolute `https://tolki.abe.dev/tree-shaking.html` URL, because `readme:build` rewrites only `../<dir>/<page>.md` links.
 - Each family has one sidebar group. `Arrays & Objects` and `Collections` come right after `Strings`, and `Localization` comes after `Collections`.
 - A sidebar entry is added in the task that creates its page, never earlier. VitePress fails the build on a dead link, and a sidebar link counts.
 - The sidebar groups are `Arrays & Objects` (`Installation & Usage`, `Utilities List`, `Dot Notation`, `PHP Semantics`, `Differences from Laravel`), `Collections` (`Installation & Usage`, `Methods List`, `Differences from Laravel`) and `Localization` (`Installation & Usage`, `Translator Reference`, `Differences from Laravel`).

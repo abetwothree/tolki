@@ -4,6 +4,8 @@ import { InvalidArgumentException } from "@tolki/utils";
 /**
  * Refuse a locale that could walk out of the lang directory.
  *
+ * @sideEffects asserts called to throw on a locale holding a path character
+ *
  * @param locale - The locale to check
  * @throws InvalidArgumentException when the locale holds `/`, `\`, `..` or a NUL byte
  */

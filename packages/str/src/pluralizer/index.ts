@@ -67,6 +67,7 @@ const rules: PluralizerRules = {
  *
  * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function pluralStudly(value: string, count: number = 2): string {
     const parts = value.split(/(?=[A-Z])/);
     const lastWord = String(parts.pop());
@@ -85,6 +86,7 @@ export function pluralStudly(value: string, count: number = 2): string {
  *
  * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function pluralPascal(value: string, count: number = 2): string {
     return pluralStudly(value, count);
 }
@@ -101,6 +103,7 @@ export function pluralPascal(value: string, count: number = 2): string {
  *
  * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function plural(
     value: string,
     count: number | unknown[] = 2,
@@ -125,6 +128,7 @@ export function plural(
  *
  * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function counted(value: string, count: number | unknown[]): string {
     return plural(value, count, true);
 }
@@ -158,6 +162,7 @@ function pluralValue(value: string, count: number): string {
  *
  * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function singular(value: string): string {
     const single = inflector().singular(value);
 
@@ -172,6 +177,7 @@ export function singular(value: string): string {
  *
  * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function uncountable(value: string): boolean {
     return rules.uncountable.includes(value.toLowerCase());
 }
@@ -184,6 +190,7 @@ export function uncountable(value: string): boolean {
  *
  * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isPlural(value: string = ""): boolean {
     return inflector().isPlural(value);
 }
@@ -196,6 +203,7 @@ export function isPlural(value: string = ""): boolean {
  *
  * @requires {@link https://www.npmjs.com/package/pluralize pluralize package}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isSingular(value: string = ""): boolean {
     return inflector().isSingular(value);
 }
@@ -207,6 +215,7 @@ export function isSingular(value: string = ""): boolean {
  * @param comparison - The string to match the case against.
  * @returns The adjusted string with matched case.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function matchCase(value: string, comparison: string): string {
     if (comparison.toLowerCase() === comparison) {
         return value.toLowerCase();
@@ -228,6 +237,8 @@ export function matchCase(value: string, comparison: string): string {
 
 /**
  * Get the pluralize instance
+ *
+ * @sideEffects state - Registers tolki's uncountable rules on the shared pluralize instance.
  *
  * @returns The pluralize instance.
  */

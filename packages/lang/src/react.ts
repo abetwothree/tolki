@@ -43,7 +43,7 @@ export interface ReactLang<
 /** Do nothing; the version snapshot tracks changes, so reads need no tracker. */
 function noop(): void {}
 
-const LangContext = createContext<Lang<LangLines> | null>(null);
+const LangContext = /* @__PURE__ */ createContext<Lang<LangLines> | null>(null);
 
 /**
  * Hand a lang to every component below.
@@ -51,12 +51,15 @@ const LangContext = createContext<Lang<LangLines> | null>(null);
  * @param props - The lang and the tree that reads it
  * @returns The provider element
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function LangProvider(props: LangProviderProps): ReactElement {
     return createElement(LangContext, { value: props.lang }, props.children);
 }
 
 /**
  * Read the lang of the nearest provider; the component renders again when the lang changes.
+ *
+ * @sideEffects state Subscribes the calling component to the lang.
  *
  * @returns The reads, the locale, `setLocale` and the lang itself
  * @throws Error when no provider is above the component

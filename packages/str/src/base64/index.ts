@@ -8,6 +8,7 @@ import { isFunction } from "@tolki/utils";
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#tobase64
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function toBase64(value: string): string {
     const g = getGlobal() as unknown as {
         Buffer?: {
@@ -48,6 +49,7 @@ export function toBase64(value: string): string {
  * @param bytes - The bytes to encode.
  * @returns The Base64 encoded string.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function bytesToBase64(bytes: Uint8Array): string {
     const g = getGlobal() as unknown as {
         Buffer?: {
@@ -81,6 +83,7 @@ export function bytesToBase64(bytes: Uint8Array): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#frombase64
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function fromBase64(
     value: string,
     strict: boolean = false,

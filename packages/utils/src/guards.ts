@@ -6,6 +6,7 @@ import type { DataItems } from "@tolki/types";
  * @param value - The value to check
  * @returns True if the value is an array
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isArray<T>(value: DataItems<T> | T[] | unknown): value is T[] {
     return Array.isArray(value);
 }
@@ -22,6 +23,7 @@ export function isArray<T>(value: DataItems<T> | T[] | unknown): value is T[] {
  * isObject([1, 2, 3]); -> false
  * isObject(null); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isObject<T, K extends PropertyKey = PropertyKey>(
     value: DataItems<T, K> | unknown,
 ): value is Record<K, T> {
@@ -42,6 +44,7 @@ export function isObject<T, K extends PropertyKey = PropertyKey>(
  * isPlainObject(new Date()); -> false
  * isPlainObject([1, 2]); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isPlainObject(
     value: unknown,
 ): value is Record<PropertyKey, unknown> {
@@ -65,6 +68,7 @@ export function isPlainObject(
  * isEnumCase({ value: 1, backed: true, name: "A" }); -> true
  * isEnumCase({ value: 1 }); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isEnumCase(
     value: unknown,
 ): value is Record<"name" | "value", string | number> {
@@ -89,6 +93,7 @@ export function isEnumCase(
  * isObjectAny([1, 2, 3]); -> true
  * isObjectAny(null); -> true
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isObjectAny(value: unknown): value is object {
     return typeof value === "object";
 }
@@ -106,6 +111,7 @@ export function isObjectAny(value: unknown): value is object {
  * isTruthyObject(null); -> false
  * isTruthyObject(undefined); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isTruthyObject(value: unknown): value is object {
     return !isNull(value) && !isUndefined(value) && isObjectAny(value);
 }
@@ -129,6 +135,7 @@ export function isTruthyObject(value: unknown): value is object {
  * isPrototypeObject({ constructor: Object }); -> false
  * isPrototypeObject({ a: 1 }); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isPrototypeObject(value: unknown): boolean {
     if (!isTruthyObject(value) && !isFunction(value)) {
         return false;
@@ -157,6 +164,7 @@ export function isPrototypeObject(value: unknown): boolean {
  * isString(123); -> false
  * isString(null); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isString(value: unknown): value is string {
     return typeof value === "string";
 }
@@ -175,6 +183,7 @@ export function isString(value: unknown): value is string {
  * isStringable(123); -> false
  * isStringable(null); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isStringable(
     value: unknown,
 ): value is string | { toString(): string } {
@@ -199,6 +208,7 @@ export function isStringable(
  * @param value - The value to check
  * @returns True if the value is an object with a toString method
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function objectToString(
     value: unknown,
 ): value is { toString(): string } {
@@ -225,6 +235,7 @@ export function objectToString(
  * isNumber(NaN); -> false
  * isNumber("123"); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isNumber(value: unknown): value is number {
     return typeof value === "number" && !isNaN(value);
 }
@@ -235,6 +246,7 @@ export function isNumber(value: unknown): value is number {
  * @param value - The value to check
  * @returns True if the value is an integer
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isInteger(value: unknown): value is number {
     return isNumber(value) && Number.isInteger(value);
 }
@@ -245,6 +257,7 @@ export function isInteger(value: unknown): value is number {
  * @param value - The value to check
  * @returns True if the value is a float
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isFloat(value: unknown): value is number {
     return isNumber(value) && !Number.isInteger(value);
 }
@@ -261,6 +274,7 @@ export function isFloat(value: unknown): value is number {
  * isPhpInt(1e19); -> false
  * isPhpInt(-0); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isPhpInt(value: unknown): value is number {
     // PHP_INT_MAX (2^63 - 1) rounds up to 2^63 as a double, so the upper bound is exclusive; PHP has no integer -0.
     return (
@@ -277,6 +291,7 @@ export function isPhpInt(value: unknown): value is number {
  * @param value - The value to check
  * @returns True if the value is a positive number
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isPositiveNumber(value: unknown): value is number {
     return isNumber(value) && value >= 0;
 }
@@ -287,6 +302,7 @@ export function isPositiveNumber(value: unknown): value is number {
  * @param value - The value to check
  * @returns True if the value is a negative number
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isNegativeNumber(value: unknown): value is number {
     return isNumber(value) && value < 0;
 }
@@ -304,6 +320,7 @@ export function isNegativeNumber(value: unknown): value is number {
  * isBoolean(0); -> false
  * isBoolean("true"); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isBoolean(value: unknown): value is boolean {
     return typeof value === "boolean";
 }
@@ -321,6 +338,7 @@ export function isBoolean(value: unknown): value is boolean {
  * isFunction("function"); -> false
  * isFunction({}); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isFunction<T extends (...args: unknown[]) => unknown>(
     value: unknown,
 ): value is T {
@@ -340,6 +358,7 @@ export function isFunction<T extends (...args: unknown[]) => unknown>(
  * isUndefined(""); -> false
  * isUndefined(0); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isUndefined(value: unknown): value is undefined {
     return typeof value === "undefined";
 }
@@ -357,6 +376,7 @@ export function isUndefined(value: unknown): value is undefined {
  * isSymbol("symbol"); -> false
  * isSymbol({}); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isSymbol(value: unknown): value is symbol {
     return typeof value === "symbol";
 }
@@ -374,6 +394,7 @@ export function isSymbol(value: unknown): value is symbol {
  * isNull(""); -> false
  * isNull(0); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isNull(value: unknown): value is null {
     return value === null;
 }
@@ -390,6 +411,7 @@ export function isNull(value: unknown): value is null {
  * isMap({}); -> false
  * isMap([]); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isMap<K, V>(value: unknown): value is Map<K, V> {
     return value instanceof Map;
 }
@@ -406,6 +428,7 @@ export function isMap<K, V>(value: unknown): value is Map<K, V> {
  * isSet({}); -> false
  * isSet([]); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isSet<T>(value: unknown): value is Set<T> {
     return value instanceof Set;
 }
@@ -428,6 +451,7 @@ export function isSet<T>(value: unknown): value is Set<T> {
  * isIterable("abc"); -> false
  * isIterable({ a: 1 }); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isIterable<T>(value: unknown): value is Iterable<T> {
     if (isNull(value) || isUndefined(value) || isString(value)) {
         return false;
@@ -444,6 +468,7 @@ export function isIterable<T>(value: unknown): value is Iterable<T> {
  * @param value - The value to check
  * @returns True if the value is a WeakMap
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isWeakMap<K extends object, V>(
     value: unknown,
 ): value is WeakMap<K, V> {
@@ -456,6 +481,7 @@ export function isWeakMap<K extends object, V>(
  * @param value - The value to check
  * @returns True if the value is a WeakSet
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isWeakSet<T extends object>(
     value: unknown,
 ): value is WeakSet<T> {
@@ -481,6 +507,7 @@ export function isWeakSet<T extends object>(
  * isFalsy([1, 2, 3]); -> false
  * isFalsy({ a: 1 }); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isFalsy<TValue = unknown>(value: TValue): boolean {
     if (Number.isNaN(value as number)) {
         return true;
@@ -538,6 +565,7 @@ export function isFalsy<TValue = unknown>(value: TValue): boolean {
  * isTruthy([]); -> false
  * isTruthy({}); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isTruthy(value: unknown): boolean {
     return !isFalsy(value);
 }
@@ -559,6 +587,7 @@ export function isTruthy(value: unknown): boolean {
  * isPhpFalsy("00"); -> false
  * isPhpFalsy(new Date(0)); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isPhpFalsy(value: unknown): boolean {
     if (
         value === false ||
@@ -612,6 +641,7 @@ const PHP_NUMERIC_STRING_PATTERN =
  *
  * isPhpNumeric("0x10"); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isPhpNumeric(value: unknown): boolean {
     // typeof, not isNumber: PHP's is_numeric(NAN) and is_numeric(INF) are
     // both true (NAN/INF are still floats), but isNumber excludes NaN.
@@ -640,6 +670,7 @@ export function isPhpNumeric(value: unknown): boolean {
  * isPrimitive({}); -> false
  * isPrimitive([]); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isPrimitive(value: unknown): boolean {
     return (
         isNull(value) ||
@@ -665,6 +696,7 @@ export function isPrimitive(value: unknown): boolean {
  * isNonPrimitive(123); -> false
  * isNonPrimitive("hello"); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isNonPrimitive(value: unknown): boolean {
     return !isPrimitive(value);
 }
@@ -683,6 +715,7 @@ export function isNonPrimitive(value: unknown): boolean {
  * isFiniteNumber(NaN); -> false
  * isFiniteNumber("123"); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isFiniteNumber(value: unknown): value is number {
     return isNumber(value) && Number.isFinite(value);
 }
@@ -697,6 +730,7 @@ export function isFiniteNumber(value: unknown): value is number {
  * isAccessibleData([1, 2, 3]); -> true
  * isAccessibleData('hello'); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isAccessibleData(data: unknown): boolean {
     return Array.isArray(data);
 }
@@ -722,6 +756,7 @@ export function isAccessibleData(data: unknown): boolean {
  * isPhpAccessible(new Date()); -> false
  * isPhpAccessible(new Set()); -> false
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isPhpAccessible(value: unknown): value is object {
     return isArray(value) || isPlainObject(value) || isMap(value);
 }
@@ -773,6 +808,7 @@ function toPhpScalarString(value: unknown): string | null {
  *
  * phpValueMatch(0, "0"); -> true
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function phpValueMatch(a: unknown, b: unknown): boolean {
     const castA = toPhpScalarString(a);
     const castB = toPhpScalarString(b);
@@ -798,6 +834,7 @@ export function phpValueMatch(a: unknown, b: unknown): boolean {
  * @param others - The values to test membership against.
  * @returns A predicate that is true when a value matches any of them.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function phpValueMatcher(
     others: readonly unknown[],
 ): (value: unknown) => boolean {

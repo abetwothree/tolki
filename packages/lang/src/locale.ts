@@ -10,6 +10,7 @@ import { isUndefined } from "@tolki/utils";
  *
  * normalizeLocale("pt-br"); // "pt_BR"
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function normalizeLocale(locale: string): string {
     return locale
         .trim()
@@ -33,6 +34,7 @@ export function normalizeLocale(locale: string): string {
  *
  * htmlLocale(["pt_BR", "en"]); // "pt_BR" for <html lang="pt-BR">
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function htmlLocale(locales?: readonly string[]): string | null {
     if (isUndefined(globalThis.document)) {
         return null;

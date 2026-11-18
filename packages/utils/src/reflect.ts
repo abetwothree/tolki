@@ -24,6 +24,7 @@ import {
  * typeOf([]); -> "array"
  * typeOf({}); -> "object"
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function typeOf(v: unknown): string {
     if (isNull(v)) {
         return "object";
@@ -46,6 +47,7 @@ export function typeOf(v: unknown): string {
  * resolveDefault(() => 'world'); -> 'world'
  * resolveDefault(undefined); -> null
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function resolveDefault<D>(defaultValue?: D | (() => D)): D | null {
     if (defaultValue === undefined) {
         return null;
@@ -61,6 +63,7 @@ export function resolveDefault<D>(defaultValue?: D | (() => D)): D | null {
  * @param value - The value whose type name is needed.
  * @returns The PHP type name ("NULL", "integer", "double", or the JS typeof otherwise).
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function phpTypeName(value: unknown): string {
     if (isNull(value)) {
         return "NULL";
@@ -105,6 +108,7 @@ export function phpTypeName(value: unknown): string {
  * phpDebugType(() => 1); -> "Closure"
  * phpDebugType(new Date()); -> "Date"
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function phpDebugType(value: unknown): string {
     // The port reads undefined as PHP's null.
     if (isNull(value) || isUndefined(value)) {

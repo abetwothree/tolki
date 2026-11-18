@@ -77,6 +77,7 @@ function isPending(
  * const lang = createLang({ locale: "en", lines: { en: { Hello: "Hello" } } });
  * lang.__("Hello"); // "Hello"
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function createLang<TLines extends LangLines = RegisteredLines>(
     options: LangOptions<TLines>,
 ): Lang<TLines> {
@@ -297,6 +298,7 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
  * @param track - Called before every read, so a view can subscribe to what it reads
  * @returns Reads that answer what the lang answers
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function bindLang<TLines extends LangLines>(
     lang: LangReader<TLines>,
     track: () => void,

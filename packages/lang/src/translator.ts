@@ -172,15 +172,10 @@ function parseBasicSegments(key: string): [group: string, item: string | null] {
     return dot === -1 ? [key, null] : [key.slice(0, dot), key.slice(dot + 1)];
 }
 
-/** Reaches a translator's private lines; the class body assigns it. */
-let mergeImplementation: (
-    translator: Translator<LangLines>,
-    locale: string,
-    lines: LocaleLines,
-) => void;
-
 /**
  * Merge one locale's lines into a translator, each top-level key replacing the one it held.
+ *
+ * @sideEffects mutates writes the lines into the passed translator
  *
  * @param translator - The translator to add to
  * @param locale - The locale the lines belong to
@@ -192,7 +187,13 @@ export function mergeLocaleLines<TLines extends LangLines>(
     locale: string,
     lines: LocaleLines,
 ): void {
-    mergeImplementation(translator as Translator<LangLines>, locale, lines);
+    // The `*.` group makes addLines keep each top-level key whole, dots included.
+    translator.addLines(
+        Object.fromEntries(
+            Object.entries(lines).map(([key, value]) => [`*.${key}`, value]),
+        ),
+        locale,
+    );
 }
 
 /**
@@ -233,26 +234,6 @@ export class Translator<TLines extends LangLines = LangLines> {
      * Indicates whether missing translation keys should be handled.
      */
     #handleMissingTranslationKeys = true;
-
-    static {
-        mergeImplementation = (translator, locale, lines) => {
-            const localeLines: Record<string, LangInputValue> = {
-                ...ownValue(translator.#lines, locale),
-            };
-
-            for (const [key, value] of Object.entries(lines)) {
-                defineKey(localeLines, key, value);
-            }
-
-            const allLines: Record<string, LocaleLines> = {
-                ...translator.#lines,
-            };
-
-            defineKey(allLines, locale, localeLines);
-
-            translator.#lines = allLines;
-        };
-    }
 
     /**
      * Create a new translator instance.

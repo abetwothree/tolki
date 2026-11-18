@@ -20,6 +20,7 @@ let _currency: string = "USD";
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#abbreviate
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function abbreviate(
     number: number,
     precision: number = 0,
@@ -39,6 +40,7 @@ export function abbreviate(
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#format
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function format(
     number: number,
     precision: number | null = null,
@@ -78,6 +80,7 @@ export function format(
  *
  * parse("1,234.57"); // 1234.57
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function parse(value: string, locale: string | null = null): number {
     locale = locale ?? _locale;
 
@@ -148,6 +151,7 @@ export function parse(value: string, locale: string | null = null): number {
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#parseint
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function parseInt(
     value: string,
     locale: string | null = null,
@@ -170,6 +174,7 @@ export function parseInt(
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#parsefloat
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function parseFloat(
     value: string,
     locale: string | null = null,
@@ -186,6 +191,7 @@ export function parseFloat(
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#ordinal
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function ordinal(value: number, locale: string | null = null): string {
     const loc = locale ?? _locale;
 
@@ -242,6 +248,7 @@ export function ordinal(value: number, locale: string | null = null): string {
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#percentage
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function percentage(
     number: number | string,
     precision: number = 0,
@@ -281,6 +288,7 @@ export function percentage(
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#currency
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function currency(
     amount: number | string,
     currencyCode: string = "",
@@ -317,6 +325,7 @@ export function currency(
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#filesize
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function fileSize(
     bytes: number | string,
     precision: number = 0,
@@ -362,6 +371,7 @@ export function fileSize(
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#forhumans
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function forHumans(
     value: number,
     precision: number = 0,
@@ -399,6 +409,7 @@ export function forHumans(
  * summarize(1234567); // "1.234 M"
  * summarize(1234567890); // "1.234 B"
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function summarize(
     value: number,
     precision: number = 0,
@@ -523,6 +534,7 @@ export function summarize(
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#clamp
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function clamp(value: number, min: number, max: number): number {
     return Math.min(Math.max(value, min), max);
 }
@@ -539,6 +551,7 @@ export function clamp(value: number, min: number, max: number): number {
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#pairs
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function pairs(
     to: number,
     by: number,
@@ -583,6 +596,7 @@ export function pairs(
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#trim
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function trim(value: number): number {
     if (!isFinite(value)) {
         return value;
@@ -600,6 +614,7 @@ export function trim(value: number): number {
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#minutestohuman
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function minutesToHuman(
     minutes: number | string,
     round: boolean = true,
@@ -618,6 +633,7 @@ export function minutesToHuman(
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#secondstohuman
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function secondsToHuman(
     seconds: number | string,
     round: boolean = true,
@@ -678,6 +694,8 @@ export function secondsToHuman(
 /**
  * Execute the given callback using the given locale.
  *
+ * @sideEffects callback runs the caller callback around a temporary locale swap
+ *
  * @param locale - The locale to use.
  * @param callback - The callback to execute.
  * @returns The result of the callback.
@@ -701,6 +719,8 @@ export function withLocale<TReturn>(
 
 /**
  * Execute the given callback using the given currency.
+ *
+ * @sideEffects callback runs the caller callback around a temporary currency swap
  *
  * @param currency - The currency to use.
  * @param callback - The callback to execute.
@@ -726,6 +746,8 @@ export function withCurrency<TReturn>(
 /**
  * Set the default locale.
  *
+ * @sideEffects state writes the module default locale
+ *
  * @param locale - The locale to set.
  * @returns void
  *
@@ -737,6 +759,8 @@ export function useLocale(locale: string): void {
 
 /**
  * Set the default currency.
+ *
+ * @sideEffects state writes the module default currency
  *
  * @param currency - The currency to set.
  * @returns void
@@ -754,6 +778,7 @@ export function useCurrency(currency: string): void {
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#defaultlocale
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function defaultLocale(): string {
     return _locale;
 }
@@ -765,6 +790,7 @@ export function defaultLocale(): string {
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#defaultcurrency
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function defaultCurrency(): string {
     return _currency;
 }

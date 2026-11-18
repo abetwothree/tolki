@@ -4,7 +4,7 @@ import { promisify } from "node:util";
 import { isObject, isString } from "@tolki/utils";
 import type { Logger } from "vite";
 
-const execAsync = promisify(exec);
+const execAsync = /* @__PURE__ */ promisify(exec);
 
 const LABEL = "[@tolki/lang]";
 
@@ -78,6 +78,7 @@ function failureMessage(error: unknown): string {
  * @param options - The commands, working directory and callbacks.
  * @returns The runner.
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function createExportRunner(options: ExportRunnerOptions): ExportRunner {
     const { fullCommand, sourceCommand, cwd, logger, shouldThrow, onSuccess } =
         options;

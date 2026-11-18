@@ -110,6 +110,7 @@ function isInside(file: string, dir: string): boolean {
  * });
  * ```
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function laravelLangExport(
     options: LaravelLangExportOptions = {},
 ): Plugin {

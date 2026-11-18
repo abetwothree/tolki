@@ -25,17 +25,17 @@ import { createUuidsNormally } from "./uuid";
 /**
  * The cache of snake-cased words.
  */
-const snakeCache = new Map<string, string>();
+const snakeCache = /* @__PURE__ */ new Map<string, string>();
 
 /**
  * The cache of camel-cased words.
  */
-const camelCache = new Map<string, string>();
+const camelCache = /* @__PURE__ */ new Map<string, string>();
 
 /**
  * The cache of studly-cased words.
  */
-const studlyCache = new Map<string, string>();
+const studlyCache = /* @__PURE__ */ new Map<string, string>();
 
 /**
  * The callback that should be used to generate random strings.
@@ -51,6 +51,7 @@ let randomStringFactory: ((length: number) => string) | null = null;
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#after
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function after(subject: string, search: string | number): string {
     if (search === "") {
         return subject;
@@ -75,6 +76,7 @@ export function after(subject: string, search: string | number): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#afterLast
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function afterLast(subject: string, search: string | number): string {
     if (search === "") {
         return subject;
@@ -98,6 +100,7 @@ export function afterLast(subject: string, search: string | number): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#before
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function before(subject: string, search: string | number): string {
     if (search === "") {
         return subject;
@@ -117,6 +120,7 @@ export function before(subject: string, search: string | number): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#beforelast
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function beforeLast(subject: string, search: string | number): string {
     if (search === "") {
         return subject;
@@ -141,6 +145,7 @@ export function beforeLast(subject: string, search: string | number): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#between
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function between(
     subject: string,
     from: string | number,
@@ -163,6 +168,7 @@ export function between(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#betweenfirst
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function betweenFirst(
     subject: string,
     from: string | number,
@@ -183,6 +189,7 @@ export function betweenFirst(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#camel
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function camel(value: string): string {
     if (camelCache.has(value)) {
         return camelCache.get(value)!;
@@ -204,6 +211,7 @@ export function camel(value: string): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#charat
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function charAt(subject: string, index: number): string | false {
     const length = subject.length;
 
@@ -228,6 +236,7 @@ export function charAt(subject: string, index: number): string | false {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#chopstart
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function chopStart(subject: string, needle: string | string[]): string {
     for (const n of isArray(needle) ? needle : [needle]) {
         if (n !== "" && subject.startsWith(n)) {
@@ -250,6 +259,7 @@ export function chopStart(subject: string, needle: string | string[]): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#chopend
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function chopEnd(subject: string, needle: string | string[]): string {
     for (const n of isArray(needle) ? needle : [needle]) {
         if (n !== "" && subject.endsWith(n)) {
@@ -272,6 +282,7 @@ export function chopEnd(subject: string, needle: string | string[]): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#contains
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function contains(
     haystack: string,
     needles: string | Iterable<string>,
@@ -311,6 +322,7 @@ export function contains(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#excerpt
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function excerpt(
     text: string | null,
     phrase: string | null = "",
@@ -372,6 +384,7 @@ export function excerpt(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#containsall
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function containsAll(
     haystack: string,
     needles: Iterable<string>,
@@ -400,6 +413,7 @@ export function containsAll(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#doesntcontain
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function doesntContain(
     haystack: string,
     needles: string | Iterable<string>,
@@ -417,6 +431,7 @@ export function doesntContain(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#deduplicate
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function deduplicate(value: string, character: string | string[] = " ") {
     if (isArray(character)) {
         character.forEach((char) => {
@@ -438,6 +453,7 @@ export function deduplicate(value: string, character: string | string[] = " ") {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#endswith
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function endsWith(
     haystack: string | number | null,
     needles: string | number | Iterable<string>,
@@ -472,6 +488,7 @@ export function endsWith(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#doesntendwith
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function doesntEndWith(
     haystack: string | number | null,
     needles: string | number | Iterable<string>,
@@ -488,6 +505,7 @@ export function doesntEndWith(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#finish
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function finish(value: string, cap: string): string {
     // Cast as PHP does: an untyped caller's number or Stringable has no length for the scan below to step by.
     const subject = phpStringCast(value);
@@ -518,6 +536,7 @@ export function finish(value: string, cap: string): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#wrap
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function wrap(
     value: string,
     before: string,
@@ -536,6 +555,7 @@ export function wrap(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#unwrap
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function unwrap(
     value: string,
     before: string,
@@ -562,6 +582,7 @@ export function unwrap(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#is
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function is(
     pattern: string | Iterable<string>,
     value: string | number,
@@ -617,6 +638,7 @@ export function is(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#isascii
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isAscii(value: string): boolean {
     for (let i = 0; i < value.length; i++) {
         if (value.charCodeAt(i) > 0x7f) {
@@ -635,6 +657,7 @@ export function isAscii(value: string): boolean {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#isjson
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isJson(value: unknown): boolean {
     if (!isString(value)) {
         return false;
@@ -658,6 +681,7 @@ export function isJson(value: unknown): boolean {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#isurl
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isUrl(
     value: string | unknown,
     protocols: string[] = [],
@@ -733,6 +757,7 @@ export function isUrl(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#kebab
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function kebab(value: string): string {
     return snake(value, "-");
 }
@@ -745,6 +770,7 @@ export function kebab(value: string): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#length
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function length(value: string): number {
     return value.length;
 }
@@ -760,6 +786,7 @@ export function length(value: string): number {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#limit
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function limit(
     value: string,
     limit: number = 100,
@@ -796,6 +823,7 @@ export function limit(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#lower
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function lower(value: string): string {
     return toLower(value);
 }
@@ -810,6 +838,7 @@ export function lower(value: string): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#words
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function words(
     value: string,
     words: number = 100,
@@ -843,6 +872,7 @@ export function words(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#mask
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function mask(
     value: string,
     character: string,
@@ -885,6 +915,7 @@ export function mask(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#match
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function match(pattern: string, subject: string): string {
     // Emulate Laravel's Str::match behavior:
     // - Accept PCRE-style patterns delimited with slashes (e.g. /foo (.*)/i)
@@ -946,6 +977,7 @@ export function match(pattern: string, subject: string): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#ismatch
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isMatch(
     pattern: string | Iterable<string>,
     value: string,
@@ -1012,6 +1044,7 @@ export function isMatch(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#matchall
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function matchAll(pattern: string, subject: string): string[] {
     let flags = "u"; // always unicode
     let source = pattern;
@@ -1078,6 +1111,7 @@ export function matchAll(pattern: string, subject: string): string[] {
 export function numbers(value: string): string;
 export function numbers(value: string[]): string[];
 export function numbers(value: string | string[]): string | string[];
+/* @__NO_SIDE_EFFECTS__ */
 export function numbers(value: string | string[]): string | string[] {
     if (isArray(value)) {
         return value.map((item) => item.replace(/\D/g, ""));
@@ -1096,6 +1130,7 @@ export function numbers(value: string | string[]): string | string[] {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#padboth
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function padBoth(
     value: string,
     length: number,
@@ -1124,6 +1159,7 @@ export function padBoth(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#padleft
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function padLeft(
     value: string,
     length: number,
@@ -1151,6 +1187,7 @@ export function padLeft(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#padright
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function padRight(
     value: string,
     length: number,
@@ -1181,6 +1218,7 @@ export function padRight(
  * makePad("-", 5); -> "-----"
  * makePad("❤", 5); -> "❤❤❤❤❤"
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function makePad(padStr: string, needed: number): string {
     if (needed <= 0 || padStr.length === 0) {
         return "";
@@ -1206,6 +1244,7 @@ export function makePad(padStr: string, needed: number): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#password
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function password(
     length: number = 32,
     letters: boolean = true,
@@ -1359,6 +1398,7 @@ function shuffled<TItem>(items: readonly TItem[]): TItem[] {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#position
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function position(
     haystack: string,
     needle: string,
@@ -1406,6 +1446,7 @@ export function position(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#random
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function random(length: number = 16): string {
     const factory = randomStringFactory ?? ((len: number) => randomString(len));
 
@@ -1414,6 +1455,8 @@ export function random(length: number = 16): string {
 
 /**
  * Set the callable that will be used to generate random strings.
+ *
+ * @sideEffects state - sets `randomStringFactory`.
  *
  * @param factory - The factory function to generate random strings
  * @returns void
@@ -1428,6 +1471,8 @@ export function createRandomStringsUsing(
 
 /**
  * Set the sequence that will be used to generate random strings.
+ *
+ * @sideEffects state - sets `randomStringFactory`.
  *
  * @param sequence - An array of strings to use in sequence
  * @param whenMissing - An optional callable to generate strings when the sequence is exhausted
@@ -1472,6 +1517,8 @@ export function createRandomStringsUsingSequence(
 /**
  * Indicate that random strings should be created normally and not using a custom factory.
  *
+ * @sideEffects state - clears `randomStringFactory`.
+ *
  * @returns void
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#random
@@ -1489,6 +1536,7 @@ export function createRandomStringsNormally(): void {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#repeat
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function repeat(string: string, times: number): string {
     if (times <= 0) {
         return "";
@@ -1507,6 +1555,7 @@ export function repeat(string: string, times: number): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#replacearray
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function replaceArray(
     search: string,
     replace: Record<string, string> | Iterable<string>,
@@ -1548,6 +1597,7 @@ export function replaceArray(
  *
  * toStringOr(123);
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function toStringOr(value: unknown, fallback: string): string {
     try {
         const str = String(value);
@@ -1578,6 +1628,7 @@ export function toStringOr(value: unknown, fallback: string): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#replace
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function replace<TSubject extends StringSubject<TSubject>>(
     search: string | Iterable<string>,
     replacement: string | Iterable<string>,
@@ -1735,6 +1786,7 @@ function stringifyValue(value: unknown): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#replacefirst
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function replaceFirst(
     search: string | number,
     replace: string,
@@ -1769,6 +1821,7 @@ export function replaceFirst(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#replacestart
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function replaceStart(
     search: string | number,
     replace: string,
@@ -1797,6 +1850,7 @@ export function replaceStart(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#replacelast
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function replaceLast(
     search: string | number,
     replace: string,
@@ -1831,6 +1885,7 @@ export function replaceLast(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#replaceend
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function replaceEnd(
     search: string | number,
     replace: string,
@@ -1878,6 +1933,7 @@ export function replaceMatches(
     subject: string | string[],
     limit?: number,
 ): string | string[] | null;
+/* @__NO_SIDE_EFFECTS__ */
 export function replaceMatches(
     pattern: string | string[] | RegExp | RegExp[],
     replace: string | string[] | ((match: string[]) => string),
@@ -2053,6 +2109,7 @@ export function replaceMatches(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#striptags
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function stripTags(value: string): string {
     let result = "";
     let inTag = false;
@@ -2086,6 +2143,7 @@ export function stripTags(value: string): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#remove
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function remove<TSubject extends StringSubject<TSubject>>(
     search: string | Iterable<string>,
     subject: TSubject,
@@ -2102,6 +2160,7 @@ export function remove<TSubject extends StringSubject<TSubject>>(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#reverse
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function reverse(value: string): string {
     return Array.from(value).reverse().join("");
 }
@@ -2115,6 +2174,7 @@ export function reverse(value: string): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#start
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function start(value: string, prefix: string): string {
     // Cast as PHP does: an untyped caller's number or Stringable has no length for the scan below to step by.
     const subject = phpStringCast(value);
@@ -2142,6 +2202,7 @@ export function start(value: string, prefix: string): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#headline
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function headline(value: string): string {
     const trimmed = String(value).trim();
     if (trimmed === "") {
@@ -2173,6 +2234,7 @@ export function headline(value: string): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#initials
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function initials(value: string, capitalize: boolean = false): string {
     const parts = value.split(/\s+/u).filter((s) => s.length > 0);
 
@@ -2194,6 +2256,7 @@ export function initials(value: string, capitalize: boolean = false): string {
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#apa
  * @see https://apastyle.apa.org/style-grammar-guidelines/capitalization/title-case
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function apa(value: string): string {
     if (value.trim() === "") {
         return value;
@@ -2292,6 +2355,7 @@ export function apa(value: string): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#snake
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function snake(value: string, delimiter: string = "_"): string {
     const key = value;
     const cacheKey = `${key}|${delimiter}`;
@@ -2322,6 +2386,7 @@ export function snake(value: string, delimiter: string = "_"): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#squish
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function squish(value: string): string {
     const trimmed = trim(value);
 
@@ -2338,6 +2403,7 @@ export function squish(value: string): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#startsWith
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function startsWith(
     haystack: string | number | null,
     needles: string | number | null | Iterable<string | number | null>,
@@ -2389,6 +2455,7 @@ export function startsWith(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#doesntstartwith
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function doesntStartWith(
     haystack: string | number | null,
     needles: string | number | null | Iterable<string | number | null>,
@@ -2405,6 +2472,7 @@ export function doesntStartWith(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#studly
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function studly(value: string, normalize: boolean = false): string {
     let transformed = value;
 
@@ -2448,6 +2516,7 @@ export function studly(value: string, normalize: boolean = false): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#pascal
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function pascal(value: string, normalize: boolean = false): string {
     return studly(value, normalize);
 }
@@ -2461,6 +2530,7 @@ export function pascal(value: string, normalize: boolean = false): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#swap
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function swap(map: Record<string, string>, subject: string): string {
     if (!map || Object.keys(map).length === 0) {
         return subject;
@@ -2490,6 +2560,7 @@ export function swap(map: Record<string, string>, subject: string): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#take
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function take(value: string, limit: number): string {
     if (limit < 0) {
         return substr(value, limit);
@@ -2506,6 +2577,7 @@ export function take(value: string, limit: number): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#lcfirst
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function lcfirst(value: string): string {
     return lower(substr(value, 0, 1)) + substr(value, 1);
 }
@@ -2518,6 +2590,7 @@ export function lcfirst(value: string): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#ucfirst
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function ucfirst(value: string): string {
     return upper(substr(value, 0, 1)) + substr(value, 1);
 }
@@ -2530,6 +2603,7 @@ export function ucfirst(value: string): string {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#ucsplit
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function ucsplit(value: string): string[] {
     return value.split(/(?=\p{Lu})/u).filter(Boolean);
 }
@@ -2543,6 +2617,7 @@ export function ucsplit(value: string): string[] {
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#ucwords
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function ucwords(
     value: string,
     separators: string | string[] = " \t\r\n\f\v",
@@ -2571,6 +2646,7 @@ export function ucwords(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#wordcount
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function wordCount(
     value: string,
     characters: string | null = null,
@@ -2671,6 +2747,7 @@ function skipTrailingWhitespace(
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#wordwrap
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function wordWrap(
     value: string,
     characters: number = 75,
@@ -2790,6 +2867,7 @@ export function wordWrap(
  *
  * snakeCacheSize();
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function snakeCacheSize(): number {
     return snakeCache.size;
 }
@@ -2803,6 +2881,7 @@ export function snakeCacheSize(): number {
  *
  * camelCacheSize();
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function camelCacheSize(): number {
     return camelCache.size;
 }
@@ -2816,12 +2895,15 @@ export function camelCacheSize(): number {
  *
  * studlyCacheSize();
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function studlyCacheSize(): number {
     return studlyCache.size;
 }
 
 /**
  * Remove all strings from the casing caches.
+ *
+ * @sideEffects state - empties the snake, camel and studly caches.
  *
  * @returns void
  */
@@ -2833,6 +2915,8 @@ export function flushCache(): void {
 
 /**
  * Return all factory functions to their default state.
+ *
+ * @sideEffects state - clears the random string, ULID and UUID factories.
  *
  * @returns void
  */

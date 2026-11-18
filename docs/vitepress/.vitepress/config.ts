@@ -103,6 +103,10 @@ export default defineConfig({
                     { text: "Why Tolki JS?", link: "/why-tolki-js" },
                     { text: "Packages", link: "/packages" },
                     { text: "What is Tolki?", link: "/what-is-tolki" },
+                    {
+                        text: "Bundling & Tree-Shaking",
+                        link: "/tree-shaking",
+                    },
                 ],
             },
             {

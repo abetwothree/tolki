@@ -22,6 +22,7 @@ let uuidFactory: (() => string) | null = null;
  *
  * @requires {@link https://www.npmjs.com/package/uuid uuid package}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function uuid(): string {
     return uuidFactory ? uuidFactory() : uuidv4();
 }
@@ -35,12 +36,15 @@ export function uuid(): string {
  *
  * @requires {@link https://www.npmjs.com/package/uuid uuid package}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function uuid7(): string {
     return uuidFactory ? uuidFactory() : uuidv7();
 }
 
 /**
  * Set the callable that will be used to generate UUIDs.
+ *
+ * @sideEffects state - sets `uuidFactory`.
  *
  * @param factory - The callable UUID factory.
  * @returns void.
@@ -55,6 +59,8 @@ export function createUuidsUsing(factory: (() => string) | null): void {
 
 /**
  * Set the sequence that will be used to generate UUIDs.
+ *
+ * @sideEffects state - sets `uuidFactory`.
  *
  * @param sequence - The sequence of UUID strings to return.
  * @param whenMissing - Optional callable to generate UUIDs when the sequence is exhausted.
@@ -98,6 +104,8 @@ export function createUuidsUsingSequence(
 /**
  * Always return the same UUID when generating new UUIDs.
  *
+ * @sideEffects state - sets `uuidFactory` to a fixed value.
+ *
  * @param callback - Optional callable to execute while UUIDs are frozen.
  * @returns The frozen UUID string.
  *
@@ -128,6 +136,8 @@ export function freezeUuids(
 /**
  * Indicate that UUIDs should be created normally and not using a custom factory.
  *
+ * @sideEffects state - clears `uuidFactory`.
+ *
  * @return void.
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#uuid
@@ -149,6 +159,7 @@ export function createUuidsNormally(): void {
  *
  * @requires {@link https://www.npmjs.com/package/uuid uuid package}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function isUuid(
     value: string | unknown,
     version: number | "nil" | "max" | null = null,

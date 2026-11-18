@@ -12,6 +12,7 @@ import { lower } from "../str";
  *
  * @requires {@link https://www.npmjs.com/package/transliteration transliteration package}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function ascii(value: string): string {
     return transliteration(value);
 }
@@ -28,6 +29,7 @@ export function ascii(value: string): string {
  *
  * @requires {@link https://www.npmjs.com/package/transliteration transliteration package}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function slug(
     title: string,
     separator: string = "-",

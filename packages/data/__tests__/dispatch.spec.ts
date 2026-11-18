@@ -4,11 +4,13 @@ import { fileURLToPath } from "node:url";
 
 import { collapse as arrCollapse, first as arrFirst } from "@tolki/arr";
 import { collapse as objCollapse, first as objFirst } from "@tolki/obj";
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 import {
     copyKeyedData,
     dispatch,
+    forwardData,
     isKeyedData,
     keepKeyedData,
     streamPositionalData,
@@ -211,28 +213,171 @@ describe("dispatch with a keyed normalizer", () => {
     });
 });
 
-describe("dispatch call sites", () => {
-    // esbuild cannot tell that dispatch() is pure, so an unmarked call keeps every arr and obj helper it names.
-    it("marks every data helper built with dispatch() as pure", () => {
-        const source = readFileSync(
+describe("forwardData", () => {
+    it("sends a list to the array helper and a record to the object helper", () => {
+        const rec = { a: { x: 1 }, b: { y: 2 } };
+
+        expect(
+            forwardData(arrCollapse, objCollapse, [[1, 2], [3]], []),
+        ).toEqual(arrCollapse([[1, 2], [3]]));
+        expect(forwardData(arrCollapse, objCollapse, rec, [])).toEqual(
+            objCollapse(rec),
+        );
+    });
+
+    it("passes the other arguments on untouched", () => {
+        const callback = (value: number): boolean => value > 1;
+
+        expect(forwardData(arrFirst, objFirst, [1, 2, 3], [callback])).toBe(2);
+        expect(
+            forwardData(arrFirst, objFirst, { a: 1, b: 2 }, [callback]),
+        ).toBe(2);
+    });
+
+    it("normalizes each backing with the functions it is given", () => {
+        const map = new Map([
+            [2, "c"],
+            [0, "a"],
+        ]);
+
+        expect(forwardData(arrFirst, objFirst, map, [])).toBe("c");
+        expect(
+            forwardData(
+                arrFirst,
+                objFirst,
+                map,
+                [],
+                streamPositionalData,
+                toKeyedData,
+            ),
+        ).toBe("a");
+        expect(
+            forwardData(
+                arrFirst,
+                objFirst,
+                undefined,
+                [],
+                streamPositionalData,
+            ),
+        ).toBeNull();
+    });
+
+    it("is what dispatch builds", () => {
+        const rec = { a: 7, b: 8 };
+
+        expect(dispatch(arrFirst, objFirst)(rec)).toBe(
+            forwardData(arrFirst, objFirst, rec, []),
+        );
+    });
+});
+
+describe("data helper exports", () => {
+    const file = ts.createSourceFile(
+        "data.ts",
+        readFileSync(
             path.resolve(
                 fileURLToPath(import.meta.url),
                 "../..",
                 "src/data.ts",
             ),
             "utf-8",
-        );
-        const helpers = [
-            ...source.matchAll(
-                /const (\w+)[^=\n]*=\s*(\/\*\s*[#@]__PURE__\s*\*\/\s*)?dispatch\(/g,
-            ),
-        ];
+        ),
+        ts.ScriptTarget.Latest,
+        true,
+        ts.ScriptKind.TS,
+    );
+    const functions = new Map(
+        file.statements
+            .filter(ts.isFunctionDeclaration)
+            .flatMap((fn) => (fn.name && fn.body ? [[fn.name.text, fn]] : [])),
+    );
+    const helpers = file.statements
+        .filter(ts.isVariableStatement)
+        .filter((statement) =>
+            ts
+                .getModifiers(statement)
+                ?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword),
+        )
+        .flatMap((statement) => [...statement.declarationList.declarations]);
 
-        expect(helpers.length).toBe(source.match(/\bdispatch\(/g)?.length);
+    /**
+     * Reads the delegate pair a helper's `Dispatched<typeof A, typeof B>` cast names.
+     */
+    const typedPair = (cast: ts.Expression): string[] => {
+        const type = ts.isAsExpression(cast) ? cast.type : undefined;
+
+        return type !== undefined &&
+            ts.isTypeReferenceNode(type) &&
+            type.typeName.getText(file) === "Dispatched"
+            ? (type.typeArguments ?? []).map((arg) =>
+                  ts.isTypeQueryNode(arg) ? arg.exprName.getText(file) : "?",
+              )
+            : [];
+    };
+
+    /**
+     * Reads the delegate pair each `forwardData(A, B, …)` call in a function body names.
+     */
+    const forwardedPairs = (fn: ts.Node): string[][] => {
+        const pairs: string[][] = [];
+        const visit = (node: ts.Node): void => {
+            if (
+                ts.isCallExpression(node) &&
+                node.expression.getText(file) === "forwardData"
+            ) {
+                pairs.push(
+                    node.arguments.slice(0, 2).map((arg) => arg.getText(file)),
+                );
+            }
+
+            ts.forEachChild(node, visit);
+        };
+
+        visit(fn);
+
+        return pairs;
+    };
+
+    it("finds every exported helper", () => {
+        expect(helpers.length).toBe(83);
+    });
+
+    // The build ships an alias of a same-file function as that function, which keeps the function's annotation.
+    it("aliases a same-file function declaration in every exported const", () => {
         expect(
             helpers
-                .filter((helper) => helper[2] === undefined)
-                .map((helper) => helper[1]),
+                .filter((helper) => {
+                    let target = helper.initializer;
+
+                    while (target !== undefined && ts.isAsExpression(target)) {
+                        target = target.expression;
+                    }
+
+                    return (
+                        target?.getText(file) !==
+                            `${helper.name.getText(file)}Impl` ||
+                        !functions.has(target.getText(file))
+                    );
+                })
+                .map((helper) => helper.name.getText(file)),
+        ).toEqual([]);
+    });
+
+    it("names the same delegate pair in each helper's type and its forwardData call", () => {
+        expect(
+            helpers.flatMap((helper) => {
+                const name = helper.name.getText(file);
+                const typed = typedPair(helper.initializer!);
+                const forwarded = forwardedPairs(functions.get(`${name}Impl`)!);
+
+                return forwarded.length === 1 &&
+                    typed.length === 2 &&
+                    typed.join() === forwarded[0]!.join()
+                    ? []
+                    : [
+                          `${name}: Dispatched<${typed.join()}> vs forwardData(${forwarded.join(" | ")})`,
+                      ];
+            }),
         ).toEqual([]);
     });
 });

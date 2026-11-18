@@ -33,6 +33,7 @@ export type MarkDownExtensions = MarkDownExtension[];
  *
  * @requires {@link https://www.npmjs.com/package/markdown-it markdown-it package}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function markdown(
     value: string | null,
     options: MarkDownOptions = { gfm: true, anchors: false },
@@ -57,6 +58,7 @@ export function markdown(
  *
  * @requires {@link https://www.npmjs.com/package/markdown-it markdown-it package}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function inlineMarkdown(
     value: string | null,
     options: MarkDownOptions = { gfm: true },
@@ -78,6 +80,7 @@ export function inlineMarkdown(
  *
  * @requires {@link https://www.npmjs.com/package/markdown-it markdown-it package}
  */
+/* @__NO_SIDE_EFFECTS__ */
 export function markDownRenderer(
     options: MarkDownOptions,
     extensions: MarkDownExtensions,

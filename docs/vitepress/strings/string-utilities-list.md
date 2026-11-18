@@ -2706,7 +2706,7 @@ const result2 = wrap("is", "This ", " Laravel!");
 ::: warning
 Using the `str` or `of` functions is discouraged for frontend projects because it will import the entire `Stringable` class, all of its methods, and all 3rd party dependencies into your final bundle, which may significantly increase its size.
 
-For frontend projects, it is recommended to use the individual string functions instead for better tree-shaking and smaller bundle sizes.
+For frontend projects, it is recommended to use the individual string functions instead for better tree-shaking and smaller bundle sizes. In Rolldown and Rspack, even an unused top-level `str(...)` or `of(...)` call can leave the class behind unless the call is written `/* @__PURE__ */`; see [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html#dependency-residue).
 
 Also unlike the standalone functions on this page, `str`/`of` return a `Stringable` class instance rather than a plain value, so there's no live playground for them here — try the fluent methods it exposes (like `.append()` or `.snake()`) directly in your own code instead.
 :::

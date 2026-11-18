@@ -2,7 +2,12 @@ import * as Arr from "@tolki/arr";
 import * as Obj from "@tolki/obj";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { dispatch, streamPositionalData } from "../../src/dispatch";
+import { dataCollapse, dataFirst, dataUnshift } from "../../src/data";
+import {
+    dispatch,
+    type Dispatched,
+    streamPositionalData,
+} from "../../src/dispatch";
 import {
     abc,
     nestedList,
@@ -12,11 +17,35 @@ import {
     rowsById,
 } from "./fixtures";
 
-describe("dispatch forwards each delegate's own return type", () => {
-    const dCollapse = dispatch(Arr.collapse, Obj.collapse);
-    const dKeys = dispatch(Arr.keys, Obj.keys);
-    const dPluck = dispatch(Arr.pluck, Obj.pluck);
+declare const dCollapse: Dispatched<typeof Arr.collapse, typeof Obj.collapse>;
+declare const dKeys: Dispatched<typeof Arr.keys, typeof Obj.keys>;
+declare const dPluck: Dispatched<typeof Arr.pluck, typeof Obj.pluck>;
+declare const dFirst: Dispatched<typeof Arr.first, typeof Obj.first>;
 
+describe("a data helper is typed as its delegates' Dispatched pair", () => {
+    it("pins the alias exports to Dispatched", () => {
+        expectTypeOf(dataCollapse).toEqualTypeOf<
+            Dispatched<typeof Arr.collapse, typeof Obj.collapse>
+        >();
+        expectTypeOf(dataFirst).toEqualTypeOf<
+            Dispatched<typeof Arr.first, typeof Obj.first>
+        >();
+        expectTypeOf(dataUnshift).toEqualTypeOf<
+            Dispatched<typeof Arr.unshift, typeof Obj.unshift>
+        >();
+    });
+
+    it("pins dispatch's return to Dispatched, which the arr dispatch-order sweep relies on", () => {
+        expectTypeOf(dispatch(Arr.collapse, Obj.collapse)).toEqualTypeOf<
+            Dispatched<typeof Arr.collapse, typeof Obj.collapse>
+        >();
+        expectTypeOf(
+            dispatch(Arr.first, Obj.first, streamPositionalData),
+        ).toEqualTypeOf<Dispatched<typeof Arr.first, typeof Obj.first>>();
+    });
+});
+
+describe("Dispatched forwards each delegate's own return type", () => {
     it("pins collapse against each delegate's own call", () => {
         expectTypeOf(dCollapse(nestedList)).toEqualTypeOf(
             Arr.collapse(nestedList),
@@ -48,11 +77,10 @@ describe("dispatch forwards each delegate's own return type", () => {
     });
 });
 
-describe("dispatch accepts an iterable backing at the type level", () => {
+describe("Dispatched accepts an iterable backing at the type level", () => {
     // Not a fixture: the Set must keep its own type here, since the point is that the
     // iterable-aware form takes one at all. `arr.first`'s Iterable rows are what allow it.
     const numberSet = new Set([7, 8]);
-    const dFirst = dispatch(Arr.first, Obj.first, streamPositionalData);
 
     it("pins a Set against the array delegate's own call", () => {
         expectTypeOf(dFirst(numberSet)).toEqualTypeOf(Arr.first(numberSet));
@@ -73,8 +101,6 @@ describe("the default normalizer's Set type does not follow its runtime", () => 
     // the day an overload makes the two agree, which is the fix Part B owns.
     const numberSet = new Set([7, 8]);
     const nestedSet = new Set([[1, 2], [3]]);
-    const dKeys = dispatch(Arr.keys, Obj.keys);
-    const dCollapse = dispatch(Arr.collapse, Obj.collapse);
 
     it("does not yet type a Set's keys the way it answers them", () => {
         expectTypeOf(dKeys(numberSet)).not.toEqualTypeOf(
