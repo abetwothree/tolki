@@ -522,7 +522,7 @@ export const store = annotateRequestPayload<StorePostRequest>()(
 
 ## Bundling
 
-A route nobody uses drops out of your bundle in every bundler, esbuild included. The generated file writes `/* @__PURE__ */` before every call, including each call of a curried helper. `defineRoute`, `getRouteDefaults` and the other runtime helpers are marked as free of side effects, except `setRouteDefaults`, `addRouteDefault` and `resetRouteDefaults`, which change shared state and are always kept:
+A route nobody uses drops out of your bundle in every bundler, esbuild included, because the generated file writes `/* @__PURE__ */` before every call, including each call of a curried helper. `defineRoute`, `getRouteDefaults` and the other runtime helpers are marked as free of side effects, except `setRouteDefaults`, `addRouteDefault` and `resetRouteDefaults`, which change shared state and are always kept:
 
 ```typescript
 export const store = /* @__PURE__ */ annotateRequestPayload<StorePostRequest>()(
