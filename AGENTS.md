@@ -183,6 +183,7 @@ When using generics in parameter types, make sure to use the correct syntax for 
   - `objectToString`(variable) - checks if the variable is an object with the `toString` method
   - `isNumber(variable)` - checks if the variable is a number
   - `isInteger(variable)` - checks if the variable is an integer
+  - `isSafeInteger(variable)` - checks if the variable is an integer a JavaScript number holds exactly, from `Number.MIN_SAFE_INTEGER` to `Number.MAX_SAFE_INTEGER`, and narrows it to `number`, which the built-in `Number.isSafeInteger` does not
   - `isFloat(variable)` - checks if the variable is a float
   - `isPhpInt(variable)` - checks if the variable is a number PHP holds as an int: an integer within PHP's 64-bit range, and never `-0` (`1e19` and `-0` are floats in PHP)
   - `isBoolean(variable)` - checks if the variable is a boolean

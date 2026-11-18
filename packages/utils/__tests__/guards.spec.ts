@@ -1,5 +1,5 @@
 import * as Utils from "@tolki/utils";
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 
 describe("Utils", () => {
     describe("isArray", () => {
@@ -202,6 +202,40 @@ describe("Utils", () => {
             expect(Utils.isInteger([])).toBe(false);
             expect(Utils.isInteger(null)).toBe(false);
             expect(Utils.isInteger(undefined)).toBe(false);
+        });
+    });
+
+    describe("isSafeInteger", () => {
+        it("returns true for integers a number holds exactly, up to Number.MAX_SAFE_INTEGER either way", () => {
+            expect(Utils.isSafeInteger(0)).toBe(true);
+            expect(Utils.isSafeInteger(-45)).toBe(true);
+            expect(Utils.isSafeInteger(Number.MAX_SAFE_INTEGER)).toBe(true);
+            expect(Utils.isSafeInteger(Number.MIN_SAFE_INTEGER)).toBe(true);
+        });
+
+        it("returns false past the safe range and for non-integer values", () => {
+            expect(Utils.isSafeInteger(Number.MAX_SAFE_INTEGER + 1)).toBe(
+                false,
+            );
+            expect(Utils.isSafeInteger(Number.MIN_SAFE_INTEGER - 1)).toBe(
+                false,
+            );
+            expect(Utils.isSafeInteger(1e19)).toBe(false);
+            expect(Utils.isSafeInteger(1.5)).toBe(false);
+            expect(Utils.isSafeInteger(Infinity)).toBe(false);
+            expect(Utils.isSafeInteger(NaN)).toBe(false);
+            expect(Utils.isSafeInteger(10n)).toBe(false);
+            expect(Utils.isSafeInteger("1")).toBe(false);
+            expect(Utils.isSafeInteger(null)).toBe(false);
+            expect(Utils.isSafeInteger(undefined)).toBe(false);
+        });
+
+        it("narrows the value to a number", () => {
+            const value: unknown = 7;
+
+            if (Utils.isSafeInteger(value)) {
+                expectTypeOf(value).toEqualTypeOf<number>();
+            }
         });
     });
 
