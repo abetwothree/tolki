@@ -30,13 +30,13 @@ Two uses keep the whole package, because the bundler can no longer tell which me
 
 ## Per bundler
 
-| Bundler           | An unused call to a helper                                                                                                                                                    | What you do                                                                                                                        |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Rollup            | Dropped, and nothing is left behind.                                                                                                                                          | Nothing.                                                                                                                           |
-| Rolldown (Vite 8) | Dropped. For the helpers in [Dependency residue](#dependency-residue), the code behind them can stay. In the generated route shape, the curried helpers are kept (see below). | Nothing for helpers. `/* @__PURE__ */` for the [curried routes](#generated-enums-and-routes), and on the dependency-residue calls. |
-| esbuild           | Kept. esbuild never follows `/* @__NO_SIDE_EFFECTS__ */` from one file to another.                                                                                            | Write `/* @__PURE__ */ fn(...)` on every call you want removed.                                                                    |
-| webpack           | Dropped, and nothing is left behind. In the generated route shape, the curried helpers are kept (see below).                                                                  | Nothing for helpers. `/* @__PURE__ */` for the [curried routes](#generated-enums-and-routes).                                      |
-| Rspack            | Dropped. A few helpers leave code behind (see [Dependency residue](#dependency-residue)), and so does an enum file that derives a list.                                       | Nothing, or `/* @__PURE__ */` on those calls.                                                                                      |
+| Bundler           | An unused call to a helper                                                                                                              | What you do                                                             |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Rollup            | Dropped, and nothing is left behind.                                                                                                    | Nothing.                                                                |
+| Rolldown (Vite 8) | Dropped. For the helpers in [Dependency residue](#dependency-residue), the code behind them can stay.                                   | Nothing for helpers. `/* @__PURE__ */` on the dependency-residue calls. |
+| esbuild           | Kept. esbuild never follows `/* @__NO_SIDE_EFFECTS__ */` from one file to another.                                                      | Write `/* @__PURE__ */ fn(...)` on every call you want removed.         |
+| webpack           | Dropped, and nothing is left behind.                                                                                                    | Nothing.                                                                |
+| Rspack            | Dropped. A few helpers leave code behind (see [Dependency residue](#dependency-residue)), and so does an enum file that derives a list. | Nothing, or `/* @__PURE__ */` on those calls.                           |
 
 <!-- scripts/treeshake/expectations.ts, "KEPT_DROPS" -->
 
@@ -53,7 +53,7 @@ export const id = /* @__PURE__ */ uuid();
 You need it in these cases:
 
 - **esbuild.** It drops the call only with the comment. With it, an unused call drops in all five bundlers. <!-- scripts/treeshake/fixtures.ts, "drop:@tolki/str:call-site-pure" -->
-- **Generated routes with a curried helper.** See below.
+- **Enum and route files from an older publisher or a custom template.** See [Generated enums and routes](#generated-enums-and-routes).
 - **A class.** `new Collection(...)`, `new Translator(...)` and `new Stringable(...)` can stay in the bundle without it, because a bundler cannot mark a constructor. A call-site `/* @__PURE__ */ new Collection(...)` drops them in every bundler.
 - **A helper that leaves dependency code behind** in Rolldown or Rspack. See below.
 
@@ -91,7 +91,9 @@ Some imports are big on their own, and no bundler setting changes that, because 
 
 ## Generated enums and routes
 
-A file generated by the TypeScript publisher is a module-level call such as `export const Status = defineEnum({...})`. Whether an unused one drops depends on the shape and on the bundler:
+The TypeScript publisher writes `/* @__PURE__ */` before every module-level call in the enum and route files it generates, including each call of a curried route, so an unused enum or route drops in all five bundlers. <!-- scripts/treeshake/fixtures.ts, "shape:@tolki/ts:enum-only:call-site-pure" --> <!-- scripts/treeshake/fixtures.ts, "shape:@tolki/ts:annotate-page-props:call-site-pure" -->
+
+A file published by an older version of the package, or by a custom `enums.template` or `routes.template`, may not have the comment. Without it, whether an unused call drops depends on the shape and on the bundler:
 
 | Generated shape                                                                                                    | Rollup  | Rolldown | esbuild | webpack | Rspack  |
 | ------------------------------------------------------------------------------------------------------------------ | ------- | -------- | ------- | ------- | ------- |
@@ -102,7 +104,7 @@ A file generated by the TypeScript publisher is a module-level call such as `exp
 
 <!-- scripts/treeshake/fixtures.ts, "shape:@tolki/ts:enum-only" --> <!-- scripts/treeshake/fixtures.ts, "shape:@tolki/ts:enum-file" --> <!-- scripts/treeshake/fixtures.ts, "shape:@tolki/ts:annotate-page-props" --> <!-- scripts/treeshake/fixtures.ts, "shape:@tolki/ts:annotate-page-props:call-site-pure" -->
 
-For a curried route, write the comment on the outer call and on the inner `defineRoute`:
+A custom route template writes the comment on every call of a curried route, the outer one and the inner `defineRoute`:
 
 ```typescript
 export const show = /* @__PURE__ */ annotatePageProps<ShowProps>()(
