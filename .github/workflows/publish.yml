@@ -83,3 +83,22 @@ jobs:
           else
             echo "No empty changesets to delete"
           fi
+
+      - name: Sync master into develop
+        run: |
+          git fetch origin master develop
+          if git merge-base --is-ancestor origin/master origin/develop; then
+            echo "develop already contains master"
+          elif git merge-base --is-ancestor origin/develop origin/master; then
+            git push origin origin/master:refs/heads/develop
+          else
+            # develop has commits of its own; merge in a separate worktree so this checkout stays untouched
+            git worktree add -B develop "$RUNNER_TEMP/develop" origin/develop
+            if ! git -C "$RUNNER_TEMP/develop" -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              merge --no-edit origin/master; then
+              echo "::error::master conflicts with develop; merge master into develop by hand"
+              exit 1
+            fi
+            git -C "$RUNNER_TEMP/develop" push origin develop
+          fi
