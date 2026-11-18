@@ -7,6 +7,8 @@ There are two ways to add an `extends` clause, and they combine when you use bot
 - **The `#[TsExtends]` attribute**: applies to one class, and to any class that extends it or uses the trait it's on.
 - **The `ts_extends.*` config arrays**: apply to every generated interface of one feature, such as every model.
 
+An API resource can also be intersected with a type you write, such as a union an interface can't extend. See [Intersecting a Resource With `#[TsIntersect]`](#intersecting-a-resource-with-tsintersect).
+
 ## `#[TsExtends]` Attribute
 
 The attribute takes the clause, an optional import path, and an optional list of names to import:
@@ -29,11 +31,11 @@ class TsExtends
 
 Each parameter controls one part of the clause:
 
-| Parameter | Type            | Default  | Description                                                                                                                                            |
-| --------- | --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `extends` | `string`        | required | The TypeScript for the `extends` clause: an interface name, or a generic such as `Pick<X, "a" \| "b">`.                                                |
-| `import`  | `?string`       | `null`   | The path to import the clause's types from. Leave it out for a global type that needs no import.                                                       |
-| `types`   | `?list<string>` | `null`   | The names to import from `import`. When it's `null`, the package reads the names from `extends`, which works only when `extends` has no generic in it. |
+| Parameter | Type            | Default  | Description                                                                                                                                                                                                                                                                                     |
+| --------- | --------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `extends` | `string`        | required | The TypeScript for the `extends` clause: an interface name, or a generic such as `Pick<X, "a" \| "b">`.                                                                                                                                                                                         |
+| `import`  | `?string`       | `null`   | The path to import the clause's types from. Leave it out for a global type that needs no import.                                                                                                                                                                                                |
+| `types`   | `?list<string>` | `null`   | The names to import from `import`. When it's `null`, the package reads the names from `extends`. On a model, form request, or broadcast event, that works only when `extends` has no generic in it. On a resource, see [Names a Resource's Clause Imports](#names-a-resource-s-clause-imports). |
 
 `#[TsExtends]` is repeatable, so you can stack as many as you need. You can put it on any of these:
 
@@ -72,7 +74,7 @@ export interface Warehouse
 
 On a model, the clause goes on the main interface, which holds the columns. The model's `WarehouseAll` interface extends that one, so it gets the clause too.
 
-`HasTimestamps` needs no `types` array. When `types` is `null`, the package reads the names to import from the `extends` string itself. Without `types`, the package can't pick the names out of a generic clause, such as `Pick<>`, `Omit<>`, or `Partial<>`, so the import comes out missing or broken. Always list them in `types`.
+`HasTimestamps` needs no `types` array. When `types` is `null`, the package reads the names to import from the `extends` string itself. On a model, form request, or broadcast event, it can't pick the names out of a generic clause, such as `Pick<>`, `Omit<>`, or `Partial<>`, so without `types` the import comes out missing. Always list them in `types` there. A resource reads them, as [Names a Resource's Clause Imports](#names-a-resource-s-clause-imports) describes.
 
 An entry with no `import` is treated as a global type that's already available, such as one declared in your own global `.d.ts` file.
 
@@ -243,6 +245,68 @@ The package applies these rules in order:
 1. Identical `extends` and `import` pairs from any source, whether attribute, trait, parent class, or config, are kept once.
 2. The same type name from the same path, across different `extends` clauses, gets one import statement.
 3. The same type name from two different paths is aliased everywhere it appears, each with the prefix from its own import path. Every clause that uses it is rewritten to the alias, even inside a generic such as `Pick<>`.
+
+## Names a Resource's Clause Imports
+
+On an API resource, a `#[TsExtends]`, a `#[TsIntersect]`, or a `ts_extends.resources` entry with an `import` and no `types` imports every name its type uses, at any depth. So `#[TsExtends('Pick<Base, "a" | "b">', '@/types/base')]` imports `Base`, and `Record<string, Meta>` imports `Meta`. Three rules decide which of those names the clause imports:
+
+- **TypeScript's own globals stay unimported**: a name the clause only builds on, inside a generic or an object, gets no import when TypeScript or the DOM declares it, such as `Date`, `Record`, or `Response`. If a type of your own has such a name, such as `Error`, `Event`, `Comment`, `Image`, `Node`, or `Document`, list it in `types`.
+- **A name the file already imports keeps that import**: a name the clause only builds on that the resource's file already imports, for one of its keys or through a `#[TsCasts]` entry, uses that import.
+- **A name the clause names whole keeps its own import**: a clause that is one name, such as `Meta` or `Meta[]`, or a name you list in `types`, imports from the clause's path. If a `#[TsCasts]` entry imports the same name from another path, the clause's import is aliased.
+
+`#[TsExtends]` and `#[TsIntersect]` on one resource share one alias pass, so the same name from two paths across both attributes is aliased as [Naming Conflicts & Aliasing](#naming-conflicts-aliasing) describes. A resource that publishes as a type alias, through [discriminated unions](./api-resources.md#discriminated-unions) or `#[TsIntersect]`, joins each `extends` clause with `&`, as in `export type WarehouseResource = BaseResource & { … }`.
+
+## Intersecting a Resource With `#[TsIntersect]`
+
+An interface can't extend a union, so `#[TsExtends]` can't relate one key of a resource to another. `#[TsIntersect]` intersects the resource's type with a type you write instead. Use it when the package can't read the link from `toArray()` itself, as [Discriminated Unions](./api-resources.md#discriminated-unions) describes. Here `is_draft` comes from a method call, which the package doesn't read as a discriminant:
+
+```php
+use AbeTwoThree\LaravelTsPublish\Attributes\TsIntersect;
+
+#[TsIntersect('PostStatusVariants', '@/types/posts')]
+final class PostResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'is_draft' => $this->isDraft(),
+            'status' => $this->isDraft()
+                ? new DraftStatusResource($this->draft_status)
+                : new PublishedStatusResource($this->status),
+        ];
+    }
+}
+```
+
+You write the union in your own module:
+
+```typescript
+// resources/js/types/posts.ts
+import type {
+  DraftStatusResource,
+  PublishedStatusResource,
+} from "@/types/generated/app/http/resources";
+
+export type PostStatusVariants =
+  | { is_draft: true; status: DraftStatusResource }
+  | { is_draft: false; status: PublishedStatusResource };
+```
+
+The resource publishes its keys intersected with your type, so a check on `is_draft` narrows `status`:
+
+```typescript
+import type { PostStatusVariants } from "@/types/posts";
+import type { DraftStatusResource, PublishedStatusResource } from ".";
+
+export type PostResource = {
+  id: number;
+  is_draft: boolean;
+  status: DraftStatusResource | PublishedStatusResource;
+} & PostStatusVariants;
+```
+
+`#[TsIntersect]` takes three parameters like `#[TsExtends]`'s: `type`, an optional `import` path, and an optional `types` list, read as [Names a Resource's Clause Imports](#names-a-resource-s-clause-imports) describes. It's repeatable, and a parent class or a trait can carry it, in the same order as `#[TsExtends]`. It has no config array. Each intersected type prints after the resource's own keys and any variants, in parentheses.
 
 ## Configuration Reference
 

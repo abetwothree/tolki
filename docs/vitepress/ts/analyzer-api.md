@@ -51,7 +51,7 @@ public function __construct(
 
 Each property holds one part of the module you write:
 
-- **`properties`**: a `list<{name, type, optional, description}>` with one entry per key the method returns. `type` is already a TypeScript type string. `optional` is `true` wherever the code can leave the key out, such as a conditional method or a `mergeWhen()`.
+- **`properties`**: a `list<{name, type, optional, description}>` with one entry per key the method returns. `type` is already a TypeScript type string. `optional` is `true` wherever the code can leave the key out, such as a conditional method or a `mergeWhen()`. A nested array whose keys follow another key's value comes back as a union of objects, one per variant, as [Discriminated Unions](./api-resources.md#discriminated-unions) describes.
 - **`typeImports`**: an `import path => list<name>` map of the types that the property types name. Write these as `import type` lines.
 - **`valueImports`**: an `import path => list<name>` map of the enum constants that an `AsEnum<typeof X>` wrapper reads. Write these as plain `import` lines, never as `import type`.
 
@@ -85,7 +85,7 @@ $result = resolve(AstEngine::class)->analyze(App\Http\Resources\PostResource::cl
 
 `analyze()` doesn't use a custom `resources.transformer_class`, so a [`resolveModelClass()` override](./customizing-the-pipeline.md#changing-how-a-resource-finds-its-model) doesn't apply here. To choose the model yourself, pass it as the third argument.
 
-Every pattern in [API Resources](./api-resources.md) gives the same properties, imports, and optionality as a publish. That includes the `when()` family of conditional methods, `EnumResource::make()`, nested and collection resources, `merge()` and `mergeWhen()`, and relation filters such as `$this->author->only([...])`. The exceptions are a `morphTo` union, a collection that publishes as an alias, class-level and model-level `#[TsCasts]`, a `toResource()` guess by naming convention, and the filled index signature of an interpolated key. [What It Cannot Do](#what-it-cannot-do) covers each one.
+Every pattern in [API Resources](./api-resources.md) gives the same properties, imports, and optionality as a publish. That includes the `when()` family of conditional methods, `EnumResource::make()`, nested and collection resources, `merge()` and `mergeWhen()`, and relation filters such as `$this->author->only([...])`. The exceptions are a `morphTo` union, a top-level discriminated union, a collection that publishes as an alias, class-level and model-level `#[TsCasts]`, a `toResource()` guess by naming convention, and the filled index signature of an interpolated key. [What It Cannot Do](#what-it-cannot-do) covers each one.
 
 A [JSON:API resource](./api-resources.md#json-api-resources) returns its resource object, the `id`, `type`, `attributes`, and other members a publish writes, even when it declares a `toArray()`.
 
@@ -120,6 +120,8 @@ For example, a `share()` whose docblock declares `filters?: array<string, string
 **Form request rules.** A form request's published interface is built from its rules by the class in `form_requests.analyzer_class`, not by `analyze()`. See [Form Requests](./form-requests.md). `analyze($request, 'rules')` types the array that `rules()` returns, not the validated payload.
 
 **`morphTo` unions.** `analyze()` can't list the models a `morphTo` relation can hold, because only a publish scans your models for the `morphOne` and `morphMany` relations that point back. The relation is left out of a model's shape, and it comes back `unknown` where a `toArray()` names it. A [`@return MorphTo<A|B, $this>` docblock](./models.md#typing-morphto-relations) on the relation method gives both `analyze()` and a publish the union.
+
+**A resource's top-level discriminated union.** `analyze()` returns each key of a resource with one type, where `ts:publish` splits the keys that follow another key's value into [variants](./api-resources.md#discriminated-unions). `AnalysisResult` has no place for them. A nested array splits in both.
 
 **Collections that publish as an alias.** A `ResourceCollection` with no keys beyond its items publishes as a flat alias, `export type X = Y[]`, rather than an interface, when it has `$wrap = null`. After [`JsonResource::withoutWrapping()`](./api-resources.md#the-wrap-key-your-app-sets), so does every collection with Laravel's default shape that doesn't redeclare `$wrap`. An alias has no property list or imports to put in an `AnalysisResult`, so all three properties come back empty. `ts:publish` writes the alias.
 
