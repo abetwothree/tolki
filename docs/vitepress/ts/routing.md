@@ -522,16 +522,22 @@ export const store = annotateRequestPayload<StorePostRequest>()(
 
 ## Bundling
 
-A route nobody uses drops out of your bundle: `defineRoute`, `getRouteDefaults` and the other runtime helpers are marked as free of side effects, except `setRouteDefaults`, `addRouteDefault` and `resetRouteDefaults`, which change shared state and are always kept. A plain `export const index = defineRoute({...})` drops in Vite (Rolldown), Rollup, webpack and Rspack. esbuild keeps it unless the call site is marked:
+A route nobody uses drops out of your bundle in every bundler, esbuild included. The generated file writes `/* @__PURE__ */` before every call, including each call of a curried helper. `defineRoute`, `getRouteDefaults` and the other runtime helpers are marked as free of side effects, except `setRouteDefaults`, `addRouteDefault` and `resetRouteDefaults`, which change shared state and are always kept:
 
 ```typescript
-export const index = /* @__PURE__ */ defineRoute({
-  url: "/users",
-  methods: ["get"],
-});
+export const store = /* @__PURE__ */ annotateRequestPayload<StorePostRequest>()(
+  /* @__PURE__ */ annotatePageProps<StorePageProps>()(
+    /* @__PURE__ */ defineRoute({
+      name: "inertia-form-request.store",
+      url: "/inertia-form-request",
+      methods: ["post"] as const,
+      component: "InertiaFormRequest/Success",
+    }),
+  ),
+);
 ```
 
-The curried shapes, `annotatePageProps<T>()(defineRoute({...}))` and `annotateRequestPayload<T>()(defineRoute({...}))`, drop in Rollup and Rspack as they are. Rolldown, esbuild and webpack need `/* @__PURE__ */` before each call: the outer one and the inner `defineRoute`. [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html) lists every bundler.
+The other examples on this page leave the comment out. A file published by an older version of the package, or by a custom `routes.template`, may not have it. Without it, Rolldown, esbuild and webpack keep a curried route, and esbuild keeps every route. [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html) lists every bundler.
 
 ## Filtering & Excluding Routes
 

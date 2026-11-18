@@ -597,9 +597,7 @@ A unit enum publishes each case name as its value, so `values` returns its case 
 
 ## Bundling
 
-An enum nobody uses drops out of your bundle in Vite (Rolldown), Rollup, webpack and Rspack, because `defineEnum` and the other runtime utilities are marked as free of side effects, except `from`, which throws on an unknown value and is always kept.
-
-esbuild doesn't follow that mark across files, so it keeps the call unless the call site says it is safe to remove:
+An enum nobody uses drops out of your bundle in every bundler, esbuild included. The generated file marks its `defineEnum` call `/* @__PURE__ */`, and `defineEnum` and the other runtime utilities are marked as free of side effects, except `from`, which throws on an unknown value and is always kept:
 
 ```typescript
 export const Status = /* @__PURE__ */ defineEnum({
@@ -609,7 +607,7 @@ export const Status = /* @__PURE__ */ defineEnum({
 });
 ```
 
-Rspack also needs the call-site form when the same module derives a list from the enum, such as `export const STATUSES = /* @__PURE__ */ values(Status)`. [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html) lists every bundler.
+The other examples on this page leave the comment out. A file published by an older version of the package, or by a custom `enums.template`, may not have it, and esbuild then keeps the call. Rspack also needs the call-site form when the same module derives a list from the enum, such as `export const STATUSES = /* @__PURE__ */ values(Status)`. [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html) lists every bundler.
 
 ## Vite Plugin
 
