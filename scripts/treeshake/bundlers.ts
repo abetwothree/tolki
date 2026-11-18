@@ -7,8 +7,7 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
 import { rspack } from "@rspack/core";
 import { build as esbuild } from "esbuild";
 import { rolldown } from "rolldown";
-import type { Plugin } from "rollup";
-import { rollup } from "rollup";
+import { type Plugin, rollup } from "rollup";
 import webpack from "webpack";
 
 export type BundlerName =
