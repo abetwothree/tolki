@@ -757,6 +757,8 @@ App\Http\Resources\PostResource: The value on line 31 leaves out `$this->opaqueT
 
 Give the method a return type or a `@return` docblock, and its value joins the union again. An inline [`@var`](#typing-a-variable-with-var) that types the variable also removes the warning. `--quiet` hides every warning.
 
+Once the value is typed, an empty `[]` beside a list publishes the list alone. With `opaqueTags()` declared `@return list<string>`, `tags` publishes `string[]`.
+
 A `@return` docblock that types the key, on `toArray()` or on a method it spreads, also types the value left out. The docblock's type takes that value's place beside the values the body types. Under `score: int|string|null`, a `score` whose body types `number | null` and leaves one more value out publishes `number | null | string`. `ts:publish` prints no warning for a value the docblock types. A value it doesn't type, such as one under a `mixed` entry or under a key the docblock doesn't name, still warns. [Return Branches and `@return` Shapes](#return-branches-and-return-shapes) shows an example.
 
 `ts:publish` doesn't analyze a class again while the [generation cache](./generating-cache.md) holds it. A class the cache serves prints none of these warnings, nor the first-class callable warning above, so run `php artisan ts:publish --fresh` to see every one.
