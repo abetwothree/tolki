@@ -1,5 +1,19 @@
 # @tolki/str
 
+## 1.8.1
+
+### Patch Changes
+
+- 58202f3: Bundlers, esbuild included, now drop the packages' own module-level setup code when an app doesn't use it.
+- a23227d: - Unused calls to str's side-effect-free helpers now drop out of bundles, including the string transforms, matchers, padding and trimming helpers, case converters, the `random`, `uuid` and `ulid` generators, `markdown`, `slug`, the pluralizer, and the `str` and `of` factories.
+  - `createRandomStringsUsing`, `createRandomStringsUsingSequence`, `createRandomStringsNormally`, `createUuidsUsing`, `createUuidsUsingSequence`, `createUuidsNormally`, `freezeUuids`, `createUlidsUsing`, `createUlidsUsingSequence`, `createUlidsNormally`, `freezeUlids`, `flushCache`, `resetFactoryState` and `inflector` write module state, so a call to them is always kept.
+  - In Vite 8 (Rolldown) and Rspack, an unused call to a helper whose module pulls a side-effectful dependency can leave that dependency behind unless the call is written `/* @__PURE__ */ fn(...)`. These are `uuid`, `uuid7`, `ulid`, `slug`, `ascii`, `markdown`, `inlineMarkdown`, `markDownRenderer`, `str`, `of`, `plural`, `singular`, `counted`, `isPlural`, `isSingular`, `pluralStudly`, `pluralPascal`, `matchCase` and `uncountable`. See the "Bundling and Tree-Shaking" page (https://tolki.abe.dev/tree-shaking.html) for the cause of each.
+  - esbuild keeps an unused call unless the call site is written `/* @__PURE__ */ fn(...)`.
+- Updated dependencies [c9c059e]
+- Updated dependencies [6a9ea1d]
+  - @tolki/num@2.2.6
+  - @tolki/utils@1.6.4
+
 ## 1.8.0
 
 ### Minor Changes

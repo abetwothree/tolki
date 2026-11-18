@@ -1,5 +1,18 @@
 # @tolki/path
 
+## 1.0.2
+
+### Patch Changes
+
+- 58202f3: Bundlers, esbuild included, now drop the packages' own module-level setup code when an app doesn't use it.
+- 6a9ea1d: - Bundlers can now drop unused calls to path readers, immutable set and forget, flatten and undot helpers.
+  - `pushWithPath`, `setMixed` and `pushMixed` are marked as mutating, so bundlers keep their calls.
+  - esbuild keeps an unused call unless the call site is written `/* @__PURE__ */ fn(...)`.
+- 7483429: - `undot` no longer changes the nested arrays or objects of its input, matching Laravel.
+  - `dataUndot` and `Collection#undot` inherit this, so they no longer write into their input either.
+- Updated dependencies [6a9ea1d]
+  - @tolki/utils@1.6.4
+
 ## 1.0.1
 
 ### Patch Changes

@@ -1,5 +1,24 @@
 # @tolki/lang
 
+## 0.2.2
+
+### Patch Changes
+
+- 8a690c0: - Unused calls to lang's side-effect-free helpers now drop out of bundles, including `createLang`, `bindLang`, `createHelpers`, `choose`, `getPluralIndex`, `makeReplacements`, `normalizeLocale`, `htmlLocale`, the Svelte `getLang` and `langContext`, the React `LangProvider`, and the `laravelLangExport` plugin factory.
+  - `assertLocale` is called to throw, `setLang` writes Svelte component context, the React `useLang` subscribes the calling component, and the Vue `useLang` shares that mark (it only calls `inject`, during setup), so a call to them is always kept.
+  - In Rspack, an unused call to `createLang` (main and Vue entries) can leave `@tolki/utils` code behind unless the call is written `/* @__PURE__ */ createLang(...)` or Rspack's SWC minimizer runs `compress.passes: 3`.
+  - The plural rules are indexed on first use instead of when the module loads, and the translator merges loaded lines through `addLines`, so importing lang runs no setup code.
+  - esbuild keeps an unused call unless the call site is written `/* @__PURE__ */ fn(...)`.
+- 58202f3: Bundlers, esbuild included, now drop the packages' own module-level setup code when an app doesn't use it.
+- Updated dependencies [278e39a]
+- Updated dependencies [58202f3]
+- Updated dependencies [a23227d]
+- Updated dependencies [6a9ea1d]
+- Updated dependencies [7483429]
+  - @tolki/data@1.0.3
+  - @tolki/str@1.8.1
+  - @tolki/utils@1.6.4
+
 ## 0.2.1
 
 ### Patch Changes
