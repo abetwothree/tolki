@@ -879,6 +879,7 @@ These cases keep every key that follows the discriminant flat:
 
 - The package can't type an arm of one of those keys, or leaves a value out of one, as [Values Left Out of a Union](#values-left-out-of-a-union) describes.
 - A `merge()`, `mergeWhen()`, or spread writes the discriminant, or the array merges a value the package can't read.
+- Code between the discriminant and a key that follows it may change the discriminant: a write, a by-reference argument, a mutator or property hook that writes it, a `get` hook on any property the discriminant reads, or a call that may change the model, such as a resource method that changes it or a call you hand the model to. Calls that only read, such as `getKey()`, `relationLoaded()`, `route()`, and `Gate::allows()`, keep the split, and so does a call above the discriminant and the keys that follow it, or below them.
 - `toArray()` builds its array across `return` branches, or in a variable it returns.
 - A subclass spreads its parent's array with `...parent::toArray($request)`, which publishes the parent's keys flat in the subclass.
 - The array holds an [interpolated key](#interpolated-keys).
