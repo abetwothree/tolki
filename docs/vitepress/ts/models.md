@@ -425,10 +425,11 @@ A specific return type or `Attribute<Get, Set>` generic is always read first, so
 - Calls something whose return type can't be determined
 - Reads another accessor that reads it back, in which case both publish `unknown`
 - Can only be typed as `null`, because one side of a `??` or a ternary couldn't be typed
-- Names two different classes or enums that share a short name, such as `$this->status ?? $this->author?->status` when each `status` is a different `Status` enum
 - Returns an API resource
 
 The `null` case keeps a getter from publishing a type that's plainly wrong: `fn ($value, array $attributes) => $attributes['title'] ?? null` publishes `unknown`, not `null`, because its real value is the title.
+
+A getter that returns either of two classes or enums that share a short name publishes both, each under its own alias. With `$this->status` an `App\Enums\Status` and `$this->author?->status` an `App\Crm\Enums\Status`, `$this->status ?? $this->author?->status` publishes `EnumsStatusType | CrmStatusType | null`.
 
 A getter closure with no native return type takes its type from a `@return` docblock written just before it, so `Attribute::get(/** @return int */ fn () => json_decode($this->stats_json))` publishes `number`. The package reads that docblock only when it can't type what the getter returns, and ignores a vague one, such as `@return mixed`.
 
