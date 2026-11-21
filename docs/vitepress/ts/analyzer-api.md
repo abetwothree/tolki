@@ -60,7 +60,7 @@ Two classes that share an import path merge into one entry, so neither overwrite
 The three properties agree with each other, so a module that renders all three as they are compiles:
 
 - **Same-name classes**: two classes with the same short name, such as two `User` models, come back under separate aliases, and the property types use those aliases.
-- **`EnumResource` properties**: an `EnumResource::make()` property comes back as `AsEnum<typeof X>`, beside the value import that wrapper needs. With `enums.use_tolki_package` off, it comes back as the plain enum type with a type import, and `valueImports` stays empty.
+- **`EnumResource` properties**: each `EnumResource` wrap comes back as `AsEnum<typeof X>` where it's read, in a union, a nested key or a list too, and `valueImports` holds exactly the consts the types spell. Two enums that share a class name come back under separate aliases. With `enums.use_tolki_package` off, a wrap comes back as the plain enum type with a type import, and `valueImports` stays empty.
 - **No unused imports**: nothing is imported that no property type names. A name counts wherever it appears in a type, even inside a string, template text, or a comment. A method-level `#[TsCasts]` of `"'User' | 'Admin'"` therefore keeps an unused `User` import, which TypeScript reports only under `noUnusedLocals`.
 
 ### Method Parameters

@@ -434,6 +434,27 @@ A getter closure with no native return type takes its type from a `@return` docb
 
 A getter that reads an attribute through `getAttribute()` or `getAttributeValue()` with a literal name takes the attribute's type, so `Attribute::get(fn () => $this->getAttribute('title'))` publishes `string`, as `fn () => $this->title` does.
 
+A getter that returns an [`EnumResource`](./enum-api-resource.md) publishes `AsEnum<typeof X>`, alone or inside the shape it builds, and the model file imports `AsEnum` and the enum's const. A wrap around a nullable column adds `| never[]`, because the model sends the empty resource as `[]`:
+
+```php
+protected function statusResource(): Attribute
+{
+    return Attribute::get(fn () => EnumResource::make($this->status));
+}
+
+protected function priorityResource(): Attribute
+{
+    return Attribute::get(fn () => EnumResource::make($this->priority));
+}
+```
+
+With `priority` nullable, the two accessors publish:
+
+```typescript
+status_resource: AsEnum<typeof Status>;
+priority_resource: AsEnum<typeof Priority> | never[];
+```
+
 Laravel runs an accessor's getter for a `NULL` column too, so an accessor on a nullable column publishes `| null` only where its getter can return `null`. A getter whose native return type is non-null, such as `fn (?string $value): array => …`, publishes no `| null`. One whose native return type allows `null`, such as `: ?array`, always publishes it, even when its `Attribute<…>` docblock leaves the `null` out.
 
 ### Typing `array` Casts With `@property`
