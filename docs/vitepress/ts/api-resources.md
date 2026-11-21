@@ -78,7 +78,7 @@ The output shows how each kind of value is typed:
 
 ### Classes Sharing a Name Across Namespaces
 
-When two classes in different namespaces share a name, such as `App\Models\User` and `Crm\Models\User`, the generated file imports each one under its own alias. Every occurrence of the name inside a property's type uses the alias of the class it refers to, in source order:
+When two classes in different namespaces share a name, such as `App\Models\User` and `Crm\Models\User`, the generated file imports each one under its own alias. Every occurrence of the name inside a property's type uses the alias of the class it refers to, in source order. That holds for a model and an API resource that publish one name too, such as an `Address` model beside an `AddressResource` named `Address` with [`#[TsResource]`](#configuring-resource-generation-with-tsresource), and for two enums that share a name, as [`EnumResource`](#enum-properties-with-enumresource) shows:
 
 ```typescript
 import type { User as CrmUser } from "../../../crm/models";
@@ -549,7 +549,25 @@ roles: (AsEnum<typeof Role> | never[])[];
 role_list: (AsEnum<typeof Role> | null)[];
 ```
 
-A ternary that wraps only one of its arms keeps both shapes. The property publishes a union, with the import each side needs, even inside an inline array:
+A ternary, `match` or `when()` publishes each arm as Laravel sends it. A wrapped arm publishes `AsEnum<typeof X>` beside whatever the other arms send, with the import each side needs:
+
+```php
+'subject' => $request->boolean('role')
+    ? EnumResource::make($this->role)
+    : $this->status,
+'either_status' => $request->boolean('crm')
+    ? EnumResource::make($this->crm_status)
+    : EnumResource::make($this->status),
+```
+
+`subject` sends the `Role` object or the bare `Status` value. Two enums that share a class name, here `App\Enums\Status` and `App\Crm\Enums\Status`, each keep their own name:
+
+```typescript
+subject: AsEnum<typeof Role> | StatusType;
+either_status: AsEnum<typeof CrmStatus> | AsEnum<typeof EnumsStatus>;
+```
+
+The same holds inside an inline array, where a ternary that wraps only one of its arms keeps both shapes:
 
 ```php
 'audit' => [
