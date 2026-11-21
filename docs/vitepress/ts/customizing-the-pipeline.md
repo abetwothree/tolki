@@ -262,4 +262,6 @@ Inertia's `inertia-config.blade.php` and Vite env's `vite-env.blade.php` have no
 
 ::: warning Published Templates Don't Update With the Package
 Your copies stay as they were when you published them. After you upgrade the package, compare them with the package's new templates and merge the changes. A stale copy can leave out output the new version adds.
+
+For example, a `resource` or `globals` copy published before [discriminated unions](./api-resources.md#discriminated-unions) prints a split resource's shared keys alone, and leaves out its variants and its `#[TsIntersect]` types. Publish it again, or merge the new template's `variants` and `intersections` blocks into your copy.
 :::
