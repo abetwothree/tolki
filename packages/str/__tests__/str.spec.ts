@@ -2175,6 +2175,23 @@ describe("Str tests", () => {
     });
 
     describe("padBoth", () => {
+        it("truncates a fractional length toward zero, as PHP's int parameter does", () => {
+            // docs/php-parity/Str/padBoth.json, "padBoth-fractional-length"
+            expect(Str.padBoth("😀", 1.5, "")).toBe("😀");
+            expect(Str.padBoth("a", 2.5, "-")).toBe("a-");
+            expect(Str.padBoth("a", 3.9, "-")).toBe("-a-");
+            expect(Str.padBoth("a", -1.5, "")).toBe("a");
+        });
+
+        it("throws PHP's TypeError for a NaN or infinite length", () => {
+            // docs/php-parity/Str/padBoth.json, "padBoth-non-finite-length"
+            const error = new TypeError(
+                "mb_str_pad(): Argument #2 ($length) must be of type int, float given",
+            );
+            expect(() => Str.padBoth("a", Number.NaN, "-")).toThrow(error);
+            expect(() => Str.padBoth("a", Infinity, "-")).toThrow(error);
+        });
+
         it("Laravel tests", () => {
             expect(Str.padBoth("Alien", 10, "_")).toBe("__Alien___");
             expect(Str.padBoth("Alien", 10)).toBe("  Alien   ");
@@ -2213,6 +2230,23 @@ describe("Str tests", () => {
     });
 
     describe("padLeft", () => {
+        it("truncates a fractional length toward zero, as PHP's int parameter does", () => {
+            // docs/php-parity/Str/padLeft.json, "padLeft-fractional-length"
+            expect(Str.padLeft("😀", 1.5, "")).toBe("😀");
+            expect(Str.padLeft("a", 2.5, "-")).toBe("-a");
+            expect(Str.padLeft("a", 3.9, "-")).toBe("--a");
+            expect(Str.padLeft("a", -1.5, "")).toBe("a");
+        });
+
+        it("throws PHP's TypeError for a NaN or infinite length", () => {
+            // docs/php-parity/Str/padLeft.json, "padLeft-non-finite-length"
+            const error = new TypeError(
+                "mb_str_pad(): Argument #2 ($length) must be of type int, float given",
+            );
+            expect(() => Str.padLeft("a", Number.NaN, "-")).toThrow(error);
+            expect(() => Str.padLeft("a", Infinity, "-")).toThrow(error);
+        });
+
         it("Laravel Tests", () => {
             expect(Str.padLeft("Alien", 10, "-=")).toBe("-=-=-Alien");
             expect(Str.padLeft("Alien", 10)).toBe("     Alien");
@@ -2254,6 +2288,23 @@ describe("Str tests", () => {
     });
 
     describe("padRight", () => {
+        it("truncates a fractional length toward zero, as PHP's int parameter does", () => {
+            // docs/php-parity/Str/padRight.json, "padRight-fractional-length"
+            expect(Str.padRight("😀", 1.5, "")).toBe("😀");
+            expect(Str.padRight("a", 2.5, "-")).toBe("a-");
+            expect(Str.padRight("a", 3.9, "-")).toBe("a--");
+            expect(Str.padRight("a", -1.5, "")).toBe("a");
+        });
+
+        it("throws PHP's TypeError for a NaN or infinite length", () => {
+            // docs/php-parity/Str/padRight.json, "padRight-non-finite-length"
+            const error = new TypeError(
+                "mb_str_pad(): Argument #2 ($length) must be of type int, float given",
+            );
+            expect(() => Str.padRight("a", Number.NaN, "-")).toThrow(error);
+            expect(() => Str.padRight("a", Infinity, "-")).toThrow(error);
+        });
+
         it("Laravel tests", () => {
             expect(Str.padRight("Alien", 10, "-=")).toBe("Alien-=-=-");
             expect(Str.padRight("Alien", 10)).toBe("Alien     ");

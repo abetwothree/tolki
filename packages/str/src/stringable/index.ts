@@ -777,6 +777,8 @@ export class Stringable {
      * @param length - The desired total length of the string after padding.
      * @param pad - The string to use for padding. Defaults to a space.
      * @returns The padded string as a new Stringable instance.
+     * @throws Error for an empty pad string when the string needs padding, as mb_str_pad() does.
+     * @throws TypeError for a NaN or infinite length, as mb_str_pad() does.
      */
     padBoth(length: number, pad = " "): Stringable {
         return new Stringable(padBoth(this._value, length, pad));
@@ -788,6 +790,8 @@ export class Stringable {
      * @param length - The desired total length of the string after padding.
      * @param pad - The string to use for padding. Defaults to a space.
      * @returns The padded string as a new Stringable instance.
+     * @throws Error for an empty pad string when the string needs padding, as mb_str_pad() does.
+     * @throws TypeError for a NaN or infinite length, as mb_str_pad() does.
      */
     padLeft(length: number, pad = " "): Stringable {
         return new Stringable(padLeft(this._value, length, pad));
@@ -799,6 +803,8 @@ export class Stringable {
      * @param length - The desired total length of the string after padding.
      * @param pad - The string to use for padding. Defaults to a space.
      * @returns The padded string as a new Stringable instance.
+     * @throws Error for an empty pad string when the string needs padding, as mb_str_pad() does.
+     * @throws TypeError for a NaN or infinite length, as mb_str_pad() does.
      */
     padRight(length: number, pad = " "): Stringable {
         return new Stringable(padRight(this._value, length, pad));

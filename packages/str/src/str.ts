@@ -1147,6 +1147,7 @@ export function numbers(value: string | string[]): string | string[] {
  * @param pad - The string to use for padding
  * @returns The padded string
  * @throws Error for an empty pad string when the value needs padding, as PHP's mb_str_pad() throws its ValueError
+ * @throws TypeError for a NaN or infinite length, as PHP's mb_str_pad() does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#padboth
  */
@@ -1156,19 +1157,7 @@ export function padBoth(
     length: number,
     pad: string = " ",
 ): string {
-    const valueLength = Array.from(value).length;
-
-    if (length <= valueLength) {
-        return value;
-    }
-
-    if (pad === "") {
-        throw new Error(
-            "mb_str_pad(): Argument #3 ($pad_string) must not be empty",
-        );
-    }
-
-    const total = length - valueLength;
+    const total = paddingNeeded(value, length, pad);
     const left = Math.floor(total / 2);
     const right = total - left; // right gets the extra char when odd (Laravel / PHP str_pad behavior)
 
@@ -1183,6 +1172,7 @@ export function padBoth(
  * @param pad - The string to use for padding
  * @returns The padded string
  * @throws Error for an empty pad string when the value needs padding, as PHP's mb_str_pad() throws its ValueError
+ * @throws TypeError for a NaN or infinite length, as PHP's mb_str_pad() does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#padleft
  */
@@ -1192,22 +1182,7 @@ export function padLeft(
     length: number,
     pad: string = " ",
 ): string {
-    const valueLength = Array.from(value).length;
-
-    if (length <= valueLength) {
-        return value;
-    }
-
-    if (pad === "") {
-        throw new Error(
-            "mb_str_pad(): Argument #3 ($pad_string) must not be empty",
-        );
-    }
-
-    const total = length - valueLength;
-    const left = total;
-
-    return makePad(pad, left) + value;
+    return makePad(pad, paddingNeeded(value, length, pad)) + value;
 }
 
 /**
@@ -1218,6 +1193,7 @@ export function padLeft(
  * @param pad - The string to use for padding
  * @returns The padded string
  * @throws Error for an empty pad string when the value needs padding, as PHP's mb_str_pad() throws its ValueError
+ * @throws TypeError for a NaN or infinite length, as PHP's mb_str_pad() does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#padright
  */
@@ -1227,10 +1203,28 @@ export function padRight(
     length: number,
     pad: string = " ",
 ): string {
-    const valueLength = Array.from(value).length;
+    return value + makePad(pad, paddingNeeded(value, length, pad));
+}
 
-    if (length <= valueLength) {
-        return value;
+/**
+ * Count the pad characters mb_str_pad() adds to reach a length.
+ *
+ * @param value - The string to pad
+ * @param length - The desired total length, read as PHP reads its int parameter
+ * @param pad - The string to pad with
+ * @returns How many pad characters are needed, or 0 when the value is already long enough
+ * @throws TypeError for a NaN or infinite length, and Error for an empty pad string when padding is needed
+ */
+function paddingNeeded(value: string, length: number, pad: string): number {
+    const needed =
+        phpIntArgument(
+            length,
+            "mb_str_pad(): Argument #2 ($length) must be of type int, float given",
+        ) - Array.from(value).length;
+
+    // PHP checks the length before the pad string, so an empty pad only throws when padding is needed.
+    if (needed <= 0) {
+        return 0;
     }
 
     if (pad === "") {
@@ -1239,10 +1233,7 @@ export function padRight(
         );
     }
 
-    const total = length - valueLength;
-    const right = total;
-
-    return value + makePad(pad, right);
+    return needed;
 }
 
 /**
