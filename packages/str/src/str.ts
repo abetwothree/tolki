@@ -1437,6 +1437,7 @@ function shuffled<TItem>(items: readonly TItem[]): TItem[] {
  * @param offset - The position to start searching from (can be negative)
  * @returns The position of the first occurrence or false if not found
  * @throws Error If the offset is outside the haystack, as mb_strpos() does
+ * @throws TypeError If the offset is NaN or infinite, as mb_strpos() does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#position
  */
@@ -1449,7 +1450,11 @@ export function position(
     const haystackPoints = Array.from(haystack);
     const needlePoints = Array.from(needle);
 
-    const start = offset >= 0 ? offset : haystackPoints.length + offset;
+    const at = phpIntArgument(
+        offset,
+        "mb_strpos(): Argument #3 ($offset) must be of type int, float given",
+    );
+    const start = at >= 0 ? at : haystackPoints.length + at;
     if (start < 0 || start > haystackPoints.length) {
         throw new Error(
             "mb_strpos(): Argument #3 ($offset) must be contained in argument #1 ($haystack)",

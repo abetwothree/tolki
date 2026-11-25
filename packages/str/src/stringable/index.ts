@@ -855,6 +855,8 @@ export class Stringable {
      * @param needle - The substring to search for.
      * @param offset - The offset from which to start the search. Defaults to 0.
      * @returns The position of the first occurrence of the substring, or false if not found.
+     * @throws Error If the offset is outside the string, as mb_strpos() does.
+     * @throws TypeError If the offset is NaN or infinite, as mb_strpos() does.
      */
     position(needle: string, offset = 0): number | false {
         return position(this._value, needle, offset);

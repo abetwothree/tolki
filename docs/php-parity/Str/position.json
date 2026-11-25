@@ -109,6 +109,65 @@
                     3
                 ]
             ]
+        },
+        {
+            "label": "position-fractional-offset",
+            "php": "Str::position() with a fractional offset, recorded as [haystack, needle, offset, result], with PHP's deprecations",
+            "value": {
+                "result": [
+                    [
+                        "abc",
+                        "",
+                        0.5,
+                        0
+                    ],
+                    [
+                        "abc",
+                        "a",
+                        -3.5,
+                        0
+                    ],
+                    [
+                        "abc",
+                        "",
+                        -3.5,
+                        0
+                    ],
+                    [
+                        "abc",
+                        "c",
+                        1.9,
+                        2
+                    ],
+                    [
+                        "abc",
+                        "a",
+                        3.5,
+                        false
+                    ]
+                ],
+                "deprecations": [
+                    "Implicit conversion from float 0.5 to int loses precision",
+                    "Implicit conversion from float -3.5 to int loses precision",
+                    "Implicit conversion from float -3.5 to int loses precision",
+                    "Implicit conversion from float 1.9 to int loses precision",
+                    "Implicit conversion from float 3.5 to int loses precision"
+                ]
+            }
+        },
+        {
+            "label": "position-non-finite-offset",
+            "php": "What Str::position('abc', 'a', NAN) and Str::position('abc', 'a', INF) throw",
+            "value": [
+                [
+                    "TypeError",
+                    "mb_strpos(): Argument #3 ($offset) must be of type int, float given"
+                ],
+                [
+                    "TypeError",
+                    "mb_strpos(): Argument #3 ($offset) must be of type int, float given"
+                ]
+            ]
         }
     ]
 }

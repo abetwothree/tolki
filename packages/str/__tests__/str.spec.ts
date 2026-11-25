@@ -2393,6 +2393,27 @@ describe("Str tests", () => {
     });
 
     describe("position", () => {
+        it("truncates a fractional offset toward zero, as PHP's int parameter does", () => {
+            // docs/php-parity/Str/position.json, "position-fractional-offset"
+            expect(Str.position("abc", "", 0.5)).toBe(0);
+            expect(Str.position("abc", "a", -3.5)).toBe(0);
+            expect(Str.position("abc", "", -3.5)).toBe(0);
+            expect(Str.position("abc", "c", 1.9)).toBe(2);
+            expect(Str.position("abc", "a", 3.5)).toBe(false);
+        });
+
+        it("throws PHP's TypeError for a NaN or infinite offset", () => {
+            // docs/php-parity/Str/position.json, "position-non-finite-offset"
+            const message =
+                "mb_strpos(): Argument #3 ($offset) must be of type int, float given";
+            expect(() => Str.position("abc", "a", Number.NaN)).toThrow(
+                new TypeError(message),
+            );
+            expect(() => Str.position("abc", "a", Infinity)).toThrow(
+                new TypeError(message),
+            );
+        });
+
         it("Laravel tests", () => {
             expect(Str.position("Hello, World!", "W")).toBe(7);
             expect(Str.position("Hello, World!", "world!", 0)).toBe(false);
