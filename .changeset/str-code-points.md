@@ -12,3 +12,4 @@ String helpers now count characters the way Laravel does, so an emoji counts as 
 - `title()`, `headline()` and `convertCase()` capitalize letters from rarer scripts, such as Deseret 𐐨, that JavaScript stores as two units.
 - `deduplicate()` collapses repeated emoji and reads characters such as `.` and `$` literally.
 - `of(value).split(length)` splits by character, and throws for a length below 1 instead of never returning.
+- `charAt()`, `position()` and `limit()` read a fractional index, offset or limit as Laravel does, dropping the fraction, and throw a `TypeError` for `NaN`.
