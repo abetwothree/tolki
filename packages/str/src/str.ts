@@ -2601,16 +2601,23 @@ export function swap(map: Record<string, string>, subject: string): string {
  * @param value - The string to process
  * @param limit - The number of characters to take (negative for from end)
  * @returns The resulting substring
+ * @throws TypeError for a NaN or infinite limit, as Laravel's int $limit parameter does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#take
  */
 /* @__NO_SIDE_EFFECTS__ */
 export function take(value: string, limit: number): string {
-    if (limit < 0) {
-        return substr(value, limit);
+    // Laravel declares an int $limit, so PHP converts it before the sign check.
+    const count = phpIntArgument(
+        limit,
+        "Str::take(): Argument #2 ($limit) must be of type int, float given",
+    );
+
+    if (count < 0) {
+        return substr(value, count);
     }
 
-    return substr(value, 0, limit);
+    return substr(value, 0, count);
 }
 
 /**

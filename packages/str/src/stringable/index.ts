@@ -1300,6 +1300,7 @@ export class Stringable {
      *
      * @param limit - The number of characters to take. Positive for start, negative for end.
      * @returns The resulting substring as a new Stringable instance.
+     * @throws TypeError for a NaN or infinite limit, as Laravel's int $limit parameter does.
      */
     take(limit: number): Stringable {
         return new Stringable(take(this._value, limit));

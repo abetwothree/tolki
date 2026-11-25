@@ -4328,6 +4328,22 @@ describe("Str tests", () => {
     });
 
     describe("take", () => {
+        it("truncates a fractional limit toward zero, as Laravel's int $limit does", () => {
+            // docs/php-parity/Str/take.json, "take-fractional"
+            expect(Str.take("abcd", -0.5)).toBe("");
+            expect(Str.take("abcd", 2.5)).toBe("ab");
+            expect(Str.take("abcd", -1.5)).toBe("d");
+        });
+
+        it("throws PHP's TypeError for a NaN limit", () => {
+            // docs/php-parity/Str/take.json, "take-non-finite"; the message drops PHP's namespace, as Collection's do.
+            expect(() => Str.take("abcd", Number.NaN)).toThrow(
+                new TypeError(
+                    "Str::take(): Argument #2 ($limit) must be of type int, float given",
+                ),
+            );
+        });
+
         it("Laravel tests", () => {
             expect(Str.take("abcdef", 2)).toBe("ab");
             expect(Str.take("abcdef", -2)).toBe("ef");
