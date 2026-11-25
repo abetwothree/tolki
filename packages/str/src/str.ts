@@ -21,6 +21,7 @@ import { substr } from "./replacer";
 import { ltrim, rtrim, trim } from "./trimmer";
 import { createUlidsNormally } from "./ulid";
 import { createUuidsNormally } from "./uuid";
+import { strimWidth, strWidth } from "./width";
 
 /**
  * The cache of snake-cased words.
@@ -786,7 +787,7 @@ export function length(value: string): number {
  * Limit the number of characters in a string.
  *
  * @param value - The string to limit
- * @param limit - The maximum number of characters
+ * @param limit - The maximum display width, where an emoji or a Chinese, Japanese or Korean character counts as two
  * @param end - The string to append if the value is truncated
  * @param preserveWords - Whether to preserve whole words when truncating
  * @returns The limited string
@@ -800,22 +801,22 @@ export function limit(
     end: string = "...",
     preserveWords: boolean = false,
 ): string {
-    if (value.length <= limit) {
+    if (strWidth(value) <= limit) {
         return value;
     }
 
     if (!preserveWords) {
-        return value.slice(0, limit).trimEnd() + end;
+        return strimWidth(value, limit).trimEnd() + end;
     }
 
     value = stripTags(value)
         .replace(/[\n\r]+/g, " ")
         .trim();
 
-    const trimmed = value.slice(0, limit).trimEnd();
+    const trimmed = strimWidth(value, limit).trimEnd();
 
     // A cut with no whitespace has no word to cut back to, and the pattern below would retry from every character.
-    if (value.substring(limit, limit + 1) === " " || !/\s/.test(trimmed)) {
+    if (substr(value, limit, 1) === " " || !/\s/.test(trimmed)) {
         return trimmed + end;
     }
 

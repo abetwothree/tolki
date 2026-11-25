@@ -1235,7 +1235,8 @@ describe("Str tests", () => {
                     10,
                 ),
             ).toBe("Laravel is...");
-            expect(Str.limit("这是一段中文", 3)).toBe("这是一...");
+            // StrTest::testLimit; docs/php-parity/Str/limit.json, "limit-laravel-cjk"
+            expect(Str.limit("这是一段中文", 6)).toBe("这是一...");
             expect(
                 Str.limit(
                     "Laravel is a free, open source PHP web application framework.",
@@ -1260,11 +1261,12 @@ describe("Str tests", () => {
                 "The PHP framework...",
             );
 
+            // StrTest::testLimit; docs/php-parity/Str/limit.json, "limit-laravel-cjk"
             const nonAsciiString = "这是一段中文";
-            expect(Str.limit(nonAsciiString, 3)).toBe("这是一...");
-            expect(Str.limit(nonAsciiString, 3, "...", true)).toBe("这是一...");
-            expect(Str.limit(nonAsciiString, 3, "")).toBe("这是一");
-            expect(Str.limit(nonAsciiString, 3, "", true)).toBe("这是一");
+            expect(Str.limit(nonAsciiString, 6)).toBe("这是一...");
+            expect(Str.limit(nonAsciiString, 6, "...", true)).toBe("这是一...");
+            expect(Str.limit(nonAsciiString, 6, "")).toBe("这是一");
+            expect(Str.limit(nonAsciiString, 6, "", true)).toBe("这是一");
 
             expect(Str.limit("The PHP", 5, "...", true)).toBe("The...");
             expect(Str.limit("Hello world", 5, "...", true)).toBe("Hello...");
@@ -1304,6 +1306,46 @@ describe("Str tests", () => {
             const shortString = "Short string";
             expect(Str.limit(shortString)).toBe(shortString);
         });
+
+        it("measures display width: emoji and CJK count two, as mb_strwidth does", () => {
+            // docs/php-parity/Str/limit.json, "limit-astral"
+            expect(Str.limit("😀😀😀", 1)).toBe("...");
+            expect(Str.limit("😀😀😀", 2)).toBe("😀...");
+            expect(Str.limit("😀😀😀", 3)).toBe("😀...");
+            expect(Str.limit("😀😀😀", 4)).toBe("😀😀...");
+            expect(Str.limit("😀😀😀", 6)).toBe("😀😀😀");
+            expect(Str.limit("a😀", 2)).toBe("a...");
+            expect(Str.limit("𝒳𝒳𝒳", 2)).toBe("𝒳𝒳...");
+            expect(Str.limit("héllo wörld", 7)).toBe("héllo w...");
+            expect(Str.limit("a😀😀", 4)).toBe("a😀...");
+
+            // docs/php-parity/Str/limit.json, "limit-laravel-cjk"
+            expect(Str.limit("日本語テキスト", 4)).toBe("日本...");
+        });
+
+        it("keeps whole words by width", () => {
+            // docs/php-parity/Str/limit.json, "limit-preserve-words-astral"
+            expect(Str.limit("😀 😀 😀", 5, "...", true)).toBe("😀...");
+            expect(Str.limit("😀😀 x", 2, "...", true)).toBe("😀...");
+            expect(Str.limit("日本 語", 4, "...", true)).toBe("日本...");
+            expect(Str.limit("日本語 x", 2, "...", true)).toBe("日...");
+            expect(Str.limit("😀😀😀", 4, "", true)).toBe("😀😀");
+        });
+
+        it("follows PHP for a zero or negative limit", () => {
+            // docs/php-parity/Str/limit.json, "limit-zero-and-negative"
+            expect(Str.limit("abc", 0)).toBe("...");
+            expect(Str.limit("abc", -1)).toBe("ab...");
+            expect(Str.limit("😀😀😀", -1)).toBe("😀😀...");
+            expect(Str.limit("abc d", -1, "...", true)).toBe("abc...");
+        });
+
+        it("stays fast on a long emoji string", () => {
+            // docs/php-parity/Str/limit.json, "limit-astral"
+            expect(Str.limit("😀".repeat(200_000), 100_000)).toBe(
+                `${"😀".repeat(50_000)}...`,
+            );
+        }, 2000);
     });
 
     describe("lower", () => {

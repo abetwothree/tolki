@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.39.0-43-gb20bf7f442"
+        "laravel": "v13.43.0-17-g1caec34a34"
     },
     "probes": [
         {
@@ -16,6 +16,59 @@
             "label": "limit-preserve-words-no-whitespace",
             "php": "Str::limit(str_repeat('x', 200000), 100000, '...', true) === str_repeat('x', 100000).'...'",
             "value": true
+        },
+        {
+            "label": "limit-astral",
+            "php": "Str::limit('\ud83d\ude00\ud83d\ude00\ud83d\ude00', 1, 2, 3, 4 and 6), Str::limit('a\ud83d\ude00', 2), Str::limit('\ud835\udcb3\ud835\udcb3\ud835\udcb3', 2) and Str::limit('h\u00e9llo w\u00f6rld', 7)",
+            "value": [
+                "...",
+                "\ud83d\ude00...",
+                "\ud83d\ude00...",
+                "\ud83d\ude00\ud83d\ude00...",
+                "\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+                "a...",
+                "\ud835\udcb3\ud835\udcb3...",
+                "h\u00e9llo w..."
+            ]
+        },
+        {
+            "label": "limit-laravel-cjk",
+            "php": "StrTest::testLimit's Str::limit('\u8fd9\u662f\u4e00\u6bb5\u4e2d\u6587', 6) with and without an end and preserveWords, and Str::limit('\u65e5\u672c\u8a9e\u30c6\u30ad\u30b9\u30c8', 4)",
+            "value": [
+                "\u8fd9\u662f\u4e00...",
+                "\u8fd9\u662f\u4e00...",
+                "\u8fd9\u662f\u4e00",
+                "\u8fd9\u662f\u4e00",
+                "\u65e5\u672c..."
+            ]
+        },
+        {
+            "label": "limit-preserve-words-astral",
+            "php": "Str::limit(\u2026, preserveWords: true) of ('\ud83d\ude00 \ud83d\ude00 \ud83d\ude00', 5), ('\ud83d\ude00\ud83d\ude00 x', 2), ('\u65e5\u672c \u8a9e', 4), ('\u65e5\u672c\u8a9e x', 2) and ('\ud83d\ude00\ud83d\ude00\ud83d\ude00', 4, '')",
+            "value": [
+                "\ud83d\ude00...",
+                "\ud83d\ude00...",
+                "\u65e5\u672c...",
+                "\u65e5...",
+                "\ud83d\ude00\ud83d\ude00"
+            ]
+        },
+        {
+            "label": "limit-zero-and-negative",
+            "php": "Str::limit('abc', 0), ('abc', -1), ('\ud83d\ude00\ud83d\ude00\ud83d\ude00', -1) and ('abc d', -1, '...', true), with PHP's deprecations",
+            "value": {
+                "result": [
+                    "...",
+                    "ab...",
+                    "\ud83d\ude00\ud83d\ude00...",
+                    "abc..."
+                ],
+                "deprecations": [
+                    "mb_strimwidth(): passing a negative integer to argument #3 ($width) is deprecated",
+                    "mb_strimwidth(): passing a negative integer to argument #3 ($width) is deprecated",
+                    "mb_strimwidth(): passing a negative integer to argument #3 ($width) is deprecated"
+                ]
+            }
         }
     ]
 }

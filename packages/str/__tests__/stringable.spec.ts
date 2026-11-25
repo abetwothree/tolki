@@ -1466,6 +1466,11 @@ describe("Stringable basic delegation", () => {
             const shortString = "Short string";
             expect(Str.of(shortString).limit().toString()).toBe(shortString);
         });
+
+        it("counts an emoji as two, as mb_strwidth does", () => {
+            // docs/php-parity/Str/limit.json, "limit-astral"
+            expect(Str.of("😀😀😀").limit(3).toString()).toBe("😀...");
+        });
     });
 
     describe("words", () => {
