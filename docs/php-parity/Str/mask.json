@@ -1,0 +1,26 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "mask-astral",
+            "php": "Str::mask('\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00', '*', \u2026) at (1, 2), (-2) and (-9, 2), and Str::mask('\ud83d\ude00\ud83d\ude00', '*', 5)",
+            "value": [
+                "\ud83d\ude00**\ud83d\ude00",
+                "\ud83d\ude00\ud83d\ude00**",
+                "**\ud83d\ude00\ud83d\ude00",
+                "\ud83d\ude00\ud83d\ude00"
+            ]
+        },
+        {
+            "label": "mask-astral-character",
+            "php": "Str::mask('abcd', '\ud83d\udd12', 1) and Str::mask('ab', '\ud83d\ude00\ud83c\udf89', 0)",
+            "value": [
+                "a\ud83d\udd12\ud83d\udd12\ud83d\udd12",
+                "\ud83d\ude00\ud83d\ude00"
+            ]
+        }
+    ]
+}

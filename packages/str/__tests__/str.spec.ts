@@ -1737,6 +1737,20 @@ describe("Str tests", () => {
             );
             expect(Str.mask("maria@email.com", "*", 0)).toBe("***************");
         });
+
+        it("masks by character, as mb_substr does", () => {
+            // docs/php-parity/Str/mask.json, "mask-astral"
+            expect(Str.mask("😀😀😀😀", "*", 1, 2)).toBe("😀**😀");
+            expect(Str.mask("😀😀😀😀", "*", -2)).toBe("😀😀**");
+            expect(Str.mask("😀😀😀😀", "*", -9, 2)).toBe("**😀😀");
+            expect(Str.mask("😀😀", "*", 5)).toBe("😀😀");
+        });
+
+        it("masks with the first character of an emoji mask", () => {
+            // docs/php-parity/Str/mask.json, "mask-astral-character"
+            expect(Str.mask("abcd", "🔒", 1)).toBe("a🔒🔒🔒");
+            expect(Str.mask("ab", "😀🎉", 0)).toBe("😀😀");
+        });
     });
 
     describe("match", () => {

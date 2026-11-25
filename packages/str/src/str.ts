@@ -890,27 +890,24 @@ export function mask(
         return value;
     }
 
-    const strlen = value.length;
+    const segment = substr(value, index, length);
+
+    if (segment === "") {
+        return value;
+    }
+
+    const strlen = Array.from(value).length;
     let startIndex = index;
 
     if (index < 0) {
         startIndex = index < -strlen ? 0 : strlen + index;
     }
 
-    const segment = value.slice(
-        startIndex,
-        length !== null ? startIndex + length : undefined,
-    );
+    const start = substr(value, 0, startIndex);
+    const segmentLen = Array.from(segment).length;
+    const end = substr(value, startIndex + segmentLen);
 
-    if (segment === "") {
-        return value;
-    }
-
-    const start = value.slice(0, startIndex);
-    const segmentLen = segment.length;
-    const end = value.slice(startIndex + segmentLen);
-
-    return start + character.slice(0, 1).repeat(segmentLen) + end;
+    return start + substr(character, 0, 1).repeat(segmentLen) + end;
 }
 
 /**
