@@ -1134,6 +1134,7 @@ export function numbers(value: string | string[]): string | string[] {
  * @param length - The desired total length after padding
  * @param pad - The string to use for padding
  * @returns The padded string
+ * @throws Error for an empty pad string when the value needs padding, as PHP's mb_str_pad() throws its ValueError
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#padboth
  */
@@ -1143,10 +1144,16 @@ export function padBoth(
     length: number,
     pad: string = " ",
 ): string {
-    const valueLength = value.length;
+    const valueLength = Array.from(value).length;
 
-    if (length <= valueLength || pad === "") {
+    if (length <= valueLength) {
         return value;
+    }
+
+    if (pad === "") {
+        throw new Error(
+            "mb_str_pad(): Argument #3 ($pad_string) must not be empty",
+        );
     }
 
     const total = length - valueLength;
@@ -1163,6 +1170,7 @@ export function padBoth(
  * @param length - The desired total length after padding
  * @param pad - The string to use for padding
  * @returns The padded string
+ * @throws Error for an empty pad string when the value needs padding, as PHP's mb_str_pad() throws its ValueError
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#padleft
  */
@@ -1172,10 +1180,16 @@ export function padLeft(
     length: number,
     pad: string = " ",
 ): string {
-    const valueLength = value.length;
+    const valueLength = Array.from(value).length;
 
-    if (length <= valueLength || pad === "") {
+    if (length <= valueLength) {
         return value;
+    }
+
+    if (pad === "") {
+        throw new Error(
+            "mb_str_pad(): Argument #3 ($pad_string) must not be empty",
+        );
     }
 
     const total = length - valueLength;
@@ -1191,6 +1205,7 @@ export function padLeft(
  * @param length - The desired total length after padding
  * @param pad - The string to use for padding
  * @returns The padded string
+ * @throws Error for an empty pad string when the value needs padding, as PHP's mb_str_pad() throws its ValueError
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#padright
  */
@@ -1200,10 +1215,16 @@ export function padRight(
     length: number,
     pad: string = " ",
 ): string {
-    const valueLength = value.length;
+    const valueLength = Array.from(value).length;
 
-    if (length <= valueLength || pad === "") {
+    if (length <= valueLength) {
         return value;
+    }
+
+    if (pad === "") {
+        throw new Error(
+            "mb_str_pad(): Argument #3 ($pad_string) must not be empty",
+        );
     }
 
     const total = length - valueLength;
@@ -1227,13 +1248,15 @@ export function padRight(
  */
 /* @__NO_SIDE_EFFECTS__ */
 export function makePad(padStr: string, needed: number): string {
-    if (needed <= 0 || padStr.length === 0) {
+    const chars = Array.from(padStr);
+
+    if (needed <= 0 || chars.length === 0) {
         return "";
     }
 
-    const repeatTimes = Math.ceil(needed / padStr.length);
+    const repeatTimes = Math.ceil(needed / chars.length);
 
-    return padStr.repeat(repeatTimes).slice(0, needed);
+    return Array.from(padStr.repeat(repeatTimes)).slice(0, needed).join("");
 }
 
 /**

@@ -2033,13 +2033,29 @@ describe("Str tests", () => {
 
     describe("padBoth", () => {
         it("Laravel tests", () => {
-            expect(Str.padBoth("Al", 10, "")).toBe("Al");
             expect(Str.padBoth("Alien", 10, "_")).toBe("__Alien___");
             expect(Str.padBoth("Alien", 10)).toBe("  Alien   ");
             expect(Str.padBoth("❤MultiByte☆", 16)).toBe("  ❤MultiByte☆   ");
             expect(Str.padBoth("❤MultiByte☆", 16, "❤☆")).toBe(
                 "❤☆❤MultiByte☆❤☆❤",
             );
+        });
+
+        it("pads by character, as mb_str_pad does", () => {
+            // docs/php-parity/Str/padBoth.json, "padBoth-astral"
+            expect(Str.padBoth("😀", 3, "-")).toBe("-😀-");
+            expect(Str.padBoth("😀", 4, "-")).toBe("-😀--");
+            expect(Str.padBoth("a", 5, "😀🎉")).toBe("😀🎉a😀🎉");
+            expect(Str.padBoth("a", 6, "😀🎉")).toBe("😀🎉a😀🎉😀");
+        });
+
+        it("throws for an empty pad string only when the value needs padding", () => {
+            // docs/php-parity/Str/padBoth.json, "padBoth-empty-pad"
+            expect(() => Str.padBoth("a", 3, "")).toThrow(
+                "mb_str_pad(): Argument #3 ($pad_string) must not be empty",
+            );
+            expect(Str.padBoth("abc", 2, "")).toBe("abc");
+            expect(Str.padBoth("abc", 3, "")).toBe("abc");
         });
 
         it("makePad with empty string", () => {
@@ -2055,14 +2071,32 @@ describe("Str tests", () => {
 
     describe("padLeft", () => {
         it("Laravel Tests", () => {
-            expect(Str.padLeft("Al", 2, "")).toBe("Al");
-            expect(Str.padLeft("Al", 10, "")).toBe("Al");
             expect(Str.padLeft("Alien", 10, "-=")).toBe("-=-=-Alien");
             expect(Str.padLeft("Alien", 10)).toBe("     Alien");
             expect(Str.padLeft("❤MultiByte☆", 16)).toBe("     ❤MultiByte☆");
             expect(Str.padLeft("❤MultiByte☆", 16, "❤☆")).toBe(
                 "❤☆❤☆❤❤MultiByte☆",
             );
+        });
+
+        it("pads by character, as mb_str_pad does", () => {
+            // docs/php-parity/Str/padLeft.json, "padLeft-astral"
+            expect(Str.padLeft("😀", 3, "-")).toBe("--😀");
+            expect(Str.padLeft("a", 4, "😀🎉")).toBe("😀🎉😀a");
+        });
+
+        it("throws for an empty pad string only when the value needs padding", () => {
+            // docs/php-parity/Str/padLeft.json, "padLeft-empty-pad"
+            expect(() => Str.padLeft("a", 3, "")).toThrow(
+                "mb_str_pad(): Argument #3 ($pad_string) must not be empty",
+            );
+            expect(Str.padLeft("abc", 2, "")).toBe("abc");
+            expect(Str.padLeft("abc", -1, "")).toBe("abc");
+        });
+
+        it("pads a lone surrogate as one character", () => {
+            // JS-only: a PHP string cannot hold half a surrogate pair.
+            expect(Str.padLeft("\uD83D", 2, "-")).toBe("-\uD83D");
         });
 
         it("makePad with empty string", () => {
@@ -2078,8 +2112,6 @@ describe("Str tests", () => {
 
     describe("padRight", () => {
         it("Laravel tests", () => {
-            expect(Str.padRight("Al", 2, "")).toBe("Al");
-            expect(Str.padRight("Al", 10, "")).toBe("Al");
             expect(Str.padRight("Alien", 10, "-=")).toBe("Alien-=-=-");
             expect(Str.padRight("Alien", 10)).toBe("Alien     ");
             expect(Str.padRight("❤MultiByte☆", 16)).toBe("❤MultiByte☆     ");
@@ -2090,6 +2122,21 @@ describe("Str tests", () => {
             // Test when length equals or is less than value length
             expect(Str.padRight("Alien", 5)).toBe("Alien");
             expect(Str.padRight("Alien", 3)).toBe("Alien");
+        });
+
+        it("pads by character, as mb_str_pad does", () => {
+            // docs/php-parity/Str/padRight.json, "padRight-astral"
+            expect(Str.padRight("😀", 3, "-")).toBe("😀--");
+            expect(Str.padRight("a", 4, "😀🎉")).toBe("a😀🎉😀");
+        });
+
+        it("throws for an empty pad string only when the value needs padding", () => {
+            // docs/php-parity/Str/padRight.json, "padRight-empty-pad"
+            expect(() => Str.padRight("a", 3, "")).toThrow(
+                "mb_str_pad(): Argument #3 ($pad_string) must not be empty",
+            );
+            expect(Str.padRight("abc", 2, "")).toBe("abc");
+            expect(Str.padRight("abc", -1, "")).toBe("abc");
         });
 
         it("makePad with empty string", () => {
@@ -4647,6 +4694,11 @@ describe("Str tests", () => {
     });
 
     describe("makePad", () => {
+        it("repeats and cuts the pad by character", () => {
+            // JS-only: makePad has no Laravel counterpart; it repeats and cuts the pad as mb_str_pad does.
+            expect(Str.makePad("😀🎉", 3)).toBe("😀🎉😀");
+        });
+
         it("makePad with empty pad string", () => {
             // Empty pad string should return empty string
             expect(Str.makePad("", 10)).toBe("");

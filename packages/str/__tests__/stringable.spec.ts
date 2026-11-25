@@ -1007,6 +1007,11 @@ describe("Stringable basic delegation", () => {
             );
         });
 
+        it("pads by character", () => {
+            // docs/php-parity/Str/padLeft.json, "padLeft-astral"
+            expect(Str.of("😀").padLeft(3, "-").toString()).toBe("--😀");
+        });
+
         it("padLeft with default pad parameter", () => {
             const s = Str.of("hi");
             expect(s.padLeft(4).toString()).toBe("  hi");
@@ -1019,6 +1024,13 @@ describe("Stringable basic delegation", () => {
             expectEqual(
                 Str.padRight(input, 8, "-"),
                 Str.of(input).padRight(8, "-"),
+            );
+        });
+
+        it("throws for an empty pad string", () => {
+            // docs/php-parity/Str/padRight.json, "padRight-empty-pad"
+            expect(() => Str.of("a").padRight(3, "")).toThrow(
+                "mb_str_pad(): Argument #3 ($pad_string) must not be empty",
             );
         });
 

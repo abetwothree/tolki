@@ -1,0 +1,28 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "padLeft-astral",
+            "php": "Str::padLeft('\ud83d\ude00', 3, '-') and Str::padLeft('a', 4, '\ud83d\ude00\ud83c\udf89')",
+            "value": [
+                "--\ud83d\ude00",
+                "\ud83d\ude00\ud83c\udf89\ud83d\ude00a"
+            ]
+        },
+        {
+            "label": "padLeft-empty-pad",
+            "php": "Str::padLeft('a', 3, ''), Str::padLeft('abc', 2, '') and Str::padLeft('abc', -1, '')",
+            "value": [
+                [
+                    "ValueError",
+                    "mb_str_pad(): Argument #3 ($pad_string) must not be empty"
+                ],
+                "abc",
+                "abc"
+            ]
+        }
+    ]
+}

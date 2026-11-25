@@ -1,0 +1,30 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "padBoth-astral",
+            "php": "Str::padBoth('\ud83d\ude00', 3 and 4, '-') and Str::padBoth('a', 5 and 6, '\ud83d\ude00\ud83c\udf89')",
+            "value": [
+                "-\ud83d\ude00-",
+                "-\ud83d\ude00--",
+                "\ud83d\ude00\ud83c\udf89a\ud83d\ude00\ud83c\udf89",
+                "\ud83d\ude00\ud83c\udf89a\ud83d\ude00\ud83c\udf89\ud83d\ude00"
+            ]
+        },
+        {
+            "label": "padBoth-empty-pad",
+            "php": "Str::padBoth('a', 3, ''), Str::padBoth('abc', 2, '') and Str::padBoth('abc', 3, '')",
+            "value": [
+                [
+                    "ValueError",
+                    "mb_str_pad(): Argument #3 ($pad_string) must not be empty"
+                ],
+                "abc",
+                "abc"
+            ]
+        }
+    ]
+}
