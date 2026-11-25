@@ -1,0 +1,19 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "length-astral",
+            "php": "Str::length() of '\ud83d\ude00\ud83d\ude00\ud83d\ude00', '\ud835\udcb3', \"e\u0301\", the ZWJ family emoji and ''",
+            "value": [
+                3,
+                1,
+                2,
+                5,
+                0
+            ]
+        }
+    ]
+}

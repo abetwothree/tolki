@@ -134,6 +134,12 @@ describe("Str tests", () => {
             expect(Str.beforeLast("laravel framework", " ")).toBe("laravel");
             expect(Str.beforeLast("yvette\tyv0et0te", "\t")).toBe("yvette");
         });
+
+        it("cuts before the last match when emoji come first", () => {
+            // docs/php-parity/Str/beforeLast.json, "beforeLast-astral"
+            expect(Str.beforeLast("😀a😀b", "b")).toBe("😀a😀");
+            expect(Str.beforeLast("😀a😀b", "😀")).toBe("😀a");
+        });
     });
 
     describe("between", () => {
@@ -152,6 +158,12 @@ describe("Str tests", () => {
             expect(Str.between("12345", 1, 5)).toBe("234");
             expect(Str.between("123456789", "123", "6789")).toBe("45");
             expect(Str.between("nothing", "foo", "bar")).toBe("nothing");
+        });
+
+        it("keeps the emoji between the markers", () => {
+            // docs/php-parity/Str/between.json, "between-astral"
+            expect(Str.between("😀a😀b😀", "😀", "😀")).toBe("a😀b");
+            expect(Str.between("😀a😀b😀", "a", "😀")).toBe("😀b");
         });
     });
 
@@ -219,6 +231,21 @@ describe("Str tests", () => {
             expect(Str.charAt("「こんにちは世界」", -2)).toBe("界");
             expect(Str.charAt("「こんにちは世界」", -200)).toBe(false);
             expect(Str.charAt("Привет, мир!", 100)).toBe(false);
+        });
+
+        it("indexes by character, as mb_substr does", () => {
+            // docs/php-parity/Str/charAt.json, "charAt-astral"
+            expect(Str.charAt("😀a", 1)).toBe("a");
+            expect(Str.charAt("😀a", 0)).toBe("😀");
+            expect(Str.charAt("😀a", -2)).toBe("😀");
+            expect(Str.charAt("😀a", 2)).toBe(false);
+            expect(Str.charAt("😀a", -3)).toBe(false);
+            expect(Str.charAt("", 0)).toBe(false);
+        });
+
+        it("returns a lone surrogate whole", () => {
+            // JS-only: a PHP string cannot hold half a surrogate pair.
+            expect(Str.charAt("a\uD83D", 1)).toBe("\uD83D");
         });
     });
 
@@ -944,6 +971,12 @@ describe("Str tests", () => {
             expect(Str.unwrap("foo-bar-baz", "foo-", "-baz")).toBe("bar");
             expect(Str.unwrap('{some: "json"}', "{", "}")).toBe('some: "json"');
         });
+
+        it("unwraps emoji wrappers", () => {
+            // docs/php-parity/Str/unwrap.json, "unwrap-astral"
+            expect(Str.unwrap("😀x😀", "😀")).toBe("x");
+            expect(Str.unwrap("😀[x]😀", "😀[", "]😀")).toBe("x");
+        });
     });
 
     describe("is", () => {
@@ -1172,6 +1205,24 @@ describe("Str tests", () => {
             expect(Str.length("foo bar baz")).toBe(11);
             expect(Str.length("Hello こんにちは")).toBe(11);
         });
+
+        it("counts characters, not UTF-16 code units, as mb_strlen does", () => {
+            // docs/php-parity/Str/length.json, "length-astral"
+            expect(Str.length("😀😀😀")).toBe(3);
+            expect(Str.length("𝒳")).toBe(1);
+            expect(Str.length("é")).toBe(2);
+            expect(Str.length("\u{1F468}‍\u{1F469}‍\u{1F467}")).toBe(5);
+            expect(Str.length("")).toBe(0);
+        });
+
+        it("counts a lone surrogate as one character", () => {
+            // JS-only: a PHP string cannot hold half a surrogate pair.
+            expect(Str.length("\uD83D")).toBe(1);
+        });
+
+        it("stays fast on a long string", () => {
+            expect(Str.length("😀".repeat(500_000))).toBe(500_000);
+        }, 2000);
     });
 
     describe("limit", () => {

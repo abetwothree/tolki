@@ -132,7 +132,7 @@ export function beforeLast(subject: string, search: string | number): string {
         return subject;
     }
 
-    return substr(subject, 0, pos);
+    return subject.slice(0, pos);
 }
 
 /**
@@ -213,18 +213,19 @@ export function camel(value: string): string {
  */
 /* @__NO_SIDE_EFFECTS__ */
 export function charAt(subject: string, index: number): string | false {
-    const length = subject.length;
+    const characters = Array.from(subject);
+    const count = characters.length;
 
-    if (index < 0 ? index < -length : index > length - 1) {
+    if (index < 0 ? index < -count : index > count - 1) {
         return false;
     }
 
     // if index is a negative number, we need to adjust it
     if (index < 0) {
-        index += length;
+        index += count;
     }
 
-    return subject.charAt(index);
+    return characters[index] as string;
 }
 
 /**
@@ -766,13 +767,19 @@ export function kebab(value: string): string {
  * Return the length of the given string.
  *
  * @param value - The string to measure
- * @returns The length of the string
+ * @returns The number of Unicode code points in the string
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#length
  */
 /* @__NO_SIDE_EFFECTS__ */
 export function length(value: string): number {
-    return value.length;
+    let count = 0;
+
+    for (const _ of value) {
+        count++;
+    }
+
+    return count;
 }
 
 /**

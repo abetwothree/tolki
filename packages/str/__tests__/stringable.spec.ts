@@ -1430,6 +1430,10 @@ describe("Stringable basic delegation", () => {
             const input = "Hello brave new world";
             expect(Str.of(input).length()).toBe(Str.length(input));
         });
+
+        it("counts an emoji as one character", () => {
+            expect(Str.of("😀😀😀").length()).toBe(3);
+        });
     });
 
     describe("wordCount", () => {
