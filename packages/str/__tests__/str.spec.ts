@@ -2367,7 +2367,6 @@ describe("Str tests", () => {
 
     describe("position", () => {
         it("Laravel tests", () => {
-            expect(Str.position("Hello, World!", "")).toBe(false);
             expect(Str.position("Hello, World!", "W")).toBe(7);
             expect(Str.position("Hello, World!", "world!", 0)).toBe(false);
             expect(Str.position("This is a test string.", "test")).toBe(10);
@@ -2387,19 +2386,41 @@ describe("Str tests", () => {
             expect(Str.position("", "test")).toBe(false);
         });
 
-        it("position with offset beyond haystack length", () => {
-            // Test position when start >= haystack length
-            expect(Str.position("hello", "l", 10)).toBe(false);
-            expect(Str.position("hello", "l", 100)).toBe(false);
-            // Test position with negative offset
-            expect(Str.position("hello", "l", -2)).toBe(3);
+        it("counts by character", () => {
+            // docs/php-parity/Str/position.json, "position-astral"
+            expect(Str.position("😀a", "a")).toBe(1);
+            expect(Str.position("😀😀a", "a", -1)).toBe(2);
+            expect(Str.position("😀😀", "", 2)).toBe(2);
         });
 
-        it("position with various offsets", () => {
-            // Test position with start < 0 after calculation
-            expect(Str.position("hello", "l", -10)).toBe(2);
-            // Test position with start >= haystack.length
+        it("returns the offset for an empty needle, as mb_strpos does", () => {
+            // docs/php-parity/Str/position.json, "position-empty-needle"
+            expect(Str.position("Hello, World!", "")).toBe(0);
+            expect(Str.position("abc", "", -1)).toBe(2);
+            expect(Str.position("abc", "", 3)).toBe(3);
+            expect(Str.position("", "")).toBe(0);
+        });
+
+        it("throws for an offset outside the haystack, as mb_strpos does", () => {
+            const message =
+                "mb_strpos(): Argument #3 ($offset) must be contained in argument #1 ($haystack)";
+
+            // docs/php-parity/Str/position.json, "position-offset-bounds"
+            expect(Str.position("abc", "a", 3)).toBe(false);
+            expect(Str.position("abc", "c", -1)).toBe(2);
+            expect(Str.position("abc", "a", -3)).toBe(0);
             expect(Str.position("hello", "l", 5)).toBe(false);
+            expect(Str.position("", "a", 0)).toBe(false);
+            expect(() => Str.position("abc", "a", 10)).toThrow(message);
+            expect(() => Str.position("abc", "a", -4)).toThrow(message);
+            expect(() => Str.position("hello", "l", -10)).toThrow(message);
+            expect(() => Str.position("", "a", 1)).toThrow(message);
+            expect(() => Str.position("😀😀", "", 3)).toThrow(message);
+        });
+
+        it("finds a match from a negative offset inside the haystack", () => {
+            // docs/php-parity/Str/position.json, "position-offset-bounds"
+            expect(Str.position("hello", "l", -2)).toBe(3);
         });
     });
 

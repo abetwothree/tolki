@@ -521,13 +521,21 @@ export class Stringable {
      * @param pattern - The regex pattern or length to split the string by.
      * @param limit - The maximum number of splits to perform. Defaults to null (no limit).
      * @returns An array of strings obtained by splitting the original string.
+     * @throws Error If a length below 1 is given, as mb_str_split() does
      */
     split(pattern: string | number, limit: number | null = null) {
         if (isInteger(pattern)) {
             const length = Number(pattern);
+            if (length < 1) {
+                throw new Error(
+                    "mb_str_split(): Argument #2 ($length) must be greater than 0",
+                );
+            }
+
+            const points = Array.from(this._value);
             const result: string[] = [];
-            for (let i = 0; i < this._value.length; i += length) {
-                result.push(this._value.substr(i, length));
+            for (let i = 0; i < points.length; i += length) {
+                result.push(points.slice(i, i + length).join(""));
             }
 
             return result;

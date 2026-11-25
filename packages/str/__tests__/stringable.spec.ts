@@ -320,6 +320,23 @@ describe("Stringable basic delegation", () => {
     });
 
     describe("split", () => {
+        it("splits by character, as mb_str_split does", () => {
+            // docs/php-parity/Stringable/split.json, "split-length-astral"
+            expect(Str.of("😀a😀").split(1)).toEqual(["😀", "a", "😀"]);
+            expect(Str.of("😀a😀b").split(2)).toEqual(["😀a", "😀b"]);
+            expect(Str.of("😀😀😀").split(2)).toEqual(["😀😀", "😀"]);
+            expect(Str.of("").split(1)).toEqual([]);
+        });
+
+        it("throws for a length below 1", () => {
+            // docs/php-parity/Stringable/split.json, "split-length-below-one"
+            const message =
+                "mb_str_split(): Argument #2 ($length) must be greater than 0";
+
+            expect(() => Str.of("abc").split(0)).toThrow(message);
+            expect(() => Str.of("abc").split(-1)).toThrow(message);
+        });
+
         it("test split by chunk length", () => {
             // Integer pattern splits string into chunks of specified length
             expect(Str.of("foobarbaz").split(3)).toEqual(["foo", "bar", "baz"]);
@@ -407,6 +424,13 @@ describe("Stringable basic delegation", () => {
         it("Laravel tests", () => {
             const input = "hello";
             expect(Str.position(input, "e")).toBe(Str.of(input).position("e"));
+        });
+
+        it("throws for an offset outside the string", () => {
+            // docs/php-parity/Str/position.json, "position-offset-bounds"
+            expect(() => Str.of("abc").position("a", 10)).toThrow(
+                "mb_strpos(): Argument #3 ($offset) must be contained in argument #1 ($haystack)",
+            );
         });
     });
 

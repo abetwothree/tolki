@@ -1428,6 +1428,7 @@ function shuffled<TItem>(items: readonly TItem[]): TItem[] {
  * @param needle - The substring to search for
  * @param offset - The position to start searching from (can be negative)
  * @returns The position of the first occurrence or false if not found
+ * @throws Error If the offset is outside the haystack, as mb_strpos() does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#position
  */
@@ -1437,21 +1438,18 @@ export function position(
     needle: string,
     offset: number = 0,
 ): number | false {
-    // PHP mb_strpos compatibility (code point based):
-    // - Returns the position of first occurrence (in characters)
-    // - Returns false if not found or needle is empty
-    // - Negative offset counts from end
-    if (needle === "") {
-        return false;
-    }
-
     const haystackPoints = Array.from(haystack);
     const needlePoints = Array.from(needle);
 
-    let start = offset >= 0 ? offset : haystackPoints.length + offset;
-    if (start < 0) start = 0;
-    if (start >= haystackPoints.length) {
-        return false;
+    const start = offset >= 0 ? offset : haystackPoints.length + offset;
+    if (start < 0 || start > haystackPoints.length) {
+        throw new Error(
+            "mb_strpos(): Argument #3 ($offset) must be contained in argument #1 ($haystack)",
+        );
+    }
+
+    if (needle === "") {
+        return start;
     }
 
     const lastStart = haystackPoints.length - needlePoints.length;

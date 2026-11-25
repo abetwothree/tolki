@@ -1,0 +1,108 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "position-astral",
+            "php": "Str::position('\ud83d\ude00a', 'a'), Str::position('\ud83d\ude00\ud83d\ude00a', 'a', -1) and Str::position('\ud83d\ude00\ud83d\ude00', '', 2)",
+            "value": [
+                1,
+                2,
+                2
+            ]
+        },
+        {
+            "label": "position-empty-needle",
+            "php": "Str::position() of '' in 'Hello, World!', in 'abc' from -1 and from 3, and in ''",
+            "value": [
+                0,
+                2,
+                3,
+                0
+            ]
+        },
+        {
+            "label": "position-offset-bounds",
+            "php": "Str::position() at the edges, recorded as [haystack, needle, offset, result]",
+            "value": [
+                [
+                    "abc",
+                    "a",
+                    3,
+                    false
+                ],
+                [
+                    "abc",
+                    "c",
+                    -1,
+                    2
+                ],
+                [
+                    "abc",
+                    "a",
+                    -3,
+                    0
+                ],
+                [
+                    "hello",
+                    "l",
+                    5,
+                    false
+                ],
+                [
+                    "",
+                    "a",
+                    0,
+                    false
+                ],
+                [
+                    "abc",
+                    "a",
+                    10,
+                    [
+                        "ValueError",
+                        "mb_strpos(): Argument #3 ($offset) must be contained in argument #1 ($haystack)"
+                    ]
+                ],
+                [
+                    "abc",
+                    "a",
+                    -4,
+                    [
+                        "ValueError",
+                        "mb_strpos(): Argument #3 ($offset) must be contained in argument #1 ($haystack)"
+                    ]
+                ],
+                [
+                    "hello",
+                    "l",
+                    -10,
+                    [
+                        "ValueError",
+                        "mb_strpos(): Argument #3 ($offset) must be contained in argument #1 ($haystack)"
+                    ]
+                ],
+                [
+                    "",
+                    "a",
+                    1,
+                    [
+                        "ValueError",
+                        "mb_strpos(): Argument #3 ($offset) must be contained in argument #1 ($haystack)"
+                    ]
+                ],
+                [
+                    "\ud83d\ude00\ud83d\ude00",
+                    "",
+                    3,
+                    [
+                        "ValueError",
+                        "mb_strpos(): Argument #3 ($offset) must be contained in argument #1 ($haystack)"
+                    ]
+                ]
+            ]
+        }
+    ]
+}
