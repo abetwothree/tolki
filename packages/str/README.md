@@ -770,6 +770,8 @@ const result = length("Tolki JS");
 // result is 8
 ```
 
+Characters are Unicode code points, as PHP's mb_strlen counts them, so an emoji counts as one.
+
 #### limit
 
 Limit the number of characters in a string.
