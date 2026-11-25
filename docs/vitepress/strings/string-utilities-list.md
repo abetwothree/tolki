@@ -1098,7 +1098,7 @@ const result = length("Tolki JS");
 // result is 8
 ```
 
-Characters are Unicode code points, as PHP's mb_strlen counts them, so an emoji counts as one.
+Characters are Unicode code points, as PHP's `mb_strlen` counts them, so an emoji counts as one.
 
 <FnTry
   :fn="length"
@@ -1119,7 +1119,7 @@ const result = limit("The quick brown fox jumps over the lazy dog", 20);
 // result is "The quick brown fox..."
 ```
 
-The limit is a display width, as in Laravel: wide characters such as emoji and Chinese, Japanese or Korean characters count as two, so limit("😀😀😀", 4) gives "😀😀...".
+The limit is a display width, as in Laravel: wide characters such as emoji and Chinese, Japanese or Korean characters count as two, so `limit("😀😀😀", 4)` gives `"😀😀..."`. A negative limit past the string's full width throws, as it does in PHP.
 
 You may pass a third argument to specify the string to append to the truncated string (defaults to an ellipsis):
 

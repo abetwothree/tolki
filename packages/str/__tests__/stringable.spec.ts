@@ -1468,6 +1468,7 @@ describe("Stringable basic delegation", () => {
         });
 
         it("counts an emoji as one character", () => {
+            // docs/php-parity/Str/length.json, "length-astral"
             expect(Str.of("😀😀😀").length()).toBe(3);
         });
     });
