@@ -661,6 +661,7 @@ export class Stringable {
      * @param preserveWords - Whether to avoid cutting off in the middle of a word.
      * @returns A new Stringable instance with the limited string.
      * @throws Error for a negative limit past the string's full width, as PHP's mb_strimwidth() throws its ValueError.
+     * @throws TypeError for a NaN limit, as PHP's mb_strimwidth() does.
      */
     limit(limitValue = 100, end = "...", preserveWords = false): Stringable {
         return new Stringable(

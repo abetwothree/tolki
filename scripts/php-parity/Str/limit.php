@@ -27,4 +27,7 @@ probe('limit-zero-and-negative', "Str::limit('abc', 0), ('abc', -1), ('😀😀�
 probe('limit-negative-past-width', "Str::limit() of ('abc', -3), ('abc', -4), ('😀😀', -4), ('😀😀', -5), ('abc d', -6, '...', true) and ('ab c d', -2, '...', true), each value or what it throws, with PHP's deprecations", fn () => withDeprecations(fn () => array_map(fn (array $c) => attempt(fn () => Str::limit(...$c)), [['abc', -3], ['abc', -4], ['😀😀', -4], ['😀😀', -5], ['abc d', -6, '...', true], ['ab c d', -2, '...', true]])));
 probe('limit-wide-cut-edges', "Str::limit('a😀😀', 4), and Str::limit(str_repeat('😀', 200000), 100000) === str_repeat('😀', 50000).'...'", fn () => [Str::limit('a😀😀', 4), Str::limit(str_repeat('😀', 200000), 100000) === str_repeat('😀', 50000) . '...']);
 
+probe('limit-fractional-width', "Str::limit() of ('abc', -0.5), ('abc', 2.5), ('abc', -3.5), ('ab c d', 2.5, '...', true) and ('😀😀😀', 3.5), with PHP's deprecations", fn () => withDeprecations(fn () => [Str::limit('abc', -0.5), Str::limit('abc', 2.5), Str::limit('abc', -3.5), Str::limit('ab c d', 2.5, '...', true), Str::limit('😀😀😀', 3.5)]));
+probe('limit-non-finite-width', "What Str::limit('abc', NAN) throws, and Str::limit('abc', INF)", fn () => [attempt(fn () => Str::limit('abc', NAN)), Str::limit('abc', INF)]);
+
 emit();

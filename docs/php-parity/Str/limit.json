@@ -108,6 +108,39 @@
                 "a\ud83d\ude00...",
                 true
             ]
+        },
+        {
+            "label": "limit-fractional-width",
+            "php": "Str::limit() of ('abc', -0.5), ('abc', 2.5), ('abc', -3.5), ('ab c d', 2.5, '...', true) and ('\ud83d\ude00\ud83d\ude00\ud83d\ude00', 3.5), with PHP's deprecations",
+            "value": {
+                "result": [
+                    "...",
+                    "ab...",
+                    "...",
+                    "ab...",
+                    "\ud83d\ude00..."
+                ],
+                "deprecations": [
+                    "Implicit conversion from float -0.5 to int loses precision",
+                    "Implicit conversion from float 2.5 to int loses precision",
+                    "Implicit conversion from float -3.5 to int loses precision",
+                    "mb_strimwidth(): passing a negative integer to argument #3 ($width) is deprecated",
+                    "Implicit conversion from float 2.5 to int loses precision",
+                    "Implicit conversion from float 2.5 to int loses precision",
+                    "Implicit conversion from float 3.5 to int loses precision"
+                ]
+            }
+        },
+        {
+            "label": "limit-non-finite-width",
+            "php": "What Str::limit('abc', NAN) throws, and Str::limit('abc', INF)",
+            "value": [
+                [
+                    "TypeError",
+                    "mb_strimwidth(): Argument #3 ($width) must be of type int, float given"
+                ],
+                "abc"
+            ]
         }
     ]
 }

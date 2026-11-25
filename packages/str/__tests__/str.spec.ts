@@ -1281,6 +1281,25 @@ describe("Str tests", () => {
     });
 
     describe("limit", () => {
+        it("truncates a fractional limit toward zero, as PHP's int parameter does", () => {
+            // docs/php-parity/Str/limit.json, "limit-fractional-width"
+            expect(Str.limit("abc", -0.5)).toBe("...");
+            expect(Str.limit("abc", 2.5)).toBe("ab...");
+            expect(Str.limit("abc", -3.5)).toBe("...");
+            expect(Str.limit("ab c d", 2.5, "...", true)).toBe("ab...");
+            expect(Str.limit("😀😀😀", 3.5)).toBe("😀...");
+        });
+
+        it("throws PHP's TypeError for a NaN limit, and keeps the string for an infinite one", () => {
+            // docs/php-parity/Str/limit.json, "limit-non-finite-width"
+            expect(() => Str.limit("abc", Number.NaN)).toThrow(
+                new TypeError(
+                    "mb_strimwidth(): Argument #3 ($width) must be of type int, float given",
+                ),
+            );
+            expect(Str.limit("abc", Infinity)).toBe("abc");
+        });
+
         it("limit", () => {
             expect(
                 Str.limit(

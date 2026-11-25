@@ -804,6 +804,7 @@ export function length(value: string): number {
  * @param preserveWords - Whether to preserve whole words when truncating
  * @returns The limited string
  * @throws Error for a negative limit past the string's full width, as PHP's mb_strimwidth() throws its ValueError
+ * @throws TypeError for a NaN limit, as PHP's mb_strimwidth() does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#limit
  */

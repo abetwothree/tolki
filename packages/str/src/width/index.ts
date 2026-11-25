@@ -1,3 +1,5 @@
+import { phpIntArgument } from "@tolki/utils";
+
 // mb_strwidth()'s wide runs, transcribed from docs/php-parity/Php/mb_strwidth.json, "mb_strwidth-wide-ranges".
 export const WIDE_RANGES: readonly (readonly [number, number])[] = [
     [0x1100, 0x115f],
@@ -176,10 +178,15 @@ export function strWidth(value: string): number {
  * @param width - The widest result; a negative width counts back from the string's full width.
  * @returns The longest prefix that fits in the width, never splitting a character.
  * @throws Error for a negative width past the string's full width, as PHP's mb_strimwidth() throws its ValueError.
+ * @throws TypeError for a NaN or infinite width, as PHP's mb_strimwidth() does.
  */
 /* @__NO_SIDE_EFFECTS__ */
 export function strimWidth(value: string, width: number): string {
-    const limit = width < 0 ? strWidth(value) + width : width;
+    const requested = phpIntArgument(
+        width,
+        "mb_strimwidth(): Argument #3 ($width) must be of type int, float given",
+    );
+    const limit = requested < 0 ? strWidth(value) + requested : requested;
 
     if (limit < 0) {
         throw new Error(

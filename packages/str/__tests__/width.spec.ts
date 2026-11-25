@@ -50,6 +50,22 @@ describe("strWidth", () => {
 });
 
 describe("strimWidth", () => {
+    it("truncates a fractional width toward zero before counting back", () => {
+        // docs/php-parity/Str/limit.json, "limit-fractional-width"
+        expect(strimWidth("abc", -0.5)).toBe("");
+        expect(strimWidth("abc", 2.5)).toBe("ab");
+        expect(strimWidth("abc", -3.5)).toBe("");
+    });
+
+    it("throws PHP's TypeError for a NaN width", () => {
+        // docs/php-parity/Str/limit.json, "limit-non-finite-width"
+        expect(() => strimWidth("abc", Number.NaN)).toThrow(
+            new TypeError(
+                "mb_strimwidth(): Argument #3 ($width) must be of type int, float given",
+            ),
+        );
+    });
+
     it("keeps the longest prefix that fits, never splitting a wide character", () => {
         // docs/php-parity/Str/limit.json, "limit-astral", "limit-zero-and-negative"
         expect(strimWidth("😀😀😀", 3)).toBe("😀");
