@@ -1132,6 +1132,8 @@ const result2 = position("Hello, World!", "W");
 // result2 is 7
 ```
 
+Positions count characters, so an emoji counts as one. An empty needle returns the offset, and an offset outside the string throws, as in PHP.
+
 #### random
 
 Generate a more truly "random" alpha-numeric string.
