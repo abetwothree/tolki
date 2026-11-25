@@ -1252,9 +1252,13 @@ function paddingNeeded(value: string, length: number, pad: string): number {
  */
 /* @__NO_SIDE_EFFECTS__ */
 export function makePad(padStr: string, needed: number): string {
+    if (needed <= 0) {
+        return "";
+    }
+
     const chars = Array.from(padStr);
 
-    if (needed <= 0 || chars.length === 0) {
+    if (chars.length === 0) {
         return "";
     }
 
