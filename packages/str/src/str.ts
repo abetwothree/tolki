@@ -791,6 +791,7 @@ export function length(value: string): number {
  * @param end - The string to append if the value is truncated
  * @param preserveWords - Whether to preserve whole words when truncating
  * @returns The limited string
+ * @throws Error for a negative limit past the string's full width, as PHP's mb_strimwidth() throws its ValueError
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#limit
  */

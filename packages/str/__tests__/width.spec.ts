@@ -53,13 +53,24 @@ describe("strimWidth", () => {
     it("keeps the longest prefix that fits, never splitting a wide character", () => {
         // docs/php-parity/Str/limit.json, "limit-astral", "limit-zero-and-negative"
         expect(strimWidth("😀😀😀", 3)).toBe("😀");
-        expect(strimWidth("a😀😀", 4)).toBe("a😀");
         expect(strimWidth("abc", 0)).toBe("");
+
+        // docs/php-parity/Str/limit.json, "limit-wide-cut-edges"
+        expect(strimWidth("a😀😀", 4)).toBe("a😀");
     });
 
     it("counts a negative width back from the full width", () => {
         // docs/php-parity/Str/limit.json, "limit-zero-and-negative"
         expect(strimWidth("😀😀😀", -1)).toBe("😀😀");
         expect(strimWidth("abc", -1)).toBe("ab");
+    });
+
+    it("throws for a negative width past the full width", () => {
+        const message = "mb_strimwidth(): Argument #3 ($width) is out of range";
+
+        // docs/php-parity/Str/limit.json, "limit-negative-past-width"
+        expect(() => strimWidth("abc", -4)).toThrow(message);
+        expect(() => strimWidth("😀😀", -5)).toThrow(message);
+        expect(strimWidth("abc", -3)).toBe("");
     });
 });

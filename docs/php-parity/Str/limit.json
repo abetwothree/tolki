@@ -69,6 +69,45 @@
                     "mb_strimwidth(): passing a negative integer to argument #3 ($width) is deprecated"
                 ]
             }
+        },
+        {
+            "label": "limit-negative-past-width",
+            "php": "Str::limit() of ('abc', -3), ('abc', -4), ('\ud83d\ude00\ud83d\ude00', -4), ('\ud83d\ude00\ud83d\ude00', -5), ('abc d', -6, '...', true) and ('ab c d', -2, '...', true), each value or what it throws, with PHP's deprecations",
+            "value": {
+                "result": [
+                    "...",
+                    [
+                        "ValueError",
+                        "mb_strimwidth(): Argument #3 ($width) is out of range"
+                    ],
+                    "...",
+                    [
+                        "ValueError",
+                        "mb_strimwidth(): Argument #3 ($width) is out of range"
+                    ],
+                    [
+                        "ValueError",
+                        "mb_strimwidth(): Argument #3 ($width) is out of range"
+                    ],
+                    "ab c..."
+                ],
+                "deprecations": [
+                    "mb_strimwidth(): passing a negative integer to argument #3 ($width) is deprecated",
+                    "mb_strimwidth(): passing a negative integer to argument #3 ($width) is deprecated",
+                    "mb_strimwidth(): passing a negative integer to argument #3 ($width) is deprecated",
+                    "mb_strimwidth(): passing a negative integer to argument #3 ($width) is deprecated",
+                    "mb_strimwidth(): passing a negative integer to argument #3 ($width) is deprecated",
+                    "mb_strimwidth(): passing a negative integer to argument #3 ($width) is deprecated"
+                ]
+            }
+        },
+        {
+            "label": "limit-wide-cut-edges",
+            "php": "Str::limit('a\ud83d\ude00\ud83d\ude00', 4), and Str::limit(str_repeat('\ud83d\ude00', 200000), 100000) === str_repeat('\ud83d\ude00', 50000).'...'",
+            "value": [
+                "a\ud83d\ude00...",
+                true
+            ]
         }
     ]
 }

@@ -1317,6 +1317,8 @@ describe("Str tests", () => {
             expect(Str.limit("a😀", 2)).toBe("a...");
             expect(Str.limit("𝒳𝒳𝒳", 2)).toBe("𝒳𝒳...");
             expect(Str.limit("héllo wörld", 7)).toBe("héllo w...");
+
+            // docs/php-parity/Str/limit.json, "limit-wide-cut-edges"
             expect(Str.limit("a😀😀", 4)).toBe("a😀...");
 
             // docs/php-parity/Str/limit.json, "limit-laravel-cjk"
@@ -1340,8 +1342,21 @@ describe("Str tests", () => {
             expect(Str.limit("abc d", -1, "...", true)).toBe("abc...");
         });
 
+        it("throws for a negative limit past the full width, as mb_strimwidth does", () => {
+            const message =
+                "mb_strimwidth(): Argument #3 ($width) is out of range";
+
+            // docs/php-parity/Str/limit.json, "limit-negative-past-width"
+            expect(Str.limit("abc", -3)).toBe("...");
+            expect(() => Str.limit("abc", -4)).toThrow(message);
+            expect(Str.limit("😀😀", -4)).toBe("...");
+            expect(() => Str.limit("😀😀", -5)).toThrow(message);
+            expect(() => Str.limit("abc d", -6, "...", true)).toThrow(message);
+            expect(Str.limit("ab c d", -2, "...", true)).toBe("ab c...");
+        });
+
         it("stays fast on a long emoji string", () => {
-            // docs/php-parity/Str/limit.json, "limit-astral"
+            // docs/php-parity/Str/limit.json, "limit-wide-cut-edges"
             expect(Str.limit("😀".repeat(200_000), 100_000)).toBe(
                 `${"😀".repeat(50_000)}...`,
             );

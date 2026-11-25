@@ -175,10 +175,18 @@ export function strWidth(value: string): number {
  * @param value - The string to cut.
  * @param width - The widest result; a negative width counts back from the string's full width.
  * @returns The longest prefix that fits in the width, never splitting a character.
+ * @throws Error for a negative width past the string's full width, as PHP's mb_strimwidth() throws its ValueError.
  */
 /* @__NO_SIDE_EFFECTS__ */
 export function strimWidth(value: string, width: number): string {
     const limit = width < 0 ? strWidth(value) + width : width;
+
+    if (limit < 0) {
+        throw new Error(
+            "mb_strimwidth(): Argument #3 ($width) is out of range",
+        );
+    }
+
     let used = 0;
     let end = 0;
 

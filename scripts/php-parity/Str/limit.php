@@ -24,5 +24,7 @@ probe('limit-laravel-cjk', "StrTest::testLimit's Str::limit('这是一段中文'
 probe('limit-preserve-words-astral', "Str::limit(…, preserveWords: true) of ('😀 😀 😀', 5), ('😀😀 x', 2), ('日本 語', 4), ('日本語 x', 2) and ('😀😀😀', 4, '')", fn () => [Str::limit('😀 😀 😀', 5, '...', true), Str::limit('😀😀 x', 2, '...', true), Str::limit('日本 語', 4, '...', true), Str::limit('日本語 x', 2, '...', true), Str::limit('😀😀😀', 4, '', true)]);
 // PHP 8.5 deprecates a negative mb_strimwidth() width; Laravel still passes one through, so record both.
 probe('limit-zero-and-negative', "Str::limit('abc', 0), ('abc', -1), ('😀😀😀', -1) and ('abc d', -1, '...', true), with PHP's deprecations", fn () => withDeprecations(fn () => [Str::limit('abc', 0), Str::limit('abc', -1), Str::limit('😀😀😀', -1), Str::limit('abc d', -1, '...', true)]));
+probe('limit-negative-past-width', "Str::limit() of ('abc', -3), ('abc', -4), ('😀😀', -4), ('😀😀', -5), ('abc d', -6, '...', true) and ('ab c d', -2, '...', true), each value or what it throws, with PHP's deprecations", fn () => withDeprecations(fn () => array_map(fn (array $c) => attempt(fn () => Str::limit(...$c)), [['abc', -3], ['abc', -4], ['😀😀', -4], ['😀😀', -5], ['abc d', -6, '...', true], ['ab c d', -2, '...', true]])));
+probe('limit-wide-cut-edges', "Str::limit('a😀😀', 4), and Str::limit(str_repeat('😀', 200000), 100000) === str_repeat('😀', 50000).'...'", fn () => [Str::limit('a😀😀', 4), Str::limit(str_repeat('😀', 200000), 100000) === str_repeat('😀', 50000) . '...']);
 
 emit();

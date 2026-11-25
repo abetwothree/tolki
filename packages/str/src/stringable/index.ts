@@ -647,10 +647,11 @@ export class Stringable {
     /**
      * Limit the number of characters in a string.
      *
-     * @param limitValue - The maximum number of characters allowed.
+     * @param limitValue - The maximum display width, where emoji and CJK characters count as two.
      * @param end - The string to append if the original string exceeds the limit.
      * @param preserveWords - Whether to avoid cutting off in the middle of a word.
      * @returns A new Stringable instance with the limited string.
+     * @throws Error for a negative limit past the string's full width, as PHP's mb_strimwidth() throws its ValueError.
      */
     limit(limitValue = 100, end = "...", preserveWords = false): Stringable {
         return new Stringable(

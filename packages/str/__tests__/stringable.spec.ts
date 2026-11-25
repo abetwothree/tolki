@@ -1471,6 +1471,13 @@ describe("Stringable basic delegation", () => {
             // docs/php-parity/Str/limit.json, "limit-astral"
             expect(Str.of("😀😀😀").limit(3).toString()).toBe("😀...");
         });
+
+        it("throws for a negative limit past the full width", () => {
+            // docs/php-parity/Str/limit.json, "limit-negative-past-width"
+            expect(() => Str.of("abc").limit(-4)).toThrow(
+                "mb_strimwidth(): Argument #3 ($width) is out of range",
+            );
+        });
     });
 
     describe("words", () => {
