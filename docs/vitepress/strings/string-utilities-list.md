@@ -1371,12 +1371,14 @@ import { padBoth } from "@tolki/str";
 
 const result = padBoth("James", 10, "_");
 
-// result is "__James__"
+// result is "__James___"
 
 const result2 = padBoth("James", 10);
 
 // result2 is "  James   "
 ```
+
+The length counts characters, so an emoji counts as one. An empty pad string throws when the value needs padding, as it does in PHP.
 
 <FnTry
   :fn="padBoth"
@@ -1403,6 +1405,8 @@ const result2 = padLeft("James", 10);
 // result2 is "     James"
 ```
 
+The length counts characters, so an emoji counts as one. An empty pad string throws when the value needs padding, as it does in PHP.
+
 <FnTry
   :fn="padLeft"
   :args="[
@@ -1427,6 +1431,8 @@ const result2 = padRight("James", 10);
 
 // result2 is "James     "
 ```
+
+The length counts characters, so an emoji counts as one. An empty pad string throws when the value needs padding, as it does in PHP.
 
 <FnTry
   :fn="padRight"
