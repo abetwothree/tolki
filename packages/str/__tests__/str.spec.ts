@@ -582,6 +582,11 @@ describe("Str tests", () => {
             expect(Str.convertCase("HeLLo")).toBe("hello");
             expect(Str.convertCase("WoRLD")).toBe("world");
         });
+
+        it("title-cases a letter outside the Basic Multilingual Plane", () => {
+            // docs/php-parity/Str/convertCase.json, "convertCase-title-astral"
+            expect(Str.convertCase("𐐨𐐨 𐐨", CaseTypes.title)).toBe("𐐀𐐨 𐐀");
+        });
     });
 
     describe("deduplicate", () => {
@@ -602,6 +607,27 @@ describe("Str tests", () => {
         it("deduplicate with array of characters", () => {
             // Test deduplicate with array (covers isArray branch)
             expect(Str.deduplicate("aaa---bbb", ["a", "-"])).toBe("a-bbb");
+        });
+
+        it("collapses repeated emoji", () => {
+            // docs/php-parity/Str/deduplicate.json, "deduplicate-astral"
+            expect(Str.deduplicate("😀😀😀x", "😀")).toBe("😀x");
+            expect(Str.deduplicate("a😀😀b  c", ["😀", " "])).toBe("a😀b c");
+        });
+
+        it("reads the character literally, as preg_quote does", () => {
+            // docs/php-parity/Str/deduplicate.json, "deduplicate-regex-characters"
+            expect(Str.deduplicate("a..b", ".")).toBe("a.b");
+            expect(Str.deduplicate("a//b", "/")).toBe("a/b");
+            expect(Str.deduplicate("a--b", "-")).toBe("a-b");
+            expect(Str.deduplicate("a**b", "*")).toBe("a*b");
+            expect(Str.deduplicate("ab  ab", "ab ")).toBe("ab ab");
+        });
+
+        it("throws for an empty character", () => {
+            // JS-only: PHP's preg_replace() warns and returns null; a null would widen every call's return type.
+            // docs/php-parity/Str/deduplicate.json, "deduplicate-empty-character"
+            expect(() => Str.deduplicate("abc", "")).toThrow(SyntaxError);
         });
     });
 
@@ -3611,6 +3637,12 @@ describe("Str tests", () => {
                 "Lorem Ipsum Dolor Sit Amet " + "Dolor Sit Amet ".repeat(999);
             expect(Str.title(longString)).toBe(expectedResult);
         });
+
+        it("capitalizes a letter outside the Basic Multilingual Plane", () => {
+            // docs/php-parity/Str/title.json, "title-astral"
+            expect(Str.title("𐐨𐐨 𐐨")).toBe("𐐀𐐨 𐐀");
+            expect(Str.title("😀foo bar")).toBe("😀Foo Bar");
+        });
     });
 
     describe("headline", () => {
@@ -3670,6 +3702,12 @@ describe("Str tests", () => {
 
             expect(Str.headline("❤_multiByte-☆")).toBe("❤ Multi Byte ☆");
             expect(Str.headline("laravel rocks!")).toBe("Laravel Rocks!");
+        });
+
+        it("capitalizes a letter outside the Basic Multilingual Plane", () => {
+            // docs/php-parity/Str/headline.json, "headline-astral"
+            expect(Str.headline("𐐨𐐨_𐐨")).toBe("𐐀𐐨 𐐀");
+            expect(Str.headline("😀FooBar")).toBe("😀 Foo Bar");
         });
     });
 

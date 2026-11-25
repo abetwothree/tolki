@@ -1,0 +1,13 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "convertCase-title-astral",
+            "php": "Str::convertCase('\ud801\udc28\ud801\udc28 \ud801\udc28', MB_CASE_TITLE)",
+            "value": "\ud801\udc00\ud801\udc28 \ud801\udc00"
+        }
+    ]
+}

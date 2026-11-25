@@ -336,8 +336,6 @@ export function excerpt(
     const phraseStr = phrase ?? "";
 
     // Build a unicode & case-insensitive regex matching first occurrence of the phrase
-    const escapeRegExp = (s: string) =>
-        s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const pattern = new RegExp(`^(.*?)(${escapeRegExp(phraseStr)})(.*)$`, "iu");
     const matches = pattern.exec(subject);
 
@@ -437,13 +435,19 @@ export function doesntContain(
 export function deduplicate(value: string, character: string | string[] = " ") {
     if (isArray(character)) {
         character.forEach((char) => {
-            value = value.replace(new RegExp(`${char}+`, "g"), char);
+            value = value.replace(
+                new RegExp(`${escapeRegExp(char)}+`, "gu"),
+                char,
+            );
         });
 
         return value;
     }
 
-    return value.replace(new RegExp(`${character}+`, "g"), character);
+    return value.replace(
+        new RegExp(`${escapeRegExp(character)}+`, "gu"),
+        character,
+    );
 }
 
 /**
@@ -1695,6 +1699,16 @@ export function replace<TSubject extends StringSubject<TSubject>>(
 }
 
 /**
+ * Escape the characters a regular expression treats as syntax, as preg_quote() does.
+ *
+ * @param value - The string to escape
+ * @returns The string, safe to embed in a RegExp
+ */
+function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
  * Replace the given value in the given string regardless of case.
  *
  * ASCII search terms only match ASCII case variants, while non-ASCII search
@@ -1710,9 +1724,6 @@ function replaceWhileIgnoringCase(
     replacements: string[],
     subject: string,
 ): string {
-    const escapeRegExp = (s: string) =>
-        s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
     return searches.reduce((acc, term, i) => {
         if (term === "") {
             return acc; // skip empty needles (PHP str_ireplace behavior)
