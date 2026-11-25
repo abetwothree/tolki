@@ -1210,8 +1210,10 @@ describe("Str tests", () => {
             // docs/php-parity/Str/length.json, "length-astral"
             expect(Str.length("😀😀😀")).toBe(3);
             expect(Str.length("𝒳")).toBe(1);
-            expect(Str.length("é")).toBe(2);
-            expect(Str.length("\u{1F468}‍\u{1F469}‍\u{1F467}")).toBe(5);
+            expect(Str.length("e\u0301")).toBe(2);
+            expect(Str.length("\u{1F468}\u200D\u{1F469}\u200D\u{1F467}")).toBe(
+                5,
+            );
             expect(Str.length("")).toBe(0);
         });
 
