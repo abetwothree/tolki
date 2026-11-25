@@ -891,6 +891,7 @@ export function words(
  * @param index - The starting index to begin masking (can be negative)
  * @param length - The number of characters to mask (if null, mask to the end of the string)
  * @returns The masked string
+ * @throws TypeError for a NaN or infinite index or length, as PHP's mb_substr() does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#mask
  */

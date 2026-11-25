@@ -21,6 +21,32 @@
                 "a\ud83d\udd12\ud83d\udd12\ud83d\udd12",
                 "\ud83d\ude00\ud83d\ude00"
             ]
+        },
+        {
+            "label": "mask-fractional",
+            "php": "Str::mask('abcd', '*', \u2026) at (0, -0.5), (1.5), (-2.5) and (1, 2.5), and what (NAN) throws, with PHP's deprecations",
+            "value": {
+                "result": [
+                    "abcd",
+                    "a***",
+                    "a**d",
+                    "a**d",
+                    [
+                        "TypeError",
+                        "mb_substr(): Argument #2 ($start) must be of type int, float given"
+                    ]
+                ],
+                "deprecations": [
+                    "Implicit conversion from float -0.5 to int loses precision",
+                    "Implicit conversion from float 1.5 to int loses precision",
+                    "Implicit conversion from float 1.5 to int loses precision",
+                    "Implicit conversion from float 4.5 to int loses precision",
+                    "Implicit conversion from float -2.5 to int loses precision",
+                    "Implicit conversion from float 1.5 to int loses precision",
+                    "Implicit conversion from float 3.5 to int loses precision",
+                    "Implicit conversion from float 2.5 to int loses precision"
+                ]
+            }
         }
     ]
 }

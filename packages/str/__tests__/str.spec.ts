@@ -1281,6 +1281,11 @@ describe("Str tests", () => {
     });
 
     describe("limit", () => {
+        it("reads a fractional negative limit as an int before it looks for a space", () => {
+            // docs/php-parity/Str/limit.json, "limit-fractional-preserve-words"
+            expect(Str.limit("ab cd ef", -2.5, "...", true)).toBe("ab...");
+        });
+
         it("truncates a fractional limit toward zero, as PHP's int parameter does", () => {
             // docs/php-parity/Str/limit.json, "limit-fractional-width"
             expect(Str.limit("abc", -0.5)).toBe("...");
@@ -1795,6 +1800,19 @@ describe("Str tests", () => {
     });
 
     describe("mask", () => {
+        it("reads a fractional index and length as PHP ints, as mb_substr does", () => {
+            // docs/php-parity/Str/mask.json, "mask-fractional"
+            expect(Str.mask("abcd", "*", 0, -0.5)).toBe("abcd");
+            expect(Str.mask("abcd", "*", 1.5)).toBe("a***");
+            expect(Str.mask("abcd", "*", -2.5)).toBe("a**d");
+            expect(Str.mask("abcd", "*", 1, 2.5)).toBe("a**d");
+            expect(() => Str.mask("abcd", "*", Number.NaN)).toThrow(
+                new TypeError(
+                    "mb_substr(): Argument #2 ($start) must be of type int, float given",
+                ),
+            );
+        });
+
         it("Laravel tests", () => {
             expect(Str.mask("taylor@email.com", "*", 3)).toBe(
                 "tay*************",

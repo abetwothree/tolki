@@ -30,4 +30,6 @@ probe('limit-wide-cut-edges', "Str::limit('a😀😀', 4), and Str::limit(str_re
 probe('limit-fractional-width', "Str::limit() of ('abc', -0.5), ('abc', 2.5), ('abc', -3.5), ('ab c d', 2.5, '...', true) and ('😀😀😀', 3.5), with PHP's deprecations", fn () => withDeprecations(fn () => [Str::limit('abc', -0.5), Str::limit('abc', 2.5), Str::limit('abc', -3.5), Str::limit('ab c d', 2.5, '...', true), Str::limit('😀😀😀', 3.5)]));
 probe('limit-non-finite-width', "What Str::limit('abc', NAN) throws, and Str::limit('abc', INF)", fn () => [attempt(fn () => Str::limit('abc', NAN)), Str::limit('abc', INF)]);
 
+probe('limit-fractional-preserve-words', "Str::limit('ab cd ef', -2.5, '...', true), with PHP's deprecations", fn () => withDeprecations(fn () => Str::limit('ab cd ef', -2.5, '...', true)));
+
 emit();

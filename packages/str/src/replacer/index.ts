@@ -1,4 +1,4 @@
-import { isArray, isObject, isString } from "@tolki/utils";
+import { isArray, isObject, isString, phpIntArgument } from "@tolki/utils";
 
 /**
  * Returns the portion of the string specified by the start and length parameters.
@@ -7,6 +7,7 @@ import { isArray, isObject, isString } from "@tolki/utils";
  * @param start - The starting position. If negative, it starts that many characters from the end of the string.
  * @param length - The number of characters to return. If omitted or null, returns all characters from start to the end of the string. If negative, omits that many characters from the end.
  * @returns The extracted substring.
+ * @throws TypeError for a NaN or infinite start or length, as PHP's mb_substr() does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#substr
  */
@@ -37,6 +38,7 @@ export function substr(
  * @param length - The length of the segment to search within. If omitted or null, searches to the end of the string. If negative, omits that many characters from the end.
  * @returns The number of occurrences of the substring within the specified segment.
  * @throws Error for an empty needle, as PHP's substr_count() throws its ValueError
+ * @throws TypeError for a NaN or infinite offset or length, as PHP's mb_substr() does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#substrcount
  */
@@ -47,15 +49,16 @@ export function substrCount(
     offset: number = 0,
     length: number | null = null,
 ): number {
+    const chars = Array.from(haystack);
+    const size = chars.length;
+    const { start, end } = computeRange(size, offset, length);
+
+    // Laravel cuts the haystack with Str::substr() before substr_count() reads the needle.
     if (needle === "") {
         throw new Error(
             "substr_count(): Argument #2 ($needle) must not be empty",
         );
     }
-
-    const chars = Array.from(haystack);
-    const size = chars.length;
-    const { start, end } = computeRange(size, offset, length);
 
     if (start >= size || end <= start) {
         return 0;
@@ -214,19 +217,31 @@ function computeRange(
     offset: number,
     length: number | null | undefined,
 ): { start: number; end: number } {
+    const at = phpIntArgument(
+        offset,
+        "mb_substr(): Argument #2 ($start) must be of type int, float given",
+    );
+    const count =
+        length === null || length === undefined
+            ? null
+            : phpIntArgument(
+                  length,
+                  "mb_substr(): Argument #3 ($length) must be of type ?int, float given",
+              );
+
     // Normalize start (offset may be negative)
-    let start = offset >= 0 ? offset : size + offset;
+    let start = at >= 0 ? at : size + at;
     if (start < 0) start = 0;
     if (start > size) start = size;
 
     // Determine end
     let end: number;
-    if (length === null || length === undefined) {
+    if (count === null) {
         end = size;
-    } else if (length < 0) {
-        end = size + length; // omit characters from the end
+    } else if (count < 0) {
+        end = size + count; // omit characters from the end
     } else {
-        end = start + length;
+        end = start + count;
     }
 
     // Clamp

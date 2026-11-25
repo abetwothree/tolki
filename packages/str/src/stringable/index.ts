@@ -713,6 +713,7 @@ export class Stringable {
      * @param index - The starting index to begin masking.
      * @param length - The number of characters to mask. If null, masks to the end of the string.
      * @returns The masked string as a new Stringable instance.
+     * @throws TypeError for a NaN or infinite index or length, as mb_substr() does.
      */
     mask(
         character: string,
@@ -1243,6 +1244,7 @@ export class Stringable {
      * @param start - The starting position of the substring.
      * @param length - The length of the substring. If null, extracts to the end of the string.
      * @returns The extracted substring as a new Stringable instance.
+     * @throws TypeError for a NaN or infinite start or length, as mb_substr() does.
      */
     substr(start: number, length: number | null = null): Stringable {
         return new Stringable(substr(this._value, start, length));
@@ -1255,6 +1257,7 @@ export class Stringable {
      * @param offset - The offset to start searching from. Defaults to 0.
      * @param length - The length of the string to search within. If null, searches to the end of the string.
      * @returns The number of occurrences of the substring.
+     * @throws TypeError for a NaN or infinite offset or length, as mb_substr() does.
      */
     substrCount(
         needle: string,

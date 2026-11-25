@@ -141,6 +141,18 @@
                 ],
                 "abc"
             ]
+        },
+        {
+            "label": "limit-fractional-preserve-words",
+            "php": "Str::limit('ab cd ef', -2.5, '...', true), with PHP's deprecations",
+            "value": {
+                "result": "ab...",
+                "deprecations": [
+                    "Implicit conversion from float -2.5 to int loses precision",
+                    "mb_strimwidth(): passing a negative integer to argument #3 ($width) is deprecated",
+                    "Implicit conversion from float -2.5 to int loses precision"
+                ]
+            }
         }
     ]
 }
