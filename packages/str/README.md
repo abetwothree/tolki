@@ -784,6 +784,8 @@ const result = limit("The quick brown fox jumps over the lazy dog", 20);
 // result is "The quick brown fox..."
 ```
 
+The limit is a display width, as in Laravel: wide characters such as emoji and Chinese, Japanese or Korean characters count as two, so limit("😀😀😀", 4) gives "😀😀...".
+
 You may pass a third argument to specify the string to append to the truncated string (defaults to an ellipsis):
 
 ```javascript
