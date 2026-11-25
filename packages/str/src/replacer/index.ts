@@ -78,6 +78,7 @@ export function substrCount(
  * @param offset - The starting position for the replacement, or an array of positions applied positionally. If negative, it starts that many characters from the end of the string.
  * @param length - The number of characters to replace, or an array of lengths applied positionally. If omitted or null, replaces all characters from offset to the end of the string. If negative, omits that many characters from the end.
  * @returns The modified string, or an array/object of modified strings mirroring the subject's shape and keys.
+ * @throws TypeError for a NaN or infinite offset or length, as PHP's mb_substr() does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#substrreplace
  */
@@ -179,9 +180,21 @@ function replaceSubstring(
 ): string {
     const chars = Array.from(str);
     const size = chars.length;
+    // Laravel passes the offset as mb_substr()'s length and the length as its start, so PHP names them that way.
+    const offset = phpIntArgument(
+        off,
+        "mb_substr(): Argument #3 ($length) must be of type ?int, float given",
+    );
+    const length =
+        len === null
+            ? null
+            : phpIntArgument(
+                  len,
+                  "mb_substr(): Argument #2 ($start) must be of type int, float given",
+              );
 
     // Normalize offset (negative = from end)
-    let start = off >= 0 ? off : size + off;
+    let start = offset >= 0 ? offset : size + offset;
     if (start < 0) {
         start = 0;
     }
@@ -195,10 +208,10 @@ function replaceSubstring(
     // First get the substring from the offset, then apply length to that substring
     const fromOffset = chars.slice(start);
     let tail: string;
-    if (len === null) {
+    if (length === null) {
         tail = "";
     } else {
-        tail = fromOffset.slice(len).join("");
+        tail = fromOffset.slice(length).join("");
     }
 
     return head + rep + tail;

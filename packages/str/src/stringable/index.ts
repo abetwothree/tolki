@@ -1274,6 +1274,7 @@ export class Stringable {
      * @param offset - The starting position to begin replacing. If negative, it starts that many characters from the end of the string.
      * @param length - The number of characters to replace. If null, replaces to the end of the string. If negative, omits that many characters from the end.
      * @returns The updated Stringable instance.
+     * @throws TypeError for a NaN or infinite offset or length, as mb_substr() does.
      */
     substrReplace(
         replace: string | string[],

@@ -216,6 +216,27 @@ describe("Str/Replacer", () => {
     });
 
     describe("substrReplace", () => {
+        it("truncates a fractional offset and length toward zero, as mb_substr does", () => {
+            // docs/php-parity/Str/substrReplace.json, "substrReplace-fractional"
+            expect(substrReplace("abcd", "x", 1.5)).toBe("ax");
+            expect(substrReplace("abcd", "x", 1, 1.5)).toBe("axcd");
+            expect(substrReplace("abcd", "x", -2.5, 1)).toBe("abxd");
+        });
+
+        it("throws PHP's TypeError for a NaN offset or length", () => {
+            // docs/php-parity/Str/substrReplace.json, "substrReplace-non-finite"
+            expect(() => substrReplace("abcd", "x", Number.NaN)).toThrow(
+                new TypeError(
+                    "mb_substr(): Argument #3 ($length) must be of type ?int, float given",
+                ),
+            );
+            expect(() => substrReplace("abcd", "x", 0, Number.NaN)).toThrow(
+                new TypeError(
+                    "mb_substr(): Argument #2 ($start) must be of type int, float given",
+                ),
+            );
+        });
+
         it("Laravel tests substrReplace", () => {
             expect(substrReplace("1200", ":", 2, 0)).toBe("12:00");
             expect(substrReplace("The Framework", "Laravel ", 4, 0)).toBe(

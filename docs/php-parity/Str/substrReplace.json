@@ -1,0 +1,40 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "substrReplace-fractional",
+            "php": "Str::substrReplace('abcd', 'x', \u2026) at (1.5), (1, 1.5) and (-2.5, 1), with PHP's deprecations",
+            "value": {
+                "result": [
+                    "ax",
+                    "axcd",
+                    "abxd"
+                ],
+                "deprecations": [
+                    "Implicit conversion from float 1.5 to int loses precision",
+                    "Implicit conversion from float 1.5 to int loses precision",
+                    "Implicit conversion from float 1.5 to int loses precision",
+                    "Implicit conversion from float -2.5 to int loses precision",
+                    "Implicit conversion from float -2.5 to int loses precision"
+                ]
+            }
+        },
+        {
+            "label": "substrReplace-non-finite",
+            "php": "What Str::substrReplace('abcd', 'x', NAN) and Str::substrReplace('abcd', 'x', 0, NAN) throw",
+            "value": [
+                [
+                    "TypeError",
+                    "mb_substr(): Argument #3 ($length) must be of type ?int, float given"
+                ],
+                [
+                    "TypeError",
+                    "mb_substr(): Argument #2 ($start) must be of type int, float given"
+                ]
+            ]
+        }
+    ]
+}
