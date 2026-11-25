@@ -221,12 +221,10 @@ export function charAt(subject: string, index: number): string | false {
         return false;
     }
 
-    // if index is a negative number, we need to adjust it
-    if (index < 0) {
-        index += count;
-    }
+    // PHP truncates a float index before counting from the end
+    const at = Math.trunc(index);
 
-    return characters[index] as string;
+    return characters[at < 0 ? at + count : at] as string;
 }
 
 /**
@@ -428,6 +426,7 @@ export function doesntContain(
  * @param value - The string to process
  * @param character - The character or characters to deduplicate
  * @returns The string with consecutive instances of the character(s) replaced by a single instance
+ * @throws SyntaxError for an empty character
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#deduplicate
  */
@@ -437,7 +436,9 @@ export function deduplicate(value: string, character: string | string[] = " ") {
         character.forEach((char) => {
             value = value.replace(
                 new RegExp(`${escapeRegExp(char)}+`, "gu"),
-                char,
+                () => {
+                    return char;
+                },
             );
         });
 
@@ -446,7 +447,9 @@ export function deduplicate(value: string, character: string | string[] = " ") {
 
     return value.replace(
         new RegExp(`${escapeRegExp(character)}+`, "gu"),
-        character,
+        () => {
+            return character;
+        },
     );
 }
 

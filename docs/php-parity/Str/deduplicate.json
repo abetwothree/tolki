@@ -27,6 +27,11 @@
             "label": "deduplicate-empty-character",
             "php": "@Str::deduplicate('abc', '')",
             "value": null
+        },
+        {
+            "label": "deduplicate-dollar-character",
+            "php": "Str::deduplicate('a$$$$b', '$$')",
+            "value": "a$$b"
         }
     ]
 }

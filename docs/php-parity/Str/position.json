@@ -101,6 +101,12 @@
                         "ValueError",
                         "mb_strpos(): Argument #3 ($offset) must be contained in argument #1 ($haystack)"
                     ]
+                ],
+                [
+                    "hello",
+                    "l",
+                    -2,
+                    3
                 ]
             ]
         }

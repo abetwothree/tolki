@@ -243,6 +243,12 @@ describe("Str tests", () => {
             expect(Str.charAt("", 0)).toBe(false);
         });
 
+        it("truncates a fractional index toward zero, as PHP's int cast does", () => {
+            // docs/php-parity/Str/charAt.json, "charAt-fractional"
+            expect(Str.charAt("abc", 1.5)).toBe("b");
+            expect(Str.charAt("abc", -2.5)).toBe("b");
+        });
+
         it("returns a lone surrogate whole", () => {
             // JS-only: a PHP string cannot hold half a surrogate pair.
             expect(Str.charAt("a\uD83D", 1)).toBe("\uD83D");
@@ -622,6 +628,12 @@ describe("Str tests", () => {
             expect(Str.deduplicate("a--b", "-")).toBe("a-b");
             expect(Str.deduplicate("a**b", "*")).toBe("a*b");
             expect(Str.deduplicate("ab  ab", "ab ")).toBe("ab ab");
+        });
+
+        it("inserts a character holding $ literally", () => {
+            // docs/php-parity/Str/deduplicate.json, "deduplicate-dollar-character"
+            expect(Str.deduplicate("a$$$$b", "$$")).toBe("a$$b");
+            expect(Str.deduplicate("a$$$$b", ["$$"])).toBe("a$$b");
         });
 
         it("throws for an empty character", () => {

@@ -15,6 +15,20 @@
                 false,
                 false
             ]
+        },
+        {
+            "label": "charAt-fractional",
+            "php": "Str::charAt('abc', 1.5) and Str::charAt('abc', -2.5), with PHP's deprecations",
+            "value": {
+                "result": [
+                    "b",
+                    "b"
+                ],
+                "deprecations": [
+                    "Implicit conversion from float 1.5 to int loses precision",
+                    "Implicit conversion from float -2.5 to int loses precision"
+                ]
+            }
         }
     ]
 }
