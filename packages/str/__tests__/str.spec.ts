@@ -224,6 +224,21 @@ describe("Str tests", () => {
     });
 
     describe("charAt", () => {
+        it("checks the bounds on the fractional index as given, as Laravel does", () => {
+            // docs/php-parity/Str/charAt.json, "charAt-fractional-bounds"
+            expect(Str.charAt("abc", 2.5)).toBe(false);
+            expect(Str.charAt("abc", -3.5)).toBe(false);
+        });
+
+        it("throws PHP's TypeError for a NaN index", () => {
+            // docs/php-parity/Str/charAt.json, "charAt-fractional-bounds"
+            expect(() => Str.charAt("abc", Number.NaN)).toThrow(
+                new TypeError(
+                    "mb_substr(): Argument #2 ($start) must be of type int, float given",
+                ),
+            );
+        });
+
         it("Laravel tests", () => {
             expect(Str.charAt("Привет, мир!", 1)).toBe("р");
             expect(Str.charAt("「こんにちは世界」", 4)).toBe("ち");

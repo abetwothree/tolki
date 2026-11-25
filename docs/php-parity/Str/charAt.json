@@ -29,6 +29,18 @@
                     "Implicit conversion from float -2.5 to int loses precision"
                 ]
             }
+        },
+        {
+            "label": "charAt-fractional-bounds",
+            "php": "Str::charAt('abc', 2.5) and Str::charAt('abc', -3.5), and what Str::charAt('abc', NAN) throws",
+            "value": [
+                false,
+                false,
+                [
+                    "TypeError",
+                    "mb_substr(): Argument #2 ($start) must be of type int, float given"
+                ]
+            ]
         }
     ]
 }

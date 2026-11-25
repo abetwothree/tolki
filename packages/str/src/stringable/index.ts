@@ -341,6 +341,7 @@ export class Stringable {
      *
      * @param index - The index of the character to retrieve.
      * @returns The character at the specified index, or false if the index is out of bounds.
+     * @throws TypeError for a NaN index, as PHP's mb_substr() does.
      */
     charAt(index: number): string | false {
         return charAt(this._value, index);

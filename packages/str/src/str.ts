@@ -11,6 +11,7 @@ import {
     isPlainObject,
     isString,
     isUndefined,
+    phpIntArgument,
     phpStringCast,
     toLower,
 } from "@tolki/utils";
@@ -209,6 +210,7 @@ export function camel(value: string): string {
  * @param subject - The string to get the character from
  * @param index - The index of the character to get
  * @returns The character at the specified index, or false if the index is out of bounds
+ * @throws TypeError for a NaN index, as PHP's mb_substr() does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#charat
  */
@@ -221,8 +223,11 @@ export function charAt(subject: string, index: number): string | false {
         return false;
     }
 
-    // PHP truncates a float index before counting from the end
-    const at = Math.trunc(index);
+    // Laravel checks the bounds on the index as given; only mb_substr() converts it to an int.
+    const at = phpIntArgument(
+        index,
+        "mb_substr(): Argument #2 ($start) must be of type int, float given",
+    );
 
     return characters[at < 0 ? at + count : at] as string;
 }
