@@ -1,5 +1,8 @@
 import * as Num from "@tolki/num";
-import { InvalidArgumentException, localeTag } from "@tolki/utils";
+import {
+    InvalidArgumentException,
+    localeTag as utilsLocaleTag,
+} from "@tolki/utils";
 import { afterEach, describe, expect, it } from "vitest";
 
 describe("Number", () => {
@@ -532,9 +535,9 @@ describe("Number", () => {
         it("reads Laravel's locale spellings", () => {
             // docs/php-parity/Number/currency.json, "currency-locale-spellings"
             const expected: Record<string, string> = {
-                pt_BR: "€ 1.234,50",
-                "pt-BR": "€ 1.234,50",
-                ar_EG: "‏١٬٢٣٤٫٥٠ €",
+                pt_BR: "\u20ac\u00a01.234,50",
+                "pt-BR": "\u20ac\u00a01.234,50",
+                ar_EG: "\u200f\u0661\u066c\u0662\u0663\u0664\u066b\u0665\u0660\u00a0\u20ac",
             };
 
             for (const [locale, result] of Object.entries(expected)) {
@@ -1073,9 +1076,16 @@ describe("Number", () => {
         });
     });
 
+    describe("localeTag", () => {
+        // JS-only: num re-exports the utils helper so users restore the default hook without an internal import.
+        it("is the @tolki/utils helper", () => {
+            expect(Num.localeTag).toBe(utilsLocaleTag);
+        });
+    });
+
     describe("normalizeLocalesUsing", () => {
         afterEach(() => {
-            Num.normalizeLocalesUsing(localeTag);
+            Num.normalizeLocalesUsing(Num.localeTag);
         });
 
         // JS-only: Laravel's Number has no locale hook.
@@ -1091,7 +1101,7 @@ describe("Number", () => {
         // JS-only: Laravel's Number has no locale hook.
         it("uses a custom callback", () => {
             Num.normalizeLocalesUsing((locale) =>
-                locale === "br" ? "pt-BR" : localeTag(locale),
+                locale === "br" ? "pt-BR" : Num.localeTag(locale),
             );
 
             expect(Num.format(1234.5, 2, null, "br")).toBe("1.234,50");
@@ -1100,7 +1110,7 @@ describe("Number", () => {
         // JS-only: Laravel's Number has no locale hook.
         it("governs the default locale too", () => {
             Num.normalizeLocalesUsing((locale) =>
-                locale === "br" ? "pt-BR" : localeTag(locale),
+                locale === "br" ? "pt-BR" : Num.localeTag(locale),
             );
 
             try {

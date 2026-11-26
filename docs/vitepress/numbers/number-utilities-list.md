@@ -304,11 +304,10 @@ const result2 = minutesToHuman(61, false);
 `normalizeLocalesUsing` permanently changes the module-wide conversion for every other example on this page, so it doesn't have a live playground here — trying it would silently change the output of every other widget below.
 :::
 
-Set the callback that turns every locale into the tag `Intl` reads, or `null` to pass locales through unchanged. The default is `localeTag` from `@tolki/utils`, which accepts `pt_BR` and `pt-BR` alike.
+Set the callback that turns every locale into the tag `Intl` reads, or `null` to pass locales through unchanged. The default is `localeTag`, which accepts `pt_BR` and `pt-BR` alike. `@tolki/num` exports it, and `normalizeLocalesUsing(localeTag)` restores the default.
 
 ```javascript
-import { format, normalizeLocalesUsing } from "@tolki/num";
-import { localeTag } from "@tolki/utils";
+import { format, localeTag, normalizeLocalesUsing } from "@tolki/num";
 
 const result = format(1234.5, 2, null, "pt_BR");
 
@@ -631,6 +630,8 @@ withLocale("fr", () => {
   return format(1234.56);
 }); // "1 234,56"
 ```
+
+`withLocale("pt_BR", …)` reads either spelling, and `defaultLocale()` inside the callback returns it as given.
 
 <FnTry
   :fn="withLocaleDemo"

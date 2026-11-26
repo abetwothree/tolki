@@ -2,6 +2,8 @@ import { InvalidArgumentException } from "@tolki/utils";
 
 import { intlLocale, setLocaleNormalizer } from "./locale";
 
+export { localeTag } from "@tolki/utils";
+
 /**
  * The current default locale.
  */
