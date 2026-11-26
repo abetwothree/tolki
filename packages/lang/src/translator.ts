@@ -607,14 +607,17 @@ export class Translator<TLines extends LangLines = LangLines> {
      */
     normalizeLocalesUsing(callback: LocaleNormalizer | null): this {
         const locale = isNull(callback) ? this.#locale : callback(this.#locale);
+        const fallback =
+            isNull(callback) || isNull(this.#fallback)
+                ? this.#fallback
+                : callback(this.#fallback);
 
         assertLocale(locale);
 
         this.#normalizeLocalesUsing = callback;
         this.#lineKeys = null;
         this.#locale = locale;
-
-        this.setFallback(this.#fallback);
+        this.#fallback = fallback;
 
         return this;
     }
@@ -641,7 +644,7 @@ export class Translator<TLines extends LangLines = LangLines> {
      * Set the default locale.
      *
      * @param locale - The locale
-     * @throws InvalidArgumentException when the locale holds `/`, `\`, `..` or a NUL byte
+     * @throws InvalidArgumentException when the locale, once converted, holds `/`, `\`, `..` or a NUL byte
      */
     setLocale(locale: string): void {
         const normalized = this.#normalizeLocale(locale);
@@ -663,7 +666,7 @@ export class Translator<TLines extends LangLines = LangLines> {
     /**
      * Set the fallback locale being used.
      *
-     * @param fallback - The fallback locale, or null for none
+     * @param fallback - The fallback locale, or null for none; a `normalizeLocalesUsing` callback converts it
      */
     setFallback(fallback: string | null): void {
         this.#fallback = isNull(fallback)
@@ -837,7 +840,7 @@ export class Translator<TLines extends LangLines = LangLines> {
      * Resolve a requested locale as PHP's `$locale ?: $this->locale` does.
      *
      * @param locale - The requested locale
-     * @returns The locale, or the default locale when it is null, empty or "0"
+     * @returns The converted locale, or the default locale when the locale is null, empty or "0"
      */
     #resolveLocale(locale: string | null): string {
         return isString(locale) && !isPhpFalsy(locale)

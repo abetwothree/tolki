@@ -1358,6 +1358,34 @@ describe("Translator", () => {
             expect(() =>
                 translator.normalizeLocalesUsing(() => "../x"),
             ).toThrow(invalid);
+            expect(translator.getLocale()).toBe("en");
+
+            translator.setLocale("pt-br");
+
+            expect(translator.getLocale()).toBe("pt-br");
+        });
+
+        it("leaves the translator unchanged when the callback throws on the fallback", () => {
+            const translator = withFallback(
+                { "en-us": { g: { a: "A" } } },
+                "en-us",
+                "xx",
+            );
+            const strict = (locale: string): string => {
+                if (locale === "xx") {
+                    throw new Error("Unknown locale.");
+                }
+
+                return normalizeLocale(locale);
+            };
+
+            expect(() => translator.normalizeLocalesUsing(strict)).toThrow(
+                "Unknown locale.",
+            );
+            expect(translator.getLocale()).toBe("en-us");
+            expect(translator.getFallback()).toBe("xx");
+            expect(translator.get("g.a")).toBe("A");
+            expect(translator.get("g.b")).toBe("g.b");
 
             translator.setLocale("pt-br");
 

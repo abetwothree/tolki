@@ -620,7 +620,7 @@ normalizeLocale("zh-hant-tw");
 
 Specify a callback that converts every locale the translator is given, such as `normalizeLocale`.
 
-Exported as the `normalizeLocalesUsing` method of `Translator`. It is off by default, so a locale reads only the lines keyed with its exact spelling, as in Laravel. Once set, it converts the default locale, the fallback, and the locale you pass to any method. A locale then reads the lines whose key converts to the same spelling. A key spelled exactly as the converted locale comes first. The callback must give the same answer for its own answer, as `normalizeLocale` and `localeTag` do. Pass `null` to turn it off. <!-- docs/php-parity/Translator/get.json, "get-hyphen-locale-misses-underscore-lines"; docs/php-parity/Translator/choice.json, "choice-underscore-locale-uses-its-rule" -->
+Exported as the `normalizeLocalesUsing` method of `Translator`. It is off by default, so a locale reads only the lines keyed with its exact spelling, as in Laravel. Once set, it converts the default locale, the fallback, and the locale you pass to any method. A locale then reads one key of your lines: the key spelled exactly as the converted locale, or else the first key that converts to it. Lines under other spellings are not read. The callback must give the same answer for its own answer, as `normalizeLocale` and `localeTag` do. Pass `null` to turn it off. <!-- docs/php-parity/Translator/get.json, "get-hyphen-locale-misses-underscore-lines"; docs/php-parity/Translator/choice.json, "choice-underscore-locale-uses-its-rule" -->
 
 ```js
 import { normalizeLocale, Translator } from "@tolki/lang";
