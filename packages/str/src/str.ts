@@ -1211,17 +1211,21 @@ export function padRight(
  * Count the pad characters mb_str_pad() adds to reach a length.
  *
  * @param value - The string to pad
- * @param length - The desired total length, read as PHP reads its int parameter
+ * @param targetLength - The desired total length, read as PHP reads its int parameter
  * @param pad - The string to pad with
  * @returns How many pad characters are needed, or 0 when the value is already long enough
  * @throws TypeError for a NaN or infinite length, and Error for an empty pad string when padding is needed
  */
-function paddingNeeded(value: string, length: number, pad: string): number {
+function paddingNeeded(
+    value: string,
+    targetLength: number,
+    pad: string,
+): number {
     const needed =
         phpIntArgument(
-            length,
+            targetLength,
             "mb_str_pad(): Argument #2 ($length) must be of type int, float given",
-        ) - Array.from(value).length;
+        ) - length(value);
 
     // PHP checks the length before the pad string, so an empty pad only throws when padding is needed.
     if (needed <= 0) {
