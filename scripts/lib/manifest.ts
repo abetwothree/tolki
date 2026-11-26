@@ -48,6 +48,35 @@ export function exportsBySubpath(
         : { ".": field };
 }
 
+export interface ExportEntry {
+    subpath: string;
+    types: string | null;
+    target: string | null;
+}
+
+/**
+ * Every exports key except `"./package.json"`, with its `types` condition and its import target.
+ *
+ * @param manifest - A published manifest.
+ * @returns One entry per subpath, in manifest order.
+ */
+export function exportEntries(manifest: PackageJson): ExportEntry[] {
+    return Object.entries(exportsBySubpath(manifest))
+        .filter(([subpath]) => subpath !== "./package.json")
+        .map(([subpath, value]) => {
+            const types =
+                typeof value === "object" && value !== null
+                    ? (value as Record<string, unknown>)["types"]
+                    : null;
+
+            return {
+                subpath,
+                types: typeof types === "string" ? types : null,
+                target: importTarget(value),
+            };
+        });
+}
+
 /**
  * Every string target inside an exports value.
  *

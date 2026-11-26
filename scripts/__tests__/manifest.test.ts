@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+    exportEntries,
     exportsBySubpath,
     importTarget,
     publishedSubpaths,
@@ -68,6 +69,33 @@ describe("exportsBySubpath", () => {
     it("falls back to main, then to index.js", () => {
         expect(exportsBySubpath({ main: "./m.js" })).toEqual({ ".": "./m.js" });
         expect(exportsBySubpath({})).toEqual({ ".": "./index.js" });
+    });
+});
+
+describe("exportEntries", () => {
+    it("lists every subpath but package.json with its types and import target", () => {
+        expect(
+            exportEntries({
+                exports: {
+                    ".": { types: "./a.d.ts", default: "./a.js" },
+                    "./*": { types: "./dist/*", default: "./dist/*" },
+                    "./client": { types: "./client.d.ts" },
+                    "./plain": "./plain.js",
+                    "./package.json": "./package.json",
+                },
+            }),
+        ).toEqual([
+            { subpath: ".", types: "./a.d.ts", target: "./a.js" },
+            { subpath: "./*", types: "./dist/*", target: "./dist/*" },
+            { subpath: "./client", types: "./client.d.ts", target: null },
+            { subpath: "./plain", types: null, target: "./plain.js" },
+        ]);
+    });
+
+    it("wraps a condition map under the root subpath", () => {
+        expect(
+            exportEntries({ exports: { types: "./i.d.ts", import: "./i.js" } }),
+        ).toEqual([{ subpath: ".", types: "./i.d.ts", target: "./i.js" }]);
     });
 });
 
