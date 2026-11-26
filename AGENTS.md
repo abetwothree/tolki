@@ -322,6 +322,7 @@ A changeset becomes the published changelog, so write it for someone who knows a
 - Put breaking changes first, each starting with **Breaking:**, and say what a user has to change.
 - Name the functions and types a user can call or import. Leave out internal helpers and how the code changed: no deep dives, code walkthroughs, long examples or PHP internals.
 - Keep it a flat list with no headings, because the changelog nests each entry inside a list item.
+- Write one changeset file per package, named `<topic>-<package>.md` (e.g. `locale-spellings-num.md`), and describe only what changed in that package. A change that touches several packages gets one file for each.
 - Only published packages get changesets. The private ones are in `.changeset/config.json`'s `ignore` list.
 - `@tolki/utils` is an internal package so never bumps as a major release no matter if changes are breaking.
 
