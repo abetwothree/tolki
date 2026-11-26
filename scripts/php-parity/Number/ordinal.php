@@ -46,6 +46,24 @@ probe('ordinal-rounds-past-a-divisor', "Number::ordinal(99.6, 'af'), Number::ord
     Number::ordinal(1099.5, 'bg'),
 ]);
 
+// ICU passes an indicator rule's unrounded remainder on, and the next rule set rounds it half up to pick its rule.
+probe('ordinal-indicator-fraction-remainders', "Number::ordinal(\$n, \$locale) by \$locale and numberSpelling(\$n) for fractions read by the 'bg', 'af' and 'ee' indicator rule sets", function () {
+    $fractions = [
+        'bg' => [100.5, 100.7, 300.839, 1100.6, 5100.5, 120.5, 1000.7],
+        'af' => [100.5, 1100.6],
+        'ee' => [0.5, 2.6],
+    ];
+    $answers = [];
+
+    foreach ($fractions as $locale => $numbers) {
+        foreach ($numbers as $n) {
+            $answers[$locale][numberSpelling($n)] = Number::ordinal($n, $locale);
+        }
+    }
+
+    return $answers;
+});
+
 probe('ordinal-locale-spellings', "Number::ordinal(21, \$locale) for 'pt_BR', 'pt-BR', 'pt_br', 'PT-br' and 'zh_hant_tw'", fn () => array_map(
     fn ($locale) => Number::ordinal(21, $locale),
     ['pt_BR', 'pt-BR', 'pt_br', 'PT-br', 'zh_hant_tw'],

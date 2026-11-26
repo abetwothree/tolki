@@ -207,6 +207,29 @@ describe("formatOrdinal", () => {
         }
     });
 
+    // docs/php-parity/Number/ordinal.json, "ordinal-indicator-fraction-remainders"
+    it("matches Laravel for a fraction whose unrounded remainder an indicator rule passes on", () => {
+        const answers = probeValue<Record<string, Record<string, string>>>(
+            "Number/ordinal.json",
+            "ordinal-indicator-fraction-remainders",
+        );
+        const cases = Object.entries(answers).flatMap(([locale, bySpelling]) =>
+            Object.entries(bySpelling).map(
+                ([spelling, answer]) =>
+                    [numberOf(spelling), locale, answer] as const,
+            ),
+        );
+
+        expect(cases).toHaveLength(11);
+
+        for (const [input, locale, answer] of cases) {
+            expect(
+                formatOrdinal(input, tagOf(locale)),
+                `${locale} ${input}`,
+            ).toBe(answer);
+        }
+    });
+
     it("writes -INF after the negative rule's text where ICU crashes", () => {
         // JS-only: PHP's ICU segfaults on -INF for these rule sets, so there is no answer to match.
         expect(formatOrdinal(-Infinity, "ja")).toBe("第\u2212∞");

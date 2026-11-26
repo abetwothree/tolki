@@ -128,10 +128,15 @@ function indicatorText(name: IndicatorName, value: number): string {
         }
 
         const divisor = 10 ** Math.floor(Math.log10(base));
+        const next = INDICATORS[text.remainder];
 
-        // ICU takes the remainder of the unrounded value; one that rounded up past the divisor makes ICU fail.
-        current = current < divisor ? rounded % divisor : current % divisor;
-        rules = INDICATORS[text.remainder];
+        // ICU passes the unrounded remainder on; one that rounds back up to this rule of this set recurses until ICU
+        // gives up, so read the rounded remainder there.
+        current =
+            current < divisor && next === rules
+                ? rounded % divisor
+                : current % divisor;
+        rules = next;
     }
 }
 

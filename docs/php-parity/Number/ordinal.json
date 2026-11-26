@@ -2880,6 +2880,29 @@
             ]
         },
         {
+            "label": "ordinal-indicator-fraction-remainders",
+            "php": "Number::ordinal($n, $locale) by $locale and numberSpelling($n) for fractions read by the 'bg', 'af' and 'ee' indicator rule sets",
+            "value": {
+                "bg": {
+                    "100.5": "100-\u0432\u0438",
+                    "100.7": "101-\u0432\u0438",
+                    "300.839": "301-\u0432\u0438",
+                    "1100.6": "1\u00a0101-\u0432\u0438",
+                    "5100.5": "5\u00a0100-\u0432\u0438",
+                    "120.5": "120-\u0432\u0438",
+                    "1000.7": "1\u00a0001-\u0432\u0438"
+                },
+                "af": {
+                    "100.5": "100ste",
+                    "1100.6": "1\u00a0101ste"
+                },
+                "ee": {
+                    "0.5": "0 t\u0254",
+                    "2.6": "3 lia"
+                }
+            }
+        },
+        {
             "label": "ordinal-locale-spellings",
             "php": "Number::ordinal(21, $locale) for 'pt_BR', 'pt-BR', 'pt_br', 'PT-br' and 'zh_hant_tw'",
             "value": [
