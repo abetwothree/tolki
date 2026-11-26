@@ -15,6 +15,11 @@ import {
 const MINUS = "\u2212";
 
 /**
+ * The largest 32-bit int, where ICU's cast of a larger double stops.
+ */
+const INT32_MAX = 2147483647;
+
+/**
  * Convert a number to ordinal form the way PHP's `NumberFormatter::ORDINAL` does for a locale.
  *
  * @param value - The number to convert.
@@ -142,10 +147,26 @@ function ordinalCategory(value: number, tag: string): Intl.LDMLPluralRule {
         return "other";
     }
 
-    // ICU reads a fraction below 1 rounded and any other number truncated, then casts it to a 32-bit int.
     return new Intl.PluralRules(tag, { type: "ordinal" }).select(
-        value < 1 ? roundHalfUp(value) : value | 0,
+        pluralOperand(value),
     );
+}
+
+/**
+ * Read the number ICU's RBNF picks a plural category by.
+ *
+ * @param value - The number, zero or more.
+ * @returns A fraction below 1 rounded half up, any other number cast to a 32-bit int as ICU casts it.
+ */
+function pluralOperand(value: number): number {
+    if (value < 1) {
+        return roundHalfUp(value);
+    }
+
+    // A whole number reaches ICU's int32 cast through int64, which wraps; a fraction's cast from a double saturates.
+    return isInteger(value)
+        ? value | 0
+        : Math.min(Math.trunc(value), INT32_MAX);
 }
 
 /**

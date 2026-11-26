@@ -51,4 +51,17 @@ probe('ordinal-locale-spellings', "Number::ordinal(21, \$locale) for 'pt_BR', 'p
     ['pt_BR', 'pt-BR', 'pt_br', 'PT-br', 'zh_hant_tw'],
 ));
 
+// ICU picks a fraction's plural text through an int32 cast of the double, which saturates where an int's cast wraps.
+probe('ordinal-large-fractions', "Number::ordinal(\$n, \$locale) by numberSpelling(\$n) for 2147483653.3, 4294967297.4, 4294967298.25 and -4294967297.4 in 'en', 'fr', 'sv' and 'hi'", function () {
+    $answers = [];
+
+    foreach ([2147483653.3, 4294967297.4, 4294967298.25, -4294967297.4] as $n) {
+        foreach (['en', 'fr', 'sv', 'hi'] as $locale) {
+            $answers[numberSpelling($n)][$locale] = Number::ordinal($n, $locale);
+        }
+    }
+
+    return $answers;
+});
+
 emit();

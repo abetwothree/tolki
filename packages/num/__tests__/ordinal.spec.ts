@@ -175,10 +175,35 @@ describe("formatOrdinal", () => {
             "ordinal-negative-infinity",
         );
 
+        expect(Object.keys(answers)).toHaveLength(43);
+
         for (const [locale, answer] of Object.entries(answers)) {
             expect(formatOrdinal(-Infinity, tagOf(locale)), locale).toBe(
                 answer,
             );
+        }
+    });
+
+    // docs/php-parity/Number/ordinal.json, "ordinal-large-fractions"
+    it("matches Laravel for a large fraction, whose plural text ICU picks through a saturating cast", () => {
+        const answers = probeValue<Record<string, Record<string, string>>>(
+            "Number/ordinal.json",
+            "ordinal-large-fractions",
+        );
+        const cases = Object.entries(answers).flatMap(([spelling, byLocale]) =>
+            Object.entries(byLocale).map(
+                ([locale, answer]) =>
+                    [numberOf(spelling), locale, answer] as const,
+            ),
+        );
+
+        expect(cases).toHaveLength(16);
+
+        for (const [input, locale, answer] of cases) {
+            expect(
+                formatOrdinal(input, tagOf(locale)),
+                `${locale} ${input}`,
+            ).toBe(answer);
         }
     });
 

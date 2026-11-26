@@ -288,7 +288,7 @@ normalizeLocalesUsing(null);
 
 Convert the given number to ordinal form.
 
-It follows each locale's ordinal rules, as Laravel does, so German writes `1.` and Portuguese `1º`. A negative number starts with the minus sign (U+2212), not a hyphen, and a number of four or more digits is grouped.
+It follows each locale's ordinal rules, as Laravel does, so German writes `1.` and Portuguese `1º`. A negative number is written with the minus sign (U+2212), not a hyphen, and a number of four or more digits is grouped.
 
 ```javascript
 import { ordinal } from "@tolki/num";
