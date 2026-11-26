@@ -8,6 +8,10 @@ declare(strict_types=1);
 
 require __DIR__ . '/../bootstrap.php';
 
+// The empty locale formats with ICU's default locale, read once from the environment, not from Locale::setDefault(),
+// so the transcript pins it to en_US_POSIX whatever LANG says.
+putenv('LC_ALL=C');
+
 use Illuminate\Support\Collection;
 use Illuminate\Support\Number;
 use Illuminate\Support\Str;
