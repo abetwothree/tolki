@@ -19,6 +19,7 @@ interface LangPackageManifest {
     files: string[];
     peerDependencies: Record<string, string>;
     peerDependenciesMeta: {
+        "@types/react"?: { optional?: boolean };
         vue?: { optional?: boolean };
         react?: { optional?: boolean };
         svelte?: { optional?: boolean };
@@ -65,7 +66,6 @@ describe("package exports", () => {
         const manifest = readPackageManifest();
 
         expect(manifest.publishConfig.exports["./vite-laravel"]).toEqual({
-            import: "./dist/vite-laravel/index.js",
             default: "./dist/vite-laravel/index.js",
             types: "./dist/vite-laravel/index.d.ts",
         });
@@ -82,7 +82,6 @@ describe("package exports", () => {
             "translator",
         ]) {
             expect(publishConfig.exports[`./${subpath}`]).toEqual({
-                import: `./dist/${subpath}.js`,
                 default: `./dist/${subpath}.js`,
                 types: `./dist/${subpath}.d.ts`,
             });
@@ -93,10 +92,12 @@ describe("package exports", () => {
         const { publishConfig } = readPackageManifest();
 
         for (const [subpath, target] of Object.entries(publishConfig.exports)) {
-            if (typeof target === "object" && target.import) {
-                expect(target.default ?? target.require, subpath).toBe(
-                    target.import,
-                );
+            if (typeof target === "object" && target.default !== undefined) {
+                expect(target.types, subpath).toBeTypeOf("string");
+                expect(Object.keys(target), subpath).toEqual([
+                    "types",
+                    "default",
+                ]);
             }
         }
     });
@@ -150,7 +151,6 @@ describe("package exports", () => {
         const manifest = readPackageManifest();
 
         expect(manifest.publishConfig.exports["./vue"]).toEqual({
-            import: "./dist/vue.js",
             default: "./dist/vue.js",
             types: "./dist/vue.d.ts",
         });
@@ -160,7 +160,6 @@ describe("package exports", () => {
         const manifest = readPackageManifest();
 
         expect(manifest.publishConfig.exports["./react"]).toEqual({
-            import: "./dist/react.js",
             default: "./dist/react.js",
             types: "./dist/react.d.ts",
         });
@@ -170,7 +169,6 @@ describe("package exports", () => {
         const manifest = readPackageManifest();
 
         expect(manifest.publishConfig.exports["./svelte"]).toEqual({
-            import: "./dist/svelte.js",
             default: "./dist/svelte.js",
             types: "./dist/svelte.d.ts",
         });
@@ -188,6 +186,14 @@ describe("package exports", () => {
         expect(manifest.peerDependenciesMeta.react?.optional).toBe(true);
     });
 
+    it("keeps @types/react an optional peer", () => {
+        const manifest = readPackageManifest();
+
+        expect(manifest.peerDependenciesMeta["@types/react"]?.optional).toBe(
+            true,
+        );
+    });
+
     it("keeps svelte an optional peer", () => {
         const manifest = readPackageManifest();
 
@@ -198,6 +204,7 @@ describe("package exports", () => {
         const manifest = readPackageManifest();
 
         expect(manifest.peerDependencies).toEqual({
+            "@types/react": "^19.0.0",
             react: "^19.0.0",
             svelte: "^5.7.0",
             vite: "^7.0.0||^8.0.0",
