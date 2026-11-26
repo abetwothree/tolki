@@ -209,7 +209,7 @@ import {
     streamPositionalData,
     toKeyedData,
     toPositionalBacking,
-} from "./dispatch";
+} from "./dispatch.js";
 
 /**
  * A note on most of the `as` casts below: each function here dispatches a loose

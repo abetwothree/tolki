@@ -1,5 +1,5 @@
-import type { ArrayInnerValue } from "./arrays";
-import type { KnownObjectKeys } from "./path-resolve";
+import type { ArrayInnerValue } from "./arrays.js";
+import type { KnownObjectKeys } from "./path-resolve.js";
 
 /**
  * Helper type to add a key-value pair to an object type

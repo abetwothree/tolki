@@ -4,12 +4,12 @@ import { resolve } from "node:path";
 import { isString, isUndefined } from "@tolki/utils";
 import { describe, expect, it } from "vitest";
 
-import { formatOrdinal } from "../src/ordinal";
+import { formatOrdinal } from "../src/ordinal/index.js";
 import {
     INDICATORS,
     type OrdinalRule,
     ordinalRule,
-} from "../src/ordinal/rules";
+} from "../src/ordinal/rules.js";
 
 interface Probe {
     label: string;

@@ -2,10 +2,10 @@ import type { LangLines } from "@tolki/types";
 import { getContext, hasContext, setContext } from "svelte";
 import { createSubscriber } from "svelte/reactivity";
 
-import { bindLang } from "./lang";
-import type { Lang, LangReader, RegisteredLines } from "./types";
+import { bindLang } from "./lang.js";
+import type { Lang, LangReader, RegisteredLines } from "./types.js";
 
-export { createLang } from "./lang";
+export { createLang } from "./lang.js";
 
 /** The reads of a lang, tracked by Svelte, with a locale to read, assign and set. */
 export interface SvelteLang<

@@ -12,15 +12,15 @@ import {
     isUndefined,
 } from "@tolki/utils";
 
-import { createHelpers } from "./helpers";
-import { assertLocale } from "./locale-guard";
-import { mergeLocaleLines, Translator } from "./translator";
+import { createHelpers } from "./helpers.js";
+import { assertLocale } from "./locale-guard.js";
+import { mergeLocaleLines, Translator } from "./translator.js";
 import type {
     Lang,
     LangReader,
     RegisteredLines,
     TranslationHelpers,
-} from "./types";
+} from "./types.js";
 
 /**
  * Take a locale's lines out of what a loader answered.

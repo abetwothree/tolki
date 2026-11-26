@@ -3,7 +3,7 @@ import type {
     JsonResourceLinks,
     JsonResourceMeta,
     JsonResourceSimpleMeta,
-} from "./resource-responses";
+} from "./resource-responses.js";
 
 /**
  * A resource identifier object: how a relationship's `data` names a related resource.

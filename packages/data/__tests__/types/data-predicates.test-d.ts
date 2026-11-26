@@ -15,7 +15,7 @@ import {
     rowsById,
     settings,
     unionItems,
-} from "./fixtures";
+} from "./fixtures.js";
 
 describe("data predicates type tests", () => {
     // Six of the seven answer `boolean` on both backings, so a return pin cannot discriminate

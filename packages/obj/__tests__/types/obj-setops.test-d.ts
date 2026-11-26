@@ -1,7 +1,7 @@
 import * as Obj from "@tolki/obj";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { abc, numberList, unknownObject } from "./fixtures";
+import { abc, numberList, unknownObject } from "./fixtures.js";
 
 declare const nullableOther: Record<string, number> | null;
 declare const records: Record<string, number>[];

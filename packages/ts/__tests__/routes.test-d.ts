@@ -14,7 +14,7 @@ import type {
 } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
-import * as Stubs from "./stubs";
+import * as Stubs from "./stubs/index.js";
 
 type PostsShowArgs = typeof Stubs.postsShow.args;
 type ArticlesShowArgs = typeof Stubs.articlesShow.args;

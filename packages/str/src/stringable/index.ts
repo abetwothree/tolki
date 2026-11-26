@@ -1,19 +1,19 @@
 import { isFunction, isInteger } from "@tolki/utils";
 
-import { ascii, slug } from "../ascii";
-import { fromBase64, toBase64 } from "../base64";
-import type { ConvertCaseMode } from "../convertcase";
-import { convertCase, title, upper } from "../convertcase";
-import type { MarkDownExtensions, MarkDownOptions } from "../markdown";
-import { inlineMarkdown, markdown } from "../markdown";
+import { ascii, slug } from "../ascii/index.js";
+import { fromBase64, toBase64 } from "../base64/index.js";
+import type { ConvertCaseMode } from "../convertcase/index.js";
+import { convertCase, title, upper } from "../convertcase/index.js";
+import type { MarkDownExtensions, MarkDownOptions } from "../markdown/index.js";
+import { inlineMarkdown, markdown } from "../markdown/index.js";
 import {
     counted,
     plural,
     pluralPascal,
     pluralStudly,
     singular,
-} from "../pluralizer";
-import { substr, substrCount, substrReplace } from "../replacer";
+} from "../pluralizer/index.js";
+import { substr, substrCount, substrReplace } from "../replacer/index.js";
 import {
     after,
     afterLast,
@@ -82,11 +82,11 @@ import {
     words,
     wordWrap,
     wrap,
-} from "../str";
-import { transliterate } from "../transliterate";
-import { ltrim, rtrim, trim } from "../trimmer";
-import { isUlid } from "../ulid";
-import { isUuid } from "../uuid";
+} from "../str.js";
+import { transliterate } from "../transliterate/index.js";
+import { ltrim, rtrim, trim } from "../trimmer/index.js";
+import { isUlid } from "../ulid/index.js";
+import { isUuid } from "../uuid/index.js";
 
 export type ConditionableValue =
     | string

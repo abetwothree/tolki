@@ -14,7 +14,7 @@ import {
 } from "@tolki/utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { expectShape } from "./helpers";
+import { expectShape } from "./helpers.js";
 import {
     TestArrayableObject,
     TestCollectionMapIntoObject,
@@ -24,8 +24,8 @@ import {
     TestJsonSerializeToStringObject,
     TestJsonSerializeWithScalarValueObject,
     TestTraversableAndJsonSerializableObject,
-} from "./test-classes";
-import { listOrRecord } from "./types/fixtures";
+} from "./test-classes.js";
+import { listOrRecord } from "./types/fixtures.js";
 
 // PHP's strcasecmp(), the comparator the *Using tests pass: 0 for strings equal but for case, else -1 or 1.
 const strcasecmp = (a: unknown, b: unknown): number => {

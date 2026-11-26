@@ -14,7 +14,7 @@ import {
     rowsById,
     unknownObject,
     user,
-} from "./fixtures";
+} from "./fixtures.js";
 
 /** Rows whose key field may be missing. */
 declare const maybeIds: Record<"a" | "b", { id?: number }>;

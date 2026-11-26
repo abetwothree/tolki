@@ -14,7 +14,7 @@ import {
     unionRows,
     wildcardRowList,
     wildcardRowsById,
-} from "./fixtures";
+} from "./fixtures.js";
 
 describe("data pluck type tests", () => {
     describe("dataPluck, a literal path", () => {

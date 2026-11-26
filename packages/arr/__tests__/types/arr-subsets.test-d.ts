@@ -9,7 +9,7 @@ import {
     readonlyStrings,
     unionElements,
     unknownArray,
-} from "./fixtures";
+} from "./fixtures.js";
 
 /** An interface-typed row: no implicit index signature, so a `Record` constraint rejects it. */
 interface InterfaceRow {

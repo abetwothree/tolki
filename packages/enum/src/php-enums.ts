@@ -1,4 +1,4 @@
-import { defineEnum } from "./enums";
+import { defineEnum } from "./enums.js";
 
 export const SortDirection = /* @__PURE__ */ defineEnum({
     Ascending: "Ascending",

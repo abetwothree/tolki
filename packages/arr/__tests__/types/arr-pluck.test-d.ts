@@ -8,7 +8,7 @@ import {
     nestedUsers,
     tagItems,
     users,
-} from "./fixtures";
+} from "./fixtures.js";
 
 describe("arr pluck type tests", () => {
     describe("literal string path without a key", () => {

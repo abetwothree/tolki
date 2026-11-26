@@ -4,9 +4,9 @@ import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { syncLoad } from "./fixtures/lines";
-import { Greeting } from "./fixtures/react-greeting";
-import { REACT_SSR_HTML } from "./fixtures/ssr-html";
+import { syncLoad } from "./fixtures/lines.js";
+import { Greeting } from "./fixtures/react-greeting.js";
+import { REACT_SSR_HTML } from "./fixtures/ssr-html.js";
 
 describe("LangProvider", () => {
     it("renders the locale's lines on the server", () => {

@@ -9,7 +9,7 @@ import {
     readonlyNumbers,
     readonlyStrings,
     unionElements,
-} from "./fixtures";
+} from "./fixtures.js";
 
 declare const opaque: unknown;
 // `declare`, not an initializer: a `const` narrows to its initializer's type, which would

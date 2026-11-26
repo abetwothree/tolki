@@ -4,16 +4,16 @@ import { isUndefined } from "@tolki/utils";
 import type { Plugin, ResolvedConfig, ViteDevServer } from "vite";
 import { normalizePath } from "vite";
 
-import type { ExportFlags } from "./command";
-import { exportCommand, sourceExportCommand } from "./command";
-import { readManifest } from "./manifest";
-import type { ExportRunner } from "./runner";
-import { createExportRunner } from "./runner";
+import type { ExportFlags } from "./command.js";
+import { exportCommand, sourceExportCommand } from "./command.js";
+import { readManifest } from "./manifest.js";
+import type { ExportRunner } from "./runner.js";
+import { createExportRunner } from "./runner.js";
 import {
     RESOLVED_VIRTUAL_MODULE_ID,
     VIRTUAL_MODULE_ID,
     virtualModuleCode,
-} from "./virtual-module";
+} from "./virtual-module.js";
 
 export interface LaravelLangExportOptions extends ExportFlags {
     /**

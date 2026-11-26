@@ -3,7 +3,7 @@ import * as Data from "@tolki/data";
 import type { PathKey } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
-import type { ItemsOf } from "../helpers";
+import type { ItemsOf } from "../helpers.js";
 import {
     abc,
     generic,
@@ -15,7 +15,7 @@ import {
     type Row,
     rows,
     Tagged,
-} from "./fixtures";
+} from "./fixtures.js";
 
 declare const partial: Collection<number, "a" | "b", "partial">;
 declare const listOrKeyed: Collection<number, number, "list" | "keyed">;

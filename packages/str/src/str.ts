@@ -16,13 +16,13 @@ import {
     toLower,
 } from "@tolki/utils";
 
-import { title, upper } from "./convertcase";
-import { randomInt, randomString } from "./random";
-import { substr } from "./replacer";
-import { ltrim, rtrim, trim } from "./trimmer";
-import { createUlidsNormally } from "./ulid";
-import { createUuidsNormally } from "./uuid";
-import { strimWidth, strWidth } from "./width";
+import { title, upper } from "./convertcase/index.js";
+import { randomInt, randomString } from "./random/index.js";
+import { substr } from "./replacer/index.js";
+import { ltrim, rtrim, trim } from "./trimmer/index.js";
+import { createUlidsNormally } from "./ulid/index.js";
+import { createUuidsNormally } from "./uuid/index.js";
+import { strimWidth, strWidth } from "./width/index.js";
 
 /**
  * The cache of snake-cased words.

@@ -9,7 +9,7 @@ import type {
 import { createLang, normalizeLocale } from "@tolki/lang";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { LINES } from "./fixtures/lines";
+import { LINES } from "./fixtures/lines.js";
 
 declare const registered: Lang<LinesFromRegister<{ lines: typeof LINES.en }>>;
 

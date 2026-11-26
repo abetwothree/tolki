@@ -3,7 +3,7 @@ import { localeTag, normalizeLocale, Translator } from "@tolki/lang";
 import { InvalidArgumentException } from "@tolki/utils";
 import { describe, expect, it } from "vitest";
 
-import { mergeLocaleLines } from "../src/translator";
+import { mergeLocaleLines } from "../src/translator.js";
 
 class LangMoney {
     constructor(public cents: number) {}

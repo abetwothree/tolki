@@ -1,10 +1,10 @@
-import type { Countable } from "./data";
+import type { Countable } from "./data.js";
 import type {
     ObjectDotPath,
     ObjectDotPathValue,
     ObjectResolvePath,
-} from "./path-resolve";
-import type { LocaleNormalizer } from "./utils";
+} from "./path-resolve.js";
+import type { LocaleNormalizer } from "./utils.js";
 
 /** A tag callback receives the text between `<key>` and `</key>`. */
 type TagCallback = (children: string) => unknown;

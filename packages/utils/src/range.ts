@@ -1,11 +1,11 @@
-import { phpIntArgument } from "./cast";
+import { phpIntArgument } from "./cast.js";
 import {
     isFiniteNumber,
     isInteger,
     isNull,
     isPhpInt,
     isUndefined,
-} from "./guards";
+} from "./guards.js";
 
 /** The most items a PHP array holds: HT_MAX_SIZE on a 64-bit build. */
 const PHP_MAX_ARRAY_SIZE = 2 ** 30;

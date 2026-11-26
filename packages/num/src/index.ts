@@ -1,2 +1,2 @@
-export * from "./num";
-export * from "./speller";
+export * from "./num.js";
+export * from "./speller/index.js";

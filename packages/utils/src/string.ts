@@ -1,6 +1,6 @@
 import type { PathKey } from "@tolki/types";
 
-import { phpTypeName } from "./reflect";
+import { phpTypeName } from "./reflect.js";
 
 /**
  * Convert a string to lower-case.

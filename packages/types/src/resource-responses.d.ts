@@ -1,4 +1,4 @@
-import type { PaginatorLink } from "./pagination";
+import type { PaginatorLink } from "./pagination.js";
 
 /**
  * The `meta` block of a resource collection paginated with `paginate()`.

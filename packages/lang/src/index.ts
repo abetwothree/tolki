@@ -1,7 +1,7 @@
-export * from "./helpers";
-export * from "./lang";
-export * from "./locale";
-export * from "./message-selector";
-export * from "./replacements";
-export { Translator } from "./translator";
-export type * from "./types";
+export * from "./helpers.js";
+export * from "./lang.js";
+export * from "./locale.js";
+export * from "./message-selector.js";
+export * from "./replacements.js";
+export { Translator } from "./translator.js";
+export type * from "./types.js";

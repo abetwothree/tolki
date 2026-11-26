@@ -6,7 +6,7 @@ import {
     readonlyNumbers,
     readonlyStrings,
     unknownArray,
-} from "./fixtures";
+} from "./fixtures.js";
 
 declare const maybeKey: string | null;
 declare const maybeIndex: number | undefined;

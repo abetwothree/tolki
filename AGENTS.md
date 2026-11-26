@@ -157,6 +157,7 @@ When using generics in parameter types, make sure to use the correct syntax for 
 - Use `const` and `let` instead of `var`
 - Use JSDoc comments for functions and classes
 - Use ES modules (import/export)
+- Relative imports name the file as it ships: `./obj.js`, `./ascii/index.js`; imports of `scripts/` files use `.ts`; JSON imports carry `with { type: "json" }`. The root tsconfig's `nodenext` rejects anything else, because declaration files keep these specifiers for consumers
 - Use `pnpm` as package manager
 - Use `prettier` for formatting
 - Use `oxlint` and `eslint` for linting

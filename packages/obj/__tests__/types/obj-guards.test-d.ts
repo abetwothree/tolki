@@ -1,7 +1,7 @@
 import * as Obj from "@tolki/obj";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { profile, unknownObject, user } from "./fixtures";
+import { profile, unknownObject, user } from "./fixtures.js";
 
 describe("obj guard type tests", () => {
     describe("objectItem", () => {

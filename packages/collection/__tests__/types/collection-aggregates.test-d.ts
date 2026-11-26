@@ -12,7 +12,7 @@ import {
     type Row,
     rows,
     Tagged,
-} from "./fixtures";
+} from "./fixtures.js";
 
 declare const listOrKeyed: Collection<number, number, "list" | "keyed">;
 declare const anyShape: Collection<unknown, PropertyKey, CollectionShape>;
