@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.39.0-43-gb20bf7f442"
+        "laravel": "v13.43.0-17-g1caec34a34"
     },
     "probes": [
         {
@@ -38,6 +38,48 @@
             "label": "format-rounds-to-zero-de",
             "php": "Number::format(-0.04, precision: 1, locale: 'de')",
             "value": "0,0"
+        },
+        {
+            "label": "format-locale-spellings",
+            "php": "Number::format(1234.5, 2, locale: \u2026) for each spelling",
+            "value": {
+                "pt_BR": "1.234,50",
+                "pt-BR": "1.234,50",
+                "pt_br": "1.234,50",
+                "PT-br": "1.234,50",
+                "zh_hant_tw": "1,234.50",
+                "ar_EG": "\u0661\u066c\u0662\u0663\u0664\u066b\u0665\u0660",
+                "es_419": "1,234.50"
+            }
+        },
+        {
+            "label": "format-locale-unknown",
+            "php": "Number::format(1234.5, locale: 'xx')",
+            "threw": "ValueError",
+            "message": "NumberFormatter::__construct(): Argument #1 ($locale) \"xx\" is invalid"
+        },
+        {
+            "label": "format-locale-unknown-region",
+            "php": "Number::format(1234.5, locale: 'xx_YY')",
+            "threw": "ValueError",
+            "message": "NumberFormatter::__construct(): Argument #1 ($locale) \"xx_YY\" is invalid"
+        },
+        {
+            "label": "format-locale-malformed",
+            "php": "Number::format(1234.5, locale: 'not a locale')",
+            "threw": "ValueError",
+            "message": "NumberFormatter::__construct(): Argument #1 ($locale) \"not a locale\" is invalid"
+        },
+        {
+            "label": "format-locale-padded",
+            "php": "Number::format(1234.5, locale: ' pt_BR ')",
+            "threw": "ValueError",
+            "message": "NumberFormatter::__construct(): Argument #1 ($locale) \" pt_BR \" is invalid"
+        },
+        {
+            "label": "format-locale-empty-is-icu-default",
+            "php": "Number::format(1234.5, 2, locale: '') === Number::format(1234.5, 2, locale: Locale::getDefault())",
+            "value": true
         }
     ]
 }

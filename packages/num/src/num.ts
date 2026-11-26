@@ -1,5 +1,7 @@
 import { InvalidArgumentException } from "@tolki/utils";
 
+import { intlLocale, setLocaleNormalizer } from "./locale";
+
 /**
  * The current default locale.
  */
@@ -37,6 +39,7 @@ export function abbreviate(
  * @param maxPrecision - The maximum number of decimal places to use.
  * @param locale - The locale to use for formatting.
  * @returns The formatted number string.
+ * @throws Error when ICU has no data for the locale, as PHP's NumberFormatter throws its ValueError
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#format
  */
@@ -47,7 +50,7 @@ export function format(
     maxPrecision: number | null = null,
     locale: string | null = null,
 ): string | false {
-    locale = locale ?? _locale;
+    const loc = intlLocale(locale ?? _locale);
 
     const options: Intl.NumberFormatOptions = {
         style: "decimal",
@@ -64,7 +67,7 @@ export function format(
         options.maximumFractionDigits = precision;
     }
 
-    const formatter = new Intl.NumberFormat(locale, options);
+    const formatter = new Intl.NumberFormat(loc, options);
 
     return formatter.format(withoutNegativeZero(number, formatter.format));
 }
@@ -75,6 +78,7 @@ export function format(
  * @param value - The string to parse.
  * @param locale - The locale to use for parsing.
  * @returns The parsed number.
+ * @throws Error when ICU has no data for the locale, as PHP's NumberFormatter throws its ValueError
  *
  * @example
  *
@@ -82,11 +86,11 @@ export function format(
  */
 /* @__NO_SIDE_EFFECTS__ */
 export function parse(value: string, locale: string | null = null): number {
-    locale = locale ?? _locale;
+    const loc = intlLocale(locale ?? _locale);
 
     // Derive locale-specific decimal and group separators using formatToParts
     const sample = 12345.6;
-    const parts = new Intl.NumberFormat(locale).formatToParts(sample);
+    const parts = new Intl.NumberFormat(loc).formatToParts(sample);
 
     const groupSymbols = new Set<string>();
     let decimalSymbol = ".";
@@ -148,6 +152,7 @@ export function parse(value: string, locale: string | null = null): number {
  * @param value - The string to parse.
  * @param locale - The locale to use for parsing.
  * @returns The parsed integer or false if parsing fails.
+ * @throws Error when ICU has no data for the locale, as PHP's NumberFormatter throws its ValueError
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#parseint
  */
@@ -171,6 +176,7 @@ export function parseInt(
  * @param value - The string to parse.
  * @param locale - The locale to use for parsing.
  * @returns The parsed float or false if parsing fails.
+ * @throws Error when ICU has no data for the locale, as PHP's NumberFormatter throws its ValueError
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#parsefloat
  */
@@ -188,12 +194,13 @@ export function parseFloat(
  * @param value - The number to convert.
  * @param locale - The locale to use for determining ordinal rules.
  * @returns The number in ordinal form.
+ * @throws Error when ICU has no data for the locale, as PHP's NumberFormatter throws its ValueError
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#ordinal
  */
 /* @__NO_SIDE_EFFECTS__ */
 export function ordinal(value: number, locale: string | null = null): string {
-    const loc = locale ?? _locale;
+    const loc = intlLocale(locale ?? _locale);
 
     // Prefer Intl.PluralRules with ordinal type when available; otherwise, fallback to English rules.
     try {
@@ -245,6 +252,7 @@ export function ordinal(value: number, locale: string | null = null): string {
  * @param maxPrecision - The maximum number of decimal places to use.
  * @param locale - The locale to use for formatting.
  * @returns The formatted percentage string.
+ * @throws Error when ICU has no data for the locale, as PHP's NumberFormatter throws its ValueError
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#percentage
  */
@@ -257,6 +265,7 @@ export function percentage(
 ): string | false {
     const loc = locale ?? _locale;
     const value = typeof number === "string" ? parse(number, loc) : number;
+    const tag = intlLocale(loc);
 
     const options: Intl.NumberFormatOptions = {
         style: "percent",
@@ -271,7 +280,7 @@ export function percentage(
         options.maximumFractionDigits = precision;
     }
 
-    const formatter = new Intl.NumberFormat(loc, options);
+    const formatter = new Intl.NumberFormat(tag, options);
 
     // Intl percent multiplies by 100; we divide to match Laravel behavior
     return formatter.format(withoutNegativeZero(value / 100, formatter.format));
@@ -285,6 +294,7 @@ export function percentage(
  * @param locale - The locale to use for formatting.
  * @param precision - The number of decimal places to use.
  * @returns The formatted currency string.
+ * @throws Error when ICU has no data for the locale, as PHP's NumberFormatter throws its ValueError
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#currency
  */
@@ -297,6 +307,7 @@ export function currency(
 ): string | false {
     const loc = locale ?? _locale;
     const value = typeof amount === "string" ? parse(amount, loc) : amount;
+    const tag = intlLocale(loc);
     const code = currencyCode && currencyCode.length ? currencyCode : _currency;
 
     const options: Intl.NumberFormatOptions = {
@@ -310,7 +321,7 @@ export function currency(
         options.maximumFractionDigits = precision;
     }
 
-    const formatter = new Intl.NumberFormat(loc, options);
+    const formatter = new Intl.NumberFormat(tag, options);
 
     return formatter.format(withoutNegativeZero(value, formatter.format));
 }
@@ -793,6 +804,22 @@ export function defaultLocale(): string {
 /* @__NO_SIDE_EFFECTS__ */
 export function defaultCurrency(): string {
     return _currency;
+}
+
+/**
+ * Set the callback that turns every locale into the tag `Intl` reads, or null to pass locales through unchanged.
+ *
+ * @sideEffects state writes the module locale normalizer
+ *
+ * @param callback - Turns a locale into a BCP 47 tag; `localeTag` by default
+ * @returns void
+ *
+ * @see https://tolki.abe.dev/numbers/number-utilities-list.html#normalizelocalesusing
+ */
+export function normalizeLocalesUsing(
+    callback: ((locale: string) => string) | null,
+): void {
+    setLocaleNormalizer(callback);
 }
 
 /**

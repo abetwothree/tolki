@@ -1,0 +1,29 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "useLocale-keeps-spelling",
+            "php": "useLocale('pt_BR'); defaultLocale()",
+            "value": "pt_BR"
+        },
+        {
+            "label": "useLocale-underscore-formats",
+            "php": "useLocale('pt_BR'); format(1234.5, 2)",
+            "value": "1.234,50"
+        },
+        {
+            "label": "useLocale-accepts-unknown",
+            "php": "useLocale('xx'); defaultLocale()",
+            "value": "xx"
+        },
+        {
+            "label": "useLocale-unknown-throws-on-use",
+            "php": "useLocale('xx'); format(1234.5)",
+            "threw": "ValueError",
+            "message": "NumberFormatter::__construct(): Argument #1 ($locale) \"xx\" is invalid"
+        }
+    ]
+}

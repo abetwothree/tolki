@@ -74,9 +74,11 @@ esbuild doesn't follow the mark across files, so it needs the same comment on an
 
 These are the number utilities that can be used independently as single functions.
 
-[abbreviate](#abbreviate) [clamp](#clamp) [currency](#currency) [defaultCurrency](#defaultcurrency) [defaultLocale](#defaultlocale) [fileSize](#filesize) [forHumans](#forhumans) [format](#format) [minutesToHuman](#minutestohuman) [ordinal](#ordinal) [pairs](#pairs) [parse](#parse) [parseFloat](#parsefloat) [parseInt](#parseint) [percentage](#percentage) [spell](#spell) [spellOrdinal](#spellordinal) [secondsToHuman](#secondstohuman) [trim](#trim) [useLocale](#uselocale) [withLocale](#withlocale) [useCurrency](#usecurrency) [withCurrency](#withcurrency)
+[abbreviate](#abbreviate) [clamp](#clamp) [currency](#currency) [defaultCurrency](#defaultcurrency) [defaultLocale](#defaultlocale) [fileSize](#filesize) [forHumans](#forhumans) [format](#format) [minutesToHuman](#minutestohuman) [normalizeLocalesUsing](#normalizelocalesusing) [ordinal](#ordinal) [pairs](#pairs) [parse](#parse) [parseFloat](#parsefloat) [parseInt](#parseint) [percentage](#percentage) [spell](#spell) [spellOrdinal](#spellordinal) [secondsToHuman](#secondstohuman) [trim](#trim) [useLocale](#uselocale) [withLocale](#withlocale) [useCurrency](#usecurrency) [withCurrency](#withcurrency)
 
 ### Number Utilities Details
+
+Every function that takes a locale reads Laravel's spelling (`pt_BR`) and BCP 47 (`pt-BR`) alike, as Laravel does through ICU. An empty locale means the runtime's own. A locale the runtime has no data for throws an `Error` with Laravel's message. [normalizeLocalesUsing](#normalizelocalesusing) changes how a locale is converted.
 
 #### abbreviate
 
@@ -234,6 +236,10 @@ const result3 = format(100000.123, null, 2);
 const result4 = format(100000, null, null, "de");
 
 // result4 is "100.000"
+
+const result5 = format(1234.5, 2, null, "pt_BR");
+
+// result5 is "1.234,50"
 ```
 
 #### minutesToHuman
@@ -250,6 +256,33 @@ const result = minutesToHuman(61);
 const result2 = minutesToHuman(61, false);
 
 // result2 is "1 hour, 1 minute"
+```
+
+#### normalizeLocalesUsing
+
+`normalizeLocalesUsing` permanently changes the module-wide conversion for every other example on this page, so it doesn't have a live playground here — trying it would silently change the output of every other widget below.
+
+Set the callback that turns every locale into the tag `Intl` reads, or `null` to pass locales through unchanged. The default is `localeTag` from `@tolki/utils`, which accepts `pt_BR` and `pt-BR` alike.
+
+```javascript
+import { format, normalizeLocalesUsing } from "@tolki/num";
+import { localeTag } from "@tolki/utils";
+
+const result = format(1234.5, 2, null, "pt_BR");
+
+// result is "1.234,50"
+
+// Map your own aliases, and keep the default for everything else.
+normalizeLocalesUsing((locale) =>
+  locale === "br" ? "pt-BR" : localeTag(locale),
+);
+
+const result2 = format(1234.5, 2, null, "br");
+
+// result2 is "1.234,50"
+
+// Hand locales to Intl exactly as written. "pt_BR" now throws.
+normalizeLocalesUsing(null);
 ```
 
 #### ordinal
@@ -474,6 +507,10 @@ import { useLocale } from "@tolki/num";
 useLocale("fr");
 
 // The default locale is now set to French
+
+useLocale("pt_BR");
+
+// defaultLocale() returns "pt_BR", the spelling as given
 ```
 
 #### withLocale

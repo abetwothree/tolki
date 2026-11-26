@@ -1,0 +1,20 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "ordinal-locale-unknown",
+            "php": "Number::ordinal(1, 'xx')",
+            "threw": "ValueError",
+            "message": "NumberFormatter::__construct(): Argument #1 ($locale) \"xx\" is invalid"
+        },
+        {
+            "label": "ordinal-locale-malformed",
+            "php": "Number::ordinal(1, '-en')",
+            "threw": "ValueError",
+            "message": "NumberFormatter::__construct(): Argument #1 ($locale) \"-en\" is invalid"
+        }
+    ]
+}

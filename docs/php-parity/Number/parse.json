@@ -1,0 +1,22 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "parse-locale-spellings",
+            "php": "Number::parse('1.234,5', locale: \u2026) for pt_BR and pt-BR",
+            "value": {
+                "pt_BR": 1234.5,
+                "pt-BR": 1234.5
+            }
+        },
+        {
+            "label": "parse-locale-unknown",
+            "php": "Number::parse('1.234,5', locale: 'xx')",
+            "threw": "ValueError",
+            "message": "NumberFormatter::__construct(): Argument #1 ($locale) \"xx\" is invalid"
+        }
+    ]
+}

@@ -1,0 +1,33 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "withLocale-spellings",
+            "php": "withLocale(\u2026, fn () => [format(1234.5, 2), defaultLocale()]) for pt_BR and pt-BR",
+            "value": {
+                "pt_BR": [
+                    "1.234,50",
+                    "pt_BR"
+                ],
+                "pt-BR": [
+                    "1.234,50",
+                    "pt-BR"
+                ]
+            }
+        },
+        {
+            "label": "withLocale-restores-after-throw",
+            "php": "withLocale('xx', fn () => format(1)) throws, then defaultLocale()",
+            "value": [
+                [
+                    "ValueError",
+                    "NumberFormatter::__construct(): Argument #1 ($locale) \"xx\" is invalid"
+                ],
+                "en"
+            ]
+        }
+    ]
+}
