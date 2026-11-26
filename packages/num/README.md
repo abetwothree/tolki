@@ -66,7 +66,7 @@ export const words = /* @__PURE__ */ spell(5);
 
 esbuild doesn't follow the mark across files, so it needs the same comment on any helper call. [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html) covers every bundler.
 
-`useLocale` and `useCurrency` set the defaults that every formatter reads, and `withLocale` and `withCurrency` run a callback around a temporary swap of them, so a call to any of the four is always kept.
+`useLocale` and `useCurrency` set the defaults that every formatter reads, and `withLocale` and `withCurrency` run a callback around a temporary swap of them. `normalizeLocalesUsing` sets how every formatter converts a locale. A call to any of the five is always kept.
 
 ## Tolki Number Utilities List
 
@@ -74,9 +74,11 @@ esbuild doesn't follow the mark across files, so it needs the same comment on an
 
 These are the number utilities that can be used independently as single functions.
 
-[abbreviate](#abbreviate) [clamp](#clamp) [currency](#currency) [defaultCurrency](#defaultcurrency) [defaultLocale](#defaultlocale) [fileSize](#filesize) [forHumans](#forhumans) [format](#format) [minutesToHuman](#minutestohuman) [ordinal](#ordinal) [pairs](#pairs) [parse](#parse) [parseFloat](#parsefloat) [parseInt](#parseint) [percentage](#percentage) [spell](#spell) [spellOrdinal](#spellordinal) [secondsToHuman](#secondstohuman) [trim](#trim) [useLocale](#uselocale) [withLocale](#withlocale) [useCurrency](#usecurrency) [withCurrency](#withcurrency)
+[abbreviate](#abbreviate) [clamp](#clamp) [currency](#currency) [defaultCurrency](#defaultcurrency) [defaultLocale](#defaultlocale) [fileSize](#filesize) [forHumans](#forhumans) [format](#format) [minutesToHuman](#minutestohuman) [normalizeLocalesUsing](#normalizelocalesusing) [ordinal](#ordinal) [pairs](#pairs) [parse](#parse) [parseFloat](#parsefloat) [parseInt](#parseint) [percentage](#percentage) [spell](#spell) [spellOrdinal](#spellordinal) [secondsToHuman](#secondstohuman) [trim](#trim) [useLocale](#uselocale) [withLocale](#withlocale) [useCurrency](#usecurrency) [withCurrency](#withcurrency)
 
 ### Number Utilities Details
+
+Every function that takes a locale reads Laravel's spelling (`pt_BR`) and BCP 47 (`pt-BR`) alike, as Laravel does through ICU. An empty locale means the runtime's own. A locale the runtime has no data for throws an `Error` with Laravel's message. [normalizeLocalesUsing](#normalizelocalesusing) changes how a locale is converted.
 
 #### abbreviate
 
@@ -234,6 +236,10 @@ const result3 = format(100000.123, null, 2);
 const result4 = format(100000, null, null, "de");
 
 // result4 is "100.000"
+
+const result5 = format(1234.5, 2, null, "pt_BR");
+
+// result5 is "1.234,50"
 ```
 
 #### minutesToHuman
@@ -252,9 +258,37 @@ const result2 = minutesToHuman(61, false);
 // result2 is "1 hour, 1 minute"
 ```
 
+#### normalizeLocalesUsing
+
+`normalizeLocalesUsing` permanently changes the module-wide conversion for every other example on this page, so it doesn't have a live playground here — trying it would silently change the output of every other widget below.
+
+Set the callback that turns every locale into the tag `Intl` reads, or `null` to pass locales through unchanged. The default is `localeTag`, which accepts `pt_BR` and `pt-BR` alike. `@tolki/num` exports it, and `normalizeLocalesUsing(localeTag)` restores the default.
+
+```javascript
+import { format, localeTag, normalizeLocalesUsing } from "@tolki/num";
+
+const result = format(1234.5, 2, null, "pt_BR");
+
+// result is "1.234,50"
+
+// Map your own aliases, and keep the default for everything else.
+normalizeLocalesUsing((locale) =>
+  locale === "br" ? "pt-BR" : localeTag(locale),
+);
+
+const result2 = format(1234.5, 2, null, "br");
+
+// result2 is "1.234,50"
+
+// Hand locales to Intl exactly as written. "pt_BR" now throws.
+normalizeLocalesUsing(null);
+```
+
 #### ordinal
 
 Convert the given number to ordinal form.
+
+It follows each locale's ordinal rules, as Laravel does, so German writes `1.` and Portuguese `1º`. A negative number is written with the minus sign (U+2212), not a hyphen, and a number of four or more digits is grouped.
 
 ```javascript
 import { ordinal } from "@tolki/num";
@@ -274,6 +308,26 @@ const result3 = ordinal(21);
 const result4 = ordinal(13);
 
 // result4 is "13th"
+
+const result5 = ordinal(1, "pt_BR");
+
+// result5 is "1º"
+
+const result6 = ordinal(1, "de");
+
+// result6 is "1."
+
+const result7 = ordinal(21, "fr");
+
+// result7 is "21e"
+
+const result8 = ordinal(-1);
+
+// result8 is "−1st"
+
+const result9 = ordinal(1000);
+
+// result9 is "1,000th"
 ```
 
 #### pairs
@@ -372,11 +426,11 @@ const result4 = percentage(10, 2, null, "de");
 
 `spell` and `spellOrdinal` return a `Promise<string>` and dynamically import a locale bundle on first use. The playground component above doesn't yet support async functions, so these two don't have a live example — see the code samples below instead.
 
-Spell out the given number in the given locale. Returns a `Promise<string>`.
+Spell out the given number in the given locale. Returns a `Promise<string>`. When no locale is given, it uses the default locale (see [useLocale](#uselocale)).
 
 Uses the [`to-words`](https://www.npmjs.com/package/to-words) package. Locales are loaded dynamically on demand, so only the locale you request is bundled (~3KB gzip per locale instead of ~54KB for all 94 locales).
 
-Supports 94 locales via [`to-words`](https://www.npmjs.com/package/to-words). You can pass a full locale code (e.g., `"fr-FR"`, `"en-IN"`) or a bare language code (e.g., `"fr"`, `"en"`) which will resolve to a sensible default. Unsupported locales fall back to `"en-US"`.
+Supports 94 locales via [`to-words`](https://www.npmjs.com/package/to-words). You can pass a full locale code (e.g., `"fr-FR"`, `"en-IN"`) or a bare language code (e.g., `"fr"`, `"en"`) which will resolve to a sensible default. A locale that the runtime has no data for throws an `Error` with Laravel's message, as Laravel does. A locale the runtime knows but `to-words` has no words for, such as Welsh (`cy`), is spelled in English.
 
 ```javascript
 import { spell } from "@tolki/num";
@@ -412,7 +466,7 @@ const result = await spell(15, null, null, 10);
 
 #### spellOrdinal
 
-Spell out the given number in the given locale in ordinal form. Returns a `Promise<string>`.
+Spell out the given number in the given locale in ordinal form. Returns a `Promise<string>`. When no locale is given, it uses the default locale (see [useLocale](#uselocale)). A locale that the runtime has no data for throws an `Error`.
 
 Uses [`to-words`](https://www.npmjs.com/package/to-words) v5 native ordinal support. See the [spell](#spell) function for details on locale handling.
 
@@ -474,6 +528,10 @@ import { useLocale } from "@tolki/num";
 useLocale("fr");
 
 // The default locale is now set to French
+
+useLocale("pt_BR");
+
+// defaultLocale() returns "pt_BR", the spelling as given
 ```
 
 #### withLocale
@@ -487,6 +545,8 @@ withLocale("fr", () => {
   return format(1234.56);
 }); // "1 234,56"
 ```
+
+`withLocale("pt_BR", …)` reads either spelling, and `defaultLocale()` inside the callback returns it as given.
 
 #### useCurrency
 

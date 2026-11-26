@@ -357,7 +357,7 @@ Call `subscribe(listener)` to hear about every change. It returns a function tha
 
 A call whose result nothing uses drops out of your bundle in Rollup, Rolldown (Vite 8), webpack and Rspack, because `createLang`, the translation helpers and the Svelte `getLang` and `langContext` are marked as free of side effects. This holds for a call at the top level of a module too.
 
-The exception is Rspack, where an unused top-level call to `createLang` drops the call but keeps dead `@tolki/utils` code under its default minifier settings. SWC `compress.passes: 3` in an `optimization.minimizer` removes it, and so does writing `/* @__PURE__ */` before the call:
+The exception is Rspack, where an unused top-level call to `createLang` drops the call but keeps some dead code under its default minifier settings. SWC `compress.passes: 3` in an `optimization.minimizer` removes it, and so does writing `/* @__PURE__ */` before the call:
 
 ```typescript
 export const lang = /* @__PURE__ */ createLang({ locale: "en" });
@@ -1049,7 +1049,7 @@ These are the exports of `@tolki/lang`: the `Translator` class with Laravel's pu
 
 ### Translator Reference
 
-[\_\_](#__) [addLines](#addlines) [array](#array) [bindLang](#bindlang) [choice](#choice) [choose](#choose) [createHelpers](#createhelpers) [createLang](#createlang) [determineLocalesUsing](#determinelocalesusing) [get](#get) [getFallback](#getfallback) [getLocale](#getlocale) [getPluralIndex](#getpluralindex) [handleMissingKeysUsing](#handlemissingkeysusing) [has](#has) [hasForLocale](#hasforlocale) [htmlLocale](#htmllocale) [locale](#locale) [makeReplacements](#makereplacements) [normalizeLocale](#normalizelocale) [parseKey](#parsekey) [setFallback](#setfallback) [setLoaded](#setloaded) [setLocale](#setlocale) [string](#string) [stringable](#stringable) [trans](#trans) [transChoice](#transchoice) [Translator](#translator)
+[\_\_](#__) [addLines](#addlines) [array](#array) [bindLang](#bindlang) [choice](#choice) [choose](#choose) [createHelpers](#createhelpers) [createLang](#createlang) [determineLocalesUsing](#determinelocalesusing) [get](#get) [getFallback](#getfallback) [getLocale](#getlocale) [getPluralIndex](#getpluralindex) [handleMissingKeysUsing](#handlemissingkeysusing) [has](#has) [hasForLocale](#hasforlocale) [htmlLocale](#htmllocale) [locale](#locale) [localeTag](#localetag) [makeReplacements](#makereplacements) [normalizeLocale](#normalizelocale) [normalizeLocalesUsing](#normalizelocalesusing) [parseKey](#parsekey) [setFallback](#setfallback) [setLoaded](#setloaded) [setLocale](#setlocale) [string](#string) [stringable](#stringable) [trans](#trans) [transChoice](#transchoice) [Translator](#translator)
 
 ### Translator Details
 
@@ -1255,7 +1255,7 @@ transChoice("apples", 2);
 
 Create a translator that loads locales on demand and tells subscribers when its answers change.
 
-Exported as `createLang` from `@tolki/lang`. The options are the starting `locale`, an optional `fallback`, the `lines` at hand and a `load` function that fetches a locale's lines, at once or as a promise. A module namespace from `import()` is unwrapped to its default export. It answers the helpers `__`, `trans` and `transChoice`, the reads `has`, `hasForLocale`, `getLocale`, `getFallback`, `isLocale` and `isLoaded`, and the `translator` behind them.
+Exported as `createLang` from `@tolki/lang`. The options are the starting `locale`, an optional `fallback`, the `lines` at hand, a `load` function that fetches a locale's lines, at once or as a promise, and an optional [normalizeLocalesUsing](#normalizelocalesusing) callback. A module namespace from `import()` is unwrapped to its default export. It answers the helpers `__`, `trans` and `transChoice`, the reads `has`, `hasForLocale`, `getLocale`, `getFallback`, `isLocale` and `isLoaded`, and the `translator` behind them.
 
 - `ready` is a promise that settles once the starting locale and the fallback are loaded. It rejects when a load fails.
 - `setLocale(locale)` and `setFallback(locale)` load the locale before they switch, and the last call wins. A failed load rejects and changes nothing. `setFallback(null)` clears the fallback.
@@ -1301,6 +1301,24 @@ changes;
 
 lang.getVersion();
 // => 2
+```
+
+With `normalizeLocalesUsing`, `createLang` converts the starting locale, the fallback, the keys of `lines` and every locale you pass to `setLocale`, `setFallback`, `load`, `isLocale` and `isLoaded`. The loader and the path check see the converted locale.
+
+```js
+import { createLang, normalizeLocale } from "@tolki/lang";
+
+const lang = createLang({
+  locale: "pt-BR",
+  lines: { pt_BR: { Hello: "Olá" } },
+  normalizeLocalesUsing: normalizeLocale,
+});
+
+lang.getLocale();
+// => "pt_BR"
+
+lang.__("Hello");
+// => "Olá"
 ```
 
 #### determineLocalesUsing
@@ -1565,6 +1583,27 @@ new Translator({}, "es").locale();
 // => "es"
 ```
 
+#### localeTag
+
+Turn a locale spelled as Laravel does into the BCP 47 tag `Intl` reads.
+
+Exported as `localeTag` from `@tolki/lang` and `@tolki/num`. A tag `Intl` cannot read comes back with only its underscores replaced.
+
+```js
+import { localeTag } from "@tolki/lang";
+
+localeTag("pt_BR");
+// => "pt-BR"
+
+localeTag("zh_hant_tw");
+// => "zh-Hant-TW"
+
+new Date(Date.UTC(2026, 0, 2)).toLocaleDateString(localeTag("pt_BR"), {
+  timeZone: "UTC",
+});
+// => "02/01/2026"
+```
+
 #### makeReplacements
 
 Make the place-holder replacements on a line.
@@ -1617,6 +1656,30 @@ normalizeLocale("pt-br");
 
 normalizeLocale("fr");
 // => "fr"
+
+normalizeLocale("zh-hant-tw");
+// => "zh_Hant_TW"
+```
+
+#### normalizeLocalesUsing
+
+Specify a callback that converts every locale the translator is given, such as `normalizeLocale`.
+
+Exported as the `normalizeLocalesUsing` method of `Translator`. It is off by default, so a locale reads only the lines keyed with its exact spelling, as in Laravel. Once set, it converts the default locale, the fallback, and the locale you pass to any method. A locale then reads one key of your lines: the key spelled exactly as the converted locale, or else the first key that converts to it. Lines under other spellings are not read. The callback must give the same answer for its own answer, as `normalizeLocale` and `localeTag` do. Pass `null` to turn it off. <!-- docs/php-parity/Translator/get.json, "get-hyphen-locale-misses-underscore-lines"; docs/php-parity/Translator/choice.json, "choice-underscore-locale-uses-its-rule" -->
+
+```js
+import { normalizeLocale, Translator } from "@tolki/lang";
+
+const translator = new Translator(
+  { pt_BR: { messages: { apples: "uma maçã|:count maçãs" } } },
+  "pt-BR",
+).normalizeLocalesUsing(normalizeLocale);
+
+translator.getLocale();
+// => "pt_BR"
+
+translator.choice("messages.apples", 2);
+// => "2 maçãs"
 ```
 
 #### parseKey
@@ -1939,6 +2002,8 @@ getPluralIndex(normalizeLocale("pt-BR"), 2);
 getPluralIndex(normalizeLocale("pt-BR"), 1);
 // => 0
 ```
+
+[`normalizeLocalesUsing`](https://tolki.abe.dev/localization/translator.html#normalizelocalesusing) does this for you: it converts every locale a translator is given. A locale then reads one key of your lines: the key spelled exactly as the converted locale, or else the first key that converts to it.
 
 A new `Translator` has no fallback locale, as in Laravel, where only the service provider sets one. Call `setFallback()`. See [the warning on setting a fallback](https://tolki.abe.dev/localization/index.html#quick-start). <!-- docs/php-parity/Translator/getFallback.json, "fallback-starts-null"; docs/php-parity/Translator/choice.json, "choice-without-fallback-uses-first-form" -->
 

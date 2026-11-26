@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.39.0-43-gb20bf7f442"
+        "laravel": "v13.43.0-17-g1caec34a34"
     },
     "probes": [
         {
@@ -28,6 +28,20 @@
             "label": "percentage-max-precision-rounds-to-zero",
             "php": "Number::percentage(-0.004, maxPrecision: 2)",
             "value": "0%"
+        },
+        {
+            "label": "percentage-locale-spellings",
+            "php": "Number::percentage(12.5, 1, locale: \u2026) for pt_BR and pt-BR",
+            "value": {
+                "pt_BR": "12,5%",
+                "pt-BR": "12,5%"
+            }
+        },
+        {
+            "label": "percentage-locale-unknown",
+            "php": "Number::percentage(12.5, locale: 'xx')",
+            "threw": "ValueError",
+            "message": "NumberFormatter::__construct(): Argument #1 ($locale) \"xx\" is invalid"
         }
     ]
 }

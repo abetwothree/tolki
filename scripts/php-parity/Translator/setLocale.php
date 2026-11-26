@@ -35,4 +35,11 @@ probe('set-locale-accepts-region', "setLocale('en_US'); getLocale()", function (
     return $t->getLocale();
 });
 
+probe('set-locale-keeps-hyphen', "setLocale('pt-BR'); getLocale()", function () {
+    $t = langTranslator([]);
+    $t->setLocale('pt-BR');
+
+    return $t->getLocale();
+});
+
 emit();

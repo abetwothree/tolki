@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.39.0-43-gb20bf7f442"
+        "laravel": "v13.43.0-17-g1caec34a34"
     },
     "probes": [
         {
@@ -109,6 +109,16 @@
             "label": "choice-null-number",
             "php": "t(T3)->choice('apples', null)",
             "value": " one"
+        },
+        {
+            "label": "choice-hyphen-locale-uses-default-rule",
+            "php": "t(['pt-BR' => ['g' => ['a' => 'one|many']]], 'pt-BR')->choice('g.a', 0)",
+            "value": "one"
+        },
+        {
+            "label": "choice-underscore-locale-uses-its-rule",
+            "php": "t(['pt_BR' => ['g' => ['a' => 'one|many']]], 'pt_BR')->choice('g.a', 0)",
+            "value": "many"
         }
     ]
 }

@@ -273,6 +273,12 @@ describe("TranslationResult", () => {
         ).toEqualTypeOf<LangGroup>();
     });
 
+    it("answers the translator itself from normalizeLocalesUsing", () => {
+        expectTypeOf(translator.normalizeLocalesUsing(null)).toEqualTypeOf<
+            typeof translator
+        >();
+    });
+
     it("keeps string for string() and choice()", () => {
         expectTypeOf(translator.string("messages")).toEqualTypeOf<string>();
         expectTypeOf(

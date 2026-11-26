@@ -35,4 +35,8 @@ probe('choice-nan', "t(T3)->choice('apples', NAN)", fn () => @langTranslator($t3
 probe('choice-numeric-string', "t(T3)->choice('apples', '5')", fn () => langTranslator($t3)->choice('apples', '5'));
 probe('choice-null-number', "t(T3)->choice('apples', null)", fn () => langTranslator($t3)->choice('apples', null));
 
+// The plural table spells locales with an underscore, so pt-BR takes the default rule and pt_BR its own.
+probe('choice-hyphen-locale-uses-default-rule', "t(['pt-BR' => ['g' => ['a' => 'one|many']]], 'pt-BR')->choice('g.a', 0)", fn () => langTranslator(['pt-BR' => ['g' => ['a' => 'one|many']]], 'pt-BR')->choice('g.a', 0));
+probe('choice-underscore-locale-uses-its-rule', "t(['pt_BR' => ['g' => ['a' => 'one|many']]], 'pt_BR')->choice('g.a', 0)", fn () => langTranslator(['pt_BR' => ['g' => ['a' => 'one|many']]], 'pt_BR')->choice('g.a', 0));
+
 emit();

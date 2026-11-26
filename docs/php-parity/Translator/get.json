@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.39.0-43-gb20bf7f442"
+        "laravel": "v13.43.0-17-g1caec34a34"
     },
     "probes": [
         {
@@ -205,6 +205,16 @@
             "value": {
                 "Hello": "Hola :name"
             }
+        },
+        {
+            "label": "get-hyphen-locale-misses-underscore-lines",
+            "php": "t(['pt_BR' => ['g' => ['a' => 'A']]], 'pt-BR')->get('g.a')",
+            "value": "g.a"
+        },
+        {
+            "label": "get-hyphen-locale-argument-misses-underscore-lines",
+            "php": "t(['pt_BR' => ['g' => ['a' => 'A']]])->get('g.a', [], 'pt-BR')",
+            "value": "g.a"
         }
     ]
 }

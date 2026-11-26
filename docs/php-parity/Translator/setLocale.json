@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.39.0-43-gb20bf7f442"
+        "laravel": "v13.43.0-17-g1caec34a34"
     },
     "probes": [
         {
@@ -49,6 +49,11 @@
             "label": "set-locale-accepts-region",
             "php": "setLocale('en_US'); getLocale()",
             "value": "en_US"
+        },
+        {
+            "label": "set-locale-keeps-hyphen",
+            "php": "setLocale('pt-BR'); getLocale()",
+            "value": "pt-BR"
         }
     ]
 }

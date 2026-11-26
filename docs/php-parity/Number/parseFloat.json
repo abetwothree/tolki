@@ -1,0 +1,16 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "parseFloat-locale-spellings",
+            "php": "Number::parseFloat('1.234,5', \u2026) for pt_BR and pt-BR",
+            "value": {
+                "pt_BR": 1234.5,
+                "pt-BR": 1234.5
+            }
+        }
+    ]
+}

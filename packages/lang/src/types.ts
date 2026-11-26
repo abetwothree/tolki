@@ -20,6 +20,7 @@ export type {
     LocaleLines,
     LocaleLinesLoader,
     LocaleModule,
+    LocaleNormalizer,
     LocalesResolver,
     MissingKeyHandler,
     Replacements,

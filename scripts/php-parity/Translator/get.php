@@ -46,4 +46,8 @@ probe('get-json-line-is-not-a-group', "t(['en' => ['messages' => 'Messages']])->
 probe('get-star-group-reads-json-lines', "t(['en' => ['Hello' => 'Hola :name']])->get('*.Hello', ['name' => 'Ann'])", fn () => langTranslator(['en' => ['Hello' => 'Hola :name']])->get('*.Hello', ['name' => 'Ann']));
 probe('get-star-alone-returns-json-lines', "t(['en' => ['Hello' => 'Hola :name']])->get('*')", fn () => langTranslator(['en' => ['Hello' => 'Hola :name']])->get('*'));
 
+// Laravel reads the locale as an exact key, so a hyphenated locale misses lines keyed with an underscore.
+probe('get-hyphen-locale-misses-underscore-lines', "t(['pt_BR' => ['g' => ['a' => 'A']]], 'pt-BR')->get('g.a')", fn () => langTranslator(['pt_BR' => ['g' => ['a' => 'A']]], 'pt-BR')->get('g.a'));
+probe('get-hyphen-locale-argument-misses-underscore-lines', "t(['pt_BR' => ['g' => ['a' => 'A']]])->get('g.a', [], 'pt-BR')", fn () => langTranslator(['pt_BR' => ['g' => ['a' => 'A']]])->get('g.a', [], 'pt-BR'));
+
 emit();

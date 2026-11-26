@@ -224,6 +224,8 @@ When using generics in parameter types, make sure to use the correct syntax for 
   - `entriesKeyValue(variable)` - converts a key of an array or object to number if it should be a number, otherwise, returns the key as is. This is useful when iterating over arrays or objects and getting the keys from `Object.entries()` or similar methods.
   - `escapeShellArg(value)` - makes a value safe inside a POSIX shell command, single-quoting it only when it holds a character the shell would read; every value interpolated into a command goes through it, or through `escapeWindowsShellArg` on Windows
   - `escapeWindowsShellArg(value)` - makes a value safe inside a cmd.exe command, the shell Node's `exec` runs on Windows, double-quoting it by the MSVCRT argv rules only when needed; `%` cannot be escaped there
+  - `localeTag(locale)` - turns a locale spelled as Laravel does (`pt_BR`) into the BCP 47 tag `Intl` reads (`pt-BR`); a tag `Intl` cannot canonicalize comes back with only its underscores replaced, never throwing
+  - `normalizeLocale(locale)` - turns a BCP 47 tag into Laravel's spelling (`zh-hant-tw` becomes `zh_Hant_TW`): trims, lower-cases, splits on runs of `-`, `_` and whitespace, upper-cases two-letter subtags after the first and title-cases four-letter ones
 - Where a Laravel method follows a PHP rule, use the `@tolki/utils` helper that ports the rule rather than deriving it again:
   - `phpComputedKey(value, options)` - casts a key a method computed the way Laravel stores it (`true` becomes `1`, a float truncates), reading an `@tolki/enum` case or a `Stringable` object first when the options ask, and throwing PHP's `TypeError` for any other object
   - `arrayKeyExistsError()` - builds the `TypeError` Laravel's `array_key_exists` calls throw for a key `isIllegalOffset` flags
@@ -320,6 +322,7 @@ A changeset becomes the published changelog, so write it for someone who knows a
 - Put breaking changes first, each starting with **Breaking:**, and say what a user has to change.
 - Name the functions and types a user can call or import. Leave out internal helpers and how the code changed: no deep dives, code walkthroughs, long examples or PHP internals.
 - Keep it a flat list with no headings, because the changelog nests each entry inside a list item.
+- Write one changeset file per package, named `<topic>-<package>.md` (e.g. `locale-spellings-num.md`), and describe only what changed in that package. A change that touches several packages gets one file for each.
 - Only published packages get changesets. The private ones are in `.changeset/config.json`'s `ignore` list.
 - `@tolki/utils` is an internal package so never bumps as a major release no matter if changes are breaking.
 
@@ -446,7 +449,7 @@ export function dataCollapse(data: unknown): unknown {
 - Stubs: `Translator.php`, `MessageSelector.php` and `NamespacedItemResolver.php` are the source of truth; `TranslatorTest.php` and `MessageSelectorTest.php` are the tests to adapt
 - The caller passes the lines, one object per locale: a top-level array or plain object is a group file, any other value a JSON line, and `ns::group` a package group. `Translator` loads nothing; `createLang` and the Vite plugin do the loading
 - `MessageSelector` becomes the functions `choose` and `getPluralIndex`, in the stub's order; `Translator` stays a class because it holds the locale, the fallback and the lines
-- `normalizeLocale` and `htmlLocale` are the JS-only locale helpers: `normalizeLocale` turns a BCP 47 tag (`en-US`) into Laravel's spelling (`en_US`) with a small hand-written rule, `htmlLocale` reads the locale from `<html lang>`
+- `normalizeLocale` and `localeTag` live in `@tolki/utils` and are re-exported; `htmlLocale` reads the locale from `<html lang>`
 - Entries (the main entry imports no framework, vite or `node:*` module; each framework entry imports only its own):
   - `@tolki/lang` - `Translator`, the helper functions, `createLang` and `bindLang`
   - `@tolki/lang/vite-laravel` - Vite plugin that runs `laravel-lang-export` and serves `virtual:tolki-lang`
@@ -464,6 +467,9 @@ export function dataCollapse(data: unknown): unknown {
 - Functions should be in the same order as in the Laravel `Number.php` stub for easier reference
 - use `@tolki/types` for type definitions
 - use `@tolki/utils` for utility functions
+- Every locale reaches `Intl` through `intlLocale` from `src/locale`, which applies the `normalizeLocalesUsing` hook
+  and throws Laravel's error for a locale the runtime has no data for. `ordinal()` formats through `src/ordinal`, a
+  private port of ICU's ordinal rule sets.
 
 ### @tolki/obj
 
@@ -504,6 +510,7 @@ export function dataCollapse(data: unknown): unknown {
   - `src/cast.ts` - conversion and coercion helpers
   - `src/equality.ts` - comparison and equality helpers
   - `src/keys.ts` - object key helpers
+  - `src/locale.ts` - locale spelling helpers
   - `src/range.ts` - numeric range helpers shared across packages
   - `src/string.ts` - string helpers shared across packages
   - `src/reflect.ts` - runtime type reflection helpers

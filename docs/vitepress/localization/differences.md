@@ -115,6 +115,8 @@ getPluralIndex(normalizeLocale("pt-BR"), 1);
 // => 0
 ```
 
+[`normalizeLocalesUsing`](./translator.md#normalizelocalesusing) does this for you: it converts every locale a translator is given. A locale then reads one key of your lines: the key spelled exactly as the converted locale, or else the first key that converts to it.
+
 A new `Translator` has no fallback locale, as in Laravel, where only the service provider sets one. Call `setFallback()`. See [the warning on setting a fallback](./index.md#quick-start). <!-- docs/php-parity/Translator/getFallback.json, "fallback-starts-null"; docs/php-parity/Translator/choice.json, "choice-without-fallback-uses-first-form" -->
 
 ## Tag keys match literally

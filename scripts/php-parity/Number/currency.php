@@ -19,4 +19,7 @@ probe('currency-keeps-sign', 'Number::currency(-0.006)', fn () => Number::curren
 probe('currency-negative-zero', 'Number::currency(-0.0)', fn () => Number::currency(-0.0));
 probe('currency-rounds-to-zero-eur-de', "Number::currency(-0.001, in: 'EUR', locale: 'de')", fn () => Number::currency(-0.001, in: 'EUR', locale: 'de'));
 
+probe('currency-locale-spellings', "Number::currency(1234.5, 'EUR', …) for pt_BR, pt-BR and ar_EG", fn () => array_combine(['pt_BR', 'pt-BR', 'ar_EG'], array_map(fn ($l) => Number::currency(1234.5, 'EUR', $l), ['pt_BR', 'pt-BR', 'ar_EG'])));
+probe('currency-locale-unknown', "Number::currency(1234.5, 'EUR', 'xx')", fn () => Number::currency(1234.5, 'EUR', 'xx'));
+
 emit();

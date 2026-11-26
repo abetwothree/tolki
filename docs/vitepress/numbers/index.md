@@ -58,4 +58,4 @@ export const words = /* @__PURE__ */ spell(5);
 
 esbuild doesn't follow the mark across files, so it needs the same comment on any helper call. [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html) covers every bundler.
 
-`useLocale` and `useCurrency` set the defaults that every formatter reads, and `withLocale` and `withCurrency` run a callback around a temporary swap of them, so a call to any of the four is always kept.
+`useLocale` and `useCurrency` set the defaults that every formatter reads, and `withLocale` and `withCurrency` run a callback around a temporary swap of them. `normalizeLocalesUsing` sets how every formatter converts a locale. A call to any of the five is always kept.

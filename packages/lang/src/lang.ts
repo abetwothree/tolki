@@ -81,21 +81,40 @@ function isPending(
 export function createLang<TLines extends LangLines = RegisteredLines>(
     options: LangOptions<TLines>,
 ): Lang<TLines> {
-    assertLocale(options.locale);
+    const normalizer = options.normalizeLocalesUsing ?? null;
 
-    if (!isUndefined(options.fallback) && !isNull(options.fallback)) {
-        assertLocale(options.fallback);
+    /**
+     * Convert a locale with the lang's `normalizeLocalesUsing` callback.
+     *
+     * @param locale - The locale
+     * @returns The converted locale, or the locale itself when no callback is set
+     */
+    function normalize(locale: string): string {
+        return isNull(normalizer) ? locale : normalizer(locale);
+    }
+
+    const locale = normalize(options.locale);
+    const fallback =
+        isUndefined(options.fallback) || isNull(options.fallback)
+            ? null
+            : normalize(options.fallback);
+
+    assertLocale(locale);
+
+    if (!isNull(fallback)) {
+        assertLocale(fallback);
     }
 
     const translator = new Translator<TLines>(
         options.lines ?? ({} as TLines),
-        options.locale,
+        locale,
     );
 
-    translator.setFallback(options.fallback ?? null);
+    translator.normalizeLocalesUsing(normalizer);
+    translator.setFallback(fallback);
 
     const helpers = createHelpers(translator);
-    const loaded = new Set(Object.keys(options.lines ?? {}));
+    const loaded = new Set(Object.keys(options.lines ?? {}).map(normalize));
     // Guards only the window where two load() calls for one locale overlap, since `loaded` never shrinks.
     const announcedLoads = new Set<string>();
     const inFlight = new Map<string, Promise<void>>();
@@ -200,11 +219,11 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
         }
     }
 
-    const starting = request(options.locale);
+    const starting = request(locale);
     let fallbackLoad: Promise<void> | null;
 
     try {
-        fallbackLoad = request(options.fallback ?? options.locale);
+        fallbackLoad = request(fallback ?? locale);
     } catch (error) {
         // The locale's load is already running; without a handler its failure would go unhandled.
         starting?.catch(() => {});
@@ -226,8 +245,10 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
         },
         getLocale: () => translator.getLocale(),
         getFallback: () => translator.getFallback(),
-        isLocale: (locale) => translator.getLocale() === locale,
-        isLoaded: (locale) => loaded.has(locale ?? translator.getLocale()),
+        isLocale: (other) => translator.getLocale() === normalize(other),
+        isLoaded: (other) => {
+            return loaded.has(normalize(other ?? translator.getLocale()));
+        },
         getVersion: () => version,
         subscribe: (listener) => {
             listeners.add(listener);
@@ -236,56 +257,62 @@ export function createLang<TLines extends LangLines = RegisteredLines>(
                 listeners.delete(listener);
             };
         },
-        load: async (locale) => {
-            assertLocale(locale);
+        load: async (wanted) => {
+            const target = normalize(wanted);
 
-            const wasLoaded = loaded.has(locale);
+            assertLocale(target);
 
-            await request(locale);
+            const wasLoaded = loaded.has(target);
+
+            await request(target);
 
             if (
                 !wasLoaded &&
-                loaded.has(locale) &&
-                !announcedLoads.has(locale)
+                loaded.has(target) &&
+                !announcedLoads.has(target)
             ) {
-                announcedLoads.add(locale);
+                announcedLoads.add(target);
                 changed();
             }
         },
-        setLocale: async (locale) => {
-            assertLocale(locale);
+        setLocale: async (wanted) => {
+            const target = normalize(wanted);
+
+            assertLocale(target);
 
             latestSwitch += 1;
 
             const token = latestSwitch;
 
-            await request(locale);
+            await request(target);
 
             if (token !== latestSwitch) {
                 return;
             }
 
-            translator.setLocale(locale);
+            translator.setLocale(target);
             changed();
         },
-        setFallback: async (fallback) => {
-            if (!isNull(fallback)) {
-                assertLocale(fallback);
+        setFallback: async (wanted) => {
+            const target = isNull(wanted) ? null : normalize(wanted);
+
+            if (!isNull(target)) {
+                assertLocale(target);
             }
 
             latestFallback += 1;
 
             const token = latestFallback;
 
-            if (!isNull(fallback)) {
-                await request(fallback);
+            if (!isNull(target)) {
+                await request(target);
             }
 
             if (token !== latestFallback) {
                 return;
             }
 
-            translator.setFallback(fallback);
+            translator.setFallback(target);
             changed();
         },
     };
