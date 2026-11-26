@@ -1,9 +1,16 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+    mkdirSync,
+    mkdtempSync,
+    readFileSync,
+    rmSync,
+    writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import type { PackageJson } from "../lib/workspace.ts";
 import type {
     ExportEntry,
     SideEffectCategory,
@@ -1099,7 +1106,15 @@ describe("runFixture", () => {
             [
                 {
                     name: "@tolki/fx",
+                    dir: "",
+                    tarball: "",
                     root: join(app, "node_modules/@tolki/fx"),
+                    manifest: JSON.parse(
+                        readFileSync(
+                            join(app, "node_modules/@tolki/fx/package.json"),
+                            "utf8",
+                        ),
+                    ) as PackageJson,
                     subpaths: [".", "./setup", "./vue", "./react", "./vite"],
                 },
             ],

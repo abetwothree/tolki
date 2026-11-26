@@ -4,11 +4,11 @@
 
 ## Staging
 
-[`stage.ts`](../../scripts/treeshake/stage.ts) copies each published package into a temp dir under `os.tmpdir()`, the way pnpm publishes it:
+[`scripts/lib/pack.ts`](../../scripts/lib/pack.ts) packs each published package with `pnpm pack` (scripts off), so pnpm applies `publishConfig`, `files` and the `workspace:` rewrite itself:
 
-- `publishConfig` applied over the top-level fields;
-- only the manifest's `files`;
-- installed dependencies and peers symlinked.
+- the tarballs land in a temp dir under `os.tmpdir()` and are extracted under its `node_modules`;
+- installed dependencies and peers are symlinked beside them;
+- `@tolki/types` is packed too, but has no code subpaths.
 
 Bundles read the built `dist`, never linked source, so an annotation the build loses fails the check. Without a `dist`, the check stops with "run pnpm build first". The temp dir is removed at the end, on failure too.
 
