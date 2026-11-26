@@ -85,10 +85,11 @@ describe("ordinalRule", () => {
         for (const [locale, set] of Object.entries(setOfLocale)) {
             const rule = ordinalRule(tagOf(locale));
             const pattern = sets[set] as string;
+            const ruleText = pattern.replaceAll(/%[\w-]+/g, "");
 
             // A rule set writes `-` before its suffix text, which this port keeps in the text.
             for (const text of textsOf(rule)) {
-                expect(pattern, locale).toContain(text.replace(/^-/, ""));
+                expect(ruleText, locale).toContain(text.replace(/^-/, ""));
             }
 
             expect(rule.indian === true, locale).toBe(
@@ -104,5 +105,25 @@ describe("ordinalRule", () => {
                 /%digits-ordinal:\n0: =%/.test(pattern),
             );
         }
+    });
+
+    it("gives a tag outside ICU's locales the rule of the rule set ICU falls back to", () => {
+        // docs/php-parity/Php/NumberFormatter.json, "ordinal-rule-set-of-fallback-tags"
+        const setOfTag = probeValue<Record<string, number>>(
+            "Php/NumberFormatter.json",
+            "ordinal-rule-set-of-fallback-tags",
+        );
+        const ruleOfSet = new Map(
+            Object.entries(setOfLocale).map(([locale, set]) => [
+                set,
+                ordinalRule(tagOf(locale)),
+            ]),
+        );
+
+        for (const [tag, set] of Object.entries(setOfTag)) {
+            expect(ordinalRule(tagOf(tag)), tag).toBe(ruleOfSet.get(set));
+        }
+
+        expect(Object.keys(setOfTag)).toHaveLength(50);
     });
 });

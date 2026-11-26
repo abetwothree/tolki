@@ -1,9 +1,7 @@
 import { isUndefined } from "@tolki/utils";
 
 /**
- * The text an ordinal rule writes beside the number.
- *
- * A string is written as is, `plural` picks by the number's ordinal plural category, and `indicator` by its value.
+ * The text an ordinal rule writes beside the number: a string as is, or picked by its plural category or its value.
  */
 export type OrdinalText =
     | string
@@ -86,7 +84,7 @@ export const INDICATORS: Readonly<
 };
 
 /**
- * ICU's root rule set, which every language without its own uses.
+ * The rule set of ICU's default locale, en, which a locale without its own rule set falls back to.
  */
 export const ROOT_ORDINAL: OrdinalRule = {
     suffix: { plural: { one: "st", two: "nd", few: "rd", other: "th" } },
@@ -187,12 +185,17 @@ export const ORDINAL_RULES: Readonly<Record<string, OrdinalRule>> = {
 };
 
 /**
- * The languages and script variants whose rule set writes a period after the number.
+ * The languages, script variants and scriptless region variants whose rule set writes a period after the number.
  */
 export const DOT_KEYS: readonly string[] = [
     "ak",
+    "az-Arab",
     "az-Cyrl",
+    "az-IQ",
+    "az-IR",
+    "az-RU",
     "be",
+    "bm-Nkoo",
     "bs",
     "ccp",
     "chr",
@@ -200,52 +203,91 @@ export const DOT_KEYS: readonly string[] = [
     "cy",
     "da",
     "de",
+    "dje-Arab",
+    "dyo-Arab",
+    "en-Dsrt",
+    "en-Shaw",
     "eo",
     "et",
     "fa",
     "ff",
     "fi",
     "fo",
+    "ha-Arab",
+    "ha-CM",
+    "ha-SD",
     "hr",
     "hu",
     "hy",
     "is",
     "ka",
+    "kk-AF",
     "kk-Arab",
+    "kk-CN",
+    "kk-IR",
+    "kk-MN",
     "kl",
     "kok-Latn",
     "ks-Deva",
+    "ku-Arab",
+    "ku-IQ",
+    "ku-IR",
+    "ku-LB",
     "kxv-Deva",
     "kxv-Orya",
     "kxv-Telu",
+    "ky-Arab",
+    "ky-CN",
+    "ky-Latn",
     "lb",
     "lrc",
     "lt",
     "lv",
     "mk",
+    "ml-Arab",
+    "mn-CN",
+    "mn-Mong",
+    "mni-Mtei",
+    "ms-Arab",
+    "ms-CC",
     "mt",
     "my",
-    "ne",
     "nb",
+    "ne",
     "nn",
     "no",
     "pa-Arab",
+    "pa-PK",
     "pl",
     "qu",
+    "sat-Deva",
     "sd-Deva",
+    "sd-IN",
+    "sd-Khoj",
+    "sd-Sind",
     "se",
     "shi-Latn",
     "sk",
     "sl",
+    "so-Arab",
     "sq",
     "sr",
     "su",
     "sw",
+    "tg-Arab",
+    "tg-PK",
     "tr",
+    "ug-Cyrl",
+    "ug-KZ",
+    "ug-MN",
+    "uz-AF",
     "uz-Arab",
+    "uz-CN",
     "uz-Cyrl",
     "vai-Latn",
     "vec",
+    "wo-Arab",
+    "yo-Arab",
 ];
 
 /**
@@ -265,6 +307,7 @@ export const LATIN_AMERICAN_REGIONS: readonly string[] = [
     "EC",
     "GT",
     "HN",
+    "JP",
     "MX",
     "NI",
     "PA",
@@ -278,10 +321,10 @@ export const LATIN_AMERICAN_REGIONS: readonly string[] = [
 ];
 
 /**
- * Find ICU's default ordinal rule set for a locale, reading its longest listed key as ICU's locale fallback does.
+ * Find the ordinal rule set ICU formats a locale with, from the most specific part of its tag this table lists.
  *
  * @param tag - A canonical BCP 47 tag.
- * @returns The locale's rule set, or the root rule set.
+ * @returns The listed rule set, or en's when the table lists no part of the tag.
  */
 /* @__NO_SIDE_EFFECTS__ */
 export function ordinalRule(tag: string): OrdinalRule {
@@ -295,12 +338,12 @@ export function ordinalRule(tag: string): OrdinalRule {
         return LATIN_AMERICAN_SPANISH_ORDINAL;
     }
 
-    const keys = [
-        [language, script, region],
-        [language, script],
-        [language, region],
-        [language],
-    ].map((parts) => parts.filter((part) => !isUndefined(part)).join("-"));
+    // ICU reads a tag without a script through the script its region implies, so only such a tag tries a region key.
+    const keys = (
+        isUndefined(script)
+            ? [[language, region], [language]]
+            : [[language, script, region], [language, script], [language]]
+    ).map((parts) => parts.filter((part) => !isUndefined(part)).join("-"));
 
     for (const key of keys) {
         if (Object.hasOwn(ORDINAL_RULES, key)) {
