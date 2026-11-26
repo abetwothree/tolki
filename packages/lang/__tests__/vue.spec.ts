@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { VueLang } from "@tolki/lang/vue";
 import { createLang, useLang } from "@tolki/lang/vue";
 import { isUndefined } from "@tolki/utils";

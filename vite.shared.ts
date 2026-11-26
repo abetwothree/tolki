@@ -31,7 +31,7 @@ const baseConfig = defineConfig({
         outDir: "dist",
     },
     test: {
-        environment: "jsdom",
+        environment: "node",
         globals: true,
         typecheck: {
             enabled: true,

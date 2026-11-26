@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { act, render } from "@testing-library/react";
 import type { ReactLang } from "@tolki/lang/react";
 import { createLang, LangProvider, useLang } from "@tolki/lang/react";
