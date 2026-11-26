@@ -1,10 +1,17 @@
 /// <reference types="vitest/config" />
+import { readFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-import { defineConfig } from "vite";
+import type { UserConfig } from "vite";
+import { defineConfig, mergeConfig } from "vite";
 import dts from "vite-plugin-dts";
 
-export default defineConfig({
+import { packageExternals } from "./scripts/build/externals.ts";
+import { buildEntries } from "./scripts/entries.ts";
+import type { PackageJson } from "./scripts/lib/workspace.ts";
+
+const baseConfig = defineConfig({
     plugins: [
         dts({
             outDirs: "dist",
@@ -18,40 +25,9 @@ export default defineConfig({
         }),
     ],
     build: {
-        lib: {
-            entry: path.resolve(__dirname, "src/index.ts"),
-            formats: ["es"],
-        },
+        lib: { entry: "src/index.ts", formats: ["es"] },
         emptyOutDir: true,
         outDir: "dist",
-        rolldownOptions: {
-            external: [
-                "@tolki/all",
-                "@tolki/arr",
-                "@tolki/collection",
-                "@tolki/data",
-                "@tolki/enum",
-                "@tolki/lang",
-                "@tolki/num",
-                "@tolki/obj",
-                "@tolki/path",
-                "@tolki/str",
-                "@tolki/ts",
-                "@tolki/types",
-                "@tolki/utils",
-                "@types/pluralize",
-                "any-ascii",
-                "markdown-it",
-                "markdown-it-anchor",
-                "markdown-it-task-lists",
-                "pluralize",
-                "transliteration",
-                "ulid",
-                "uuid",
-                "to-words",
-                /^to-words\//,
-            ],
-        },
     },
     test: {
         environment: "jsdom",
@@ -63,3 +39,35 @@ export default defineConfig({
         },
     },
 });
+
+export default baseConfig;
+
+/**
+ * Builds a package's Vite config from the shared base, its `src` entries and its manifest's externals.
+ *
+ * @param importMetaUrl - The `import.meta.url` of the package's vite.config.ts.
+ * @param overrides - Package-specific config merged over the result.
+ * @returns The merged config.
+ */
+export function definePackageConfig(
+    importMetaUrl: string,
+    overrides: UserConfig = {},
+): UserConfig {
+    const dir = path.dirname(fileURLToPath(importMetaUrl));
+    const manifest = JSON.parse(
+        readFileSync(path.join(dir, "package.json"), "utf8"),
+    ) as PackageJson;
+
+    return mergeConfig(
+        baseConfig,
+        mergeConfig(
+            {
+                build: {
+                    lib: { entry: buildEntries("src/**/*.ts", dir) },
+                    rolldownOptions: { external: packageExternals(manifest) },
+                },
+            },
+            overrides,
+        ),
+    );
+}
