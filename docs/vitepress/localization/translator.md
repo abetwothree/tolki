@@ -554,7 +554,7 @@ new Translator({}, "es").locale();
 
 Turn a locale spelled as Laravel does into the BCP 47 tag `Intl` reads.
 
-Exported as `localeTag` from `@tolki/lang` and `@tolki/utils`. A tag `Intl` cannot read comes back with only its underscores replaced.
+Exported as `localeTag` from `@tolki/lang` and `@tolki/num`. A tag `Intl` cannot read comes back with only its underscores replaced.
 
 ```js
 import { localeTag } from "@tolki/lang";
@@ -614,7 +614,7 @@ makeReplacements(":0 and :1", ["tea", "milk"]);
 
 Turn a BCP 47 tag into the spelling Laravel's plural table uses.
 
-Exported as `normalizeLocale` from `@tolki/lang` and `@tolki/utils`.
+Exported as `normalizeLocale` from `@tolki/lang`.
 
 ```js
 import { normalizeLocale } from "@tolki/lang";

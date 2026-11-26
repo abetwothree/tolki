@@ -525,7 +525,7 @@ Spell out the given number in the given locale. Returns a `Promise<string>`. Whe
 
 Uses the [`to-words`](https://www.npmjs.com/package/to-words) package. Locales are loaded dynamically on demand, so only the locale you request is bundled (~3KB gzip per locale instead of ~54KB for all 94 locales).
 
-Supports 94 locales via [`to-words`](https://www.npmjs.com/package/to-words). You can pass a full locale code (e.g., `"fr-FR"`, `"en-IN"`) or a bare language code (e.g., `"fr"`, `"en"`) which will resolve to a sensible default. A locale that the runtime has no data for throws an `Error` with Laravel's message, as Laravel does.
+Supports 94 locales via [`to-words`](https://www.npmjs.com/package/to-words). You can pass a full locale code (e.g., `"fr-FR"`, `"en-IN"`) or a bare language code (e.g., `"fr"`, `"en"`) which will resolve to a sensible default. A locale that the runtime has no data for throws an `Error` with Laravel's message, as Laravel does. A locale the runtime knows but `to-words` has no words for, such as Welsh (`cy`), is spelled in English.
 
 ```javascript
 import { spell } from "@tolki/num";

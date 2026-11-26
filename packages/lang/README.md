@@ -357,7 +357,7 @@ Call `subscribe(listener)` to hear about every change. It returns a function tha
 
 A call whose result nothing uses drops out of your bundle in Rollup, Rolldown (Vite 8), webpack and Rspack, because `createLang`, the translation helpers and the Svelte `getLang` and `langContext` are marked as free of side effects. This holds for a call at the top level of a module too.
 
-The exception is Rspack, where an unused top-level call to `createLang` drops the call but keeps dead `@tolki/utils` code under its default minifier settings. SWC `compress.passes: 3` in an `optimization.minimizer` removes it, and so does writing `/* @__PURE__ */` before the call:
+The exception is Rspack, where an unused top-level call to `createLang` drops the call but keeps some dead code under its default minifier settings. SWC `compress.passes: 3` in an `optimization.minimizer` removes it, and so does writing `/* @__PURE__ */` before the call:
 
 ```typescript
 export const lang = /* @__PURE__ */ createLang({ locale: "en" });
@@ -1587,7 +1587,7 @@ new Translator({}, "es").locale();
 
 Turn a locale spelled as Laravel does into the BCP 47 tag `Intl` reads.
 
-Exported as `localeTag` from `@tolki/lang` and `@tolki/utils`. A tag `Intl` cannot read comes back with only its underscores replaced.
+Exported as `localeTag` from `@tolki/lang` and `@tolki/num`. A tag `Intl` cannot read comes back with only its underscores replaced.
 
 ```js
 import { localeTag } from "@tolki/lang";
@@ -1643,7 +1643,7 @@ makeReplacements(":0 and :1", ["tea", "milk"]);
 
 Turn a BCP 47 tag into the spelling Laravel's plural table uses.
 
-Exported as `normalizeLocale` from `@tolki/lang` and `@tolki/utils`.
+Exported as `normalizeLocale` from `@tolki/lang`.
 
 ```js
 import { normalizeLocale } from "@tolki/lang";
@@ -2003,7 +2003,7 @@ getPluralIndex(normalizeLocale("pt-BR"), 1);
 // => 0
 ```
 
-[`normalizeLocalesUsing`](https://tolki.abe.dev/localization/translator.html#normalizelocalesusing) does this for you: it converts every locale a translator is given and reads the lines whose key converts to the same spelling.
+[`normalizeLocalesUsing`](https://tolki.abe.dev/localization/translator.html#normalizelocalesusing) does this for you: it converts every locale a translator is given. A locale then reads one key of your lines: the key spelled exactly as the converted locale, or else the first key that converts to it.
 
 A new `Translator` has no fallback locale, as in Laravel, where only the service provider sets one. Call `setFallback()`. See [the warning on setting a fallback](https://tolki.abe.dev/localization/index.html#quick-start). <!-- docs/php-parity/Translator/getFallback.json, "fallback-starts-null"; docs/php-parity/Translator/choice.json, "choice-without-fallback-uses-first-form" -->
 

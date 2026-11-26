@@ -357,7 +357,7 @@ Call `subscribe(listener)` to hear about every change. It returns a function tha
 
 A call whose result nothing uses drops out of your bundle in Rollup, Rolldown (Vite 8), webpack and Rspack, because `createLang`, the translation helpers and the Svelte `getLang` and `langContext` are marked as free of side effects. This holds for a call at the top level of a module too.
 
-The exception is Rspack, where an unused top-level call to `createLang` drops the call but keeps dead `@tolki/utils` code under its default minifier settings. SWC `compress.passes: 3` in an `optimization.minimizer` removes it, and so does writing `/* @__PURE__ */` before the call:
+The exception is Rspack, where an unused top-level call to `createLang` drops the call but keeps some dead code under its default minifier settings. SWC `compress.passes: 3` in an `optimization.minimizer` removes it, and so does writing `/* @__PURE__ */` before the call:
 
 ```typescript
 export const lang = /* @__PURE__ */ createLang({ locale: "en" });

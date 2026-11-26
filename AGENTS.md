@@ -466,6 +466,9 @@ export function dataCollapse(data: unknown): unknown {
 - Functions should be in the same order as in the Laravel `Number.php` stub for easier reference
 - use `@tolki/types` for type definitions
 - use `@tolki/utils` for utility functions
+- Every locale reaches `Intl` through `intlLocale` from `src/locale`, which applies the `normalizeLocalesUsing` hook
+  and throws Laravel's error for a locale the runtime has no data for. `ordinal()` formats through `src/ordinal`, a
+  private port of ICU's ordinal rule sets.
 
 ### @tolki/obj
 
