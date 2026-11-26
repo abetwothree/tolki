@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
 import { parseHeadings } from "./docs-markdown.ts";
+import { workspacePackages } from "./lib/workspace.ts";
 
 /** Absolute path to the monorepo root (one level above scripts/). */
 const MONOREPO_ROOT = path.resolve(
@@ -432,47 +433,26 @@ export function stripVitepressSyntax(content: string, docDir?: string): string {
  * @returns Array of package info objects with doc file lists.
  */
 export function discoverPackages(filterName?: string): PackageInfo[] {
-    const packagesDir = path.join(MONOREPO_ROOT, "packages");
     const packages: PackageInfo[] = [];
 
-    if (!fs.existsSync(packagesDir)) {
-        throw new Error(`Packages directory not found: ${packagesDir}`);
-    }
-
-    const dirs = fs.readdirSync(packagesDir).filter((item) => {
-        const itemPath = path.join(packagesDir, item);
-        return fs.statSync(itemPath).isDirectory();
-    });
-
-    for (const dirName of dirs) {
-        const packageJsonPath = path.join(packagesDir, dirName, "package.json");
-
-        if (!fs.existsSync(packageJsonPath)) {
-            continue;
-        }
-
-        const packageJson = JSON.parse(
-            fs.readFileSync(packageJsonPath, "utf-8"),
-        );
-        const name: string = packageJson.name ?? `@tolki/${dirName}`;
-
+    for (const { dirName, dir, name, manifest } of workspacePackages(
+        MONOREPO_ROOT,
+    )) {
         if (filterName && name !== filterName) {
             continue;
         }
 
-        const docFiles: string[] | undefined = packageJson.tolki?.docs;
+        const docFiles: string[] | undefined = manifest.tolki?.docs;
 
         if (!docFiles || docFiles.length === 0) {
             continue;
         }
 
-        const readmePath = path.join(packagesDir, dirName, "README.md");
-
         packages.push({
             name,
             dirName,
-            packageJsonPath,
-            readmePath,
+            packageJsonPath: path.join(dir, "package.json"),
+            readmePath: path.join(dir, "README.md"),
             docFiles,
         });
     }
