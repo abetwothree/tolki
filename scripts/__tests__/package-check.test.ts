@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { PackedPackage } from "../lib/pack.ts";
+import { parseOptions } from "../package-check/check.ts";
 import type {
     Cell,
     CellName,
@@ -16,6 +17,7 @@ import {
     consumerFiles,
     emptyPackages,
     filterEntries,
+    isEmptyCell,
     NO_DOM_EXCLUDED,
     staleExclusions,
 } from "../package-check/consumer.ts";
@@ -260,6 +262,42 @@ describe("emptyPackages", () => {
     });
 });
 
+describe("isEmptyCell", () => {
+    const vueEntry: ConsumerEntry = {
+        pkg: "@tolki/lang",
+        specifier: "@tolki/lang/vue",
+        kind: "value",
+    };
+
+    it("is true when the cell reads only a generated consumer file that holds no entry", () => {
+        const noDom: Cell = { ...cell("nodenext-no-dom"), files: ["core.mts"] };
+
+        expect(isEmptyCell(noDom, consumerFiles([vueEntry]))).toBe(true);
+    });
+
+    it("is false when the generated file holds an import or only a reference", () => {
+        const client: ConsumerEntry = {
+            pkg: "@tolki/lang",
+            specifier: "@tolki/lang/client",
+            kind: "ambient",
+        };
+
+        expect(isEmptyCell(cell("node16-esm"), consumerFiles([vueEntry]))).toBe(
+            false,
+        );
+        expect(isEmptyCell(cell("node16-esm"), consumerFiles([client]))).toBe(
+            false,
+        );
+    });
+
+    it("is false when the cell also reads a fixed input", () => {
+        const full = CELLS.find(({ name }) => name === "node16-esm");
+
+        expect(full).toBeDefined();
+        expect(isEmptyCell(full as Cell, consumerFiles([]))).toBe(false);
+    });
+});
+
 describe("isAmbientDeclaration", () => {
     let dir: string;
 
@@ -286,6 +324,33 @@ describe("isAmbientDeclaration", () => {
 
     it("is false for a missing file, so its import reports the file as missing", () => {
         expect(isAmbientDeclaration(join(dir, "absent.d.ts"))).toBe(false);
+    });
+});
+
+describe("parseOptions", () => {
+    it("reads the filter, and leaves it undefined without one", () => {
+        expect(parseOptions(["--filter", "@tolki/str"])).toEqual({
+            filter: "@tolki/str",
+        });
+        expect(parseOptions([])).toEqual({ filter: undefined });
+    });
+
+    it("rejects an empty filter, which would keep every entry yet skip the full-run checks", () => {
+        expect(() => parseOptions(["--filter", ""])).toThrow(
+            "--filter needs text",
+        );
+        expect(() => parseOptions(["--filter="])).toThrow(
+            "--filter needs text",
+        );
+    });
+
+    it("rejects an unknown flag and a positional", () => {
+        expect(() => parseOptions(["--bogus"])).toThrow(
+            "Unknown option '--bogus'",
+        );
+        expect(() => parseOptions(["@tolki/str"])).toThrow(
+            "Unexpected argument '@tolki/str'",
+        );
     });
 });
 

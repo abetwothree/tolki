@@ -14,7 +14,7 @@ Lifecycle scripts are off (`npm_config_ignore_scripts=true`). `prepack` only rep
 
 ## Cells
 
-Each cell runs the repository's TypeScript 7 `tsc` (`@typescript/native`) on the consumer files, with `strict`, `noEmit`, `skipLibCheck: false`, `types: []` and `target: "esnext"`. Any diagnostic fails the cell. [`consumer.ts`](../../scripts/package-check/consumer.ts) holds `CELLS`.
+Each cell runs the repository's TypeScript 7 `tsc` (`@typescript/native`) on the consumer files, with `strict`, `noEmit`, `skipLibCheck: false`, `types: []` and `target: "esnext"`. Any diagnostic fails the cell. A cell whose files hold no entry, such as `core.mts` under a filter that keeps only excluded entries, is reported as skipped, neither a pass nor a failure. [`consumer.ts`](../../scripts/package-check/consumer.ts) holds `CELLS`.
 
 | Cell              | `module` / `moduleResolution` | Extra options                                                               | Files                                 |
 | ----------------- | ----------------------------- | --------------------------------------------------------------------------- | ------------------------------------- |
@@ -61,8 +61,8 @@ pnpm package:check
 pnpm package:check --filter @tolki/str
 ```
 
-`--filter` keeps the entries whose specifier contains the text, for the cells, attw and the smoke test alike. Every package is still packed, so cross-package imports resolve. A filtered run leaves out `repro.mts` and `augment.mts` and does not check for empty packages.
+`--filter` keeps the entries whose specifier contains the text, for the cells, attw and the smoke test alike. Every package is still packed, so cross-package imports resolve. A filtered run leaves out `repro.mts` and `augment.mts` and does not check for empty packages. An empty `--filter` is a usage error, and the smoke test is skipped when the filter keeps no value entry.
 
-The output has one row per check (`entries`, each cell, attw per package, the smoke test) with pass or FAIL, and a count for all but attw. Every failure's details follow. When `GITHUB_STEP_SUMMARY` is set, the rows are also appended there as a markdown table. Exit code 0 means every check passed, 1 a failure and 2 a usage error, including a filter that matches no entry.
+The output has one row per check (`entries`, each cell, attw per package, the smoke test) with pass, FAIL or skipped, and a count for all but attw. Every failure's details follow. When `GITHUB_STEP_SUMMARY` is set, the rows are also appended there as a markdown table. Exit code 0 means every check passed, 1 a failure and 2 a usage error, including a filter that matches no entry.
 
 CI runs it in the `build-test` job of [`test.yml`](../../.github/workflows/test.yml), after `pnpm run treeshake:check`. The unit tests run in `pnpm test`: `npx vitest run --project scripts package-check`.

@@ -208,6 +208,22 @@ export function consumerFiles(
 }
 
 /**
+ * Tells whether a cell has nothing to check, so it can report skipped rather than a vacuous pass.
+ *
+ * @param cell - The cell.
+ * @param files - The generated consumer files, from consumerFiles.
+ * @returns True when every file the cell reads is a generated file with no entry; a fixed input never is.
+ */
+export function isEmptyCell(
+    cell: Cell,
+    files: Readonly<Record<"esm.mts" | "cjs.cts" | "core.mts", string>>,
+): boolean {
+    const generated: Readonly<Record<string, string>> = files;
+
+    return cell.files.every((file) => generated[file] === "");
+}
+
+/**
  * The NO_DOM_EXCLUDED specifiers that no entry declares.
  *
  * @param entries - Every entry the manifests declare, before any filter.

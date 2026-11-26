@@ -1,12 +1,10 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { bundle, BUNDLERS } from "../treeshake/bundlers.ts";
-
-const REPO_ROOT = resolve(__dirname, "../..");
 
 /** Writes a file, creating its directories. */
 function put(root: string, file: string, content: string): void {

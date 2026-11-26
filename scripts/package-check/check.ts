@@ -23,6 +23,7 @@ import {
     consumerFiles,
     emptyPackages,
     filterEntries,
+    isEmptyCell,
     staleExclusions,
 } from "./consumer.ts";
 import { isAmbientDeclaration, runAttw, runCell, runSmoke } from "./runners.ts";
@@ -32,11 +33,43 @@ const ROOT = resolve(HERE, "../..");
 const FIXED_INPUTS = ["repro.mts", "augment.mts"];
 const USAGE = "usage: package:check [--filter <specifier text>]";
 
+type Status = "pass" | "FAIL" | "skipped";
+
 interface Row {
     check: string;
-    ok: boolean;
+    status: Status;
     detail: string;
     failures: string[];
+}
+
+/**
+ * Reads the command-line options.
+ *
+ * @param argv - The arguments after the script path.
+ * @returns The filter text, undefined without `--filter`.
+ * @throws On an unknown flag, a positional argument or an empty filter.
+ */
+export function parseOptions(argv: string[]): { filter: string | undefined } {
+    const {
+        values: { filter },
+    } = parseArgs({ args: argv, options: { filter: { type: "string" } } });
+
+    // An empty filter keeps every entry yet would count as filtered and skip the full-run checks.
+    if (filter === "") {
+        throw new Error("--filter needs text");
+    }
+
+    return { filter };
+}
+
+/**
+ * The status of a check that ran.
+ *
+ * @param ok - Whether it passed.
+ * @returns "pass" or "FAIL".
+ */
+function statusOf(ok: boolean): Status {
+    return ok ? "pass" : "FAIL";
 }
 
 /**
@@ -68,13 +101,13 @@ function printReport(rows: readonly Row[]): void {
 
     console.log(`${"check".padEnd(width)}${"result".padEnd(8)}detail`);
 
-    for (const { check, ok, detail } of rows) {
-        console.log(
-            `${check.padEnd(width)}${(ok ? "pass" : "FAIL").padEnd(8)}${detail}`,
-        );
+    for (const { check, status, detail } of rows) {
+        console.log(`${check.padEnd(width)}${status.padEnd(8)}${detail}`);
     }
 
-    for (const { check, failures } of rows.filter(({ ok }) => !ok)) {
+    for (const { check, failures } of rows.filter(
+        ({ status }) => status === "FAIL",
+    )) {
         console.log(`\n${check}:`);
 
         for (const failure of failures) {
@@ -96,8 +129,8 @@ function writeSummary(path: string, rows: readonly Row[]): void {
         "| Check | Result | Detail |",
         "| --- | --- | --- |",
         ...rows.map(
-            ({ check, ok, detail }) =>
-                `| ${check} | ${ok ? "pass" : "FAIL"} | ${detail} |`,
+            ({ check, status, detail }) =>
+                `| ${check} | ${status} | ${detail} |`,
         ),
     ];
 
@@ -114,9 +147,7 @@ function main(argv: string[]): number {
     let filter: string | undefined;
 
     try {
-        ({
-            values: { filter },
-        } = parseArgs({ args: argv, options: { filter: { type: "string" } } }));
+        ({ filter } = parseOptions(argv));
     } catch {
         console.error(USAGE);
 
@@ -163,13 +194,15 @@ function main(argv: string[]): number {
         const rows: Row[] = [
             {
                 check: "entries",
-                ok: problems.length === 0,
+                status: statusOf(problems.length === 0),
                 detail: `${entries.length} from ${packages.length} packed packages`,
                 failures: problems,
             },
         ];
 
-        for (const [file, text] of Object.entries(consumerFiles(entries))) {
+        const files = consumerFiles(entries);
+
+        for (const [file, text] of Object.entries(files)) {
             writeFileSync(join(dir, file), text);
         }
 
@@ -183,11 +216,22 @@ function main(argv: string[]): number {
         }
 
         for (const cell of cellsFor(filter !== undefined)) {
+            if (isEmptyCell(cell, files)) {
+                rows.push({
+                    check: cell.name,
+                    status: "skipped",
+                    detail: "no entries",
+                    failures: [],
+                });
+
+                continue;
+            }
+
             const diagnostics = runCell(cell, dir);
 
             rows.push({
                 check: cell.name,
-                ok: diagnostics.length === 0,
+                status: statusOf(diagnostics.length === 0),
                 detail: `${diagnostics.length} diagnostics`,
                 failures: diagnostics,
             });
@@ -200,7 +244,7 @@ function main(argv: string[]): number {
 
             rows.push({
                 check: `attw ${pkg.name}`,
-                ok,
+                status: statusOf(ok),
                 detail: "",
                 failures: [output.trim()],
             });
@@ -209,12 +253,16 @@ function main(argv: string[]): number {
         const values = entries
             .filter(({ kind }) => kind === "value")
             .map(({ specifier }) => specifier);
-        const smoke = runSmoke(dir, values);
+        const smoke = values.length > 0 ? runSmoke(dir, values) : [];
 
         rows.push({
             check: "smoke",
-            ok: smoke.length === 0,
-            detail: `${smoke.length} of ${values.length * 2} loads failed`,
+            status:
+                values.length > 0 ? statusOf(smoke.length === 0) : "skipped",
+            detail:
+                values.length > 0
+                    ? `${smoke.length} of ${values.length * 2} loads failed`
+                    : "no value entries",
             failures: smoke.map(
                 ({ specifier, mode, error }) =>
                     `${specifier} (${mode}): ${error}`,
@@ -229,9 +277,11 @@ function main(argv: string[]): number {
             writeSummary(summary, rows);
         }
 
-        return rows.every(({ ok }) => ok) ? 0 : 1;
+        return rows.some(({ status }) => status === "FAIL") ? 1 : 0;
     } catch (error) {
-        console.error(`package:check: ${(error as Error).message}`);
+        console.error(
+            `package:check: ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`,
+        );
 
         return 1;
     } finally {
