@@ -1,4 +1,4 @@
-import { bindLang, createLang } from "@tolki/lang";
+import { bindLang, createLang, normalizeLocale } from "@tolki/lang";
 import { InvalidArgumentException } from "@tolki/utils";
 import { describe, expect, it, vi } from "vitest";
 
@@ -171,6 +171,62 @@ describe("createLang", () => {
 
     it("starts at version zero", () => {
         expect(createLang({ locale: "en" }).getVersion()).toBe(0);
+    });
+
+    it("keeps a null fallback", () => {
+        expect(
+            createLang({ locale: "en", fallback: null }).getFallback(),
+        ).toBeNull();
+    });
+
+    // JS-only: normalizeLocalesUsing converts every locale the lang is given.
+    it("converts the starting locale and fallback, then loads them", () => {
+        const loader = createDeferredLoader();
+        const lang = createLang({
+            locale: "ES",
+            fallback: "EN",
+            load: loader.load,
+            normalizeLocalesUsing: normalizeLocale,
+        });
+
+        expect(lang.getLocale()).toBe("es");
+        expect(lang.getFallback()).toBe("en");
+        expect(loader.calls).toEqual(["es", "en"]);
+    });
+
+    // JS-only: normalizeLocalesUsing converts every locale the lang is given.
+    it("counts lines given under another spelling as loaded", () => {
+        const loader = createDeferredLoader();
+        const lang = createLang({
+            locale: "es",
+            lines: { ES: LINES.es },
+            load: loader.load,
+            normalizeLocalesUsing: normalizeLocale,
+        });
+
+        expect(loader.calls).toEqual([]);
+        expect(lang.isLoaded()).toBe(true);
+        expect(lang.isLoaded("ES")).toBe(true);
+        expect(lang.isLoaded("de")).toBe(false);
+        expect(lang.__("Welcome")).toBe("Bienvenido");
+    });
+
+    // JS-only: the path guard checks the locale the callback answers.
+    it("throws for a converted locale or fallback holding a path character", () => {
+        const normalizeLocalesUsing = (locale: string): string => {
+            return locale.replace("-", "/");
+        };
+
+        expect(() =>
+            createLang({ locale: "en-US", normalizeLocalesUsing }),
+        ).toThrow(InvalidArgumentException);
+        expect(() =>
+            createLang({
+                locale: "en",
+                fallback: "en-US",
+                normalizeLocalesUsing,
+            }),
+        ).toThrow(InvalidArgumentException);
     });
 });
 
@@ -357,6 +413,39 @@ describe("setLocale", () => {
 
         expect(lang.getLocale()).toBe("es");
     });
+
+    // JS-only: normalizeLocalesUsing converts every locale the lang is given.
+    it("converts the locale before loading and switching", async () => {
+        const loader = createDeferredLoader();
+        const lang = createLang({
+            locale: "en",
+            lines: { en: LINES.en },
+            load: loader.load,
+            normalizeLocalesUsing: normalizeLocale,
+        });
+
+        const switching = lang.setLocale("ES");
+
+        loader.settle("es");
+        await switching;
+
+        expect(loader.calls).toEqual(["es"]);
+        expect(lang.getLocale()).toBe("es");
+        expect(lang.__("Welcome")).toBe("Bienvenido");
+    });
+
+    // JS-only: the path guard checks the locale the callback answers.
+    it("rejects a converted locale holding a path character", async () => {
+        const lang = createLang({
+            locale: "en",
+            normalizeLocalesUsing: (locale) => locale.replace("-", "/"),
+        });
+
+        await expect(lang.setLocale("en-US")).rejects.toThrow(
+            InvalidArgumentException,
+        );
+        expect(lang.getLocale()).toBe("en");
+    });
 });
 
 describe("setFallback", () => {
@@ -423,6 +512,42 @@ describe("setFallback", () => {
         const lang = createLang({ locale: "en", lines: { en: LINES.en } });
 
         await expect(lang.setFallback("a/b")).rejects.toThrow(
+            InvalidArgumentException,
+        );
+        expect(lang.getFallback()).toBeNull();
+    });
+
+    // JS-only: normalizeLocalesUsing converts every locale the lang is given.
+    it("converts the fallback before loading and setting it", async () => {
+        const loader = createDeferredLoader();
+        const lang = createLang({
+            locale: "en",
+            lines: { en: LINES.en },
+            load: loader.load,
+            normalizeLocalesUsing: normalizeLocale,
+        });
+
+        const setting = lang.setFallback("ES");
+
+        loader.settle("es");
+        await setting;
+
+        expect(loader.calls).toEqual(["es"]);
+        expect(lang.getFallback()).toBe("es");
+
+        await lang.setFallback(null);
+
+        expect(lang.getFallback()).toBeNull();
+    });
+
+    // JS-only: the path guard checks the locale the callback answers.
+    it("rejects a converted fallback holding a path character", async () => {
+        const lang = createLang({
+            locale: "en",
+            normalizeLocalesUsing: (locale) => locale.replace("-", "/"),
+        });
+
+        await expect(lang.setFallback("en-US")).rejects.toThrow(
             InvalidArgumentException,
         );
         expect(lang.getFallback()).toBeNull();
@@ -522,6 +647,38 @@ describe("load", () => {
 
         expect(lang.getVersion()).toBeGreaterThan(before);
     });
+
+    // JS-only: normalizeLocalesUsing converts every locale the lang is given.
+    it("converts the locale before loading it", async () => {
+        const lang = createLang({
+            locale: "en",
+            lines: { en: LINES.en },
+            load: syncLoad,
+            normalizeLocalesUsing: normalizeLocale,
+        });
+
+        await lang.load("DE");
+
+        expect(lang.isLoaded("de")).toBe(true);
+        expect(lang.isLoaded("DE")).toBe(true);
+        expect(lang.getLocale()).toBe("en");
+    });
+
+    // JS-only: the path guard checks the locale the callback answers.
+    it("rejects a converted locale holding a path character", async () => {
+        const load = vi.fn(syncLoad);
+        const lang = createLang({
+            locale: "en",
+            load,
+            lines: { en: LINES.en },
+            normalizeLocalesUsing: (locale) => locale.replace("-", "/"),
+        });
+
+        await expect(lang.load("en-US")).rejects.toThrow(
+            InvalidArgumentException,
+        );
+        expect(load).not.toHaveBeenCalled();
+    });
 });
 
 describe("subscribe", () => {
@@ -599,6 +756,17 @@ describe("isLocale", () => {
 
         expect(lang.isLocale("en")).toBe(true);
         expect(lang.isLocale("es")).toBe(false);
+    });
+
+    // JS-only: normalizeLocalesUsing converts every locale the lang is given.
+    it("compares the converted locale", () => {
+        const lang = createLang({
+            locale: "pt-br",
+            normalizeLocalesUsing: normalizeLocale,
+        });
+
+        expect(lang.isLocale("PT-BR")).toBe(true);
+        expect(lang.isLocale("pt")).toBe(false);
     });
 });
 

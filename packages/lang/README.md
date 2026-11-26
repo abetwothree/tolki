@@ -1255,7 +1255,7 @@ transChoice("apples", 2);
 
 Create a translator that loads locales on demand and tells subscribers when its answers change.
 
-Exported as `createLang` from `@tolki/lang`. The options are the starting `locale`, an optional `fallback`, the `lines` at hand and a `load` function that fetches a locale's lines, at once or as a promise. A module namespace from `import()` is unwrapped to its default export. It answers the helpers `__`, `trans` and `transChoice`, the reads `has`, `hasForLocale`, `getLocale`, `getFallback`, `isLocale` and `isLoaded`, and the `translator` behind them.
+Exported as `createLang` from `@tolki/lang`. The options are the starting `locale`, an optional `fallback`, the `lines` at hand, a `load` function that fetches a locale's lines, at once or as a promise, and an optional [normalizeLocalesUsing](#normalizelocalesusing) callback. A module namespace from `import()` is unwrapped to its default export. It answers the helpers `__`, `trans` and `transChoice`, the reads `has`, `hasForLocale`, `getLocale`, `getFallback`, `isLocale` and `isLoaded`, and the `translator` behind them.
 
 - `ready` is a promise that settles once the starting locale and the fallback are loaded. It rejects when a load fails.
 - `setLocale(locale)` and `setFallback(locale)` load the locale before they switch, and the last call wins. A failed load rejects and changes nothing. `setFallback(null)` clears the fallback.
@@ -1301,6 +1301,24 @@ changes;
 
 lang.getVersion();
 // => 2
+```
+
+With `normalizeLocalesUsing`, `createLang` converts the starting locale, the fallback, the keys of `lines` and every locale you pass to `setLocale`, `setFallback`, `load`, `isLocale` and `isLoaded`. The loader and the path check see the converted locale.
+
+```js
+import { createLang, normalizeLocale } from "@tolki/lang";
+
+const lang = createLang({
+  locale: "pt-BR",
+  lines: { pt_BR: { Hello: "Olá" } },
+  normalizeLocalesUsing: normalizeLocale,
+});
+
+lang.getLocale();
+// => "pt_BR"
+
+lang.__("Hello");
+// => "Olá"
 ```
 
 #### determineLocalesUsing

@@ -4,6 +4,7 @@ import type {
     ObjectDotPathValue,
     ObjectResolvePath,
 } from "./path-resolve";
+import type { LocaleNormalizer } from "./utils";
 
 /** A tag callback receives the text between `<key>` and `</key>`. */
 type TagCallback = (children: string) => unknown;
@@ -251,6 +252,8 @@ interface LangOptions<TLines extends LangLines = LangLines> {
     readonly lines?: TLines;
     /** Fetches a locale's lines when it is first needed. */
     readonly load?: LocaleLinesLoader;
+    /** Converts every locale the lang is given, such as with `normalizeLocale`; unset uses each locale as given. */
+    readonly normalizeLocalesUsing?: LocaleNormalizer | null;
 }
 
 // An export list keeps the helpers above private: a .d.ts module without one exports every declaration.
