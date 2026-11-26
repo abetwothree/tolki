@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.39.0-43-gb20bf7f442"
+        "laravel": "v13.43.0-17-g1caec34a34"
     },
     "probes": [
         {
@@ -111,6 +111,36 @@
                 [
                     "ValueError",
                     "substr_count(): Argument #2 ($needle) must not be empty"
+                ]
+            ]
+        },
+        {
+            "label": "substrCount-fractional",
+            "php": "Str::substrCount('abab', 'ab', \u2026) with offset 0.5, offset -2.5, and offset 0 with length 3.9, with PHP's deprecations",
+            "value": {
+                "result": [
+                    2,
+                    1,
+                    1
+                ],
+                "deprecations": [
+                    "Implicit conversion from float 0.5 to int loses precision",
+                    "Implicit conversion from float -2.5 to int loses precision",
+                    "Implicit conversion from float 3.9 to int loses precision"
+                ]
+            }
+        },
+        {
+            "label": "substrCount-non-finite",
+            "php": "What Str::substrCount('abab', 'ab', NAN) and Str::substrCount('abab', '', NAN) throw",
+            "value": [
+                [
+                    "TypeError",
+                    "mb_substr(): Argument #2 ($start) must be of type int, float given"
+                ],
+                [
+                    "TypeError",
+                    "mb_substr(): Argument #2 ($start) must be of type int, float given"
                 ]
             ]
         }

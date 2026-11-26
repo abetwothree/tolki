@@ -11,6 +11,7 @@ import {
     isPlainObject,
     isString,
     isUndefined,
+    phpIntArgument,
     phpStringCast,
     toLower,
 } from "@tolki/utils";
@@ -21,6 +22,7 @@ import { substr } from "./replacer";
 import { ltrim, rtrim, trim } from "./trimmer";
 import { createUlidsNormally } from "./ulid";
 import { createUuidsNormally } from "./uuid";
+import { strimWidth, strWidth } from "./width";
 
 /**
  * The cache of snake-cased words.
@@ -132,7 +134,7 @@ export function beforeLast(subject: string, search: string | number): string {
         return subject;
     }
 
-    return substr(subject, 0, pos);
+    return subject.slice(0, pos);
 }
 
 /**
@@ -208,23 +210,26 @@ export function camel(value: string): string {
  * @param subject - The string to get the character from
  * @param index - The index of the character to get
  * @returns The character at the specified index, or false if the index is out of bounds
+ * @throws TypeError for a NaN index, as PHP's mb_substr() does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#charat
  */
 /* @__NO_SIDE_EFFECTS__ */
 export function charAt(subject: string, index: number): string | false {
-    const length = subject.length;
+    const characters = Array.from(subject);
+    const count = characters.length;
 
-    if (index < 0 ? index < -length : index > length - 1) {
+    if (index < 0 ? index < -count : index > count - 1) {
         return false;
     }
 
-    // if index is a negative number, we need to adjust it
-    if (index < 0) {
-        index += length;
-    }
+    // Laravel checks the bounds on the index as given; only mb_substr() converts it to an int.
+    const at = phpIntArgument(
+        index,
+        "mb_substr(): Argument #2 ($start) must be of type int, float given",
+    );
 
-    return subject.charAt(index);
+    return characters[at < 0 ? at + count : at] as string;
 }
 
 /**
@@ -334,8 +339,6 @@ export function excerpt(
     const phraseStr = phrase ?? "";
 
     // Build a unicode & case-insensitive regex matching first occurrence of the phrase
-    const escapeRegExp = (s: string) =>
-        s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const pattern = new RegExp(`^(.*?)(${escapeRegExp(phraseStr)})(.*)$`, "iu");
     const matches = pattern.exec(subject);
 
@@ -428,6 +431,7 @@ export function doesntContain(
  * @param value - The string to process
  * @param character - The character or characters to deduplicate
  * @returns The string with consecutive instances of the character(s) replaced by a single instance
+ * @throws SyntaxError for an empty character
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#deduplicate
  */
@@ -435,13 +439,23 @@ export function doesntContain(
 export function deduplicate(value: string, character: string | string[] = " ") {
     if (isArray(character)) {
         character.forEach((char) => {
-            value = value.replace(new RegExp(`${char}+`, "g"), char);
+            value = value.replace(
+                new RegExp(`${escapeRegExp(char)}+`, "gu"),
+                () => {
+                    return char;
+                },
+            );
         });
 
         return value;
     }
 
-    return value.replace(new RegExp(`${character}+`, "g"), character);
+    return value.replace(
+        new RegExp(`${escapeRegExp(character)}+`, "gu"),
+        () => {
+            return character;
+        },
+    );
 }
 
 /**
@@ -766,23 +780,31 @@ export function kebab(value: string): string {
  * Return the length of the given string.
  *
  * @param value - The string to measure
- * @returns The length of the string
+ * @returns The number of Unicode code points in the string
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#length
  */
 /* @__NO_SIDE_EFFECTS__ */
 export function length(value: string): number {
-    return value.length;
+    let count = 0;
+
+    for (const _ of value) {
+        count++;
+    }
+
+    return count;
 }
 
 /**
  * Limit the number of characters in a string.
  *
  * @param value - The string to limit
- * @param limit - The maximum number of characters
+ * @param limit - The maximum display width, where an emoji or a Chinese, Japanese or Korean character counts as two
  * @param end - The string to append if the value is truncated
  * @param preserveWords - Whether to preserve whole words when truncating
  * @returns The limited string
+ * @throws Error for a negative limit past the string's full width, as PHP's mb_strimwidth() throws its ValueError
+ * @throws TypeError for a NaN limit, as PHP's mb_strimwidth() does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#limit
  */
@@ -793,22 +815,22 @@ export function limit(
     end: string = "...",
     preserveWords: boolean = false,
 ): string {
-    if (value.length <= limit) {
+    if (strWidth(value) <= limit) {
         return value;
     }
 
     if (!preserveWords) {
-        return value.slice(0, limit).trimEnd() + end;
+        return strimWidth(value, limit).trimEnd() + end;
     }
 
     value = stripTags(value)
         .replace(/[\n\r]+/g, " ")
         .trim();
 
-    const trimmed = value.slice(0, limit).trimEnd();
+    const trimmed = strimWidth(value, limit).trimEnd();
 
     // A cut with no whitespace has no word to cut back to, and the pattern below would retry from every character.
-    if (value.substring(limit, limit + 1) === " " || !/\s/.test(trimmed)) {
+    if (substr(value, limit, 1) === " " || !/\s/.test(trimmed)) {
         return trimmed + end;
     }
 
@@ -869,6 +891,7 @@ export function words(
  * @param index - The starting index to begin masking (can be negative)
  * @param length - The number of characters to mask (if null, mask to the end of the string)
  * @returns The masked string
+ * @throws TypeError for a NaN or infinite index or length, as PHP's mb_substr() does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#mask
  */
@@ -883,27 +906,24 @@ export function mask(
         return value;
     }
 
-    const strlen = value.length;
+    const segment = substr(value, index, length);
+
+    if (segment === "") {
+        return value;
+    }
+
+    const strlen = Array.from(value).length;
     let startIndex = index;
 
     if (index < 0) {
         startIndex = index < -strlen ? 0 : strlen + index;
     }
 
-    const segment = value.slice(
-        startIndex,
-        length !== null ? startIndex + length : undefined,
-    );
+    const start = substr(value, 0, startIndex);
+    const segmentLen = Array.from(segment).length;
+    const end = substr(value, startIndex + segmentLen);
 
-    if (segment === "") {
-        return value;
-    }
-
-    const start = value.slice(0, startIndex);
-    const segmentLen = segment.length;
-    const end = value.slice(startIndex + segmentLen);
-
-    return start + character.slice(0, 1).repeat(segmentLen) + end;
+    return start + substr(character, 0, 1).repeat(segmentLen) + end;
 }
 
 /**
@@ -1127,6 +1147,8 @@ export function numbers(value: string | string[]): string | string[] {
  * @param length - The desired total length after padding
  * @param pad - The string to use for padding
  * @returns The padded string
+ * @throws Error for an empty pad string when the value needs padding, as PHP's mb_str_pad() throws its ValueError
+ * @throws TypeError for a NaN or infinite length, as PHP's mb_str_pad() does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#padboth
  */
@@ -1136,13 +1158,7 @@ export function padBoth(
     length: number,
     pad: string = " ",
 ): string {
-    const valueLength = value.length;
-
-    if (length <= valueLength || pad === "") {
-        return value;
-    }
-
-    const total = length - valueLength;
+    const total = paddingNeeded(value, length, pad);
     const left = Math.floor(total / 2);
     const right = total - left; // right gets the extra char when odd (Laravel / PHP str_pad behavior)
 
@@ -1156,6 +1172,8 @@ export function padBoth(
  * @param length - The desired total length after padding
  * @param pad - The string to use for padding
  * @returns The padded string
+ * @throws Error for an empty pad string when the value needs padding, as PHP's mb_str_pad() throws its ValueError
+ * @throws TypeError for a NaN or infinite length, as PHP's mb_str_pad() does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#padleft
  */
@@ -1165,16 +1183,7 @@ export function padLeft(
     length: number,
     pad: string = " ",
 ): string {
-    const valueLength = value.length;
-
-    if (length <= valueLength || pad === "") {
-        return value;
-    }
-
-    const total = length - valueLength;
-    const left = total;
-
-    return makePad(pad, left) + value;
+    return makePad(pad, paddingNeeded(value, length, pad)) + value;
 }
 
 /**
@@ -1184,6 +1193,8 @@ export function padLeft(
  * @param length - The desired total length after padding
  * @param pad - The string to use for padding
  * @returns The padded string
+ * @throws Error for an empty pad string when the value needs padding, as PHP's mb_str_pad() throws its ValueError
+ * @throws TypeError for a NaN or infinite length, as PHP's mb_str_pad() does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#padright
  */
@@ -1193,16 +1204,41 @@ export function padRight(
     length: number,
     pad: string = " ",
 ): string {
-    const valueLength = value.length;
+    return value + makePad(pad, paddingNeeded(value, length, pad));
+}
 
-    if (length <= valueLength || pad === "") {
-        return value;
+/**
+ * Count the pad characters mb_str_pad() adds to reach a length.
+ *
+ * @param value - The string to pad
+ * @param targetLength - The desired total length, read as PHP reads its int parameter
+ * @param pad - The string to pad with
+ * @returns How many pad characters are needed, or 0 when the value is already long enough
+ * @throws TypeError for a NaN or infinite length, and Error for an empty pad string when padding is needed
+ */
+function paddingNeeded(
+    value: string,
+    targetLength: number,
+    pad: string,
+): number {
+    const needed =
+        phpIntArgument(
+            targetLength,
+            "mb_str_pad(): Argument #2 ($length) must be of type int, float given",
+        ) - length(value);
+
+    // PHP checks the length before the pad string, so an empty pad only throws when padding is needed.
+    if (needed <= 0) {
+        return 0;
     }
 
-    const total = length - valueLength;
-    const right = total;
+    if (pad === "") {
+        throw new Error(
+            "mb_str_pad(): Argument #3 ($pad_string) must not be empty",
+        );
+    }
 
-    return value + makePad(pad, right);
+    return needed;
 }
 
 /**
@@ -1220,13 +1256,19 @@ export function padRight(
  */
 /* @__NO_SIDE_EFFECTS__ */
 export function makePad(padStr: string, needed: number): string {
-    if (needed <= 0 || padStr.length === 0) {
+    if (needed <= 0) {
         return "";
     }
 
-    const repeatTimes = Math.ceil(needed / padStr.length);
+    const chars = Array.from(padStr);
 
-    return padStr.repeat(repeatTimes).slice(0, needed);
+    if (chars.length === 0) {
+        return "";
+    }
+
+    const repeatTimes = Math.ceil(needed / chars.length);
+
+    return Array.from(padStr.repeat(repeatTimes)).slice(0, needed).join("");
 }
 
 /**
@@ -1395,6 +1437,8 @@ function shuffled<TItem>(items: readonly TItem[]): TItem[] {
  * @param needle - The substring to search for
  * @param offset - The position to start searching from (can be negative)
  * @returns The position of the first occurrence or false if not found
+ * @throws Error If the offset is outside the haystack, as mb_strpos() does
+ * @throws TypeError If the offset is NaN or infinite, as mb_strpos() does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#position
  */
@@ -1404,21 +1448,22 @@ export function position(
     needle: string,
     offset: number = 0,
 ): number | false {
-    // PHP mb_strpos compatibility (code point based):
-    // - Returns the position of first occurrence (in characters)
-    // - Returns false if not found or needle is empty
-    // - Negative offset counts from end
-    if (needle === "") {
-        return false;
-    }
-
     const haystackPoints = Array.from(haystack);
     const needlePoints = Array.from(needle);
 
-    let start = offset >= 0 ? offset : haystackPoints.length + offset;
-    if (start < 0) start = 0;
-    if (start >= haystackPoints.length) {
-        return false;
+    const at = phpIntArgument(
+        offset,
+        "mb_strpos(): Argument #3 ($offset) must be of type int, float given",
+    );
+    const start = at >= 0 ? at : haystackPoints.length + at;
+    if (start < 0 || start > haystackPoints.length) {
+        throw new Error(
+            "mb_strpos(): Argument #3 ($offset) must be contained in argument #1 ($haystack)",
+        );
+    }
+
+    if (needle === "") {
+        return start;
     }
 
     const lastStart = haystackPoints.length - needlePoints.length;
@@ -1666,6 +1711,16 @@ export function replace<TSubject extends StringSubject<TSubject>>(
 }
 
 /**
+ * Escape the characters a regular expression treats as syntax, as preg_quote() does.
+ *
+ * @param value - The string to escape
+ * @returns The string, safe to embed in a RegExp
+ */
+function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
  * Replace the given value in the given string regardless of case.
  *
  * ASCII search terms only match ASCII case variants, while non-ASCII search
@@ -1681,9 +1736,6 @@ function replaceWhileIgnoringCase(
     replacements: string[],
     subject: string,
 ): string {
-    const escapeRegExp = (s: string) =>
-        s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
     return searches.reduce((acc, term, i) => {
         if (term === "") {
             return acc; // skip empty needles (PHP str_ireplace behavior)
@@ -2557,16 +2609,23 @@ export function swap(map: Record<string, string>, subject: string): string {
  * @param value - The string to process
  * @param limit - The number of characters to take (negative for from end)
  * @returns The resulting substring
+ * @throws TypeError for a NaN or infinite limit, as Laravel's int $limit parameter does
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#take
  */
 /* @__NO_SIDE_EFFECTS__ */
 export function take(value: string, limit: number): string {
-    if (limit < 0) {
-        return substr(value, limit);
+    // Laravel declares an int $limit, so PHP converts it before the sign check.
+    const count = phpIntArgument(
+        limit,
+        "Str::take(): Argument #2 ($limit) must be of type int, float given",
+    );
+
+    if (count < 0) {
+        return substr(value, count);
     }
 
-    return substr(value, 0, limit);
+    return substr(value, 0, count);
 }
 
 /**

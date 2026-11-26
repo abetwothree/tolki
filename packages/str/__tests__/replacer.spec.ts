@@ -3,6 +3,34 @@ import { describe, expect, it } from "vitest";
 
 describe("Str/Replacer", () => {
     describe("substr", () => {
+        it("truncates a fractional start and length toward zero, as mb_substr does", () => {
+            // docs/php-parity/Str/substr.json, "substr-fractional"
+            expect(substr("abcd", -2.5)).toBe("cd");
+            expect(substr("abcd", 1.5, 2)).toBe("bc");
+            expect(substr("abcd", 0, -0.5)).toBe("");
+            expect(substr("abcd", 1, 1.9)).toBe("b");
+            expect(substr("abcd", 0, -1.5)).toBe("abc");
+        });
+
+        it("throws PHP's TypeError for a NaN or infinite start or length", () => {
+            // docs/php-parity/Str/substr.json, "substr-non-finite"
+            expect(() => substr("abcd", Number.NaN)).toThrow(
+                new TypeError(
+                    "mb_substr(): Argument #2 ($start) must be of type int, float given",
+                ),
+            );
+            expect(() => substr("abcd", 0, Number.NaN)).toThrow(
+                new TypeError(
+                    "mb_substr(): Argument #3 ($length) must be of type ?int, float given",
+                ),
+            );
+            expect(() => substr("abcd", Infinity)).toThrow(
+                new TypeError(
+                    "mb_substr(): Argument #2 ($start) must be of type int, float given",
+                ),
+            );
+        });
+
         it("Laravel tests substr", () => {
             expect(substr("БГДЖИЛЁ", -1)).toBe("Ё");
             expect(substr("БГДЖИЛЁ", -2)).toBe("ЛЁ");
@@ -72,6 +100,27 @@ describe("Str/Replacer", () => {
     });
 
     describe("substrCount", () => {
+        it("truncates a fractional offset and length toward zero, as mb_substr does", () => {
+            // docs/php-parity/Str/substrCount.json, "substrCount-fractional"
+            expect(substrCount("abab", "ab", 0.5)).toBe(2);
+            expect(substrCount("abab", "ab", -2.5)).toBe(1);
+            expect(substrCount("abab", "ab", 0, 3.9)).toBe(1);
+        });
+
+        it("throws PHP's TypeError for a NaN offset, before it reads the needle", () => {
+            // docs/php-parity/Str/substrCount.json, "substrCount-non-finite"
+            expect(() => substrCount("abab", "ab", Number.NaN)).toThrow(
+                new TypeError(
+                    "mb_substr(): Argument #2 ($start) must be of type int, float given",
+                ),
+            );
+            expect(() => substrCount("abab", "", Number.NaN)).toThrow(
+                new TypeError(
+                    "mb_substr(): Argument #2 ($start) must be of type int, float given",
+                ),
+            );
+        });
+
         it("Laravel tests substrCount", () => {
             expect(substrCount("laravelPHPFramework", "a")).toBe(3);
             expect(substrCount("laravelPHPFramework", "z")).toBe(0);
@@ -167,6 +216,27 @@ describe("Str/Replacer", () => {
     });
 
     describe("substrReplace", () => {
+        it("truncates a fractional offset and length toward zero, as mb_substr does", () => {
+            // docs/php-parity/Str/substrReplace.json, "substrReplace-fractional"
+            expect(substrReplace("abcd", "x", 1.5)).toBe("ax");
+            expect(substrReplace("abcd", "x", 1, 1.5)).toBe("axcd");
+            expect(substrReplace("abcd", "x", -2.5, 1)).toBe("abxd");
+        });
+
+        it("throws PHP's TypeError for a NaN offset or length", () => {
+            // docs/php-parity/Str/substrReplace.json, "substrReplace-non-finite"
+            expect(() => substrReplace("abcd", "x", Number.NaN)).toThrow(
+                new TypeError(
+                    "mb_substr(): Argument #3 ($length) must be of type ?int, float given",
+                ),
+            );
+            expect(() => substrReplace("abcd", "x", 0, Number.NaN)).toThrow(
+                new TypeError(
+                    "mb_substr(): Argument #2 ($start) must be of type int, float given",
+                ),
+            );
+        });
+
         it("Laravel tests substrReplace", () => {
             expect(substrReplace("1200", ":", 2, 0)).toBe("12:00");
             expect(substrReplace("The Framework", "Laravel ", 4, 0)).toBe(

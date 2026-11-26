@@ -770,6 +770,8 @@ const result = length("Tolki JS");
 // result is 8
 ```
 
+Characters are Unicode code points, as PHP's `mb_strlen` counts them, so an emoji counts as one.
+
 #### limit
 
 Limit the number of characters in a string.
@@ -781,6 +783,8 @@ const result = limit("The quick brown fox jumps over the lazy dog", 20);
 
 // result is "The quick brown fox..."
 ```
+
+The limit is a display width, as in Laravel: wide characters such as emoji and Chinese, Japanese or Korean characters count as two, so `limit("😀😀😀", 4)` gives `"😀😀..."`. A negative limit past the string's full width throws, as it does in PHP.
 
 You may pass a third argument to specify the string to append to the truncated string (defaults to an ellipsis):
 
@@ -967,12 +971,14 @@ import { padBoth } from "@tolki/str";
 
 const result = padBoth("James", 10, "_");
 
-// result is "__James__"
+// result is "__James___"
 
 const result2 = padBoth("James", 10);
 
 // result2 is "  James   "
 ```
+
+The length counts characters, so an emoji counts as one. An empty pad string throws when the value needs padding, as it does in PHP.
 
 #### padLeft
 
@@ -990,6 +996,8 @@ const result2 = padLeft("James", 10);
 // result2 is "     James"
 ```
 
+The length counts characters, so an emoji counts as one. An empty pad string throws when the value needs padding, as it does in PHP.
+
 #### padRight
 
 Pad the right side of a string with another string to a certain length.
@@ -1005,6 +1013,8 @@ const result2 = padRight("James", 10);
 
 // result2 is "James     "
 ```
+
+The length counts characters, so an emoji counts as one. An empty pad string throws when the value needs padding, as it does in PHP.
 
 #### pascal
 
@@ -1121,6 +1131,8 @@ const result2 = position("Hello, World!", "W");
 
 // result2 is 7
 ```
+
+Positions count characters, so an emoji counts as one. An empty needle returns the offset, and an offset outside the string throws, as in PHP.
 
 #### random
 

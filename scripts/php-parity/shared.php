@@ -614,3 +614,15 @@ class LangMoney
 class LangEuro extends LangMoney {}
 
 class LangOpaque {}
+
+/**
+ * Run $run and return its result, or the class and message of what it throws, so one row can hold both.
+ */
+function attempt(callable $run): mixed
+{
+    try {
+        return $run();
+    } catch (Throwable $e) {
+        return [get_class($e), $e->getMessage()];
+    }
+}

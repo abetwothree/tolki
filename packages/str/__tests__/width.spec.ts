@@ -1,0 +1,92 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+import { describe, expect, it } from "vitest";
+
+import { strimWidth, strWidth, WIDE_RANGES } from "../src/width";
+
+interface Probe {
+    label: string;
+    value: unknown;
+}
+
+function transcript(path: string): Probe[] {
+    const file = resolve(__dirname, "../../../docs/php-parity", path);
+
+    return (JSON.parse(readFileSync(file, "utf8")) as { probes: Probe[] })
+        .probes;
+}
+
+describe("WIDE_RANGES", () => {
+    it("matches PHP's mb_strwidth table", () => {
+        // docs/php-parity/Php/mb_strwidth.json, "mb_strwidth-wide-ranges"
+        const ranges = transcript("Php/mb_strwidth.json").find(
+            ({ label }) => label === "mb_strwidth-wide-ranges",
+        )?.value;
+
+        expect(WIDE_RANGES).toEqual(ranges);
+    });
+});
+
+describe("strWidth", () => {
+    it("counts wide characters as two, as mb_strwidth does", () => {
+        // docs/php-parity/Php/mb_strwidth.json, "mb_strwidth-samples"
+        expect(
+            ["😀", "日", "é", "𝒳", "e\u0301", "\u200B"].map((value) =>
+                strWidth(value),
+            ),
+        ).toEqual([2, 2, 1, 1, 2, 1]);
+    });
+
+    it("counts each wide range's edges as two and their neighbours as one", () => {
+        // Runs never touch, so the code points just outside a run are always narrow.
+        for (const [first, last] of WIDE_RANGES) {
+            expect(strWidth(String.fromCodePoint(first))).toBe(2);
+            expect(strWidth(String.fromCodePoint(last))).toBe(2);
+            expect(strWidth(String.fromCodePoint(first - 1))).toBe(1);
+            expect(strWidth(String.fromCodePoint(last + 1))).toBe(1);
+        }
+    });
+});
+
+describe("strimWidth", () => {
+    it("truncates a fractional width toward zero before counting back", () => {
+        // docs/php-parity/Str/limit.json, "limit-fractional-width"
+        expect(strimWidth("abc", -0.5)).toBe("");
+        expect(strimWidth("abc", 2.5)).toBe("ab");
+        expect(strimWidth("abc", -3.5)).toBe("");
+    });
+
+    it("throws PHP's TypeError for a NaN width", () => {
+        // docs/php-parity/Str/limit.json, "limit-non-finite-width"
+        expect(() => strimWidth("abc", Number.NaN)).toThrow(
+            new TypeError(
+                "mb_strimwidth(): Argument #3 ($width) must be of type int, float given",
+            ),
+        );
+    });
+
+    it("keeps the longest prefix that fits, never splitting a wide character", () => {
+        // docs/php-parity/Str/limit.json, "limit-astral", "limit-zero-and-negative"
+        expect(strimWidth("😀😀😀", 3)).toBe("😀");
+        expect(strimWidth("abc", 0)).toBe("");
+
+        // docs/php-parity/Str/limit.json, "limit-wide-cut-edges"
+        expect(strimWidth("a😀😀", 4)).toBe("a😀");
+    });
+
+    it("counts a negative width back from the full width", () => {
+        // docs/php-parity/Str/limit.json, "limit-zero-and-negative"
+        expect(strimWidth("😀😀😀", -1)).toBe("😀😀");
+        expect(strimWidth("abc", -1)).toBe("ab");
+    });
+
+    it("throws for a negative width past the full width", () => {
+        const message = "mb_strimwidth(): Argument #3 ($width) is out of range";
+
+        // docs/php-parity/Str/limit.json, "limit-negative-past-width"
+        expect(() => strimWidth("abc", -4)).toThrow(message);
+        expect(() => strimWidth("😀😀", -5)).toThrow(message);
+        expect(strimWidth("abc", -3)).toBe("");
+    });
+});

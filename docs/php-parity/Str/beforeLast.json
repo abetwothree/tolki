@@ -1,0 +1,16 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "beforeLast-astral",
+            "php": "Str::beforeLast('\ud83d\ude00a\ud83d\ude00b', 'b') and Str::beforeLast('\ud83d\ude00a\ud83d\ude00b', '\ud83d\ude00')",
+            "value": [
+                "\ud83d\ude00a\ud83d\ude00",
+                "\ud83d\ude00a"
+            ]
+        }
+    ]
+}

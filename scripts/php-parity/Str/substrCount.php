@@ -18,4 +18,8 @@ probe('substrCount-laravel-multibyte', "StrTest::testSubstrCount's eight Persian
 probe('substrCount-offset-bounds', 'an offset past the end, one before the start, a length that ends before the offset, and an overlapping needle', fn () => array_map(fn (array $c) => [...$c, Str::substrCount(...$c)], [['abc', 'a', 10, null], ['abc', 'a', -10, null], ['abc', 'a', 1, -5], ['aaa', 'aa', 0, null]]));
 probe('substrCount-empty-needle', "Str::substrCount('abc', '') and Str::substrCount('abc', '', 10)", fn () => array_map(function (array $c) { try { return Str::substrCount(...$c); } catch (Throwable $e) { return [get_class($e), $e->getMessage()]; } }, [['abc', ''], ['abc', '', 10]]));
 
+probe('substrCount-fractional', "Str::substrCount('abab', 'ab', …) with offset 0.5, offset -2.5, and offset 0 with length 3.9, with PHP's deprecations", fn () => withDeprecations(fn () => [Str::substrCount('abab', 'ab', 0.5), Str::substrCount('abab', 'ab', -2.5), Str::substrCount('abab', 'ab', 0, 3.9)]));
+// Str::substr() cuts the haystack before substr_count() sees the needle, so a NAN offset wins over an empty needle.
+probe('substrCount-non-finite', "What Str::substrCount('abab', 'ab', NAN) and Str::substrCount('abab', '', NAN) throw", fn () => [attempt(fn () => Str::substrCount('abab', 'ab', NAN)), attempt(fn () => Str::substrCount('abab', '', NAN))]);
+
 emit();

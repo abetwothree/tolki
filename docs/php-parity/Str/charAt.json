@@ -1,0 +1,46 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "charAt-astral",
+            "php": "Str::charAt('\ud83d\ude00a', \u2026) at 1, 0, -2, 2 and -3, and Str::charAt('', 0)",
+            "value": [
+                "a",
+                "\ud83d\ude00",
+                "\ud83d\ude00",
+                false,
+                false,
+                false
+            ]
+        },
+        {
+            "label": "charAt-fractional",
+            "php": "Str::charAt('abc', 1.5) and Str::charAt('abc', -2.5), with PHP's deprecations",
+            "value": {
+                "result": [
+                    "b",
+                    "b"
+                ],
+                "deprecations": [
+                    "Implicit conversion from float 1.5 to int loses precision",
+                    "Implicit conversion from float -2.5 to int loses precision"
+                ]
+            }
+        },
+        {
+            "label": "charAt-fractional-bounds",
+            "php": "Str::charAt('abc', 2.5) and Str::charAt('abc', -3.5), and what Str::charAt('abc', NAN) throws",
+            "value": [
+                false,
+                false,
+                [
+                    "TypeError",
+                    "mb_substr(): Argument #2 ($start) must be of type int, float given"
+                ]
+            ]
+        }
+    ]
+}

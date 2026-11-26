@@ -1,0 +1,60 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "padLeft-astral",
+            "php": "Str::padLeft('\ud83d\ude00', 3, '-') and Str::padLeft('a', 4, '\ud83d\ude00\ud83c\udf89')",
+            "value": [
+                "--\ud83d\ude00",
+                "\ud83d\ude00\ud83c\udf89\ud83d\ude00a"
+            ]
+        },
+        {
+            "label": "padLeft-empty-pad",
+            "php": "Str::padLeft('a', 3, ''), Str::padLeft('abc', 2, '') and Str::padLeft('abc', -1, '')",
+            "value": [
+                [
+                    "ValueError",
+                    "mb_str_pad(): Argument #3 ($pad_string) must not be empty"
+                ],
+                "abc",
+                "abc"
+            ]
+        },
+        {
+            "label": "padLeft-fractional-length",
+            "php": "Str::padLeft() of ('\ud83d\ude00', 1.5, ''), ('a', 2.5, '-'), ('a', 3.9, '-') and ('a', -1.5, ''), with PHP's deprecations",
+            "value": {
+                "result": [
+                    "\ud83d\ude00",
+                    "-a",
+                    "--a",
+                    "a"
+                ],
+                "deprecations": [
+                    "Implicit conversion from float 1.5 to int loses precision",
+                    "Implicit conversion from float 2.5 to int loses precision",
+                    "Implicit conversion from float 3.9 to int loses precision",
+                    "Implicit conversion from float -1.5 to int loses precision"
+                ]
+            }
+        },
+        {
+            "label": "padLeft-non-finite-length",
+            "php": "What Str::padLeft('a', NAN, '-') and Str::padLeft('a', INF, '-') throw",
+            "value": [
+                [
+                    "TypeError",
+                    "mb_str_pad(): Argument #2 ($length) must be of type int, float given"
+                ],
+                [
+                    "TypeError",
+                    "mb_str_pad(): Argument #2 ($length) must be of type int, float given"
+                ]
+            ]
+        }
+    ]
+}

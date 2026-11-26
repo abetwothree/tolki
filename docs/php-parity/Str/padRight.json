@@ -1,0 +1,60 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "padRight-astral",
+            "php": "Str::padRight('\ud83d\ude00', 3, '-') and Str::padRight('a', 4, '\ud83d\ude00\ud83c\udf89')",
+            "value": [
+                "\ud83d\ude00--",
+                "a\ud83d\ude00\ud83c\udf89\ud83d\ude00"
+            ]
+        },
+        {
+            "label": "padRight-empty-pad",
+            "php": "Str::padRight('a', 3, ''), Str::padRight('abc', 2, '') and Str::padRight('abc', -1, '')",
+            "value": [
+                [
+                    "ValueError",
+                    "mb_str_pad(): Argument #3 ($pad_string) must not be empty"
+                ],
+                "abc",
+                "abc"
+            ]
+        },
+        {
+            "label": "padRight-fractional-length",
+            "php": "Str::padRight() of ('\ud83d\ude00', 1.5, ''), ('a', 2.5, '-'), ('a', 3.9, '-') and ('a', -1.5, ''), with PHP's deprecations",
+            "value": {
+                "result": [
+                    "\ud83d\ude00",
+                    "a-",
+                    "a--",
+                    "a"
+                ],
+                "deprecations": [
+                    "Implicit conversion from float 1.5 to int loses precision",
+                    "Implicit conversion from float 2.5 to int loses precision",
+                    "Implicit conversion from float 3.9 to int loses precision",
+                    "Implicit conversion from float -1.5 to int loses precision"
+                ]
+            }
+        },
+        {
+            "label": "padRight-non-finite-length",
+            "php": "What Str::padRight('a', NAN, '-') and Str::padRight('a', INF, '-') throw",
+            "value": [
+                [
+                    "TypeError",
+                    "mb_str_pad(): Argument #2 ($length) must be of type int, float given"
+                ],
+                [
+                    "TypeError",
+                    "mb_str_pad(): Argument #2 ($length) must be of type int, float given"
+                ]
+            ]
+        }
+    ]
+}

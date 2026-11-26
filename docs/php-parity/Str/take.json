@@ -1,0 +1,32 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "take-fractional",
+            "php": "array_map([Str::class, 'take'], ['abcd', 'abcd', 'abcd'], [-0.5, 2.5, -1.5]), with PHP's deprecations",
+            "value": {
+                "result": [
+                    "",
+                    "ab",
+                    "d"
+                ],
+                "deprecations": [
+                    "Implicit conversion from float -0.5 to int loses precision",
+                    "Implicit conversion from float 2.5 to int loses precision",
+                    "Implicit conversion from float -1.5 to int loses precision"
+                ]
+            }
+        },
+        {
+            "label": "take-non-finite",
+            "php": "What array_map([Str::class, 'take'], ['abcd'], [NAN]) throws",
+            "value": [
+                "TypeError",
+                "Illuminate\\Support\\Str::take(): Argument #2 ($limit) must be of type int, float given"
+            ]
+        }
+    ]
+}

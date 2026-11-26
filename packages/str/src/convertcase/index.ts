@@ -72,11 +72,14 @@ function caseConverter(value: string, mode: ConvertCaseMode): string {
         case CaseTypes.lower:
             return toLower(value);
         case CaseTypes.title:
-            return value.replace(
-                /\p{L}[\p{L}\p{M}\p{N}]*/gu,
-                (word) =>
-                    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
-            );
+            return value.replace(/\p{L}[\p{L}\p{M}\p{N}]*/gu, (word) => {
+                const chars = Array.from(word);
+
+                return (
+                    chars.slice(0, 1).join("").toUpperCase() +
+                    chars.slice(1).join("").toLowerCase()
+                );
+            });
         case CaseTypes.fold:
             return value.normalize("NFKD").toLowerCase();
         case CaseTypes.simple:
