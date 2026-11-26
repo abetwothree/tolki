@@ -499,11 +499,11 @@ const result4 = percentage(10, 2, null, "de");
 `spell` and `spellOrdinal` return a `Promise<string>` and dynamically import a locale bundle on first use. The playground component above doesn't yet support async functions, so these two don't have a live example — see the code samples below instead.
 :::
 
-Spell out the given number in the given locale. Returns a `Promise<string>`.
+Spell out the given number in the given locale. Returns a `Promise<string>`. When no locale is given, it uses the default locale (see [useLocale](#uselocale)).
 
 Uses the [`to-words`](https://www.npmjs.com/package/to-words) package. Locales are loaded dynamically on demand, so only the locale you request is bundled (~3KB gzip per locale instead of ~54KB for all 94 locales).
 
-Supports 94 locales via [`to-words`](https://www.npmjs.com/package/to-words). You can pass a full locale code (e.g., `"fr-FR"`, `"en-IN"`) or a bare language code (e.g., `"fr"`, `"en"`) which will resolve to a sensible default. Unsupported locales fall back to `"en-US"`.
+Supports 94 locales via [`to-words`](https://www.npmjs.com/package/to-words). You can pass a full locale code (e.g., `"fr-FR"`, `"en-IN"`) or a bare language code (e.g., `"fr"`, `"en"`) which will resolve to a sensible default. A locale that the runtime has no data for throws an `Error` with Laravel's message, as Laravel does.
 
 ```javascript
 import { spell } from "@tolki/num";
@@ -539,7 +539,7 @@ const result = await spell(15, null, null, 10);
 
 ### spellOrdinal
 
-Spell out the given number in the given locale in ordinal form. Returns a `Promise<string>`.
+Spell out the given number in the given locale in ordinal form. Returns a `Promise<string>`. When no locale is given, it uses the default locale (see [useLocale](#uselocale)). A locale that the runtime has no data for throws an `Error`.
 
 Uses [`to-words`](https://www.npmjs.com/package/to-words) v5 native ordinal support. See the [spell](#spell) function for details on locale handling.
 

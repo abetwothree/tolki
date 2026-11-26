@@ -1,0 +1,19 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "spellOrdinal-locale-unknown",
+            "php": "Number::spellOrdinal(2, 'xx')",
+            "threw": "ValueError",
+            "message": "NumberFormatter::__construct(): Argument #1 ($locale) \"xx\" is invalid"
+        },
+        {
+            "label": "spellOrdinal-uses-default-locale",
+            "php": "useLocale('pt_BR'); spellOrdinal(2) === spellOrdinal(2, 'pt_BR')",
+            "value": true
+        }
+    ]
+}
