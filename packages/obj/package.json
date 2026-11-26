@@ -48,13 +48,11 @@
         "types": "dist/index.d.ts",
         "exports": {
             ".": {
-                "import": "./dist/index.js",
-                "require": "./dist/index.js",
-                "types": "./dist/index.d.ts"
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
             },
             "./obj": {
                 "types": "./dist/obj.d.ts",
-                "import": "./dist/obj.js",
                 "default": "./dist/obj.js"
             }
         }

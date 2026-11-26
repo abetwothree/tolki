@@ -43,23 +43,19 @@
         "types": "dist/index.d.ts",
         "exports": {
             ".": {
-                "import": "./dist/index.js",
-                "require": "./dist/index.js",
-                "types": "./dist/index.d.ts"
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
             },
             "./*": {
-                "import": "./dist/*",
-                "require": "./dist/*",
-                "types": "./dist/*"
+                "types": "./dist/*",
+                "default": "./dist/*"
             },
             "./num": {
                 "types": "./dist/num.d.ts",
-                "import": "./dist/num.js",
                 "default": "./dist/num.js"
             },
             "./speller": {
                 "types": "./dist/speller/index.d.ts",
-                "import": "./dist/speller/index.js",
                 "default": "./dist/speller/index.js"
             }
         }
