@@ -25,6 +25,7 @@ const baseConfig = defineConfig({
         }),
     ],
     build: {
+        // definePackageConfig replaces the entry; formats stays ES-only and Vite's types need an entry beside it.
         lib: { entry: "src/index.ts", formats: ["es"] },
         emptyOutDir: true,
         outDir: "dist",

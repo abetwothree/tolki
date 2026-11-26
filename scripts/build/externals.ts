@@ -10,9 +10,10 @@ import type { PackageJson } from "../lib/workspace.ts";
  * @returns The package name, two segments when scoped.
  */
 function packageNameOf(id: string): string {
-    const segments = id.split("/");
-
-    return id.startsWith("@") ? segments.slice(0, 2).join("/") : segments[0]!;
+    return id
+        .split("/")
+        .slice(0, id.startsWith("@") ? 2 : 1)
+        .join("/");
 }
 
 /**

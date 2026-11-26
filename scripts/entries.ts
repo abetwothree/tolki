@@ -46,13 +46,3 @@ export function buildEntries(
     }
     return entries;
 }
-
-/** Convenience for vite configs inside a package directory. */
-export function buildPackageEntries(
-    pattern: string,
-    importMetaUrl: string,
-    options?: BuildEntriesOptions,
-) {
-    const baseDir = path.dirname(new URL(importMetaUrl).pathname);
-    return buildEntries(pattern, baseDir, options);
-}
