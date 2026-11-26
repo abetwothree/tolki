@@ -49,7 +49,7 @@ export function localeTag(locale: string): string {
     const tag = locale.replaceAll("_", "-");
 
     try {
-        return Intl.getCanonicalLocales(tag)[0] ?? tag;
+        return Intl.getCanonicalLocales(tag)[0] as string;
     } catch {
         return tag;
     }
