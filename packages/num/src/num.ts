@@ -1,6 +1,7 @@
 import { InvalidArgumentException } from "@tolki/utils";
 
 import { intlLocale, setLocaleNormalizer } from "./locale";
+import { formatOrdinal } from "./ordinal";
 
 export { localeTag } from "@tolki/utils";
 
@@ -194,7 +195,7 @@ export function parseFloat(
  * Convert the given number to ordinal form.
  *
  * @param value - The number to convert.
- * @param locale - The locale to use for determining ordinal rules.
+ * @param locale - The locale whose ordinal rules to use.
  * @returns The number in ordinal form.
  * @throws Error when ICU has no data for the locale, as PHP's NumberFormatter throws its ValueError
  *
@@ -202,48 +203,7 @@ export function parseFloat(
  */
 /* @__NO_SIDE_EFFECTS__ */
 export function ordinal(value: number, locale: string | null = null): string {
-    const loc = intlLocale(locale ?? _locale);
-
-    // Prefer Intl.PluralRules with ordinal type when available; otherwise, fallback to English rules.
-    try {
-        const pr = new Intl.PluralRules(loc, { type: "ordinal" });
-        const rule = pr.select(value);
-        // loc is guaranteed to be a valid locale here (invalid ones throw above)
-        const lang = String(loc.split("-")[0]);
-
-        const enSuffixes: Record<string, string> = {
-            one: "st",
-            two: "nd",
-            few: "rd",
-            other: "th",
-        };
-        const suffixes: Record<string, Record<string, string>> = {
-            en: enSuffixes,
-        };
-
-        // Use English suffixes as fallback for unsupported languages
-        const map = suffixes[lang] ?? enSuffixes;
-        // Fall back to "other" suffix if specific rule not found
-        const suffix = map[rule] ?? map["other"];
-
-        return `${value}${suffix}`;
-    } catch {
-        const v = Math.abs(value);
-        const mod100 = v % 100;
-        if (mod100 >= 11 && mod100 <= 13) {
-            return `${value}th`;
-        }
-        switch (v % 10) {
-            case 1:
-                return `${value}st`;
-            case 2:
-                return `${value}nd`;
-            case 3:
-                return `${value}rd`;
-            default:
-                return `${value}th`;
-        }
-    }
+    return formatOrdinal(value, intlLocale(locale ?? _locale));
 }
 
 /**

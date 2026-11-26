@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { isString, isUndefined } from "@tolki/utils";
 import { describe, expect, it } from "vitest";
 
+import { formatOrdinal } from "../src/ordinal";
 import {
     INDICATORS,
     type OrdinalRule,
@@ -32,6 +33,20 @@ function probeValue<TValue>(path: string, label: string): TValue {
  */
 function tagOf(locale: string): string {
     return Intl.getCanonicalLocales(locale.replaceAll("_", "-"))[0] as string;
+}
+
+/**
+ * Read a number the probe spelled as a string, since JSON holds no INF, NAN or -0.
+ */
+function numberOf(spelling: string): number {
+    const named: Record<string, number> = {
+        INF: Infinity,
+        "-INF": -Infinity,
+        NAN: NaN,
+        "-0": -0,
+    };
+
+    return named[spelling] ?? Number(spelling);
 }
 
 /**
@@ -125,5 +140,59 @@ describe("ordinalRule", () => {
         }
 
         expect(Object.keys(setOfTag)).toHaveLength(50);
+    });
+});
+
+describe("formatOrdinal", () => {
+    // docs/php-parity/Number/ordinal.json, "ordinal-inputs", "ordinal-of-en"
+    it("matches Laravel for one locale of each ICU rule set and each number", () => {
+        const probes = transcript("Number/ordinal.json");
+        const inputs = probeValue<string[]>(
+            "Number/ordinal.json",
+            "ordinal-inputs",
+        ).map(numberOf);
+        const rows = probes.filter(({ label }) =>
+            label.startsWith("ordinal-of-"),
+        );
+
+        expect(rows).toHaveLength(50);
+
+        for (const { label, value } of rows) {
+            const tag = tagOf(label.slice("ordinal-of-".length));
+
+            inputs.forEach((input, i) => {
+                expect(formatOrdinal(input, tag), `${tag} ${input}`).toBe(
+                    (value as string[])[i],
+                );
+            });
+        }
+    });
+
+    // docs/php-parity/Number/ordinal.json, "ordinal-negative-infinity"
+    it("matches Laravel for -INF, which loses its sign behind an indirect rule set", () => {
+        const answers = probeValue<Record<string, string>>(
+            "Number/ordinal.json",
+            "ordinal-negative-infinity",
+        );
+
+        for (const [locale, answer] of Object.entries(answers)) {
+            expect(formatOrdinal(-Infinity, tagOf(locale)), locale).toBe(
+                answer,
+            );
+        }
+    });
+
+    it("writes -INF after the negative rule's text where ICU crashes", () => {
+        // JS-only: PHP's ICU segfaults on -INF for these rule sets, so there is no answer to match.
+        expect(formatOrdinal(-Infinity, "ja")).toBe("第\u2212∞");
+        expect(formatOrdinal(-Infinity, "ms")).toBe("\u2212ke-∞");
+        expect(formatOrdinal(-Infinity, "th")).toBe("ที่\u00A0\u2212∞");
+    });
+
+    it("writes the rounded value's ordinal where ICU's indicator rules loop", () => {
+        // JS-only: docs/php-parity/Number/ordinal.json, "ordinal-rounds-past-a-divisor" records ICU giving up.
+        expect(formatOrdinal(99.6, "af")).toBe("100ste");
+        expect(formatOrdinal(99.6, "bg")).toBe("100-тен");
+        expect(formatOrdinal(1099.5, "bg")).toBe("1\u00A0100-тен");
     });
 });

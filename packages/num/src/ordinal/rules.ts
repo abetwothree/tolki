@@ -114,7 +114,7 @@ export const LATIN_AMERICAN_SPANISH_ORDINAL: OrdinalRule = {
 };
 
 /**
- * ICU's default ordinal rule sets other than the root, the period and Latin American Spanish, keyed like `DOT_KEYS`.
+ * ICU's default ordinal rule sets but en's (`ROOT_ORDINAL`), the dot and Latin American Spanish, keyed like `DOT_KEYS`.
  */
 export const ORDINAL_RULES: Readonly<Record<string, OrdinalRule>> = {
     af: { suffix: { indicator: "af" } },

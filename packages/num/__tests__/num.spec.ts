@@ -334,54 +334,35 @@ describe("Number", () => {
             expect(Num.ordinal(13)).toBe("13th");
         });
 
-        it("should fallback when Intl.PluralRules does not exist", () => {
-            const original = Intl.PluralRules;
-            // @ts-expect-error Cannot assign to 'PluralRules' because it is a read-only property.
-            Intl.PluralRules = undefined;
-
-            expect(Num.ordinal(1)).toBe("1st");
-            expect(Num.ordinal(2)).toBe("2nd");
-            expect(Num.ordinal(3)).toBe("3rd");
-            expect(Num.ordinal(4)).toBe("4th");
-            expect(Num.ordinal(11)).toBe("11th");
-            expect(Num.ordinal(12)).toBe("12th");
-            expect(Num.ordinal(13)).toBe("13th");
-
-            // @ts-expect-error Cannot assign to 'PluralRules' because it is a read-only property.
-            Intl.PluralRules = original;
+        it("formats each locale's own ordinal", () => {
+            // docs/php-parity/Number/ordinal.json, "ordinal-of-de", "ordinal-of-pt_BR"
+            expect(Num.ordinal(1, "de")).toBe("1.");
+            expect(Num.ordinal(2, "de")).toBe("2.");
+            expect(Num.ordinal(1, "pt_BR")).toBe("1º");
         });
 
-        it("should handle negative numbers in fallback", () => {
-            const original = Intl.PluralRules;
-            // @ts-expect-error Cannot assign to 'PluralRules' because it is a read-only property.
-            Intl.PluralRules = undefined;
-
-            // Test negative numbers to ensure Math.abs is used
-            expect(Num.ordinal(-1)).toBe("-1st");
-            expect(Num.ordinal(-2)).toBe("-2nd");
-            expect(Num.ordinal(-3)).toBe("-3rd");
-            expect(Num.ordinal(-4)).toBe("-4th");
-            expect(Num.ordinal(-11)).toBe("-11th");
-            expect(Num.ordinal(-12)).toBe("-12th");
-            expect(Num.ordinal(-13)).toBe("-13th");
-
-            // @ts-expect-error Cannot assign to 'PluralRules' because it is a read-only property.
-            Intl.PluralRules = original;
+        it("writes negatives with the minus sign", () => {
+            // docs/php-parity/Number/ordinal.json, "ordinal-of-en"
+            expect(Num.ordinal(-1)).toBe("\u22121st");
+            expect(Num.ordinal(-2)).toBe("\u22122nd");
+            expect(Num.ordinal(-11)).toBe("\u221211th");
+            expect(Num.ordinal(-21)).toBe("\u221221st");
         });
 
-        it("should handle locale with non-English suffixes", () => {
-            // Testing with locales where plural rules may differ - German uses "other" for ordinals
-            // This covers the fallback path where map?.[rule] doesn't match so it uses map?.["other"]
-            expect(Num.ordinal(1, "de")).toBe("1th"); // German ordinal rules return "other" for 1
-            expect(Num.ordinal(2, "de")).toBe("2th"); // German ordinal rules return "other" for 2
+        it("groups digits and rounds fractions as ICU does", () => {
+            // docs/php-parity/Number/ordinal.json, "ordinal-of-en"
+            expect(Num.ordinal(1000)).toBe("1,000th");
+            expect(Num.ordinal(1.5)).toBe("2st");
+            expect(Num.ordinal(3.5)).toBe("4rd");
         });
 
-        it("should handle locale that returns rare plural rules", () => {
-            // Welsh returns "zero", "many" which are not in the English suffixes map
-            // This covers the branch where map?.[rule] is undefined so it falls back to map?.["other"]
-            expect(Num.ordinal(5, "cy")).toBe("5th"); // Welsh returns "many" for 5
-            expect(Num.ordinal(0, "cy")).toBe("0th"); // Welsh returns "zero" for 0
-            expect(Num.ordinal(7, "cy")).toBe("7th"); // Welsh returns "zero" for 7
+        it("reads Laravel's locale spellings", () => {
+            // docs/php-parity/Number/ordinal.json, "ordinal-locale-spellings"
+            for (const locale of ["pt_BR", "pt-BR", "pt_br", "PT-br"]) {
+                expect(Num.ordinal(21, locale), locale).toBe("21º");
+            }
+
+            expect(Num.ordinal(21, "zh_hant_tw")).toBe("第21");
         });
 
         it("throws PHP's error for a malformed locale", () => {
