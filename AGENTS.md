@@ -91,6 +91,15 @@ Once added to the `@tolki/utils` package, they can be used in any other package 
 - Module scope: every call or `new` at module scope carries `/* @__PURE__ */`, nested calls too, and no argument is a spread.
 - Details: [docs/features/side-effect-annotations.md](docs/features/side-effect-annotations.md).
 
+## Build, publish and guards
+
+- Guards check what ships: `pnpm pack` tarballs (`scripts/lib/pack.ts`), never `src` or a hand-made copy.
+- Build and script inputs come from `package.json`: entries and externals through `definePackageConfig` in `vite.shared.ts`, the package list through `scripts/lib/workspace.ts`. Never keep a second hand-written list.
+- A runtime import must be in the package's `dependencies` or `peerDependencies`; the build fails otherwise.
+- Every guard has a negative control and refuses to pass on zero inputs.
+- A refactor of build tooling leaves `packages/*/dist` byte-identical, and its commit says so.
+- Script helpers used by more than one script live in `scripts/lib/`, with tests in `scripts/__tests__/`.
+
 ## Test structure
 
 Test should be structured with `describe` blocks for each function being tested, and `it` blocks for each test case.
