@@ -3,6 +3,7 @@ export * from "./equality";
 export * from "./exceptions";
 export * from "./guards";
 export * from "./keys";
+export * from "./locale";
 export * from "./range";
 export * from "./reflect";
 export * from "./sorting";

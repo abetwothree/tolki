@@ -6,7 +6,7 @@ These are the exports of `@tolki/lang`: the `Translator` class with Laravel's pu
 
 <div class="collection-method-list" markdown="1">
 
-[\_\_](#__) [addLines](#addlines) [array](#array) [bindLang](#bindlang) [choice](#choice) [choose](#choose) [createHelpers](#createhelpers) [createLang](#createlang) [determineLocalesUsing](#determinelocalesusing) [get](#get) [getFallback](#getfallback) [getLocale](#getlocale) [getPluralIndex](#getpluralindex) [handleMissingKeysUsing](#handlemissingkeysusing) [has](#has) [hasForLocale](#hasforlocale) [htmlLocale](#htmllocale) [locale](#locale) [makeReplacements](#makereplacements) [normalizeLocale](#normalizelocale) [parseKey](#parsekey) [setFallback](#setfallback) [setLoaded](#setloaded) [setLocale](#setlocale) [string](#string) [stringable](#stringable) [trans](#trans) [transChoice](#transchoice) [Translator](#translator)
+[\_\_](#__) [addLines](#addlines) [array](#array) [bindLang](#bindlang) [choice](#choice) [choose](#choose) [createHelpers](#createhelpers) [createLang](#createlang) [determineLocalesUsing](#determinelocalesusing) [get](#get) [getFallback](#getfallback) [getLocale](#getlocale) [getPluralIndex](#getpluralindex) [handleMissingKeysUsing](#handlemissingkeysusing) [has](#has) [hasForLocale](#hasforlocale) [htmlLocale](#htmllocale) [locale](#locale) [localeTag](#localetag) [makeReplacements](#makereplacements) [normalizeLocale](#normalizelocale) [parseKey](#parsekey) [setFallback](#setfallback) [setLoaded](#setloaded) [setLocale](#setlocale) [string](#string) [stringable](#stringable) [trans](#trans) [transChoice](#transchoice) [Translator](#translator)
 
 </div>
 
@@ -530,6 +530,29 @@ new Translator({}, "es").locale();
 // => "es"
 ```
 
+### localeTag
+
+<Badge type="info" text="JS only" />
+
+Turn a locale spelled as Laravel does into the BCP 47 tag `Intl` reads.
+
+Exported as `localeTag` from `@tolki/lang` and `@tolki/utils`. A tag `Intl` cannot read comes back with only its underscores replaced.
+
+```js
+import { localeTag } from "@tolki/lang";
+
+localeTag("pt_BR");
+// => "pt-BR"
+
+localeTag("zh_hant_tw");
+// => "zh-Hant-TW"
+
+new Date(Date.UTC(2026, 0, 2)).toLocaleDateString(localeTag("pt_BR"), {
+  timeZone: "UTC",
+});
+// => "02/01/2026"
+```
+
 ### makeReplacements
 
 Make the place-holder replacements on a line.
@@ -573,7 +596,7 @@ makeReplacements(":0 and :1", ["tea", "milk"]);
 
 Turn a BCP 47 tag into the spelling Laravel's plural table uses.
 
-Exported as `normalizeLocale` from `@tolki/lang`.
+Exported as `normalizeLocale` from `@tolki/lang` and `@tolki/utils`.
 
 ```js
 import { normalizeLocale } from "@tolki/lang";
@@ -586,6 +609,9 @@ normalizeLocale("pt-br");
 
 normalizeLocale("fr");
 // => "fr"
+
+normalizeLocale("zh-hant-tw");
+// => "zh_Hant_TW"
 ```
 
 ### parseKey

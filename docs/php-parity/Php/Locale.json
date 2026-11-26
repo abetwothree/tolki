@@ -1,0 +1,22 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "canonicalize-script-subtags",
+            "php": "Locale::canonicalize() for each tag",
+            "value": {
+                "zh-hant-tw": "zh_Hant_TW",
+                "zh-Hant-TW": "zh_Hant_TW",
+                "sr-latn": "sr_Latn",
+                "az-cyrl-az": "az_Cyrl_AZ",
+                "uz_Latn": "uz_Latn",
+                "zh-Hans": "zh_Hans",
+                "pt-br": "pt_BR",
+                "es-419": "es_419"
+            }
+        }
+    ]
+}
