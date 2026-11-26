@@ -6,6 +6,7 @@ import type {
     LangLines,
     LangValue,
     LocaleLines,
+    LocaleNormalizer,
     LocalesResolver,
     MissingKeyHandler,
     Replacements,
@@ -219,6 +220,16 @@ export class Translator<TLines extends LangLines = LangLines> {
      * The callable that should be invoked to determine applicable locales.
      */
     #determineLocalesUsing: LocalesResolver | null = null;
+
+    /**
+     * The callback that converts every locale the translator is given.
+     */
+    #normalizeLocalesUsing: LocaleNormalizer | null = null;
+
+    /**
+     * The key of the lines each converted locale reads, built when first needed.
+     */
+    #lineKeys: Map<string, string> | null = null;
 
     /**
      * The custom rendering callbacks for stringable objects.
@@ -483,8 +494,9 @@ export class Translator<TLines extends LangLines = LangLines> {
         locale: string,
         namespace = "*",
     ): void {
+        const lineKey = this.#lineKey(locale);
         const localeLines: Record<string, LangInputValue> = {
-            ...ownValue(this.#lines, locale),
+            ...ownValue(this.#lines, lineKey),
         };
 
         for (const [key, value] of Object.entries(lines)) {
@@ -517,9 +529,10 @@ export class Translator<TLines extends LangLines = LangLines> {
 
         const allLines: Record<string, LocaleLines> = { ...this.#lines };
 
-        defineKey(allLines, locale, localeLines);
+        defineKey(allLines, lineKey, localeLines);
 
         this.#lines = allLines;
+        this.#lineKeys = null;
     }
 
     /**
@@ -582,6 +595,31 @@ export class Translator<TLines extends LangLines = LangLines> {
     }
 
     /**
+     * Specify a callback that converts every locale the translator is given, such as `normalizeLocale`.
+     *
+     * @param callback - Turns a locale into the spelling to use; it must give the same answer for its own answer
+     * @returns The translator
+     * @throws InvalidArgumentException when the converted default locale holds a path character
+     *
+     * @example
+     *
+     * new Translator({ pt_BR: { g: { a: "A" } } }, "pt-BR").normalizeLocalesUsing(normalizeLocale).get("g.a"); // "A"
+     */
+    normalizeLocalesUsing(callback: LocaleNormalizer | null): this {
+        const locale = isNull(callback) ? this.#locale : callback(this.#locale);
+
+        assertLocale(locale);
+
+        this.#normalizeLocalesUsing = callback;
+        this.#lineKeys = null;
+        this.#locale = locale;
+
+        this.setFallback(this.#fallback);
+
+        return this;
+    }
+
+    /**
      * Get the default locale being used.
      *
      * @returns The default locale
@@ -606,9 +644,11 @@ export class Translator<TLines extends LangLines = LangLines> {
      * @throws InvalidArgumentException when the locale holds `/`, `\`, `..` or a NUL byte
      */
     setLocale(locale: string): void {
-        assertLocale(locale);
+        const normalized = this.#normalizeLocale(locale);
 
-        this.#locale = locale;
+        assertLocale(normalized);
+
+        this.#locale = normalized;
     }
 
     /**
@@ -626,7 +666,9 @@ export class Translator<TLines extends LangLines = LangLines> {
      * @param fallback - The fallback locale, or null for none
      */
     setFallback(fallback: string | null): void {
-        this.#fallback = fallback;
+        this.#fallback = isNull(fallback)
+            ? null
+            : this.#normalizeLocale(fallback);
     }
 
     /**
@@ -636,6 +678,7 @@ export class Translator<TLines extends LangLines = LangLines> {
      */
     setLoaded(lines: TLines): void {
         this.#lines = lines;
+        this.#lineKeys = null;
     }
 
     /**
@@ -663,7 +706,10 @@ export class Translator<TLines extends LangLines = LangLines> {
      * @returns The line, or null when the locale has none for the key
      */
     #jsonLine(locale: string, key: string): string | null {
-        const line = ownValue(ownValue(this.#lines, locale), key);
+        const line = ownValue(
+            ownValue(this.#lines, this.#lineKey(locale)),
+            key,
+        );
 
         return isJsonLine(line) ? line : null;
     }
@@ -685,7 +731,7 @@ export class Translator<TLines extends LangLines = LangLines> {
         item: string | null,
         replace: Replacements,
     ): TranslationValue | null {
-        const localeLines = ownValue(this.#lines, locale);
+        const localeLines = ownValue(this.#lines, this.#lineKey(locale));
 
         // Laravel loads a locale's JSON file as the group `*` of the namespace `*`.
         const groupLines =
@@ -794,6 +840,61 @@ export class Translator<TLines extends LangLines = LangLines> {
      * @returns The locale, or the default locale when it is null, empty or "0"
      */
     #resolveLocale(locale: string | null): string {
-        return isString(locale) && !isPhpFalsy(locale) ? locale : this.#locale;
+        return isString(locale) && !isPhpFalsy(locale)
+            ? this.#normalizeLocale(locale)
+            : this.#locale;
+    }
+
+    /**
+     * Convert a locale with the callback given to `normalizeLocalesUsing`.
+     *
+     * @param locale - The locale
+     * @returns The converted locale, or the locale itself when no callback is set
+     */
+    #normalizeLocale(locale: string): string {
+        const callback = this.#normalizeLocalesUsing;
+
+        return isNull(callback) ? locale : callback(locale);
+    }
+
+    /**
+     * Find the key of the lines a locale reads.
+     *
+     * @param locale - The locale
+     * @returns The converted locale when the lines hold it, else the first key that converts to it
+     */
+    #lineKey(locale: string): string {
+        if (isNull(this.#normalizeLocalesUsing)) {
+            return locale;
+        }
+
+        const normalized = this.#normalizeLocale(locale);
+
+        if (Object.hasOwn(this.#lines, normalized)) {
+            return normalized;
+        }
+
+        this.#lineKeys ??= this.#indexLineKeys();
+
+        return this.#lineKeys.get(normalized) ?? normalized;
+    }
+
+    /**
+     * Map each converted locale to the first key of the lines that converts to it.
+     *
+     * @returns The keys, by converted locale
+     */
+    #indexLineKeys(): Map<string, string> {
+        const keys = new Map<string, string>();
+
+        for (const key of Object.keys(this.#lines)) {
+            const normalized = this.#normalizeLocale(key);
+
+            if (!keys.has(normalized)) {
+                keys.set(normalized, key);
+            }
+        }
+
+        return keys;
     }
 }

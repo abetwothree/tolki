@@ -6,7 +6,7 @@ These are the exports of `@tolki/lang`: the `Translator` class with Laravel's pu
 
 <div class="collection-method-list" markdown="1">
 
-[\_\_](#__) [addLines](#addlines) [array](#array) [bindLang](#bindlang) [choice](#choice) [choose](#choose) [createHelpers](#createhelpers) [createLang](#createlang) [determineLocalesUsing](#determinelocalesusing) [get](#get) [getFallback](#getfallback) [getLocale](#getlocale) [getPluralIndex](#getpluralindex) [handleMissingKeysUsing](#handlemissingkeysusing) [has](#has) [hasForLocale](#hasforlocale) [htmlLocale](#htmllocale) [locale](#locale) [localeTag](#localetag) [makeReplacements](#makereplacements) [normalizeLocale](#normalizelocale) [parseKey](#parsekey) [setFallback](#setfallback) [setLoaded](#setloaded) [setLocale](#setlocale) [string](#string) [stringable](#stringable) [trans](#trans) [transChoice](#transchoice) [Translator](#translator)
+[\_\_](#__) [addLines](#addlines) [array](#array) [bindLang](#bindlang) [choice](#choice) [choose](#choose) [createHelpers](#createhelpers) [createLang](#createlang) [determineLocalesUsing](#determinelocalesusing) [get](#get) [getFallback](#getfallback) [getLocale](#getlocale) [getPluralIndex](#getpluralindex) [handleMissingKeysUsing](#handlemissingkeysusing) [has](#has) [hasForLocale](#hasforlocale) [htmlLocale](#htmllocale) [locale](#locale) [localeTag](#localetag) [makeReplacements](#makereplacements) [normalizeLocale](#normalizelocale) [normalizeLocalesUsing](#normalizelocalesusing) [parseKey](#parsekey) [setFallback](#setfallback) [setLoaded](#setloaded) [setLocale](#setlocale) [string](#string) [stringable](#stringable) [trans](#trans) [transChoice](#transchoice) [Translator](#translator)
 
 </div>
 
@@ -612,6 +612,29 @@ normalizeLocale("fr");
 
 normalizeLocale("zh-hant-tw");
 // => "zh_Hant_TW"
+```
+
+### normalizeLocalesUsing
+
+<Badge type="info" text="JS only" />
+
+Specify a callback that converts every locale the translator is given, such as `normalizeLocale`.
+
+Exported as the `normalizeLocalesUsing` method of `Translator`. It is off by default, so a locale reads only the lines keyed with its exact spelling, as in Laravel. Once set, it converts the default locale, the fallback, and the locale you pass to any method. A locale then reads the lines whose key converts to the same spelling. A key spelled exactly as the converted locale comes first. The callback must give the same answer for its own answer, as `normalizeLocale` and `localeTag` do. Pass `null` to turn it off. <!-- docs/php-parity/Translator/get.json, "get-hyphen-locale-misses-underscore-lines"; docs/php-parity/Translator/choice.json, "choice-underscore-locale-uses-its-rule" -->
+
+```js
+import { normalizeLocale, Translator } from "@tolki/lang";
+
+const translator = new Translator(
+  { pt_BR: { messages: { apples: "uma maçã|:count maçãs" } } },
+  "pt-BR",
+).normalizeLocalesUsing(normalizeLocale);
+
+translator.getLocale();
+// => "pt_BR"
+
+translator.choice("messages.apples", 2);
+// => "2 maçãs"
 ```
 
 ### parseKey
