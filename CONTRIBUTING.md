@@ -63,7 +63,7 @@ A package's `.d.ts` files must import other `@tolki/*` packages by name. The roo
 
 Each package's `vite.config.ts` calls `definePackageConfig()` from `vite.shared.ts`, which takes the build entries from `src/**/*.ts` and the externals from the package's own `dependencies` and `peerDependencies`. A runtime import that neither lists fails the build, so declare it before you use it.
 
-`pnpm package:check` packs every published package with `pnpm pack`, installs the tarballs in a temporary consumer and type-checks every entry under `node16`, `nodenext`, CommonJS and `bundler` settings, runs `@arethetypeswrong/cli` on each tarball and loads every entry with `import()` and `require()`. Run it after `pnpm build`; [docs/features/package-check.md](docs/features/package-check.md) has the details.
+`pnpm package:check` packs every published package with `pnpm pack`, installs the tarballs in a temporary consumer and type-checks every entry under `node16`, `nodenext`, CommonJS and `bundler` settings, runs `@arethetypeswrong/cli` on each tarball and loads every value entry with `import()` and `require()`. Run it after `pnpm build`; [docs/features/package-check.md](docs/features/package-check.md) has the details.
 
 ## Making Changes
 

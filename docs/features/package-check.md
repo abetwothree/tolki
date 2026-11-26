@@ -1,6 +1,6 @@
 # Package check
 
-`pnpm package:check` checks the built `@tolki/*` packages as consumers install them: it type-checks every entry under `node16`, `nodenext`, CommonJS and `bundler` settings, runs `@arethetypeswrong/cli` on each tarball and loads every entry at runtime. It guards #143, where extensionless relative specifiers in the published `.d.ts` files broke `node16` and `nodenext` consumers. Source of truth: [`scripts/package-check/`](../../scripts/package-check/).
+`pnpm package:check` checks the built `@tolki/*` packages as consumers install them: it type-checks every entry under `node16`, `nodenext`, CommonJS and `bundler` settings, runs `@arethetypeswrong/cli` on each tarball and loads every value entry at runtime. It guards #143, where extensionless relative specifiers in the published `.d.ts` files broke `node16` and `nodenext` consumers. Source of truth: [`scripts/package-check/`](../../scripts/package-check/).
 
 ## Packing
 

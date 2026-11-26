@@ -27,7 +27,7 @@ export function buildEntries(
         extensions = [".ts"],
     } = options;
 
-    const files = glob.sync(pattern, { cwd: baseDir, ignore });
+    const files = glob.sync(pattern, { cwd: baseDir, ignore, posix: true });
 
     const entries: Record<string, string> = {};
     for (const rel of files) {

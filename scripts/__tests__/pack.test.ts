@@ -19,7 +19,13 @@ import { workspacePackages } from "../lib/workspace.ts";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 
-/** Writes a file, creating its directories. */
+/**
+ * Writes a file, creating its directories.
+ *
+ * @param root - Directory the file lives under.
+ * @param file - Path of the file relative to the root.
+ * @param content - Text to write.
+ */
 function put(root: string, file: string, content: string): void {
     const path = join(root, file);
 

@@ -124,8 +124,10 @@ const builtPackages = packages.filter(
         (hasBuild(pkg) &&
             pkg.manifest.publishConfig?.["exports"] !== undefined),
 );
-const packagesWithBoth = packages.filter((pkg) =>
-    ["@tolki/enum", "@tolki/lang", "@tolki/ts"].includes(pkg.name),
+const packagesWithBoth = packages.filter(
+    (pkg) =>
+        pkg.manifest.exports !== undefined &&
+        pkg.manifest.publishConfig?.["exports"] !== undefined,
 );
 
 describe("exports condition objects", () => {
@@ -150,6 +152,10 @@ describe("@tolki/types exports", () => {
     const types = packages.find((pkg) => pkg.name === "@tolki/types");
     const exportsMap = types ? publishedExports(types) : {};
     const srcDir = join(REPO_ROOT, "packages/types/src");
+
+    it("is a workspace package", () => {
+        expect(types).toBeDefined();
+    });
 
     it("points every target at an existing file", () => {
         const missing = conditionObjects(exportsMap)
@@ -211,6 +217,10 @@ describe("built packages' dist targets", () => {
 });
 
 describe("dev and published exports", () => {
+    it("finds packages that declare both maps", () => {
+        expect(packagesWithBoth).not.toHaveLength(0);
+    });
+
     it.each(packagesWithBoth)(
         "$name publishes only subpaths its dev exports declare, exactly or through *",
         (pkg) => {
