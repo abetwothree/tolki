@@ -48,7 +48,12 @@ export function exportsBySubpath(
         : { ".": field };
 }
 
-/** Every string target inside an exports value. */
+/**
+ * Every string target inside an exports value.
+ *
+ * @param value - An exports value: a path or a condition map.
+ * @returns Each path found, depth first.
+ */
 function exportTargets(value: unknown): string[] {
     if (typeof value === "string") {
         return [value];

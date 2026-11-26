@@ -22,7 +22,11 @@ export interface PackedPackage {
     subpaths: string[];
 }
 
-/** The executable and leading arguments that run pnpm, preferring the pnpm that started this script. */
+/**
+ * The executable and leading arguments that run pnpm, preferring the pnpm that started this script.
+ *
+ * @returns The command and the arguments that precede pnpm's own.
+ */
 function pnpmCommand(): { command: string; args: string[] } {
     const execPath = process.env["npm_execpath"] ?? "";
 
@@ -31,7 +35,15 @@ function pnpmCommand(): { command: string; args: string[] } {
         : { command: "pnpm", args: [] };
 }
 
-/** Runs a command, returning stdout; a failure throws with the command's stderr. */
+/**
+ * Runs a command, returning stdout; a failure throws with the command's stderr.
+ *
+ * @param command - The executable.
+ * @param args - Its arguments.
+ * @param cwd - The directory to run in.
+ * @param env - The environment, defaulting to this process's.
+ * @returns The command's stdout.
+ */
 function run(
     command: string,
     args: string[],
