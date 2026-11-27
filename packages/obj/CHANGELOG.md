@@ -1,5 +1,25 @@
 # @tolki/obj
 
+## 1.0.3
+
+### Patch Changes
+
+- f6a408b: Fixes type errors in projects that use `moduleResolution` `node16` or `nodenext`: the published declaration files now name every file they import, so every export resolves (#143). Each export in `package.json` also lists its types first.
+- Updated dependencies [56892d5]
+- Updated dependencies [56892d5]
+- Updated dependencies [f6a408b]
+- Updated dependencies [f6a408b]
+- Updated dependencies [f6a408b]
+- Updated dependencies [f6a408b]
+- Updated dependencies [f6a408b]
+- Updated dependencies [18cd805]
+- Updated dependencies [15d1693]
+  - @tolki/types@1.13.0
+  - @tolki/utils@1.7.0
+  - @tolki/enum@1.2.2
+  - @tolki/path@1.0.3
+  - @tolki/str@1.9.0
+
 ## 1.0.2
 
 ### Patch Changes

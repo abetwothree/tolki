@@ -1,5 +1,33 @@
 # @tolki/lang
 
+## 0.3.0
+
+### Minor Changes
+
+- 56892d5: A translator can now opt in to converting the locales it is given, so `pt-BR` and `pt_BR` find the same translations (#137).
+  - `Translator.normalizeLocalesUsing()` and the `normalizeLocalesUsing` option of `createLang()` convert every locale a translator is given, for example with `normalizeLocale`. It is off by default, so lookups keep Laravel's exact-key behaviour.
+  - `LocaleNormalizer`, the type of a `normalizeLocalesUsing` callback, is exported.
+  - `localeTag()` is exported: it turns `pt_BR` into `pt-BR` for `Intl` and `toLocaleDateString()`.
+  - `normalizeLocale()` title-cases script subtags: `zh-hant-tw` gives `zh_Hant_TW`.
+
+### Patch Changes
+
+- f6a408b: Fixes type errors in projects that use `moduleResolution` `node16` or `nodenext`: the published declaration files now name every file they import, so every export resolves (#143). Each export in `package.json` also lists its types first.
+  - `@types/react` is now an optional peer dependency, for apps that use `@tolki/lang/react`.
+
+- Updated dependencies [56892d5]
+- Updated dependencies [56892d5]
+- Updated dependencies [f6a408b]
+- Updated dependencies [f6a408b]
+- Updated dependencies [f6a408b]
+- Updated dependencies [f6a408b]
+- Updated dependencies [18cd805]
+- Updated dependencies [15d1693]
+  - @tolki/types@1.13.0
+  - @tolki/utils@1.7.0
+  - @tolki/data@1.0.4
+  - @tolki/str@1.9.0
+
 ## 0.2.2
 
 ### Patch Changes
