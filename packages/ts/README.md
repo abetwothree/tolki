@@ -333,18 +333,18 @@ Inertia, Vite env, the globals file, the JSON file, and the collected files mani
 
 Pass one `--only-*` flag to publish a single feature for one run:
 
-| Flag                        | Publishes                                                                   |
-| --------------------------- | --------------------------------------------------------------------------- |
-| `--only-enums`              | Enums                                                                       |
-| `--only-models`             | Model interfaces                                                            |
-| `--only-model-metadata`     | Model metadata companions                                                   |
-| `--only-resources`          | API resources                                                               |
-| `--only-routes`             | Routes                                                                      |
-| `--only-form-requests`      | Form requests                                                               |
-| `--only-broadcast-channels` | Broadcast channels                                                          |
-| `--only-broadcast-events`   | Broadcast events                                                            |
-| `--only-class-types`        | [Composed types](https://tolki.abe.dev/ts/custom-types.html#composed-types) |
-| `--only-functional`         | Every enabled feature except model and resource interfaces                  |
+| Flag                        | Publishes                                                  |
+| --------------------------- | ---------------------------------------------------------- |
+| `--only-enums`              | Enums                                                      |
+| `--only-models`             | Model interfaces                                           |
+| `--only-model-metadata`     | Model metadata companions                                  |
+| `--only-resources`          | API resources                                              |
+| `--only-routes`             | Routes                                                     |
+| `--only-form-requests`      | Form requests                                              |
+| `--only-broadcast-channels` | Broadcast channels                                         |
+| `--only-broadcast-events`   | Broadcast events                                           |
+| `--only-class-types`        | [Composed types](https://tolki.abe.dev/ts/custom-types.html#composed-types)         |
+| `--only-functional`         | Every enabled feature except model and resource interfaces |
 
 For example:
 
@@ -449,6 +449,8 @@ The file has one top-level object per feature: `models`, `enums`, `resources`, `
 }
 ```
 
+A resource that publishes as a [discriminated union](https://tolki.abe.dev/ts/api-resources.html#discriminated-unions) lists its shared keys in `properties` and each union of variants in `variants`. One with [`#[TsIntersect]`](https://tolki.abe.dev/ts/extending-interfaces.html#intersecting-a-resource-with-tsintersect) lists each intersected type in `intersections`.
+
 Look entries up by fully-qualified name, and read `name` for display. Two classes can share a short name in different namespaces, such as `App\Models\User` and `Crm\Models\User`, and a short-name key would let one overwrite the other.
 
 #### Collected Files Manifest
@@ -471,7 +473,7 @@ File watchers such as the [Vite plugin](https://tolki.abe.dev/ts/vite-plugin.htm
 
 | Flag              | Output                                                                                                                                                                                                                                                                                    |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--quiet`, `-q`   | Nothing, except errors on stderr. The exit code reports the result, which suits tools such as the [Vite plugin](https://tolki.abe.dev/ts/vite-plugin.html).                                                                                                                               |
+| `--quiet`, `-q`   | Nothing, except errors on stderr. The exit code reports the result, which suits tools such as the [Vite plugin](https://tolki.abe.dev/ts/vite-plugin.html).                                                                                                                                                        |
 | _(none)_          | A summary: the output directory, the cache state, file counts per feature, extra files such as barrels and the globals and JSON files, and the elapsed time.                                                                                                                              |
 | `--verbose`, `-v` | The summary, plus a table for each of enums, models, model metadata, resources, routes, and form requests, with details such as enum cases and methods, or model columns, mutators, and relations. A last table lists the extra files, such as barrels, globals, and the broadcast files. |
 
@@ -733,10 +735,10 @@ export type UserStatus = UserStatusType;
 
 The file takes the new name too (`user-status.ts`), and models that use the enum refer to it as `UserStatusType`. The attribute takes these parameters:
 
-| Parameter     | Type     | Description                                                                                                                                                                                                                                  |
-| ------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Parameter     | Type     | Description                                                                                                                                                                                                         |
+| ------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `name`        | `string` | The TypeScript const name. Use it when two enums in one namespace publish the same name, or when a [route file](https://tolki.abe.dev/ts/routing.html#what-the-props-expression-can-be) uses two same-named enums from different namespaces. |
-| `description` | `string` | A JSDoc comment. It takes priority over any PHPDoc description.                                                                                                                                                                              |
+| `description` | `string` | A JSDoc comment. It takes priority over any PHPDoc description.                                                                                                                                                     |
 
 When two classes in one namespace publish the same name, their barrel file and the global declaration file can't export both. For example, an enum `Role` publishes the type `RoleType`, so a second enum named `RoleType` in the same namespace clashes with it. `ts:publish` warns about any such pair, whether the classes are enums, models, resources, form requests, broadcast events or [composed types](https://tolki.abe.dev/ts/custom-types.html#composed-types). Move one of them to a namespace of its own, or rename it. An enum takes a new name with `#[TsEnum]`. In two different namespaces the pair is fine, because a file that imports both gets an alias for one. Two kinds of class in one directory, such as an enum `App\Models\Status` beside the models, drop each other's barrel exports, so keep each kind of class in a namespace of its own.
 
@@ -1071,9 +1073,7 @@ A unit enum publishes each case name as its value, so `values` returns its case 
 
 ### Bundling
 
-An enum nobody uses drops out of your bundle in Vite (Rolldown), Rollup, webpack and Rspack, because `defineEnum` and the other runtime utilities are marked as free of side effects, except `from`, which throws on an unknown value and is always kept.
-
-esbuild doesn't follow that mark across files, so it keeps the call unless the call site says it is safe to remove:
+An enum nobody uses drops out of your bundle in every bundler, esbuild included, because the generated file marks its `defineEnum` call `/* @__PURE__ */`. The other runtime utilities are marked as free of side effects, except `from`, which throws on an unknown value and is always kept:
 
 ```typescript
 export const Status = /* @__PURE__ */ defineEnum({
@@ -1083,7 +1083,7 @@ export const Status = /* @__PURE__ */ defineEnum({
 });
 ```
 
-Rspack also needs the call-site form when the same module derives a list from the enum, such as `export const STATUSES = /* @__PURE__ */ values(Status)`. [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html) lists every bundler.
+The other examples on this page leave the comment out. A file published by an older version of the package, or by a custom `enums.template`, may not have it, and esbuild then keeps the call. Rspack also keeps the enum when the same module derives a list from it, unless that call is marked too, such as `export const STATUSES = /* @__PURE__ */ values(Status)`. [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html) lists every bundler.
 
 ### Vite Plugin
 
@@ -1097,16 +1097,16 @@ The [Configuration Reference](https://tolki.abe.dev/ts/configuration-reference.h
 
 The runtime functions come from `@tolki/ts`. The types come from `@tolki/types`, and `@tolki/ts` re-exports `AsEnum`, `CaseValue`, `DefineEnumResult`, `EnumConst` and `FromResult`:
 
-| Export                            | Description                                                                                                                                                                                                                              |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `defineEnum()`                    | Wraps a raw enum const with bound `from`, `tryFrom` and `cases` helpers.                                                                                                                                                                 |
-| `from()`, `tryFrom()`, `cases()`  | Standalone versions that take the enum object as their first argument.                                                                                                                                                                   |
-| `values()`, `keys()`              | The case values, or the case names, in case order.                                                                                                                                                                                       |
-| `EnumConst`                       | The base shape every generated enum const satisfies.                                                                                                                                                                                     |
-| `CaseKeys<T>` / `CaseValue<T>`    | The union of case key names, or of case values, for an enum const.                                                                                                                                                                       |
-| `MethodKeys<T>` / `StaticKeys<T>` | The union of instance method key names, or of static method key names.                                                                                                                                                                   |
-| `FromResult<T, V>`                | The resolved instance type that `from(T, V)` returns.                                                                                                                                                                                    |
-| `DefineEnumResult<T>`             | The return type of `defineEnum()`: the const plus its bound helpers.                                                                                                                                                                     |
+| Export                            | Description                                                                                                                                                                                                     |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `defineEnum()`                    | Wraps a raw enum const with bound `from`, `tryFrom` and `cases` helpers.                                                                                                                                        |
+| `from()`, `tryFrom()`, `cases()`  | Standalone versions that take the enum object as their first argument.                                                                                                                                          |
+| `values()`, `keys()`              | The case values, or the case names, in case order.                                                                                                                                                              |
+| `EnumConst`                       | The base shape every generated enum const satisfies.                                                                                                                                                            |
+| `CaseKeys<T>` / `CaseValue<T>`    | The union of case key names, or of case values, for an enum const.                                                                                                                                              |
+| `MethodKeys<T>` / `StaticKeys<T>` | The union of instance method key names, or of static method key names.                                                                                                                                          |
+| `FromResult<T, V>`                | The resolved instance type that `from(T, V)` returns.                                                                                                                                                           |
+| `DefineEnumResult<T>`             | The return type of `defineEnum()`: the const plus its bound helpers.                                                                                                                                            |
 | `AsEnum<T, V?>`                   | A resolved instance at the type level: a discriminated union across all cases, or one case with the second parameter. It types the JSON that the [`EnumResource`](https://tolki.abe.dev/ts/enum-api-resource.html) API resource returns. |
 
 ## Models
@@ -1456,18 +1456,18 @@ Put `#[TsType]` on a custom cast class, or on any class a column holds, to set t
 
 Laravel 13 added native class attributes for Eloquent models (`Illuminate\Database\Eloquent\Attributes`) and API resources (`Illuminate\Http\Resources\Attributes`). They replace property-based conventions, such as `#[Table]` in place of `protected $table`. These are Laravel's attributes, not this package's, so you don't import anything from `AbeTwoThree\LaravelTsPublish\Attributes` to use them. The package honors the ones that change a model's serialized shape, with no configuration:
 
-| Attribute                                                                                                                                                                                                                                                                                          | Honored? | Notes                                                                                                                                                                                                                                                                                           |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `#[Table('...')]`                                                                                                                                                                                                                                                                                  | Yes      | Selects the table whose columns are published, the same as `protected $table`.                                                                                                                                                                                                                  |
-| `#[Hidden(['col'])]`                                                                                                                                                                                                                                                                               | Yes      | Marks columns hidden, the same as `protected $hidden`. See [Hidden Attributes](#hidden-attributes).                                                                                                                                                                                             |
-| `#[Visible(['col'])]`                                                                                                                                                                                                                                                                              | Yes      | An allowlist, the same as `protected $visible`: every column it doesn't list becomes hidden. With `models.exclude_hidden` on, list every column you want published, or most of the model disappears from the interface.                                                                         |
-| `#[Appends(['accessor'])]`                                                                                                                                                                                                                                                                         | Yes      | Adds accessors to the published set, the same as `protected $appends`.                                                                                                                                                                                                                          |
-| `#[Connection('name')]`                                                                                                                                                                                                                                                                            | Yes      | Selects the database connection whose schema the columns come from, the same as `protected $connection`.                                                                                                                                                                                        |
+| Attribute                                                                                                                                                                                                                                                                                          | Honored? | Notes                                                                                                                                                                                                                                                                  |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#[Table('...')]`                                                                                                                                                                                                                                                                                  | Yes      | Selects the table whose columns are published, the same as `protected $table`.                                                                                                                                                                                         |
+| `#[Hidden(['col'])]`                                                                                                                                                                                                                                                                               | Yes      | Marks columns hidden, the same as `protected $hidden`. See [Hidden Attributes](#hidden-attributes).                                                                                                                                                                    |
+| `#[Visible(['col'])]`                                                                                                                                                                                                                                                                              | Yes      | An allowlist, the same as `protected $visible`: every column it doesn't list becomes hidden. With `models.exclude_hidden` on, list every column you want published, or most of the model disappears from the interface.                                                |
+| `#[Appends(['accessor'])]`                                                                                                                                                                                                                                                                         | Yes      | Adds accessors to the published set, the same as `protected $appends`.                                                                                                                                                                                                 |
+| `#[Connection('name')]`                                                                                                                                                                                                                                                                            | Yes      | Selects the database connection whose schema the columns come from, the same as `protected $connection`.                                                                                                                                                               |
 | `#[Collects(SomeResource::class)]`                                                                                                                                                                                                                                                                 | Yes      | Sets the resource a collection collects. See [Resource Collections](https://tolki.abe.dev/ts/api-resources.html#resource-collections).                                                                                                                                                          |
 | `#[UseResource(...)]`, `#[UseResourceCollection(...)]`                                                                                                                                                                                                                                             | Yes      | Link a model to its resource. See [How the Backing Model Is Resolved](https://tolki.abe.dev/ts/api-resources.html#how-the-backing-model-is-resolved). Available since Laravel 12.29.                                                                                                            |
 | `#[PreserveKeys]`                                                                                                                                                                                                                                                                                  | Yes      | Types the collection's `data` as `Record<string, R>` instead of `R[]`, the keyed JSON object Laravel returns. `public $preserveKeys = true;` does the same. See [Key-Preserving Collections](https://tolki.abe.dev/ts/api-resources.html#key-preserving-collections) on the API Resources page. |
 | `#[RouteKey('slug')]`                                                                                                                                                                                                                                                                              | Yes      | A model-bound route argument types `_routeKey` from the attribute's key, even when the model overrides none of `getRouteKeyName()`, `getKeyName()` or `$primaryKey`. See [Model Binding](https://tolki.abe.dev/ts/routing.html#model-binding) on the Routing page.                              |
-| Everything else (`#[DateFormat]`, `#[WithoutTimestamps]`, `#[WithoutIncrementing]`, `#[Fillable]`, `#[Guarded]`, `#[Unguarded]`, `#[Scope]`, `#[ScopedBy]`, `#[ObservedBy]`, `#[Boot]`, `#[Initialize]`, `#[Touches]`, `#[CollectedBy]`, `#[UseEloquentBuilder]`, `#[UseFactory]`, `#[UsePolicy]`) | N/A      | These change querying, events, mass assignment or factories, not the serialized shape, so they don't affect the published types.                                                                                                                                                                |
+| Everything else (`#[DateFormat]`, `#[WithoutTimestamps]`, `#[WithoutIncrementing]`, `#[Fillable]`, `#[Guarded]`, `#[Unguarded]`, `#[Scope]`, `#[ScopedBy]`, `#[ObservedBy]`, `#[Boot]`, `#[Initialize]`, `#[Touches]`, `#[CollectedBy]`, `#[UseEloquentBuilder]`, `#[UseFactory]`, `#[UsePolicy]`) | N/A      | These change querying, events, mass assignment or factories, not the serialized shape, so they don't affect the published types.                                                                                                                                       |
 
 `#[Table]`, `#[Hidden]`, `#[Visible]`, `#[Appends]`, `#[Connection]`, `#[Collects]` and `#[PreserveKeys]` require Laravel 13. `#[RouteKey]` requires Laravel 13.21. `#[UseResource]` and `#[UseResourceCollection]` require Laravel 12.29. On an older version, using one isn't an error: the model loads normally and the attribute is ignored. Nothing tells you that `#[Table]` didn't take effect, so run a Laravel version that supports each attribute you rely on.
 
@@ -1528,14 +1528,36 @@ A specific return type or `Attribute<Get, Set>` generic is always read first, so
 - Calls something whose return type can't be determined
 - Reads another accessor that reads it back, in which case both publish `unknown`
 - Can only be typed as `null`, because one side of a `??` or a ternary couldn't be typed
-- Names two different classes or enums that share a short name, such as `$this->status ?? $this->author?->status` when each `status` is a different `Status` enum
 - Returns an API resource
 
 The `null` case keeps a getter from publishing a type that's plainly wrong: `fn ($value, array $attributes) => $attributes['title'] ?? null` publishes `unknown`, not `null`, because its real value is the title.
 
+A getter that returns either of two classes or enums that share a short name publishes both, each under its own alias. With `$this->status` an `App\Enums\Status` and `$this->author?->status` an `App\Crm\Enums\Status`, `$this->status ?? $this->author?->status` publishes `EnumsStatusType | CrmStatusType | null`.
+
 A getter closure with no native return type takes its type from a `@return` docblock written just before it, so `Attribute::get(/** @return int */ fn () => json_decode($this->stats_json))` publishes `number`. The package reads that docblock only when it can't type what the getter returns, and ignores a vague one, such as `@return mixed`.
 
 A getter that reads an attribute through `getAttribute()` or `getAttributeValue()` with a literal name takes the attribute's type, so `Attribute::get(fn () => $this->getAttribute('title'))` publishes `string`, as `fn () => $this->title` does.
+
+A getter that returns an [`EnumResource`](https://tolki.abe.dev/ts/enum-api-resource.html) publishes `AsEnum<typeof X>`, alone or inside the shape it builds, and the model file imports `AsEnum` and the enum's const. A wrap around a nullable column adds `| never[]`, because the model sends the empty resource as `[]`:
+
+```php
+protected function statusResource(): Attribute
+{
+    return Attribute::get(fn () => EnumResource::make($this->status));
+}
+
+protected function priorityResource(): Attribute
+{
+    return Attribute::get(fn () => EnumResource::make($this->priority));
+}
+```
+
+With `priority` nullable, the two accessors publish:
+
+```typescript
+status_resource: AsEnum<typeof Status>;
+priority_resource: AsEnum<typeof Priority> | never[];
+```
 
 Laravel runs an accessor's getter for a `NULL` column too, so an accessor on a nullable column publishes `| null` only where its getter can return `null`. A getter whose native return type is non-null, such as `fn (?string $value): array => …`, publishes no `| null`. One whose native return type allows `null`, such as `: ?array`, always publishes it, even when its `Attribute<…>` docblock leaves the `null` out.
 
@@ -1811,20 +1833,20 @@ This only applies to `Arrayable`. A `JsonSerializable` DTO is typed from a `@ret
 
 This table indexes the annotations above by symptom, plus two cases from [API Resources](https://tolki.abe.dev/ts/api-resources.html). None of them needs `#[TsCasts]`, and PHPStan and Larastan read them all, so the annotation that fixes the TypeScript type is also checked by static analysis:
 
-| Still publishing `unknown`?                                                                                     | Add this                                                                                                                                              | Result                                                                                                                                                                                                                                              |
-| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Attribute<Collection, never>` publishes `unknown[]`, and the getter builds the value in a loop                 | Parameterize the generic: `Attribute<Collection<int, LineItem>, never>`, or `array{...}` for a fixed shape                                            | The element type (`LineItem[]`), imported automatically. Keys built in a loop can't be read from the getter body, so the generic is the fix                                                                                                         |
-| A bare `'array'` or `'collection'` cast with no shape anywhere else                                             | A class-level `@property` or `@property-read` tag, such as `@property array<string, mixed>\|null $settings`                                           | `Record<string, unknown> \| null`, or the tag's more specific type, instead of `unknown[] \| null`. See [Typing `array` Casts With `@property`](#typing-array-casts-with-property)                                                                  |
-| A JSON shape you want to name once and reuse                                                                    | `@phpstan-type Name array{...}` on the class that owns it, then `@phpstan-import-type Name from ThatClass` and `@property Name $prop` on the model    | The shape, expanded inline and checked by PHPStan, with no import of the DTO. See [Typing JSON Columns With `@phpstan-type` Aliases](#typing-json-columns-with-phpstan-type-aliases)                                                                |
-| An `AsEnumCollection` or `AsCollection` cast with no argument publishes `unknown[]`                             | Pass the mapped class: `AsEnumCollection::of(Status::class)`, `AsCollection::of(LineItemDto::class)`                                                  | The element's type, an enum or a DTO shape, as a list. See [Typing Castable-With-Arguments Casts](#typing-castable-with-arguments-casts)                                                                                                            |
-| A `morphTo()` publishes `unknown` because no model declares the matching `morphOne()` or `morphMany()`          | `@return MorphTo<A\|B, $this>` on the relation method                                                                                                 | The union, with every member imported. See [Typing `morphTo` Relations](#typing-morphto-relations)                                                                                                                                                  |
-| A `morphTo()` whose parents point at a subclass, or reach it through a `->using()` pivot                        | Nothing. The union includes both automatically                                                                                                        | The parent union. See [Parents Found Through a Subclass or a Custom Pivot](#parents-found-through-a-subclass-or-a-custom-pivot)                                                                                                                     |
-| An `Arrayable` DTO accessor or cast publishes `unknown[]`                                                       | Nothing. Typed public properties, promoted constructor properties included, are read automatically when `toArray()` has no `@return array{...}` shape | The DTO's property shape instead of `unknown[]`. See [DTO-Typed Accessors and Casts](#dto-typed-accessors-and-casts)                                                                                                                                |
+| Still publishing `unknown`?                                                                                     | Add this                                                                                                                                              | Result                                                                                                                                                                                                                     |
+| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Attribute<Collection, never>` publishes `unknown[]`, and the getter builds the value in a loop                 | Parameterize the generic: `Attribute<Collection<int, LineItem>, never>`, or `array{...}` for a fixed shape                                            | The element type (`LineItem[]`), imported automatically. Keys built in a loop can't be read from the getter body, so the generic is the fix                                                                                |
+| A bare `'array'` or `'collection'` cast with no shape anywhere else                                             | A class-level `@property` or `@property-read` tag, such as `@property array<string, mixed>\|null $settings`                                           | `Record<string, unknown> \| null`, or the tag's more specific type, instead of `unknown[] \| null`. See [Typing `array` Casts With `@property`](#typing-array-casts-with-property)                                         |
+| A JSON shape you want to name once and reuse                                                                    | `@phpstan-type Name array{...}` on the class that owns it, then `@phpstan-import-type Name from ThatClass` and `@property Name $prop` on the model    | The shape, expanded inline and checked by PHPStan, with no import of the DTO. See [Typing JSON Columns With `@phpstan-type` Aliases](#typing-json-columns-with-phpstan-type-aliases)                                       |
+| An `AsEnumCollection` or `AsCollection` cast with no argument publishes `unknown[]`                             | Pass the mapped class: `AsEnumCollection::of(Status::class)`, `AsCollection::of(LineItemDto::class)`                                                  | The element's type, an enum or a DTO shape, as a list. See [Typing Castable-With-Arguments Casts](#typing-castable-with-arguments-casts)                                                                                   |
+| A `morphTo()` publishes `unknown` because no model declares the matching `morphOne()` or `morphMany()`          | `@return MorphTo<A\|B, $this>` on the relation method                                                                                                 | The union, with every member imported. See [Typing `morphTo` Relations](#typing-morphto-relations)                                                                                                                         |
+| A `morphTo()` whose parents point at a subclass, or reach it through a `->using()` pivot                        | Nothing. The union includes both automatically                                                                                                        | The parent union. See [Parents Found Through a Subclass or a Custom Pivot](#parents-found-through-a-subclass-or-a-custom-pivot)                                                                                            |
+| An `Arrayable` DTO accessor or cast publishes `unknown[]`                                                       | Nothing. Typed public properties, promoted constructor properties included, are read automatically when `toArray()` has no `@return array{...}` shape | The DTO's property shape instead of `unknown[]`. See [DTO-Typed Accessors and Casts](#dto-typed-accessors-and-casts)                                                                                                       |
 | `$this->relation->only([...])` or `->except([...])` loses the related model's `#[TsCasts]` or `@property` types | Nothing. This is automatic when the relation resolves to a single model and every filtered key is a database column                                   | `Pick<Model, 'a' \| 'b'>`, which reuses the model's own interface. `except()` picks every other column. See [Relation Filters](https://tolki.abe.dev/ts/api-resources.html#relation-filters) on the API Resources page                              |
 | An accessor or relation is missing from an inlined `$this->relation->except([...])`                             | Name it: switch that key to `only([...])`, or give it its own entry in `toArray()`                                                                    | The key comes back. An inlined `except()` expands to database columns only, which matches what `Model::except()` returns at runtime. See [Relation Filters](https://tolki.abe.dev/ts/api-resources.html#relation-filters) on the API Resources page |
-| An accessor publishes `unknown[]` from a vague `Attribute<array, never>` or a bare `: array` getter             | Nothing. The getter body is read when the signature and the docblock are both vague                                                                   | The shape the getter returns. See [Accessor Getter Bodies](#accessor-getter-bodies)                                                                                                                                                                 |
-| A query-selected attribute (`selectRaw('… as rank')`) has no column, cast or accessor behind it                 | A class-level `@property` or `@property-read` tag naming it                                                                                           | The tag's type wherever a resource or another published type reads the attribute. The tag doesn't add the attribute to the model's own interface, which lists only what the schema and casts declare                                                |
-| A nullable docblock generic (`?Alias`, `Attribute<?array<int, int>, never>`) publishes `unknown`                | Nothing. A leading `?` is read as `\| null`                                                                                                           | The type with `\| null`. See [Nullable and Intersection Docblock Types](#nullable-and-intersection-docblock-types)                                                                                                                                  |
+| An accessor publishes `unknown[]` from a vague `Attribute<array, never>` or a bare `: array` getter             | Nothing. The getter body is read when the signature and the docblock are both vague                                                                   | The shape the getter returns. See [Accessor Getter Bodies](#accessor-getter-bodies)                                                                                                                                        |
+| A query-selected attribute (`selectRaw('… as rank')`) has no column, cast or accessor behind it                 | A class-level `@property` or `@property-read` tag naming it                                                                                           | The tag's type wherever a resource or another published type reads the attribute. The tag doesn't add the attribute to the model's own interface, which lists only what the schema and casts declare                       |
+| A nullable docblock generic (`?Alias`, `Attribute<?array<int, int>, never>`) publishes `unknown`                | Nothing. A leading `?` is read as `\| null`                                                                                                           | The type with `\| null`. See [Nullable and Intersection Docblock Types](#nullable-and-intersection-docblock-types)                                                                                                         |
 
 If a property still publishes `unknown`, open an issue on the [package's GitHub issue tracker](https://github.com/abetwothree/laravel-ts-publish/issues) with the PHP and the generated TypeScript.
 
@@ -2308,7 +2330,7 @@ The [Configuration Reference](https://tolki.abe.dev/ts/configuration-reference.h
 
 The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) generates a TypeScript interface for each of your Laravel [API resources](https://laravel.com/docs/eloquent-resources), the `JsonResource` classes that shape your API's JSON. It reads each resource's `toArray()` method without calling it, and publishes the name, type, and optionality of every property the method returns.
 
-Use it when your frontend reads JSON from API resources. Each publish regenerates the interface from `toArray()`, so you don't maintain a second, hand-written type.
+Use it when your frontend reads JSON from API resources. Each publish regenerates the interface from `toArray()`, so you don't maintain a second, hand-written type. A resource whose keys follow the value of another key it sends publishes a type alias instead, as [Discriminated Unions](#discriminated-unions) describes.
 
 By default, the package looks for resources in the `app/Http/Resources` directory. To change that, see [Filtering & Excluding](#filtering--excluding).
 
@@ -2384,7 +2406,7 @@ The output shows how each kind of value is typed:
 
 #### Classes Sharing a Name Across Namespaces
 
-When two classes in different namespaces share a name, such as `App\Models\User` and `Crm\Models\User`, the generated file imports each one under its own alias. Every occurrence of the name inside a property's type uses the alias of the class it refers to, in source order:
+When two classes in different namespaces share a name, such as `App\Models\User` and `Crm\Models\User`, the generated file imports each one under its own alias. Every occurrence of the name inside a property's type uses the alias of the class it refers to, in source order. That holds for a model and an API resource that publish one name too, such as an `Address` model beside an `AddressResource` named `Address` with [`#[TsResource]`](#configuring-resource-generation-with-tsresource), and for two enums that share a name, as [`EnumResource`](#enum-properties-with-enumresource) shows:
 
 ```typescript
 import type { User as CrmUser } from "../../../crm/models";
@@ -2855,7 +2877,25 @@ roles: (AsEnum<typeof Role> | never[])[];
 role_list: (AsEnum<typeof Role> | null)[];
 ```
 
-A ternary that wraps only one of its arms keeps both shapes. The property publishes a union, with the import each side needs, even inside an inline array:
+A ternary, `match` or `when()` publishes each arm as Laravel sends it. A wrapped arm publishes `AsEnum<typeof X>` beside whatever the other arms send, with the import each side needs:
+
+```php
+'subject' => $request->boolean('role')
+    ? EnumResource::make($this->role)
+    : $this->status,
+'either_status' => $request->boolean('crm')
+    ? EnumResource::make($this->crm_status)
+    : EnumResource::make($this->status),
+```
+
+`subject` sends the `Role` object or the bare `Status` value. Two enums that share a class name, here `App\Enums\Status` and `App\Crm\Enums\Status`, each keep their own name:
+
+```typescript
+subject: AsEnum<typeof Role> | StatusType;
+either_status: AsEnum<typeof CrmStatus> | AsEnum<typeof EnumsStatus>;
+```
+
+The same holds inside an inline array, where a ternary that wraps only one of its arms keeps both shapes:
 
 ```php
 'audit' => [
@@ -3068,6 +3108,157 @@ Once the value is typed, an empty `[]` beside a list publishes the list alone. W
 A `@return` docblock that types the key, on `toArray()` or on a method it spreads, also types the value left out. The docblock's type takes that value's place beside the values the body types. Under `score: int|string|null`, a `score` whose body types `number | null` and leaves one more value out publishes `number | null | string`. `ts:publish` prints no warning for a value the docblock types. A value it doesn't type, such as one under a `mixed` entry or under a key the docblock doesn't name, still warns. [Return Branches and `@return` Shapes](#return-branches-and-return-shapes) shows an example.
 
 `ts:publish` doesn't analyze a class again while the [generation cache](https://tolki.abe.dev/ts/generating-cache.html) holds it. A class the cache serves prints none of these warnings, nor the first-class callable warning above, so run `php artisan ts:publish --fresh` to see every one.
+
+### Discriminated Unions
+
+When a key's value depends on another key the resource also sends, the package publishes one variant for each value of that key, and values that send the same types share one. Checking the key on the frontend then narrows the keys that follow it. Here `status` follows `is_draft`:
+
+```php
+final class PostResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'is_draft' => $this->is_draft,
+            'status' => $this->is_draft
+                ? new DraftStatusResource($this->draft_status)
+                : new PublishedStatusResource($this->status),
+        ];
+    }
+}
+```
+
+The resource publishes a type alias instead of an interface. The keys every variant shares come first, and each variant pairs a value of `is_draft` with the `status` it sends:
+
+```typescript
+import type { DraftStatusResource, PublishedStatusResource } from ".";
+
+export type PostResource = {
+  id: number;
+} & (
+  | { is_draft: true; status: DraftStatusResource }
+  | { is_draft: false; status: PublishedStatusResource }
+);
+```
+
+So a check on `is_draft` narrows `status`:
+
+```typescript
+if (!post.is_draft) {
+  post.status; // PublishedStatusResource
+}
+```
+
+#### The Key Other Keys Follow
+
+The key that decides, the discriminant, is a key the array always sends, written once, whose value is a plain read with a finite set of values:
+
+- A boolean column or property, nullable or not, such as `$this->is_draft`.
+- An enum column read directly, such as `$this->priority`, or its `->value` or `->name`.
+- A value whose type is a union of literals, such as `'draft' | 'live'`.
+
+A string or number column has no finite set of values, so it never decides. Neither does an enum you wrap in `EnumResource::make()`, a cast such as `(bool) $this->is_draft`, a method call such as `$this->isDraft()`, or a key a conditional method can leave out.
+
+#### The Forms That Follow It
+
+A key follows the discriminant when its value is a ternary, a `match`, or `$this->when()` or `$this->unless()` whose condition tests the discriminant. The short ternary `?:` doesn't count. A condition can compare the value with `===`, `!==`, `==`, or `!=` against literals, constants, and enum cases, negate it, join tests of it with `&&`, `||`, or `xor`, and call `is_null()`, `isset()`, `empty()`, or `in_array()` with a constant list. A ternary or `match` nested in an arm is read too.
+
+Here `Priority` is an int-backed enum whose cases run from `Low = 0` to `Critical = 3`, and `priority` is a nullable column cast to it:
+
+```php
+return [
+    'id' => $this->id,
+    'priority' => $this->priority,
+    'badge' => match ($this->priority) {
+        Priority::Low, Priority::Medium => null,
+        Priority::High => $this->title,
+        Priority::Critical => new UserResource($this->user),
+        null => [],
+    },
+    'escalated_at' => $this->when($this->priority === Priority::Critical, $this->updated_at),
+];
+```
+
+Values for which every key sends the same type share one variant, and each enum case is spelled by the value it sends:
+
+```typescript
+import type { UserResource } from "..";
+
+export type PostPriorityResource = {
+  id: number;
+} & (
+  | { priority: 0 | 1; badge: null; escalated_at?: never }
+  | { priority: 2; badge: string; escalated_at?: never }
+  | { priority: 3; badge: UserResource; escalated_at: string | null }
+  | { priority: null; badge: never[]; escalated_at?: never }
+);
+```
+
+A key a variant leaves out publishes as `escalated_at?: never`, so reading `post.escalated_at` before you narrow still compiles, as `string | null | undefined`. A value whose arm throws, or that a `match` has no arm for, is left out of the variants, because PHP throws there and the resource sends nothing.
+
+#### Nested Arrays
+
+A nested array splits the same way, into a union of objects:
+
+```php
+'pin' => [
+    'pinned' => $this->is_pinned,
+    'until' => $this->when($this->is_pinned, $this->updated_at),
+],
+```
+
+The key publishes `pin: { pinned: true; until: string | null } | { pinned: false; until?: never }`. A nested array with two discriminants publishes each combination of their variants, up to 16 objects. Past 16, the later discriminant's keys stay flat.
+
+Nested arrays split everywhere the package reads one, such as Inertia page props and shared data, broadcast events, and [`analyze()`](https://tolki.abe.dev/ts/analyzer-api.html). Only an API resource's top level becomes a type alias. The top level of a page's props or of shared data stays one object type, because Vue's `defineProps<T>()` needs one. See [Inertia](https://tolki.abe.dev/ts/inertia.html).
+
+#### What Keeps a Key Flat
+
+A flat key publishes one type for every value, as it would without discriminated unions. These cases keep one key flat, while the other keys that follow the discriminant still split:
+
+- Its arms send the same type for every value.
+- Its condition also tests something else, such as `$this->is_pinned && $this->title !== ''`.
+- The key and its condition spell the read differently, such as `$this->resource->is_pinned` in one and `$this->is_pinned` in the other.
+- A `merge()`, `mergeWhen()`, or spread writes the key.
+
+These cases keep every key that follows the discriminant flat:
+
+- The package can't type an arm of one of those keys, or leaves a value out of one, as [Values Left Out of a Union](#values-left-out-of-a-union) describes.
+- A `merge()`, `mergeWhen()`, or spread writes the discriminant, or the array merges a value the package can't read.
+- Code from the first key that reads the discriminant up to the last such key's condition may change the discriminant: a write, a by-reference argument, a mutator or property hook that writes it, a `get` hook on any property the discriminant reads, or a call that may change the model. Calls the package knows only read keep the split: Laravel's resource helpers, unless your resource overrides one they call, such as `when()`, with code that may change the model; Eloquent's own key, attribute, and relation reads such as `getKey()` and `relationLoaded()`, unless your model overrides a method they call with one that returns anything other than a literal, a constant, or an instance property your model declares without a `get` hook; `route()` and `url()`; the `Gate` facade's checks (`allows()`, `denies()`, `check()`, `any()`, and `none()`), which trust your gates and policies not to change the model; a nested resource; and your resource's own methods whose code only reads. Any other method of your model counts as a call that may change it, including a reader your model overrides itself, such as its own `getRouteKeyName()` called directly. Code above the first key that reads the discriminant, or below the last one, also keeps the split. The discriminant's own key is one of those keys.
+- The discriminant reads another object's property, such as `$this->settings->flag`, and `settings` is typed by an interface, or by a class that isn't `final` and whose `flag` is neither `readonly` nor `final`. That object's own class may give `flag` a `get` hook, so two reads may differ. To keep the split, type `settings` by a `final` class, or declare `flag` `readonly` or `final`. A model's attributes keep it.
+- `toArray()` builds its array across `return` branches, or in a variable it returns.
+- A subclass spreads its parent's array with `...parent::toArray($request)`, which publishes the parent's keys flat in the subclass.
+- The array holds an [interpolated key](#interpolated-keys).
+- A `#[TsCasts]` entry types the discriminant or a key that follows it, or a `@return` docblock on `toArray()` changes either one's type.
+
+To link keys the package can't read, write the union yourself and intersect the resource with it, as [`#[TsIntersect]`](https://tolki.abe.dev/ts/extending-interfaces.html#intersecting-a-resource-with-tsintersect) describes.
+
+#### Turning It Off
+
+To publish every resource's keys flat, turn the setting off:
+
+```php
+// config/ts-publish.php
+
+'resources' => [
+    'discriminated_unions' => false,
+],
+```
+
+To turn it off for one resource, add `#[TsResource(discriminated: false)]`. `#[TsResource(discriminated: true)]` turns it on for one resource while the setting is off. Both change only the resource's top level, so a nested array still splits.
+
+PHP doesn't pass attributes down to a subclass. A subclass that inherits its parent's `toArray()` follows the config setting, so give it its own `#[TsResource(discriminated: false)]` too.
+
+#### Using a Split Resource in Your Own Types
+
+An interface can't extend a union, so `interface Post extends PostResource {}` fails with TS2312, and so does a published interface whose `#[TsExtends]` names `PostResource`. Write `type Post = PostResource & { … }` instead, or [turn discriminated unions off](#turning-it-off) for the resource.
+
+An object you build as a `PostResource` must match one variant. `{ ...post, is_draft: false }` compiles only where `post` is already narrowed to a published post, because a draft's `status` doesn't fit the published variant.
+
+#### Templates You Published
+
+A copy of the `resource` or `globals` template that you published from an earlier release prints only the shared keys, and leaves out the variants and any `#[TsIntersect]` types. Publish the templates again, as [Publishing and Editing Templates](https://tolki.abe.dev/ts/customizing-the-pipeline.html#publishing-and-editing-templates) describes.
 
 ### Method Calls, Variables, and Collections
 
@@ -5341,14 +5532,15 @@ related: { data: PostResource }[];
 
 ### Resource Attributes
 
-Four attributes configure how a resource is published:
+Five attributes configure how a resource is published:
 
-| Attribute       | Target                                              | Use it to                                                                                                                                    |
-| --------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `#[TsResource]` | Resource class                                      | Set the interface name, the backing model, or a description                                                                                  |
-| `#[TsCasts]`    | Resource class, `toArray()`, or a method it spreads | Override property types, or add properties                                                                                                   |
-| `#[TsExtends]`  | Resource class                                      | Extend the interface with your own TypeScript types, as [Extending Interfaces](https://tolki.abe.dev/ts/extending-interfaces.html) describes |
-| `#[TsExclude]`  | Resource class                                      | Leave the resource out of the output, as [Excluding Content](https://tolki.abe.dev/ts/excluding-content.html) describes                      |
+| Attribute        | Target                                              | Use it to                                                                                                                                                               |
+| ---------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#[TsResource]`  | Resource class                                      | Set the interface name, the backing model, or a description, or turn [discriminated unions](#discriminated-unions) on or off                                            |
+| `#[TsCasts]`     | Resource class, `toArray()`, or a method it spreads | Override property types, or add properties                                                                                                                              |
+| `#[TsExtends]`   | Resource class                                      | Extend the interface with your own TypeScript types, as [Extending Interfaces](https://tolki.abe.dev/ts/extending-interfaces.html) describes                                                     |
+| `#[TsIntersect]` | Resource class                                      | Intersect the resource's type with your own TypeScript type, as [Intersecting a Resource](https://tolki.abe.dev/ts/extending-interfaces.html#intersecting-a-resource-with-tsintersect) describes |
+| `#[TsExclude]`   | Resource class                                      | Leave the resource out of the output, as [Excluding Content](https://tolki.abe.dev/ts/excluding-content.html) describes                                                                          |
 
 #### Configuring Resource Generation With `#[TsResource]`
 
@@ -5365,13 +5557,14 @@ class UserResource extends JsonResource
 }
 ```
 
-The attribute takes three optional parameters:
+The attribute takes four optional parameters:
 
-| Parameter     | Type            | Default                | Description                         |
-| ------------- | --------------- | ---------------------- | ----------------------------------- |
-| `name`        | `?string`       | Class name             | The TypeScript interface name       |
-| `model`       | `?class-string` | Resolved automatically | The backing Eloquent model          |
-| `description` | `string`        | `''`                   | A JSDoc comment above the interface |
+| Parameter       | Type            | Default                | Description                                                                                                                                                                                  |
+| --------------- | --------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`          | `?string`       | Class name             | The TypeScript interface name                                                                                                                                                                |
+| `model`         | `?class-string` | Resolved automatically | The backing Eloquent model                                                                                                                                                                   |
+| `description`   | `string`        | `''`                   | A JSDoc comment above the interface                                                                                                                                                          |
+| `discriminated` | `?bool`         | `null`                 | `true` publishes this resource's [discriminated union](#discriminated-unions) and `false` publishes its keys flat, whatever `resources.discriminated_unions` says. `null` follows the config |
 
 `name` also sets the output file's name. For example, `#[TsResource(name: 'Address')]` generates `address.ts` instead of `address-resource.ts`.
 
@@ -5952,7 +6145,30 @@ export interface ManifestAssembled {
 
 A query chain that starts at a model is typed step by step, as in [page props](https://tolki.abe.dev/ts/routing.html#what-the-props-expression-can-be). `Post::query()->pluck('id')->first()` publishes `number | null`. A model the chain returns is presented as `Partial<Model>`, as a [model property](#model--enum-aware-properties) is, so `User::find($this->userId)` publishes `Partial<User> | null` and `User::query()->where('id', 1)->get()` publishes `Partial<User>[]`.
 
-An `EnumResource` around an enum that may be `null` adds `| never[]`, and so does each element of a `map()` of such wraps, because an event sends the empty resource as `[]`.
+An `EnumResource` in `broadcastWith()` publishes `AsEnum<typeof Status>`, as in an [API resource](https://tolki.abe.dev/ts/api-resources.html#enum-properties-with-enumresource), and the event file imports `AsEnum` and the enum's const. One around an enum that may be `null` adds `| never[]`, and so does each element of a `map()` of such wraps, because an event sends the empty resource as `[]`:
+
+```php
+public function broadcastWith(): array
+{
+    return [
+        'status' => EnumResource::make($this->post->status),
+        'visibility' => EnumResource::make($this->post->visibility),
+    ];
+}
+```
+
+With `visibility` nullable, the event publishes:
+
+```typescript
+import type { AsEnum } from "@tolki/ts";
+import { Status, Visibility } from "../enums";
+
+/** @see App\Events\PostPublished */
+export interface PostPublished {
+  status: AsEnum<typeof Status>;
+  visibility: AsEnum<typeof Visibility> | never[];
+}
+```
 
 #### `when()` and `unless()` From `Conditionable`
 
@@ -6419,7 +6635,7 @@ class UserResource extends JsonResource
 
 Inside another resource, `EnumResource::make($this->status)` and `new EnumResource($this->status)` both publish the property as `AsEnum<typeof Status>`. See [Enum Properties With `EnumResource`](https://tolki.abe.dev/ts/api-resources.html#enum-properties-with-enumresource) on the API Resources page. A bare value sends no object: `'status' => Status::Published->value` publishes that case's own value, `1`. [Reading `->value` and `->name`](https://tolki.abe.dev/ts/enums.html#reading-value-and-name) covers bare values and `cases()`.
 
-The same rewrite applies to [Inertia shared data](https://tolki.abe.dev/ts/inertia.html). With `enums.use_tolki_package` on (the default), an `EnumResource::make()` returned from your middleware's `share()` publishes as `AsEnum<typeof Role>` in `inertia-config.d.ts`, with `import { type AsEnum } from '@tolki/ts'` and an import of the `Role` const above the declarations. Route page props are rewritten the same way. See the `EnumResource` notes in [How the Augmentation File Is Generated](https://tolki.abe.dev/ts/inertia.html#how-the-augmentation-file-is-generated).
+A wrap in [Inertia shared data](https://tolki.abe.dev/ts/inertia.html) publishes the same way. With `enums.use_tolki_package` on (the default), an `EnumResource::make()` returned from your middleware's `share()` publishes as `AsEnum<typeof Role>` in `inertia-config.d.ts`, with `import { type AsEnum } from '@tolki/ts'` and an import of the `Role` const above the declarations. Route page props and [broadcast events](https://tolki.abe.dev/ts/broadcast-events.html) do too. See the `EnumResource` notes in [How the Augmentation File Is Generated](https://tolki.abe.dev/ts/inertia.html#how-the-augmentation-file-is-generated).
 
 `EnumResource` turns off Laravel's resource wrapping (`public static $wrap = ''`), so the response is the flat object shown below, not wrapped in a `data` key. When the enum is `null`, the resource returns `null` instead of an object. As an Inertia page prop or shared value, Inertia sends `[]` instead, so the prop publishes `AsEnum<typeof Status> | never[]`. A broadcast event's payload, and a `map()` of wraps kept as a collection inside another resource, send `[]` too, and publish `| never[]`. See [Enum Properties With `EnumResource`](https://tolki.abe.dev/ts/api-resources.html#enum-properties-with-enumresource).
 
@@ -6860,6 +7076,8 @@ There are two ways to add an `extends` clause, and they combine when you use bot
 - **The `#[TsExtends]` attribute**: applies to one class, and to any class that extends it or uses the trait it's on.
 - **The `ts_extends.*` config arrays**: apply to every generated interface of one feature, such as every model.
 
+An API resource can also be intersected with a type you write, such as a union an interface can't extend. See [Intersecting a Resource With `#[TsIntersect]`](#intersecting-a-resource-with-tsintersect).
+
 ### `#[TsExtends]` Attribute
 
 The attribute takes the clause, an optional import path, and an optional list of names to import:
@@ -6882,11 +7100,11 @@ class TsExtends
 
 Each parameter controls one part of the clause:
 
-| Parameter | Type            | Default  | Description                                                                                                                                            |
-| --------- | --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `extends` | `string`        | required | The TypeScript for the `extends` clause: an interface name, or a generic such as `Pick<X, "a" \| "b">`.                                                |
-| `import`  | `?string`       | `null`   | The path to import the clause's types from. Leave it out for a global type that needs no import.                                                       |
-| `types`   | `?list<string>` | `null`   | The names to import from `import`. When it's `null`, the package reads the names from `extends`, which works only when `extends` has no generic in it. |
+| Parameter | Type            | Default  | Description                                                                                                                                                                                                                                                                                     |
+| --------- | --------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `extends` | `string`        | required | The TypeScript for the `extends` clause: an interface name, or a generic such as `Pick<X, "a" \| "b">`.                                                                                                                                                                                         |
+| `import`  | `?string`       | `null`   | The path to import the clause's types from. Leave it out for a global type that needs no import.                                                                                                                                                                                                |
+| `types`   | `?list<string>` | `null`   | The names to import from `import`. When it's `null`, the package reads the names from `extends`. On a model, form request, or broadcast event, that works only when `extends` has no generic in it. On a resource, see [Names a Resource's Clause Imports](#names-a-resources-clause-imports). |
 
 `#[TsExtends]` is repeatable, so you can stack as many as you need. You can put it on any of these:
 
@@ -6925,7 +7143,7 @@ export interface Warehouse
 
 On a model, the clause goes on the main interface, which holds the columns. The model's `WarehouseAll` interface extends that one, so it gets the clause too.
 
-`HasTimestamps` needs no `types` array. When `types` is `null`, the package reads the names to import from the `extends` string itself. Without `types`, the package can't pick the names out of a generic clause, such as `Pick<>`, `Omit<>`, or `Partial<>`, so the import comes out missing or broken. Always list them in `types`.
+`HasTimestamps` needs no `types` array. When `types` is `null`, the package reads the names to import from the `extends` string itself. On a model, form request, or broadcast event, it can't pick the names out of a generic clause, such as `Pick<>`, `Omit<>`, or `Partial<>`, so without `types` the import comes out missing. Always list them in `types` there. A resource reads them, as [Names a Resource's Clause Imports](#names-a-resources-clause-imports) describes.
 
 An entry with no `import` is treated as a global type that's already available, such as one declared in your own global `.d.ts` file.
 
@@ -7097,6 +7315,69 @@ The package applies these rules in order:
 2. The same type name from the same path, across different `extends` clauses, gets one import statement.
 3. The same type name from two different paths is aliased everywhere it appears, each with the prefix from its own import path. Every clause that uses it is rewritten to the alias, even inside a generic such as `Pick<>`.
 
+### Names a Resource's Clause Imports
+
+On an API resource, a `#[TsExtends]`, a `#[TsIntersect]`, or a `ts_extends.resources` entry with an `import` and no `types` imports every name its type uses, at any depth. So `#[TsExtends('Pick<Base, "a" | "b">', '@/types/base')]` imports `Base`, and `Record<string, Meta>` imports `Meta`. Three rules decide which of those names the clause imports:
+
+- **TypeScript's own globals stay unimported**: a name the clause only builds on, inside a generic or an object, gets no import when TypeScript or the DOM declares it, such as `Date`, `Record`, or `Response`. If a type of your own has such a name, such as `Error`, `Event`, `Comment`, `Image`, `Node`, or `Document`, list it in `types`.
+- **A name the file already imports keeps that import**: a name the clause only builds on that the resource's file already imports, for one of its keys or through a `#[TsCasts]` entry, uses that import.
+- **A name the clause names whole keeps its own import**: a clause that is one name, such as `Meta` or `Meta[]`, or a name you list in `types`, imports from the clause's path. If a `#[TsCasts]` entry imports the same name from another path, the clause's import is aliased.
+
+`#[TsExtends]` and `#[TsIntersect]` on one resource share one alias pass, so the same name from two paths across both attributes is aliased as [Naming Conflicts & Aliasing](#naming-conflicts--aliasing) describes. A resource that publishes as a type alias, through [discriminated unions](https://tolki.abe.dev/ts/api-resources.html#discriminated-unions) or `#[TsIntersect]`, joins each `extends` clause with `&`, as in `export type WarehouseResource = BaseResource & { … }`.
+
+### Intersecting a Resource With `#[TsIntersect]`
+
+An interface can't extend a union, so `#[TsExtends]` can't relate one key of a resource to another. `#[TsIntersect]` intersects the resource's type with a type you write instead. Use it when the package can't read the link from `toArray()` itself, as [Discriminated Unions](https://tolki.abe.dev/ts/api-resources.html#discriminated-unions) describes. Here `is_draft` comes from a method call, which the package doesn't read as a discriminant:
+
+```php
+use AbeTwoThree\LaravelTsPublish\Attributes\TsIntersect;
+
+#[TsIntersect('PostStatusVariants', '@/types/posts')]
+final class PostResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'is_draft' => $this->isDraft(),
+            'status' => $this->isDraft()
+                ? new DraftStatusResource($this->draft_status)
+                : new PublishedStatusResource($this->status),
+        ];
+    }
+}
+```
+
+You write the union in your own module:
+
+```typescript
+// resources/js/types/posts.ts
+import type {
+  DraftStatusResource,
+  PublishedStatusResource,
+} from "@/types/generated/app/http/resources";
+
+export type PostStatusVariants =
+  | { is_draft: true; status: DraftStatusResource }
+  | { is_draft: false; status: PublishedStatusResource };
+```
+
+The resource publishes its keys intersected with your type, so a check on `is_draft` narrows `status`:
+
+<!-- prettier-ignore -->
+```typescript
+import type { PostStatusVariants } from "@/types/posts";
+import type { DraftStatusResource, PublishedStatusResource } from ".";
+
+export type PostResource = {
+  id: number;
+  is_draft: boolean;
+  status: DraftStatusResource | PublishedStatusResource;
+} & (PostStatusVariants);
+```
+
+`#[TsIntersect]` takes three parameters like `#[TsExtends]`'s: `type`, an optional `import` path, and an optional `types` list, read as [Names a Resource's Clause Imports](#names-a-resources-clause-imports) describes. It's repeatable, and a parent class or a trait can carry it, in the same order as `#[TsExtends]`. It has no config array. Each intersected type prints after the resource's own keys and any variants, in parentheses.
+
 ### Configuration Reference
 
 Each `ts_extends` key applies to one feature's interfaces:
@@ -7225,11 +7506,11 @@ A value loses its quotes only when it reads back as the same text. Laravel's `in
 
 These rules decide whether a field is optional, nullable or left out:
 
-| Rule                                                                                                           | Effect                                                                                                                                                                                |
-| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `required`, or any rule starting with `required` (including `Rule::requiredIf()` and `Rule::requiredUnless()`) | The field is required, with no `?`.                                                                                                                                                   |
-| `sometimes`                                                                                                    | The field is optional, even alongside `required`.                                                                                                                                     |
-| `nullable`                                                                                                     | Adds `\| null` to the field's type.                                                                                                                                                   |
+| Rule                                                                                                           | Effect                                                                                                                                                                               |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `required`, or any rule starting with `required` (including `Rule::requiredIf()` and `Rule::requiredUnless()`) | The field is required, with no `?`.                                                                                                                                                  |
+| `sometimes`                                                                                                    | The field is optional, even alongside `required`.                                                                                                                                    |
+| `nullable`                                                                                                     | Adds `\| null` to the field's type.                                                                                                                                                  |
 | `missing` or `prohibited`                                                                                      | The field is left out of the interface entirely, not only marked optional. A nested key is dropped from its parent's shape instead. See [Array & Nested Rules](#array--nested-rules). |
 
 This example shows each rule's effect in a comment:
@@ -7689,10 +7970,11 @@ With `inertia.enabled` on (the default), the package builds the file from your m
 - **`config()`**: `config('some.key')` with a literal key is typed from the live config value, since the package runs inside your booted app. A computed key stays `unknown`.
 - **Value helpers**: `now()` and `today()` are typed as `string`, or `Date` under [`timestamps_as_date`](https://tolki.abe.dev/ts/models.html#timestamps-as-date-objects). `str($value)` is typed as `string`, and `str()` with no argument as `Record<string, never>`. `url($path)` is typed as `string` when the path can't be `null`, and stays `unknown` when it can or has no type. `collect([...])` and a bare array literal are both typed as the list or object the array encodes as, such as `string[]` for `['a', 'b']`. `+` on two arrays is typed as PHP's array union, where the left side's keys win.
 - **Closures and first-class callables**: Inertia calls a callable prop before it sends it, so closures and first-class callables, such as `fn () => $request->url()` and `now(...)`, are typed from what the call returns. That includes one inside an array that a helper method builds.
+- **Discriminated unions**: a nested array whose keys follow another key's value publishes one object per variant, where values that send the same types share one, as [Discriminated Unions](https://tolki.abe.dev/ts/api-resources.html#discriminated-unions) describes for API resources. The top level of shared data and of a page's props stays one object type, because Vue's `defineProps<T>()` needs one.
 - **Inertia v2 prop wrappers**: `Inertia::defer()`, `optional()`, `lazy()`, `always()`, `merge()` and `deepMerge()` type as the value they wrap, and so does a prop class you construct, such as `new OptionalProp(fn () => …)`. The three a partial reload can leave out, `defer`, `optional` and `lazy`, make the key optional.
 - **API resources**: a resource or resource collection is typed as the response Inertia sends for it, as [API Resources in Props](#api-resources-in-props) describes.
 - **`EnumResource` props**: a prop that wraps an enum in `EnumResource`, such as `'role' => EnumResource::make(Role::Admin)`, becomes `AsEnum<typeof Role>` when `enums.use_tolki_package` is on (the default), the same as in [API Resources](https://tolki.abe.dev/ts/api-resources.html#enum-properties-with-enumresource). With it off, the key keeps the enum's type alias (`role: RoleType`). The change applies per key, so another key that reads the enum directly keeps `RoleType`.
-- **`EnumResource` ternaries and `null`**: each arm of a ternary is typed as Laravel sends it. Wrapping two different enums publishes `AsEnum<typeof Role> | AsEnum<typeof Status>`, and a wrap beside a bare case of the same enum publishes `AsEnum<typeof Status> | StatusType`. A wrap around an enum that may be `null` publishes `AsEnum<typeof Status> | never[]`, because Inertia sends `[]` for it, not `null`. Tell the two apart with `Array.isArray()`.
+- **`EnumResource` ternaries and `null`**: each arm of a ternary or `match` is typed as Laravel sends it, in page props and shared data alike. Wrapping two different enums publishes `AsEnum<typeof Role> | AsEnum<typeof Status>`, and a wrap beside a bare case publishes `AsEnum<typeof Role> | StatusType`. Two enums that share a class name keep their own names, as in `AsEnum<typeof EnumsStatus> | AsEnum<typeof CrmStatus>`. A wrapped collection beside a bare case publishes `{ data: AsEnum<typeof Status>[] } | StatusType`. A wrap around an enum that may be `null` publishes `AsEnum<typeof Status> | never[]`, because Inertia sends `[]` for it, not `null`. Tell the two apart with `Array.isArray()`.
 - **Enum cases**: a bare case, such as `'defaultStatus' => Status::Draft`, is typed as the enum's type alias (`defaultStatus: StatusType`), which matches the value Laravel sends for a backed enum. The file imports the alias for you.
 - **Classes with `#[TsType]`**: a value of a class that has or inherits a `#[TsType]` is typed as that type, with its import, in shared data and page props alike. See [Custom Types](https://tolki.abe.dev/ts/custom-types.html).
 - **`errors`**: left out. `@inertiajs/core` already types `page.props.errors` as `Errors & ErrorBag`, and [`errorValueType`](#anatomy-of-the-generated-file) sharpens it. A `#[TsCasts]` or `@return` docblock entry named `errors` still adds one if you want it.
@@ -7705,8 +7987,6 @@ When the package can't create an instance of the model, it reads the key type fr
 The signed-in user is typed from the default guard only, so a named guard, such as `auth('admin')->user()` or `Auth::guard('admin')->user()`, publishes `unknown`. When your guards' providers name more than one user model, a route's guard middleware can sign in either one, so `request()->user()`, `Auth::guard()->user()` and a read past `auth()->user()`, `Auth::user()` or `request()->user()` publish `unknown` too. `$request->user()`, a bare `auth()->user()` or `Auth::user()`, `auth()->id()` and `Auth::id()` keep the default guard's model. Type such a key with [`#[TsCasts]`](#type-resolution-priority).
 
 In a route's [page props](https://tolki.abe.dev/ts/routing.html#inertia-integration), `getKey()` on a route-bound model publishes the model's key type with no `| null`, because Laravel binds only a saved row. With a `Post $post` action parameter, `'post_id' => $post->getKey()` publishes `post_id: number`. A relation read on the parameter is typed by the models it loads, so `'comments' => $post->comments` publishes `comments: Comment[]`.
-
-A few mixes of `EnumResource` arms publish a type that doesn't match what Laravel sends. A wrap beside a bare case of another enum, as in `$cond ? EnumResource::make(Role::Admin) : Status::Draft`, publishes `RoleType | StatusType`, though the first arm sends the `Role` object. A nested ternary over the wraps of three enums can leave a type alias unimported, which fails your build with `TS2304`. Override such a key with a `#[TsCasts]` entry that has an `import`.
 
 ### Anatomy of the Generated File
 
@@ -8863,16 +9143,22 @@ export const store = annotateRequestPayload<StorePostRequest>()(
 
 ### Bundling
 
-A route nobody uses drops out of your bundle: `defineRoute`, `getRouteDefaults` and the other runtime helpers are marked as free of side effects, except `setRouteDefaults`, `addRouteDefault` and `resetRouteDefaults`, which change shared state and are always kept. A plain `export const index = defineRoute({...})` drops in Vite (Rolldown), Rollup, webpack and Rspack. esbuild keeps it unless the call site is marked:
+A route nobody uses drops out of your bundle in every bundler, esbuild included, because the generated file writes `/* @__PURE__ */` before every call, including each call of a curried helper. `defineRoute`, `getRouteDefaults` and the other runtime helpers are marked as free of side effects, except `setRouteDefaults`, `addRouteDefault` and `resetRouteDefaults`, which change shared state and are always kept:
 
 ```typescript
-export const index = /* @__PURE__ */ defineRoute({
-  url: "/users",
-  methods: ["get"],
-});
+export const store = /* @__PURE__ */ annotateRequestPayload<StorePostRequest>()(
+  /* @__PURE__ */ annotatePageProps<StorePageProps>()(
+    /* @__PURE__ */ defineRoute({
+      name: "inertia-form-request.store",
+      url: "/inertia-form-request",
+      methods: ["post"] as const,
+      component: "InertiaFormRequest/Success",
+    }),
+  ),
+);
 ```
 
-The curried shapes, `annotatePageProps<T>()(defineRoute({...}))` and `annotateRequestPayload<T>()(defineRoute({...}))`, drop in Rollup and Rspack as they are. Rolldown, esbuild and webpack need `/* @__PURE__ */` before each call: the outer one and the inner `defineRoute`. [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html) lists every bundler.
+The other examples on this page leave the comment out. A file published by an older version of the package, or by a custom `routes.template`, may not have it. Without it, Rolldown, esbuild and webpack keep a curried route, and esbuild keeps every route. [Bundling and Tree-Shaking](https://tolki.abe.dev/tree-shaking.html) lists every bundler.
 
 ### Filtering & Excluding Routes
 
@@ -9181,12 +9467,12 @@ Two more keys swap a class that isn't a pipeline stage:
 
 A few writers don't belong to a single feature. Each one has its own config key:
 
-| Writer              | Config Key             | Writes                                                                                                                                                                                               |
-| ------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Writer              | Config Key             | Writes                                                                                                                                                                      |
+| ------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `BarrelWriter`      | `barrel_writer_class`  | The [barrel `index.ts`](https://tolki.abe.dev/ts/modular-publishing.html#barrel-files) in each namespace directory for models, model metadata, enums, resources, form requests, and broadcast events |
-| `GlobalsWriter`     | `globals.writer_class` | The global declaration file, which declares your enum, model, resource, form request, and broadcast event types in a global namespace                                                                |
-| `JsonWriter`        | `json.writer_class`    | The combined JSON definitions file                                                                                                                                                                   |
-| `WatcherJsonWriter` | `watcher.writer_class` | The JSON list of collected file paths that file watchers read                                                                                                                                        |
+| `GlobalsWriter`     | `globals.writer_class` | The global declaration file, which declares your enum, model, resource, form request, and broadcast event types in a global namespace                                       |
+| `JsonWriter`        | `json.writer_class`    | The combined JSON definitions file                                                                                                                                          |
+| `WatcherJsonWriter` | `watcher.writer_class` | The JSON list of collected file paths that file watchers read                                                                                                               |
 
 Route barrels have a different format, so the route writer (`routes.writer_class`) writes them.
 
@@ -9382,6 +9668,8 @@ Inertia's `inertia-config.blade.php` and Vite env's `vite-env.blade.php` have no
 
 Your copies stay as they were when you published them. After you upgrade the package, compare them with the package's new templates and merge the changes. A stale copy can leave out output the new version adds.
 
+For example, a `resource` or `globals` copy published before [discriminated unions](https://tolki.abe.dev/ts/api-resources.html#discriminated-unions) prints a split resource's shared keys alone, and leaves out its variants and its `#[TsIntersect]` types. Publish it again, or merge the new template's `variants` and `intersections` blocks into your copy.
+
 ## Analyzer API
 
 The analysis that the [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) runs on your classes is also available to your own code. `AstEngine::analyze()` takes a class and a method name. It returns the typed properties that method returns, plus the imports those types need. Use it when your own code needs this package's types without a full publish, such as a custom Artisan command or another package.
@@ -9408,11 +9696,11 @@ $result = resolve(AstEngine::class)->analyze(App\Services\CartSummary::class, 't
 
 `analyze()` takes four arguments:
 
-| Argument             | Default     | Description                                                                                                                                                                                                                                                                     |
-| -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `$class`             | required    | The class to analyze.                                                                                                                                                                                                                                                           |
-| `$method`            | `'toArray'` | The method whose return value is analyzed.                                                                                                                                                                                                                                      |
-| `$modelClass`        | `null`      | The Eloquent model that `$this->...` reads resolve against. Leave it `null` to bind no model, or to let a `JsonResource` subclass find its own.                                                                                                                                 |
+| Argument             | Default     | Description                                                                                                                                                                                                                                            |
+| -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `$class`             | required    | The class to analyze.                                                                                                                                                                                                                                  |
+| `$method`            | `'toArray'` | The method whose return value is analyzed.                                                                                                                                                                                                             |
+| `$modelClass`        | `null`      | The Eloquent model that `$this->...` reads resolve against. Leave it `null` to bind no model, or to let a `JsonResource` subclass find its own.                                                                                                        |
 | `$fromNamespacePath` | `''`        | The namespace path of the file you're writing, such as `app/services`. Import paths come back relative to it, as [Automatic Relative Imports](https://tolki.abe.dev/ts/modular-publishing.html#automatic-relative-imports) describes. Pass `''` for a file at your output root. |
 
 `analyze()` writes nothing to disk. The file, its formatting, and any barrel entry are up to you.
@@ -9433,7 +9721,7 @@ public function __construct(
 
 Each property holds one part of the module you write:
 
-- **`properties`**: a `list<{name, type, optional, description}>` with one entry per key the method returns. `type` is already a TypeScript type string. `optional` is `true` wherever the code can leave the key out, such as a conditional method or a `mergeWhen()`.
+- **`properties`**: a `list<{name, type, optional, description}>` with one entry per key the method returns. `type` is already a TypeScript type string. `optional` is `true` wherever the code can leave the key out, such as a conditional method or a `mergeWhen()`. A nested array whose keys follow another key's value comes back as a union of objects, one per variant, as [Discriminated Unions](https://tolki.abe.dev/ts/api-resources.html#discriminated-unions) describes.
 - **`typeImports`**: an `import path => list<name>` map of the types that the property types name. Write these as `import type` lines.
 - **`valueImports`**: an `import path => list<name>` map of the enum constants that an `AsEnum<typeof X>` wrapper reads. Write these as plain `import` lines, never as `import type`.
 
@@ -9442,7 +9730,7 @@ Two classes that share an import path merge into one entry, so neither overwrite
 The three properties agree with each other, so a module that renders all three as they are compiles:
 
 - **Same-name classes**: two classes with the same short name, such as two `User` models, come back under separate aliases, and the property types use those aliases.
-- **`EnumResource` properties**: an `EnumResource::make()` property comes back as `AsEnum<typeof X>`, beside the value import that wrapper needs. With `enums.use_tolki_package` off, it comes back as the plain enum type with a type import, and `valueImports` stays empty.
+- **`EnumResource` properties**: each `EnumResource` wrap comes back as `AsEnum<typeof X>` where it's read, in a union, a nested key or a list too, and `valueImports` holds exactly the consts the types spell. Two enums that share a class name come back under separate aliases. With `enums.use_tolki_package` off, a wrap comes back as the plain enum type with a type import, and `valueImports` stays empty.
 - **No unused imports**: nothing is imported that no property type names. A name counts wherever it appears in a type, even inside a string, template text, or a comment. A method-level `#[TsCasts]` of `"'User' | 'Admin'"` therefore keeps an unused `User` import, which TypeScript reports only under `noUnusedLocals`.
 
 #### Method Parameters
@@ -9467,7 +9755,7 @@ $result = resolve(AstEngine::class)->analyze(App\Http\Resources\PostResource::cl
 
 `analyze()` doesn't use a custom `resources.transformer_class`, so a [`resolveModelClass()` override](https://tolki.abe.dev/ts/customizing-the-pipeline.html#changing-how-a-resource-finds-its-model) doesn't apply here. To choose the model yourself, pass it as the third argument.
 
-Every pattern in [API Resources](https://tolki.abe.dev/ts/api-resources.html) gives the same properties, imports, and optionality as a publish. That includes the `when()` family of conditional methods, `EnumResource::make()`, nested and collection resources, `merge()` and `mergeWhen()`, and relation filters such as `$this->author->only([...])`. The exceptions are a `morphTo` union, a collection that publishes as an alias, class-level and model-level `#[TsCasts]`, a `toResource()` guess by naming convention, and the filled index signature of an interpolated key. [What It Cannot Do](#what-it-cannot-do) covers each one.
+Every pattern in [API Resources](https://tolki.abe.dev/ts/api-resources.html) gives the same properties, imports, and optionality as a publish. That includes the `when()` family of conditional methods, `EnumResource::make()`, nested and collection resources, `merge()` and `mergeWhen()`, and relation filters such as `$this->author->only([...])`. The exceptions are a `morphTo` union, a top-level discriminated union, a collection that publishes as an alias, class-level and model-level `#[TsCasts]`, a `toResource()` guess by naming convention, and the filled index signature of an interpolated key. [What It Cannot Do](#what-it-cannot-do) covers each one.
 
 A [JSON:API resource](https://tolki.abe.dev/ts/api-resources.html#json-api-resources) returns its resource object, the `id`, `type`, `attributes`, and other members a publish writes, even when it declares a `toArray()`.
 
@@ -9503,6 +9791,8 @@ For example, a `share()` whose docblock declares `filters?: array<string, string
 
 **`morphTo` unions.** `analyze()` can't list the models a `morphTo` relation can hold, because only a publish scans your models for the `morphOne` and `morphMany` relations that point back. The relation is left out of a model's shape, and it comes back `unknown` where a `toArray()` names it. A [`@return MorphTo<A|B, $this>` docblock](https://tolki.abe.dev/ts/models.html#typing-morphto-relations) on the relation method gives both `analyze()` and a publish the union.
 
+**A resource's top-level discriminated union.** `analyze()` returns each key of a resource with one type, where `ts:publish` splits the keys that follow another key's value into [variants](https://tolki.abe.dev/ts/api-resources.html#discriminated-unions). `AnalysisResult` has no place for them. A nested array splits in both.
+
 **Collections that publish as an alias.** A `ResourceCollection` with no keys beyond its items publishes as a flat alias, `export type X = Y[]`, rather than an interface, when it has `$wrap = null`. After [`JsonResource::withoutWrapping()`](https://tolki.abe.dev/ts/api-resources.html#the-wrap-key-your-app-sets), so does every collection with Laravel's default shape that doesn't redeclare `$wrap`. An alias has no property list or imports to put in an `AnalysisResult`, so all three properties come back empty. `ts:publish` writes the alias.
 
 **Class-level and model-level `#[TsCasts]`.** `analyze()` applies a `#[TsCasts]` on the analyzed method only. `ts:publish` then applies a resource's class-level `#[TsCasts]` and its model's `#[TsCasts]`, types and optionality both. On a `CommentResource` whose class-level casts name `flagged_at` and `metadata`, `analyze()` returns `flagged_at: string | null` and `metadata: unknown[] | null`. The published interface has `flagged_at?: string | null` and `metadata: Record<string, unknown>`.
@@ -9537,19 +9827,19 @@ The `*_class` keys swap a class in the publishing pipeline. See [Abstract Base C
 
 ### General Settings
 
-| Config Key                    | Type     | Default                   | Description                                                                                                                                                                                                      |
-| ----------------------------- | -------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Config Key                    | Type     | Default                   | Description                                                                                                                                                                             |
+| ----------------------------- | -------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `run_after_migrate`           | `bool`   | `true`                    | Republish types with `--fresh` after `migrate` runs migrations. Set with `TS_PUBLISH_RUN_AFTER_MIGRATE`. See [Publishing After Migrations](https://tolki.abe.dev/ts/publishing.html#publishing-after-migrations) |
-| `output_to_files`             | `bool`   | `true`                    | Setting it to `false` turns off the post-migration republish. `ts:publish` writes files on every run unless you pass `--preview=true`                                                                            |
-| `output_directory`            | `string` | `resources/js/types/data` | Directory where TypeScript files are written                                                                                                                                                                     |
-| `namespace_strip_prefix`      | `string` | `''`                      | Prefix removed from class namespaces before they become output paths, such as `'Modules\\'`                                                                                                                      |
-| `timestamps_as_date`          | `bool`   | `false`                   | Map date, datetime, and timestamp values, including Carbon instances, to `Date` instead of `string`, except a `timestamp` cast, which is a number                                                                |
-| `custom_ts_mappings`          | `array`  | `[]`                      | Override or extend PHP-to-TypeScript type mappings. See [`custom_ts_mappings`](#custom_ts_mappings)                                                                                                              |
-| `ts_extends.models`           | `array`  | `[]`                      | Global `extends` clauses for all models                                                                                                                                                                          |
-| `ts_extends.resources`        | `array`  | `[]`                      | Global `extends` clauses for all resources                                                                                                                                                                       |
-| `ts_extends.form_requests`    | `array`  | `[]`                      | Global `extends` clauses for all form requests                                                                                                                                                                   |
-| `ts_extends.broadcast_events` | `array`  | `[]`                      | Global `extends` clauses for all broadcast events                                                                                                                                                                |
-| `barrel_writer_class`         | `string` | `BarrelWriter`            | Class that writes barrel `index.ts` files                                                                                                                                                                        |
+| `output_to_files`             | `bool`   | `true`                    | Setting it to `false` turns off the post-migration republish. `ts:publish` writes files on every run unless you pass `--preview=true`                                                   |
+| `output_directory`            | `string` | `resources/js/types/data` | Directory where TypeScript files are written                                                                                                                                            |
+| `namespace_strip_prefix`      | `string` | `''`                      | Prefix removed from class namespaces before they become output paths, such as `'Modules\\'`                                                                                             |
+| `timestamps_as_date`          | `bool`   | `false`                   | Map date, datetime, and timestamp values, including Carbon instances, to `Date` instead of `string`, except a `timestamp` cast, which is a number                                       |
+| `custom_ts_mappings`          | `array`  | `[]`                      | Override or extend PHP-to-TypeScript type mappings. See [`custom_ts_mappings`](#custom_ts_mappings)                                                                                     |
+| `ts_extends.models`           | `array`  | `[]`                      | Global `extends` clauses for all models                                                                                                                                                 |
+| `ts_extends.resources`        | `array`  | `[]`                      | Global `extends` clauses for all resources                                                                                                                                              |
+| `ts_extends.form_requests`    | `array`  | `[]`                      | Global `extends` clauses for all form requests                                                                                                                                          |
+| `ts_extends.broadcast_events` | `array`  | `[]`                      | Global `extends` clauses for all broadcast events                                                                                                                                       |
+| `barrel_writer_class`         | `string` | `BarrelWriter`            | Class that writes barrel `index.ts` files                                                                                                                                               |
 
 #### `custom_ts_mappings`
 
@@ -9569,22 +9859,22 @@ Each entry maps a type name to the TypeScript type it publishes, and it wins ove
 
 ### Models (`models.*`)
 
-| Config Key                        | Type     | Default                           | Description                                                                                                                                                                                                                                                             |
-| --------------------------------- | -------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `models.enabled`                  | `bool`   | `true`                            | Enable or disable model publishing                                                                                                                                                                                                                                      |
-| `models.namespace`                | `string` | `'models'`                        | Not used. The global declaration file names each namespace after the class's PHP namespace, such as `app.models`                                                                                                                                                        |
-| `models.relationship_case`        | `string` | `'snake'`                         | Case style for relationships: `snake`, `camel`, or `pascal`                                                                                                                                                                                                             |
-| `models.nullable_relations`       | `bool`   | `true`                            | Append `\| null` to singular relation types that can be empty, based on each relation type's strategy                                                                                                                                                                   |
+| Config Key                        | Type     | Default                           | Description                                                                                                                                                                                                                                    |
+| --------------------------------- | -------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `models.enabled`                  | `bool`   | `true`                            | Enable or disable model publishing                                                                                                                                                                                                             |
+| `models.namespace`                | `string` | `'models'`                        | Not used. The global declaration file names each namespace after the class's PHP namespace, such as `app.models`                                                                                                                               |
+| `models.relationship_case`        | `string` | `'snake'`                         | Case style for relationships: `snake`, `camel`, or `pascal`                                                                                                                                                                                    |
+| `models.nullable_relations`       | `bool`   | `true`                            | Append `\| null` to singular relation types that can be empty, based on each relation type's strategy                                                                                                                                          |
 | `models.exclude_hidden`           | `bool`   | `false`                           | Omit Eloquent `$hidden` attributes from model interfaces, and from resource properties wherever the package derives them from the model. See [`exclude_hidden` and Attribute Filters](https://tolki.abe.dev/ts/api-resources.html#exclude-hidden-and-attribute-filters) |
-| `models.relation_nullability_map` | `array`  | `[]`                              | Override the nullability strategy per relation class: `nullable`, `never`, `fk`, or `morph`                                                                                                                                                                             |
-| `models.template`                 | `string` | `laravel-ts-publish::model-split` | Blade template for model TypeScript output                                                                                                                                                                                                                              |
-| `models.included`                 | `array`  | `[]`                              | Only publish these models (empty = all)                                                                                                                                                                                                                                 |
-| `models.excluded`                 | `array`  | `[]`                              | Exclude these models from publishing                                                                                                                                                                                                                                    |
+| `models.relation_nullability_map` | `array`  | `[]`                              | Override the nullability strategy per relation class: `nullable`, `never`, `fk`, or `morph`                                                                                                                                                    |
+| `models.template`                 | `string` | `laravel-ts-publish::model-split` | Blade template for model TypeScript output                                                                                                                                                                                                     |
+| `models.included`                 | `array`  | `[]`                              | Only publish these models (empty = all)                                                                                                                                                                                                        |
+| `models.excluded`                 | `array`  | `[]`                              | Exclude these models from publishing                                                                                                                                                                                                           |
 | `models.additional_directories`   | `array`  | `[]`                              | Extra directories to search for models. A model that a published model relates to is published without being listed, under the rules in [Related Models Outside Your Directories](https://tolki.abe.dev/ts/models.html#related-models-outside-your-directories)         |
-| `models.collector_class`          | `string` | `ModelsCollector`                 | Discovers PHP model classes                                                                                                                                                                                                                                             |
-| `models.generator_class`          | `string` | `ModelGenerator`                  | Orchestrates transforming and writing                                                                                                                                                                                                                                   |
-| `models.transformer_class`        | `string` | `ModelTransformer`                | Converts PHP class into TypeScript data                                                                                                                                                                                                                                 |
-| `models.writer_class`             | `string` | `ModelWriter`                     | Writes TypeScript model files                                                                                                                                                                                                                                           |
+| `models.collector_class`          | `string` | `ModelsCollector`                 | Discovers PHP model classes                                                                                                                                                                                                                    |
+| `models.generator_class`          | `string` | `ModelGenerator`                  | Orchestrates transforming and writing                                                                                                                                                                                                          |
+| `models.transformer_class`        | `string` | `ModelTransformer`                | Converts PHP class into TypeScript data                                                                                                                                                                                                        |
+| `models.writer_class`             | `string` | `ModelWriter`                     | Writes TypeScript model files                                                                                                                                                                                                                  |
 
 ### Model Metadata (`model_metadata.*`)
 
@@ -9625,18 +9915,19 @@ A config file published before model metadata existed has no `model_metadata` bl
 
 ### Resources (`resources.*`)
 
-| Config Key                         | Type     | Default                        | Description                                                                                                              |
-| ---------------------------------- | -------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| `resources.enabled`                | `bool`   | `true`                         | Enable or disable resource publishing                                                                                    |
-| `resources.namespace`              | `string` | `'resources'`                  | Not used. The global declaration file names each namespace after the class's PHP namespace, such as `app.http.resources` |
-| `resources.template`               | `string` | `laravel-ts-publish::resource` | Blade template for resource TypeScript output                                                                            |
-| `resources.included`               | `array`  | `[]`                           | Only publish these resources (empty = all)                                                                               |
-| `resources.excluded`               | `array`  | `[]`                           | Exclude these resources from publishing                                                                                  |
-| `resources.additional_directories` | `array`  | `[]`                           | Extra directories to search for resources                                                                                |
-| `resources.collector_class`        | `string` | `ResourcesCollector`           | Discovers PHP resource classes                                                                                           |
-| `resources.generator_class`        | `string` | `ResourceGenerator`            | Orchestrates transforming and writing                                                                                    |
-| `resources.transformer_class`      | `string` | `ResourceTransformer`          | Converts PHP resource into TypeScript data                                                                               |
-| `resources.writer_class`           | `string` | `ResourceWriter`               | Writes TypeScript resource files                                                                                         |
+| Config Key                         | Type     | Default                        | Description                                                                                                                                          |
+| ---------------------------------- | -------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resources.enabled`                | `bool`   | `true`                         | Enable or disable resource publishing                                                                                                                |
+| `resources.namespace`              | `string` | `'resources'`                  | Not used. The global declaration file names each namespace after the class's PHP namespace, such as `app.http.resources`                             |
+| `resources.template`               | `string` | `laravel-ts-publish::resource` | Blade template for resource TypeScript output                                                                                                        |
+| `resources.discriminated_unions`   | `bool`   | `true`                         | Publish a resource whose keys follow another key's value as a union of variants. See [Discriminated Unions](https://tolki.abe.dev/ts/api-resources.html#discriminated-unions) |
+| `resources.included`               | `array`  | `[]`                           | Only publish these resources (empty = all)                                                                                                           |
+| `resources.excluded`               | `array`  | `[]`                           | Exclude these resources from publishing                                                                                                              |
+| `resources.additional_directories` | `array`  | `[]`                           | Extra directories to search for resources                                                                                                            |
+| `resources.collector_class`        | `string` | `ResourcesCollector`           | Discovers PHP resource classes                                                                                                                       |
+| `resources.generator_class`        | `string` | `ResourceGenerator`            | Orchestrates transforming and writing                                                                                                                |
+| `resources.transformer_class`      | `string` | `ResourceTransformer`          | Converts PHP resource into TypeScript data                                                                                                           |
+| `resources.writer_class`           | `string` | `ResourceWriter`               | Writes TypeScript resource files                                                                                                                     |
 
 ### Globals (`globals.*`)
 
@@ -9761,14 +10052,14 @@ See [Custom Types](https://tolki.abe.dev/ts/custom-types.html#configuration) for
 
 ### Inertia (`inertia.*`)
 
-| Config Key                        | Type      | Default               | Description                                                                                                                                                             |
-| --------------------------------- | --------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `inertia.enabled`                 | `bool`    | `true`                | Enable or disable Inertia shared-data and page-prop analysis                                                                                                            |
-| `inertia.inertia_middleware_path` | `?string` | `null`                | Directory to search for the `HandleInertiaRequests` middleware (defaults to `app_path()`)                                                                               |
-| `inertia.augmentation_filename`   | `string`  | `inertia-config.d.ts` | Filename for the generated module augmentation file                                                                                                                     |
-| `inertia.output_directory`        | `string`  | `''`                  | Custom output directory. Empty uses `routes.output_directory`, then the global `output_directory`                                                                       |
+| Config Key                        | Type      | Default               | Description                                                                                                                                    |
+| --------------------------------- | --------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `inertia.enabled`                 | `bool`    | `true`                | Enable or disable Inertia shared-data and page-prop analysis                                                                                   |
+| `inertia.inertia_middleware_path` | `?string` | `null`                | Directory to search for the `HandleInertiaRequests` middleware (defaults to `app_path()`)                                                      |
+| `inertia.augmentation_filename`   | `string`  | `inertia-config.d.ts` | Filename for the generated module augmentation file                                                                                            |
+| `inertia.output_directory`        | `string`  | `''`                  | Custom output directory. Empty uses `routes.output_directory`, then the global `output_directory`                                              |
 | `inertia.component_casing`        | `string`  | `'camel'`             | Casing style for derived page-prop export names, used by the per-route page props. See [Inertia Integration](https://tolki.abe.dev/ts/routing.html#inertia-integration) |
-| `inertia.ui_table_package`        | `?string` | `null`                | npm package used for InertiaUI Table integration, used by the per-route page props                                                                                      |
+| `inertia.ui_table_package`        | `?string` | `null`                | npm package used for InertiaUI Table integration, used by the per-route page props                                                             |
 
 ### Vite Env (`vite_env.*`)
 
