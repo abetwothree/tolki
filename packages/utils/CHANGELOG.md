@@ -1,5 +1,21 @@
 # @tolki/utils
 
+## 1.7.0
+
+### Minor Changes
+
+- 56892d5: Adds the locale spelling helpers `localeTag()` and `normalizeLocale()`, which moved here from `@tolki/lang` (#137).
+  - `localeTag()` turns `pt_BR` into `pt-BR` for `Intl`, and never throws.
+  - `normalizeLocale()` title-cases script subtags: `zh-hant-tw` gives `zh_Hant_TW`.
+
+### Patch Changes
+
+- f6a408b: Fixes type errors in projects that use `moduleResolution` `node16` or `nodenext`: the published declaration files now name every file they import, so every export resolves (#143). Each export in `package.json` also lists its types first.
+- 15d1693: Add `isSafeInteger` utility check and TS cast
+- Updated dependencies [56892d5]
+- Updated dependencies [f6a408b]
+  - @tolki/types@1.13.0
+
 ## 1.6.4
 
 ### Patch Changes
