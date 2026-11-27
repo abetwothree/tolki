@@ -14,7 +14,7 @@ import {
     readonlyNumberList,
     settings,
     unionItems,
-} from "./fixtures";
+} from "./fixtures.js";
 
 /** Mirrors `listWhenIndexed`, data's own step: obj's record, or that record's values. */
 type ListWhenIndexed<TRecord> = TRecord | TRecord[keyof TRecord][];

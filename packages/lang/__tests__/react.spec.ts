@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { act, render } from "@testing-library/react";
 import type { ReactLang } from "@tolki/lang/react";
 import { createLang, LangProvider, useLang } from "@tolki/lang/react";
@@ -6,9 +7,9 @@ import { createElement, memo } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { LINES } from "./fixtures/lines";
-import { Greeting } from "./fixtures/react-greeting";
-import { REACT_SSR_HTML } from "./fixtures/ssr-html";
+import { LINES } from "./fixtures/lines.js";
+import { Greeting } from "./fixtures/react-greeting.js";
+import { REACT_SSR_HTML } from "./fixtures/ssr-html.js";
 
 afterEach(() => {
     vi.restoreAllMocks();

@@ -1,9 +1,9 @@
 import type { LocaleLines, LocaleLinesLoader } from "@tolki/types";
 import { isUndefined } from "@tolki/utils";
 
-import de from "./lang/de.json";
-import en from "./lang/en.json";
-import es from "./lang/es.json";
+import de from "./lang/de.json" with { type: "json" };
+import en from "./lang/en.json" with { type: "json" };
+import es from "./lang/es.json" with { type: "json" };
 
 export const LINES = { en, es, de };
 

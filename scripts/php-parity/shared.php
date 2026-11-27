@@ -614,3 +614,47 @@ class LangMoney
 class LangEuro extends LangMoney {}
 
 class LangOpaque {}
+
+/**
+ * Run $run and return its result, or the class and message of what it throws, so one row can hold both.
+ */
+function attempt(callable $run): mixed
+{
+    try {
+        return $run();
+    } catch (Throwable $e) {
+        return [get_class($e), $e->getMessage()];
+    }
+}
+
+/** The numbers the Number::ordinal() probes convert; whole numbers stay PHP ints, as JavaScript's map to ints. */
+function numberOrdinalInputs(): array
+{
+    return [
+        0, 1, 2, 3, 4, 5, 6, 10, 11, 12, 13, 20, 21, 22, 23, 24, 25, 100, 101, 102, 103, 104, 111, 112, 121,
+        1000, 1001, 1002, 1234567, 123456789012, -0.0, -1, -2, -11, -21, -1.5, 0.4, 0.5, 0.95, 1.4, 1.5,
+        2.5, 3.5, 21.7, 1.25, 1.05, 12345.67, INF, NAN,
+    ];
+}
+
+/** One locale per ICU ordinal rule set, plus the digit, grouping, script and fallback variants. */
+function numberOrdinalLocales(): array
+{
+    return [
+        'en', 'en_IN', 'bn', 'mr', 'agq', 'hi_Latn', 'de', 'fa', 'ccp', 'az_Cyrl', 'uz_Cyrl', 'fr', 'ar', 'ar_EG',
+        'el', 'he', 'es', 'es_419', 'es_MX', 'ja', 'yue', 'zh_Hant_TW', 'pt', 'pt_BR', 'nl', 'ru', 'ca', 'it', 'ms',
+        'ta', 'kk', 'ko', 'sv', 'af', 'az', 'ee', 'ga', 'ro', 'am', 'bg', 'fil', 'gu', 'hi', 'id', 'km', 'ky', 'lo',
+        'th', 'uk', 'vi',
+    ];
+}
+
+/** A number as a string JSON can hold: INF, -INF, NAN and -0 by name, any other number as json_encode() writes it. */
+function numberSpelling(int|float $number): string
+{
+    return match (true) {
+        is_nan($number) => 'NAN',
+        is_infinite($number) => $number > 0 ? 'INF' : '-INF',
+        $number === -0.0 && fdiv(1, $number) < 0 => '-0',
+        default => (string) json_encode($number),
+    };
+}

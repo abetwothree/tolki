@@ -266,6 +266,8 @@ The file has one top-level object per feature: `models`, `enums`, `resources`, `
 }
 ```
 
+A resource that publishes as a [discriminated union](./api-resources.md#discriminated-unions) lists its shared keys in `properties` and each union of variants in `variants`. One with [`#[TsIntersect]`](./extending-interfaces.md#intersecting-a-resource-with-tsintersect) lists each intersected type in `intersections`.
+
 Look entries up by fully-qualified name, and read `name` for display. Two classes can share a short name in different namespaces, such as `App\Models\User` and `Crm\Models\User`, and a short-name key would let one overwrite the other.
 
 ### Collected Files Manifest

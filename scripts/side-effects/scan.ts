@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 
 import ts from "typescript";
 
+import { hasBuild, isPublished, workspacePackages } from "../lib/workspace.ts";
 import {
     aliasExportOf,
     localFunctionNames,
@@ -658,36 +659,6 @@ export function scanFile(
     return result;
 }
 
-/**
- * Lists the directories of the packages that publish to npm.
- *
- * @param repoRoot - Absolute path of the repository root.
- * @returns Sorted absolute package directories that are not private and have a build script.
- */
-export function publishedPackageDirs(repoRoot: string): string[] {
-    const packagesDir = join(repoRoot, "packages");
-
-    return readdirSync(packagesDir)
-        .sort()
-        .map((entry) => join(packagesDir, entry))
-        .filter((dir) => {
-            const manifest = join(dir, "package.json");
-
-            if (!existsSync(manifest)) {
-                return false;
-            }
-
-            const parsed = JSON.parse(readFileSync(manifest, "utf8")) as {
-                private?: boolean;
-                scripts?: Record<string, string>;
-            };
-
-            return (
-                parsed.private !== true && parsed.scripts?.build !== undefined
-            );
-        });
-}
-
 function sourceFiles(dir: string): string[] {
     return readdirSync(dir, { withFileTypes: true })
         .sort((a, b) => a.name.localeCompare(b.name))
@@ -713,10 +684,9 @@ function sourceFiles(dir: string): string[] {
 export function scanPublishedSources(repoRoot: string): SourceScan {
     const merged: SourceScan = { exports: [], placement: [], moduleScope: [] };
 
-    for (const dir of publishedPackageDirs(repoRoot)) {
-        const { name } = JSON.parse(
-            readFileSync(join(dir, "package.json"), "utf8"),
-        ) as { name: string };
+    for (const { dir, name } of workspacePackages(repoRoot).filter(
+        (pkg) => isPublished(pkg) && hasBuild(pkg),
+    )) {
         const srcDir = join(dir, "src");
 
         if (!existsSync(srcDir)) {

@@ -1,5 +1,5 @@
 /**
- * Bundles the built `@tolki/*` packages, staged as they publish, with five bundlers and fails on any
+ * Bundles the built `@tolki/*` packages, packed as they publish, with five bundlers and fails on any
  * tree-shaking regression that `debt.json` does not excuse.
  */
 import {
@@ -14,6 +14,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 
+import { packWorkspace } from "../lib/pack.ts";
 import { scanPublishedSources } from "../side-effects/scan.ts";
 import { BUNDLERS } from "./bundlers.ts";
 import type { DebtEntry, Finding } from "./checks.ts";
@@ -24,7 +25,6 @@ import {
     declarationConflicts,
     readSubpathExports,
 } from "./fixtures.ts";
-import { stagePackages } from "./stage.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "../..");
@@ -194,7 +194,7 @@ function writeSummary(path: string, report: Report): void {
 }
 
 /**
- * Runs the check: stages the packages, bundles every fixture, applies the debt and prints the result.
+ * Runs the check: packs the packages, bundles every fixture, applies the debt and prints the result.
  *
  * @param argv - The arguments after the script path.
  * @returns The exit code: 0 when clean, 1 on any failure or stale debt, 2 on a usage error.
@@ -234,9 +234,9 @@ async function main(argv: string[]): Promise<number> {
             JSON.stringify({ private: true, type: "module" }),
         );
 
-        const staged = stagePackages(ROOT, workDir);
+        const packed = packWorkspace(ROOT, workDir);
         const scan = scanPublishedSources(ROOT);
-        const subpaths = await readSubpathExports(staged, scan);
+        const subpaths = await readSubpathExports(packed, scan);
         const selected = ({ check, id }: { check: CheckName; id: string }) =>
             only.includes(check) &&
             (values.filter === undefined || id.includes(values.filter));

@@ -13,8 +13,8 @@ import {
     isSymbol,
     isTruthyObject,
     isUndefined,
-} from "./guards";
-import { phpDebugType } from "./reflect";
+} from "./guards.js";
+import { phpDebugType } from "./reflect.js";
 
 /**
  * The first magnitude beyond PHP's 64-bit integer range. `PHP_INT_MAX`

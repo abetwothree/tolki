@@ -57,6 +57,10 @@ webpack ignores the annotation on an exported arrow or function-expression `cons
 
 Every call or `new` evaluated at module scope in published source carries `/* @__PURE__ */`, nested calls included, and no argument is a spread. The scan reports these as `unannotated-call`, `spread-argument` and `top-level-statement`.
 
+## Call-site marks in `dist`
+
+Rolldown also writes `/* @__PURE__ */` on calls to annotated functions inside function bodies. They stay: Vite strips them from minified app builds, Rolldown re-adds them from the declarations, and Terser's output shifts both ways without them, so removing them saves consumers nothing ([#153](https://github.com/abetwothree/tolki/issues/153)).
+
 ## Guard
 
 ```bash

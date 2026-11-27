@@ -1,6 +1,6 @@
 import { transliterate as transliteration } from "transliteration";
 
-import { lower } from "../str";
+import { lower } from "../str.js";
 
 /**
  * Transliterate a UTF-8 value to ASCII.

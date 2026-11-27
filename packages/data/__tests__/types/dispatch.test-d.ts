@@ -2,12 +2,12 @@ import * as Arr from "@tolki/arr";
 import * as Obj from "@tolki/obj";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { dataCollapse, dataFirst, dataUnshift } from "../../src/data";
+import { dataCollapse, dataFirst, dataUnshift } from "../../src/data.js";
 import {
     dispatch,
     type Dispatched,
     streamPositionalData,
-} from "../../src/dispatch";
+} from "../../src/dispatch.js";
 import {
     abc,
     nestedList,
@@ -15,7 +15,7 @@ import {
     numberList,
     rowList,
     rowsById,
-} from "./fixtures";
+} from "./fixtures.js";
 
 declare const dCollapse: Dispatched<typeof Arr.collapse, typeof Obj.collapse>;
 declare const dKeys: Dispatched<typeof Arr.keys, typeof Obj.keys>;

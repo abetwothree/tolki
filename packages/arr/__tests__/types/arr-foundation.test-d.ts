@@ -1,7 +1,7 @@
 import * as Arr from "@tolki/arr";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { readonlyStrings, stringTuple } from "./fixtures";
+import { readonlyStrings, stringTuple } from "./fixtures.js";
 
 describe("arr type foundation", () => {
     describe("generic inference survives the implementation signature", () => {

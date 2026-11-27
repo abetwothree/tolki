@@ -2,7 +2,7 @@ import * as Ts from "@tolki/ts";
 import type { RouteQueryOptions } from "@tolki/types";
 import { afterEach, describe, expect, it } from "vitest";
 
-import * as Stubs from "./stubs";
+import * as Stubs from "./stubs/index.js";
 
 afterEach(() => {
     Ts.resetRouteDefaults();

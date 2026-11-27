@@ -1,0 +1,42 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "split-length-astral",
+            "php": "Str::of(\u2026)->split(n)->all() for ('\ud83d\ude00a\ud83d\ude00', 1), ('\ud83d\ude00a\ud83d\ude00b', 2), ('\ud83d\ude00\ud83d\ude00\ud83d\ude00', 2) and ('', 1)",
+            "value": [
+                [
+                    "\ud83d\ude00",
+                    "a",
+                    "\ud83d\ude00"
+                ],
+                [
+                    "\ud83d\ude00a",
+                    "\ud83d\ude00b"
+                ],
+                [
+                    "\ud83d\ude00\ud83d\ude00",
+                    "\ud83d\ude00"
+                ],
+                []
+            ]
+        },
+        {
+            "label": "split-length-below-one",
+            "php": "Str::of('abc')->split(0) and ->split(-1)",
+            "value": [
+                [
+                    "ValueError",
+                    "mb_str_split(): Argument #2 ($length) must be greater than 0"
+                ],
+                [
+                    "ValueError",
+                    "mb_str_split(): Argument #2 ($length) must be greater than 0"
+                ]
+            ]
+        }
+    ]
+}

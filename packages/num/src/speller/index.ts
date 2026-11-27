@@ -1,6 +1,7 @@
 import { isString, toLower } from "@tolki/utils";
 
-import { format } from "../num";
+import { intlLocale } from "../locale/index.js";
+import { defaultLocale, format } from "../num.js";
 
 /**
  * Spell out the given number in the given locale.
@@ -12,10 +13,11 @@ import { format } from "../num";
  * the number will be returned as a formatted string instead of spelled out.
  *
  * @param number - The number to spell out.
- * @param locale - The locale to use for spelling. Defaults to "en-US".
+ * @param locale - The locale to use for spelling. Defaults to the default locale.
  * @param after - If provided, numbers <= this value will be formatted instead of spelled.
  * @param until - If provided, numbers >= this value will be formatted instead of spelled.
  * @returns The number spelled out as words, or formatted as a string.
+ * @throws Error when ICU has no data for the locale, as PHP's NumberFormatter throws its ValueError
  *
  * @requires {@link https://www.npmjs.com/package/to-words to-words package}
  *
@@ -40,7 +42,7 @@ export async function spell(
         return format(num, null, null, locale) as string;
     }
 
-    const toWords = await loadToWords(locale ?? "en-US");
+    const toWords = await loadToWords(intlLocale(locale ?? defaultLocale()));
 
     return toLower(toWords.convert(num));
 }
@@ -49,8 +51,9 @@ export async function spell(
  * Spell out the given number in the given locale in ordinal form.
  *
  * @param value - The number to spell out in ordinal form.
- * @param locale - The locale to use for spelling. Defaults to "en-US".
+ * @param locale - The locale to use for spelling. Defaults to the default locale.
  * @returns The number spelled out as ordinal words (e.g., "First", "Twenty First").
+ * @throws Error when ICU has no data for the locale, as PHP's NumberFormatter throws its ValueError
  *
  * @requires {@link https://www.npmjs.com/package/to-words to-words package}
  *
@@ -62,7 +65,7 @@ export async function spellOrdinal(
     locale: string | null = null,
 ): Promise<string> {
     const num = isString(number) ? parseFloat(number) : number;
-    const toWords = await loadToWords(locale ?? "en-US");
+    const toWords = await loadToWords(intlLocale(locale ?? defaultLocale()));
 
     return toLower(toWords.toOrdinal(Math.floor(num)));
 }

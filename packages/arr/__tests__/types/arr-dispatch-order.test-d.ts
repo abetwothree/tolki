@@ -5,7 +5,7 @@ import { describe, expectTypeOf, it } from "vitest";
 
 // `data` is the consumer whose dispatch decides these rows, so the sweep pins the real
 // helper rather than a local mirror of it.
-import { dispatch } from "../../../data/src/dispatch";
+import { dispatch } from "../../../data/src/dispatch.js";
 
 const rec = { a: 1, b: 2, c: 3 };
 const recB = { d: 4 };

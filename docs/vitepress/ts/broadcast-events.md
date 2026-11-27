@@ -188,7 +188,30 @@ export interface ManifestAssembled {
 
 A query chain that starts at a model is typed step by step, as in [page props](./routing.md#what-the-props-expression-can-be). `Post::query()->pluck('id')->first()` publishes `number | null`. A model the chain returns is presented as `Partial<Model>`, as a [model property](#model-enum-aware-properties) is, so `User::find($this->userId)` publishes `Partial<User> | null` and `User::query()->where('id', 1)->get()` publishes `Partial<User>[]`.
 
-An `EnumResource` around an enum that may be `null` adds `| never[]`, and so does each element of a `map()` of such wraps, because an event sends the empty resource as `[]`.
+An `EnumResource` in `broadcastWith()` publishes `AsEnum<typeof Status>`, as in an [API resource](./api-resources.md#enum-properties-with-enumresource), and the event file imports `AsEnum` and the enum's const. One around an enum that may be `null` adds `| never[]`, and so does each element of a `map()` of such wraps, because an event sends the empty resource as `[]`:
+
+```php
+public function broadcastWith(): array
+{
+    return [
+        'status' => EnumResource::make($this->post->status),
+        'visibility' => EnumResource::make($this->post->visibility),
+    ];
+}
+```
+
+With `visibility` nullable, the event publishes:
+
+```typescript
+import type { AsEnum } from "@tolki/ts";
+import { Status, Visibility } from "../enums";
+
+/** @see App\Events\PostPublished */
+export interface PostPublished {
+  status: AsEnum<typeof Status>;
+  visibility: AsEnum<typeof Visibility> | never[];
+}
+```
 
 ### `when()` and `unless()` From `Conditionable`
 

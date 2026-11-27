@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.39.0-43-gb20bf7f442"
+        "laravel": "v13.43.0-17-g1caec34a34"
     },
     "probes": [
         {
@@ -33,6 +33,21 @@
             "label": "currency-rounds-to-zero-eur-de",
             "php": "Number::currency(-0.001, in: 'EUR', locale: 'de')",
             "value": "0,00\u00a0\u20ac"
+        },
+        {
+            "label": "currency-locale-spellings",
+            "php": "Number::currency(1234.5, 'EUR', \u2026) for pt_BR, pt-BR and ar_EG",
+            "value": {
+                "pt_BR": "\u20ac\u00a01.234,50",
+                "pt-BR": "\u20ac\u00a01.234,50",
+                "ar_EG": "\u200f\u0661\u066c\u0662\u0663\u0664\u066b\u0665\u0660\u00a0\u20ac"
+            }
+        },
+        {
+            "label": "currency-locale-unknown",
+            "php": "Number::currency(1234.5, 'EUR', 'xx')",
+            "threw": "ValueError",
+            "message": "NumberFormatter::__construct(): Argument #1 ($locale) \"xx\" is invalid"
         }
     ]
 }

@@ -7,7 +7,7 @@ import {
     numberMap,
     profile,
     unknownObject,
-} from "./fixtures";
+} from "./fixtures.js";
 
 describe("obj output type tests", () => {
     describe("join", () => {

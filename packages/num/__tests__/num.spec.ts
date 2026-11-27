@@ -1,6 +1,9 @@
 import * as Num from "@tolki/num";
-import { InvalidArgumentException } from "@tolki/utils";
-import { describe, expect, it } from "vitest";
+import {
+    InvalidArgumentException,
+    localeTag as utilsLocaleTag,
+} from "@tolki/utils";
+import { afterEach, describe, expect, it } from "vitest";
 
 describe("Number", () => {
     describe("abbreviate", () => {
@@ -164,6 +167,44 @@ describe("Number", () => {
             expect(Num.format(-0.0004, null, 2)).toBe("0");
             expect(Num.format(-0.04, 1, null, "de")).toBe("0,0");
         });
+
+        it("reads Laravel's locale spellings", () => {
+            // docs/php-parity/Number/format.json, "format-locale-spellings"
+            const expected: Record<string, string> = {
+                pt_BR: "1.234,50",
+                "pt-BR": "1.234,50",
+                pt_br: "1.234,50",
+                "PT-br": "1.234,50",
+                zh_hant_tw: "1,234.50",
+                ar_EG: "\u0661\u066c\u0662\u0663\u0664\u066b\u0665\u0660",
+                es_419: "1,234.50",
+            };
+
+            for (const [locale, result] of Object.entries(expected)) {
+                expect(Num.format(1234.5, 2, null, locale)).toBe(result);
+            }
+        });
+
+        it("throws PHP's error for a locale ICU cannot read", () => {
+            // docs/php-parity/Number/format.json, "format-locale-unknown" and "format-locale-malformed"
+            for (const locale of ["xx", "not a locale"]) {
+                expect(() => Num.format(1234.5, null, null, locale)).toThrow(
+                    new Error(
+                        `NumberFormatter::__construct(): Argument #1 ($locale) "${locale}" is invalid`,
+                    ),
+                );
+            }
+        });
+
+        it("formats an empty locale in the runtime's locale", () => {
+            // docs/php-parity/Number/format.json, "format-locale-empty-is-icu-default"
+            expect(Num.format(1234.5, 2, null, "")).toBe(
+                new Intl.NumberFormat(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                }).format(1234.5),
+            );
+        });
     });
 
     describe("parse", () => {
@@ -184,6 +225,22 @@ describe("Number", () => {
             // English locale uses '.' as decimal separator - tests the branch where decimalSymbol === "."
             expect(Num.parse("1234.56", "en")).toBe(1234.56);
             expect(Num.parse("1234", "en")).toBe(1234);
+        });
+
+        it("reads Laravel's locale spellings", () => {
+            // docs/php-parity/Number/parse.json, "parse-locale-spellings"
+            for (const locale of ["pt_BR", "pt-BR"]) {
+                expect(Num.parse("1.234,5", locale)).toBe(1234.5);
+            }
+        });
+
+        it("throws PHP's error for an unknown locale", () => {
+            // docs/php-parity/Number/parse.json, "parse-locale-unknown"
+            expect(() => Num.parse("1.234,5", "xx")).toThrow(
+                new Error(
+                    `NumberFormatter::__construct(): Argument #1 ($locale) "xx" is invalid`,
+                ),
+            );
         });
     });
 
@@ -210,6 +267,13 @@ describe("Number", () => {
                 Number.MAX_SAFE_INTEGER,
             );
         });
+
+        it("reads Laravel's locale spellings", () => {
+            // docs/php-parity/Number/parseInt.json, "parseInt-locale-spellings"
+            for (const locale of ["pt_BR", "pt-BR"]) {
+                expect(Num.parseInt("1.234,5", locale)).toBe(1234);
+            }
+        });
     });
 
     describe("parseFloat", () => {
@@ -221,6 +285,13 @@ describe("Number", () => {
 
             expect(Num.parseFloat("1.234,56", "de")).toBe(1234.56);
             expect(Num.parseFloat("1 234,56", "fr")).toBe(1234.56);
+        });
+
+        it("reads Laravel's locale spellings", () => {
+            // docs/php-parity/Number/parseFloat.json, "parseFloat-locale-spellings"
+            for (const locale of ["pt_BR", "pt-BR"]) {
+                expect(Num.parseFloat("1.234,5", locale)).toBe(1234.5);
+            }
         });
     });
 
@@ -263,66 +334,63 @@ describe("Number", () => {
             expect(Num.ordinal(13)).toBe("13th");
         });
 
-        it("should fallback when Intl.PluralRules does not exist", () => {
-            const original = Intl.PluralRules;
-            // @ts-expect-error Cannot assign to 'PluralRules' because it is a read-only property.
-            Intl.PluralRules = undefined;
-
-            expect(Num.ordinal(1)).toBe("1st");
-            expect(Num.ordinal(2)).toBe("2nd");
-            expect(Num.ordinal(3)).toBe("3rd");
-            expect(Num.ordinal(4)).toBe("4th");
-            expect(Num.ordinal(11)).toBe("11th");
-            expect(Num.ordinal(12)).toBe("12th");
-            expect(Num.ordinal(13)).toBe("13th");
-
-            // @ts-expect-error Cannot assign to 'PluralRules' because it is a read-only property.
-            Intl.PluralRules = original;
+        it("formats each locale's own ordinal", () => {
+            // docs/php-parity/Number/ordinal.json, "ordinal-of-de", "ordinal-of-pt_BR"
+            expect(Num.ordinal(1, "de")).toBe("1.");
+            expect(Num.ordinal(2, "de")).toBe("2.");
+            expect(Num.ordinal(1, "pt_BR")).toBe("1º");
         });
 
-        it("should handle negative numbers in fallback", () => {
-            const original = Intl.PluralRules;
-            // @ts-expect-error Cannot assign to 'PluralRules' because it is a read-only property.
-            Intl.PluralRules = undefined;
-
-            // Test negative numbers to ensure Math.abs is used
-            expect(Num.ordinal(-1)).toBe("-1st");
-            expect(Num.ordinal(-2)).toBe("-2nd");
-            expect(Num.ordinal(-3)).toBe("-3rd");
-            expect(Num.ordinal(-4)).toBe("-4th");
-            expect(Num.ordinal(-11)).toBe("-11th");
-            expect(Num.ordinal(-12)).toBe("-12th");
-            expect(Num.ordinal(-13)).toBe("-13th");
-
-            // @ts-expect-error Cannot assign to 'PluralRules' because it is a read-only property.
-            Intl.PluralRules = original;
+        it("writes negatives with the minus sign", () => {
+            // docs/php-parity/Number/ordinal.json, "ordinal-of-en"
+            expect(Num.ordinal(-1)).toBe("\u22121st");
+            expect(Num.ordinal(-2)).toBe("\u22122nd");
+            expect(Num.ordinal(-11)).toBe("\u221211th");
+            expect(Num.ordinal(-21)).toBe("\u221221st");
         });
 
-        it("should handle locale with non-English suffixes", () => {
-            // Testing with locales where plural rules may differ - German uses "other" for ordinals
-            // This covers the fallback path where map?.[rule] doesn't match so it uses map?.["other"]
-            expect(Num.ordinal(1, "de")).toBe("1th"); // German ordinal rules return "other" for 1
-            expect(Num.ordinal(2, "de")).toBe("2th"); // German ordinal rules return "other" for 2
+        it("groups digits and rounds fractions as ICU does", () => {
+            // docs/php-parity/Number/ordinal.json, "ordinal-of-en"
+            expect(Num.ordinal(1000)).toBe("1,000th");
+            expect(Num.ordinal(1.5)).toBe("2st");
+            expect(Num.ordinal(3.5)).toBe("4rd");
         });
 
-        it("should handle locale that returns rare plural rules", () => {
-            // Welsh returns "zero", "many" which are not in the English suffixes map
-            // This covers the branch where map?.[rule] is undefined so it falls back to map?.["other"]
-            expect(Num.ordinal(5, "cy")).toBe("5th"); // Welsh returns "many" for 5
-            expect(Num.ordinal(0, "cy")).toBe("0th"); // Welsh returns "zero" for 0
-            expect(Num.ordinal(7, "cy")).toBe("7th"); // Welsh returns "zero" for 7
+        it("reads Laravel's locale spellings", () => {
+            // docs/php-parity/Number/ordinal.json, "ordinal-locale-spellings"
+            for (const locale of ["pt_BR", "pt-BR", "pt_br", "PT-br"]) {
+                expect(Num.ordinal(21, locale), locale).toBe("21º");
+            }
+
+            expect(Num.ordinal(21, "zh_hant_tw")).toBe("第21");
         });
 
-        it("should handle edge case locale formats", () => {
-            // Locale starting with "-" produces empty first element when split
-            // This covers the || "en" fallback at the end of lang calculation
-            expect(Num.ordinal(1, "-en")).toBe("1st");
+        it("throws PHP's error for a malformed locale", () => {
+            // docs/php-parity/Number/ordinal.json, "ordinal-locale-malformed"
+            expect(() => Num.ordinal(1, "-en")).toThrow(
+                new Error(
+                    `NumberFormatter::__construct(): Argument #1 ($locale) "-en" is invalid`,
+                ),
+            );
         });
 
-        it("should handle empty locale fallback", () => {
-            // When locale is empty string, it falls back to "en"
-            // This covers the (loc || "en") branch where loc is falsy
-            expect(Num.ordinal(1, "")).toBe("1st");
+        it("throws PHP's error for an unknown locale", () => {
+            // docs/php-parity/Number/ordinal.json, "ordinal-locale-unknown"
+            expect(() => Num.ordinal(1, "xx")).toThrow(
+                new Error(
+                    `NumberFormatter::__construct(): Argument #1 ($locale) "xx" is invalid`,
+                ),
+            );
+        });
+
+        it("reads an empty locale as the runtime's own", () => {
+            // docs/php-parity/Number/format.json, "format-locale-empty-is-icu-default"
+            expect(Num.ordinal(1, "")).toBe(
+                Num.ordinal(
+                    1,
+                    new Intl.NumberFormat().resolvedOptions().locale,
+                ),
+            );
         });
     });
 
@@ -376,6 +444,22 @@ describe("Number", () => {
             expect(Num.percentage(-5)).toBe("-5%");
             expect(Num.percentage(-0.004, 0, 2)).toBe("0%");
         });
+
+        it("reads Laravel's locale spellings", () => {
+            // docs/php-parity/Number/percentage.json, "percentage-locale-spellings"
+            for (const locale of ["pt_BR", "pt-BR"]) {
+                expect(Num.percentage(12.5, 1, null, locale)).toBe("12,5%");
+            }
+        });
+
+        it("throws PHP's error for an unknown locale", () => {
+            // docs/php-parity/Number/percentage.json, "percentage-locale-unknown"
+            expect(() => Num.percentage(12.5, 0, null, "xx")).toThrow(
+                new Error(
+                    `NumberFormatter::__construct(): Argument #1 ($locale) "xx" is invalid`,
+                ),
+            );
+        });
     });
 
     describe("currency", () => {
@@ -427,6 +511,28 @@ describe("Number", () => {
             expect(Num.currency(-0.006)).toBe("-$0.01");
             expect(Num.currency(-0.0)).toBe("$0.00");
             expect(Num.currency(-0.001, "EUR", "de")).toBe("0,00\u00a0€");
+        });
+
+        it("reads Laravel's locale spellings", () => {
+            // docs/php-parity/Number/currency.json, "currency-locale-spellings"
+            const expected: Record<string, string> = {
+                pt_BR: "\u20ac\u00a01.234,50",
+                "pt-BR": "\u20ac\u00a01.234,50",
+                ar_EG: "\u200f\u0661\u066c\u0662\u0663\u0664\u066b\u0665\u0660\u00a0\u20ac",
+            };
+
+            for (const [locale, result] of Object.entries(expected)) {
+                expect(Num.currency(1234.5, "EUR", locale)).toBe(result);
+            }
+        });
+
+        it("throws PHP's error for an unknown locale", () => {
+            // docs/php-parity/Number/currency.json, "currency-locale-unknown"
+            expect(() => Num.currency(1234.5, "EUR", "xx")).toThrow(
+                new Error(
+                    `NumberFormatter::__construct(): Argument #1 ($locale) "xx" is invalid`,
+                ),
+            );
         });
     });
 
@@ -900,5 +1006,102 @@ describe("Number", () => {
 
     it("defaultCurrency", () => {
         expect(Num.defaultCurrency()).toBe("USD");
+    });
+
+    describe("useLocale", () => {
+        it("stores the spelling it is given", () => {
+            // docs/php-parity/Number/useLocale.json, "useLocale-keeps-spelling" and "useLocale-underscore-formats"
+            try {
+                Num.useLocale("pt_BR");
+
+                expect(Num.defaultLocale()).toBe("pt_BR");
+                expect(Num.format(1234.5, 2)).toBe("1.234,50");
+            } finally {
+                Num.useLocale("en");
+            }
+        });
+
+        it("accepts an unknown locale and throws when a formatter reads it", () => {
+            // docs/php-parity/Number/useLocale.json, "useLocale-accepts-unknown" and "useLocale-unknown-throws-on-use"
+            try {
+                Num.useLocale("xx");
+
+                expect(Num.defaultLocale()).toBe("xx");
+                expect(() => Num.format(1234.5)).toThrow('"xx" is invalid');
+                expect(() => Num.summarize(1234)).toThrow('"xx" is invalid');
+            } finally {
+                Num.useLocale("en");
+            }
+        });
+    });
+
+    describe("withLocale", () => {
+        it("reads either spelling and keeps it as given", () => {
+            // docs/php-parity/Number/withLocale.json, "withLocale-spellings"
+            for (const locale of ["pt_BR", "pt-BR"]) {
+                expect(
+                    Num.withLocale(locale, () => [
+                        Num.format(1234.5, 2),
+                        Num.defaultLocale(),
+                    ]),
+                ).toEqual(["1.234,50", locale]);
+            }
+        });
+
+        it("restores the previous locale after the callback throws", () => {
+            // docs/php-parity/Number/withLocale.json, "withLocale-restores-after-throw"
+            expect(() => Num.withLocale("xx", () => Num.format(1))).toThrow(
+                '"xx" is invalid',
+            );
+            expect(Num.defaultLocale()).toBe("en");
+        });
+    });
+
+    describe("localeTag", () => {
+        // JS-only: num re-exports the utils helper so users restore the default hook without an internal import.
+        it("is the @tolki/utils helper", () => {
+            expect(Num.localeTag).toBe(utilsLocaleTag);
+        });
+    });
+
+    describe("normalizeLocalesUsing", () => {
+        afterEach(() => {
+            Num.normalizeLocalesUsing(Num.localeTag);
+        });
+
+        // JS-only: Laravel's Number has no locale hook.
+        it("passes locales through unchanged when null", () => {
+            Num.normalizeLocalesUsing(null);
+
+            expect(() => Num.format(1234.5, 2, null, "pt_BR")).toThrow(
+                '"pt_BR" is invalid',
+            );
+            expect(Num.format(1234.5, 2, null, "pt-BR")).toBe("1.234,50");
+        });
+
+        // JS-only: Laravel's Number has no locale hook.
+        it("uses a custom callback", () => {
+            Num.normalizeLocalesUsing((locale) =>
+                locale === "br" ? "pt-BR" : Num.localeTag(locale),
+            );
+
+            expect(Num.format(1234.5, 2, null, "br")).toBe("1.234,50");
+        });
+
+        // JS-only: Laravel's Number has no locale hook.
+        it("governs the default locale too", () => {
+            Num.normalizeLocalesUsing((locale) =>
+                locale === "br" ? "pt-BR" : Num.localeTag(locale),
+            );
+
+            try {
+                Num.useLocale("br");
+
+                expect(Num.format(1234.5, 2)).toBe("1.234,50");
+                expect(Num.defaultLocale()).toBe("br");
+            } finally {
+                Num.useLocale("en");
+            }
+        });
     });
 });

@@ -7,7 +7,7 @@ import type {
     TranslationResult,
 } from "@tolki/types";
 
-import type { Translator } from "./translator";
+import type { Translator } from "./translator.js";
 
 export type {
     ChoiceNumber,
@@ -20,6 +20,7 @@ export type {
     LocaleLines,
     LocaleLinesLoader,
     LocaleModule,
+    LocaleNormalizer,
     LocalesResolver,
     MissingKeyHandler,
     Replacements,

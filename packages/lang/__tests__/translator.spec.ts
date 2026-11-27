@@ -1,9 +1,9 @@
 import type { LangLines } from "@tolki/lang";
-import { Translator } from "@tolki/lang";
+import { localeTag, normalizeLocale, Translator } from "@tolki/lang";
 import { InvalidArgumentException } from "@tolki/utils";
 import { describe, expect, it } from "vitest";
 
-import { mergeLocaleLines } from "../src/translator";
+import { mergeLocaleLines } from "../src/translator.js";
 
 class LangMoney {
     constructor(public cents: number) {}
@@ -487,6 +487,26 @@ describe("Translator", () => {
                 new Translator({ en: { Hello: "Hola :name" } }, "en").get("*"),
             ).toEqual({ Hello: "Hola :name" });
         });
+
+        // docs/php-parity/Translator/get.json, "get-hyphen-locale-misses-underscore-lines"
+        it("misses lines keyed with an underscore for a hyphenated locale", () => {
+            expect(
+                new Translator({ pt_BR: { g: { a: "A" } } }, "pt-BR").get(
+                    "g.a",
+                ),
+            ).toBe("g.a");
+        });
+
+        // docs/php-parity/Translator/get.json, "get-hyphen-locale-argument-misses-underscore-lines"
+        it("misses lines keyed with an underscore for a hyphenated locale argument", () => {
+            expect(
+                new Translator({ pt_BR: { g: { a: "A" } } }, "en").get(
+                    "g.a",
+                    {},
+                    "pt-BR",
+                ),
+            ).toBe("g.a");
+        });
     });
 
     describe("string", () => {
@@ -748,6 +768,26 @@ describe("Translator", () => {
             expect(
                 Reflect.apply(translator.choice, translator, ["apples", null]),
             ).toBe(" one");
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-hyphen-locale-uses-default-rule"
+        it("uses the default plural rule for a hyphenated locale", () => {
+            expect(
+                new Translator(
+                    { "pt-BR": { g: { a: "one|many" } } },
+                    "pt-BR",
+                ).choice("g.a", 0),
+            ).toBe("one");
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-underscore-locale-uses-its-rule"
+        it("uses the locale's own plural rule for an underscored locale", () => {
+            expect(
+                new Translator(
+                    { pt_BR: { g: { a: "one|many" } } },
+                    "pt_BR",
+                ).choice("g.a", 0),
+            ).toBe("many");
         });
     });
 
@@ -1090,6 +1130,279 @@ describe("Translator", () => {
         });
     });
 
+    // JS-only: Laravel reads a locale as an exact key; the hook lets an app read pt-BR as pt_BR.
+    describe("normalizeLocalesUsing", () => {
+        const invalid = new InvalidArgumentException(
+            "Invalid characters present in locale.",
+        );
+
+        it("returns the translator", () => {
+            const translator = new Translator({}, "en");
+
+            expect(translator.normalizeLocalesUsing(normalizeLocale)).toBe(
+                translator,
+            );
+        });
+
+        it("converts the locale and fallback already set", () => {
+            const translator = withFallback({}, "pt-br", "en-us");
+
+            translator.normalizeLocalesUsing(normalizeLocale);
+
+            expect(translator.getLocale()).toBe("pt_BR");
+            expect(translator.getFallback()).toBe("en_US");
+        });
+
+        it("keeps a missing fallback missing", () => {
+            const translator = new Translator({}, "en");
+
+            translator.normalizeLocalesUsing(normalizeLocale);
+
+            expect(translator.getFallback()).toBeNull();
+        });
+
+        it("converts the locale and fallback set later", () => {
+            const translator = new Translator({}, "en").normalizeLocalesUsing(
+                normalizeLocale,
+            );
+
+            translator.setLocale("pt-br");
+            translator.setFallback("en-us");
+
+            expect(translator.getLocale()).toBe("pt_BR");
+            expect(translator.getFallback()).toBe("en_US");
+        });
+
+        it("reads lines keyed with another spelling of the locale", () => {
+            const translator = new Translator(
+                { "pt-BR": { Hi: "Oi", g: { a: "A" } } },
+                "pt_br",
+            ).normalizeLocalesUsing(normalizeLocale);
+
+            expect(translator.get("g.a")).toBe("A");
+            expect(translator.get("Hi")).toBe("Oi");
+        });
+
+        it("converts the locale argument of every lookup", () => {
+            const translator = new Translator(
+                { pt_BR: { Hi: "Oi", g: { a: "A", list: ["x"] } } },
+                "en",
+            ).normalizeLocalesUsing(normalizeLocale);
+
+            expect(translator.get("g.a", {}, "pt-BR")).toBe("A");
+            expect(translator.get("Hi", {}, "pt-BR")).toBe("Oi");
+            expect(translator.string("g.a", {}, "pt-BR")).toBe("A");
+            expect(translator.array("g.list", {}, "pt-BR")).toEqual(["x"]);
+            expect(translator.has("g.a", "pt-BR")).toBe(true);
+            expect(translator.hasForLocale("g.a", "pt-BR")).toBe(true);
+            expect(translator.choice("g.a", 1, {}, "pt-BR")).toBe("A");
+        });
+
+        it("never converts an empty or zero locale argument", () => {
+            const seen: string[] = [];
+            const translator = new Translator(
+                { pt_BR: { g: { a: "A" } } },
+                "pt-br",
+            ).normalizeLocalesUsing((locale) => {
+                seen.push(locale);
+
+                return normalizeLocale(locale);
+            });
+
+            seen.length = 0;
+
+            expect(translator.get("g.a", {}, "")).toBe("A");
+            expect(translator.get("g.a", {}, "0")).toBe("A");
+            expect(seen).not.toContain("");
+            expect(seen).not.toContain("0");
+        });
+
+        // docs/php-parity/Translator/choice.json, "choice-underscore-locale-uses-its-rule"
+        it("chooses with the converted locale's plural rule", () => {
+            const translator = new Translator(
+                { pt_BR: { g: { a: "one|many" } } },
+                "pt-BR",
+            ).normalizeLocalesUsing(normalizeLocale);
+
+            expect(translator.choice("g.a", 0)).toBe("many");
+        });
+
+        it("prefers the key spelled as the converted locale", () => {
+            const translator = new Translator(
+                {
+                    "pt-BR": { g: { a: "hyphen" } },
+                    pt_BR: { g: { a: "underscore" } },
+                },
+                "pt-BR",
+            ).normalizeLocalesUsing(normalizeLocale);
+
+            expect(translator.get("g.a")).toBe("underscore");
+        });
+
+        it("reads the first of two keys that convert to the locale", () => {
+            const translator = new Translator(
+                {
+                    "pt-br": { g: { a: "first" } },
+                    "PT-BR": { g: { a: "second" } },
+                },
+                "pt_BR",
+            ).normalizeLocalesUsing(normalizeLocale);
+
+            expect(translator.get("g.a")).toBe("first");
+        });
+
+        it("matches the locales the resolver answers by their converted spelling", () => {
+            const translator = new Translator(
+                { pt_BR: { g: { a: "A" } } },
+                "en",
+            ).normalizeLocalesUsing(normalizeLocale);
+
+            translator.determineLocalesUsing(() => ["pt-BR"]);
+
+            expect(translator.get("g.a")).toBe("A");
+        });
+
+        it("hands the missing-key handler the converted locale", () => {
+            let seen = "";
+            const translator = new Translator(
+                {},
+                "pt-br",
+            ).normalizeLocalesUsing(normalizeLocale);
+
+            translator.handleMissingKeysUsing((...args) => {
+                seen = args[2];
+
+                return args[0];
+            });
+            translator.get("g.a", {}, "en-us");
+
+            expect(seen).toBe("en_US");
+        });
+
+        it("adds lines to the key of another spelling of the locale", () => {
+            const translator = new Translator(
+                { "pt-BR": { g: { a: "A" } } },
+                "pt_BR",
+            ).normalizeLocalesUsing(normalizeLocale);
+
+            translator.addLines({ "g.b": "B" }, "pt-br");
+
+            expect(translator.get("g.a")).toBe("A");
+            expect(translator.get("g.b")).toBe("B");
+        });
+
+        it("adds lines for a new locale under its converted spelling", () => {
+            const translator = new Translator(
+                {},
+                "pt_BR",
+            ).normalizeLocalesUsing(normalizeLocale);
+
+            translator.addLines({ "g.a": "A" }, "pt-br");
+            translator.normalizeLocalesUsing(null);
+
+            expect(translator.get("g.a")).toBe("A");
+        });
+
+        it("reads lines that setLoaded replaced", () => {
+            const translator = new Translator<LangLines>(
+                { en: { g: { a: "A" } } },
+                "pt_BR",
+            ).normalizeLocalesUsing(normalizeLocale);
+
+            expect(translator.get("g.a")).toBe("g.a");
+
+            translator.setLoaded({ "pt-BR": { g: { a: "B" } } });
+
+            expect(translator.get("g.a")).toBe("B");
+        });
+
+        it("reads lines by their exact keys again once turned off", () => {
+            const translator = new Translator(
+                { "pt-BR": { g: { a: "A" } } },
+                "pt-BR",
+            ).normalizeLocalesUsing(normalizeLocale);
+
+            translator.normalizeLocalesUsing(null);
+
+            expect(translator.getLocale()).toBe("pt_BR");
+            expect(translator.get("g.a")).toBe("g.a");
+            expect(translator.get("g.a", {}, "pt-BR")).toBe("A");
+        });
+
+        it("matches the keys by a new callback once the callback changes", () => {
+            const translator = new Translator(
+                { "PT-BR": { g: { a: "A" } } },
+                "pt-br",
+            ).normalizeLocalesUsing(normalizeLocale);
+
+            expect(translator.get("g.a")).toBe("A");
+
+            translator.normalizeLocalesUsing(localeTag);
+
+            expect(translator.getLocale()).toBe("pt-BR");
+            expect(translator.get("g.a")).toBe("A");
+        });
+
+        it("rejects a converted locale that holds a path character", () => {
+            const translator = new Translator({}, "en").normalizeLocalesUsing(
+                (locale) => locale.replace("-", "/"),
+            );
+
+            expect(() => translator.setLocale("en-US")).toThrow(invalid);
+            expect(translator.getLocale()).toBe("en");
+        });
+
+        it("keeps the previous callback when the stored locale converts to a path", () => {
+            const translator = new Translator({}, "en");
+
+            expect(() =>
+                translator.normalizeLocalesUsing(() => "../x"),
+            ).toThrow(invalid);
+            expect(translator.getLocale()).toBe("en");
+
+            translator.setLocale("pt-br");
+
+            expect(translator.getLocale()).toBe("pt-br");
+        });
+
+        it("leaves the translator unchanged when the callback throws on the fallback", () => {
+            const translator = withFallback(
+                { "en-us": { g: { a: "A" } } },
+                "en-us",
+                "xx",
+            );
+            const strict = (locale: string): string => {
+                if (locale === "xx") {
+                    throw new Error("Unknown locale.");
+                }
+
+                return normalizeLocale(locale);
+            };
+
+            expect(() => translator.normalizeLocalesUsing(strict)).toThrow(
+                "Unknown locale.",
+            );
+            expect(translator.getLocale()).toBe("en-us");
+            expect(translator.getFallback()).toBe("xx");
+            expect(translator.get("g.a")).toBe("A");
+            expect(translator.get("g.b")).toBe("g.b");
+
+            translator.setLocale("pt-br");
+
+            expect(translator.getLocale()).toBe("pt-br");
+        });
+
+        it("accepts a locale whose path character the callback removes", () => {
+            const translator = new Translator({}, "en").normalizeLocalesUsing(
+                (locale) => locale.replaceAll("/", "_"),
+            );
+
+            translator.setLocale("en/US");
+
+            expect(translator.getLocale()).toBe("en_US");
+        });
+    });
+
     describe("locale", () => {
         // docs/php-parity/Translator/getLocale.json, "locale-alias-reads-current"
         it("answers the current locale", () => {
@@ -1176,6 +1489,15 @@ describe("Translator", () => {
 
             expect(translator.getLocale()).toBe("en_US");
         });
+
+        // docs/php-parity/Translator/setLocale.json, "set-locale-keeps-hyphen"
+        it("keeps a hyphenated locale as given", () => {
+            const translator = new Translator({}, "en");
+
+            translator.setLocale("pt-BR");
+
+            expect(translator.getLocale()).toBe("pt-BR");
+        });
     });
 
     describe("getFallback", () => {
@@ -1187,6 +1509,11 @@ describe("Translator", () => {
         // docs/php-parity/Translator/getFallback.json, "fallback-is-set"
         it("answers the fallback locale that was set", () => {
             expect(withFallback({}, "en", "en").getFallback()).toBe("en");
+        });
+
+        // docs/php-parity/Translator/getFallback.json, "fallback-keeps-hyphen"
+        it("keeps a hyphenated fallback locale as given", () => {
+            expect(withFallback({}, "en", "pt-BR").getFallback()).toBe("pt-BR");
         });
     });
 

@@ -1,0 +1,46 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "substr-fractional",
+            "php": "Str::substr() of ('abcd', -2.5), ('abcd', 1.5, 2), ('abcd', 0, -0.5), ('abcd', 1, 1.9) and ('abcd', 0, -1.5), with PHP's deprecations",
+            "value": {
+                "result": [
+                    "cd",
+                    "bc",
+                    "",
+                    "b",
+                    "abc"
+                ],
+                "deprecations": [
+                    "Implicit conversion from float -2.5 to int loses precision",
+                    "Implicit conversion from float 1.5 to int loses precision",
+                    "Implicit conversion from float -0.5 to int loses precision",
+                    "Implicit conversion from float 1.9 to int loses precision",
+                    "Implicit conversion from float -1.5 to int loses precision"
+                ]
+            }
+        },
+        {
+            "label": "substr-non-finite",
+            "php": "What Str::substr('abcd', NAN), Str::substr('abcd', 0, NAN) and Str::substr('abcd', INF) throw",
+            "value": [
+                [
+                    "TypeError",
+                    "mb_substr(): Argument #2 ($start) must be of type int, float given"
+                ],
+                [
+                    "TypeError",
+                    "mb_substr(): Argument #3 ($length) must be of type ?int, float given"
+                ],
+                [
+                    "TypeError",
+                    "mb_substr(): Argument #2 ($start) must be of type int, float given"
+                ]
+            ]
+        }
+    ]
+}

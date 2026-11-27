@@ -1,13 +1,15 @@
 import type {
     Lang,
     LangLines,
+    LangOptions,
     LinesFromRegister,
+    LocaleNormalizer,
     TranslationValue,
 } from "@tolki/lang";
-import { createLang } from "@tolki/lang";
+import { createLang, normalizeLocale } from "@tolki/lang";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { LINES } from "./fixtures/lines";
+import { LINES } from "./fixtures/lines.js";
 
 declare const registered: Lang<LinesFromRegister<{ lines: typeof LINES.en }>>;
 
@@ -30,6 +32,19 @@ describe("createLang", () => {
         expectTypeOf(
             createLang({ locale: "en" }).setLocale("es"),
         ).toEqualTypeOf<Promise<void>>();
+    });
+
+    it("takes a locale normalizer, or null", () => {
+        expectTypeOf<LangOptions["normalizeLocalesUsing"]>().toEqualTypeOf<
+            LocaleNormalizer | null | undefined
+        >();
+        expectTypeOf(normalizeLocale).toExtend<LocaleNormalizer>();
+        expectTypeOf(
+            createLang({
+                locale: "en",
+                normalizeLocalesUsing: normalizeLocale,
+            }),
+        ).toExtend<Lang<LangLines>>();
     });
 });
 

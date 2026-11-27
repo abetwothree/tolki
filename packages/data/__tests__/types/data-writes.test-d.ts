@@ -13,7 +13,7 @@ import {
     readonlyNumberList,
     settings,
     unionItems,
-} from "./fixtures";
+} from "./fixtures.js";
 
 /** A record whose value is a list, so push has something to append to. */
 const listValued = { a: [1, 2] };

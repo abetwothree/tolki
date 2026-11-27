@@ -16,7 +16,7 @@ import {
     streamPositionalData,
     toKeyedData,
     toPositionalBacking,
-} from "../src/dispatch";
+} from "../src/dispatch.js";
 
 describe("dispatch", () => {
     const dCollapse = dispatch(arrCollapse, objCollapse);

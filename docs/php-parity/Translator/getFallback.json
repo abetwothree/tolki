@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.39.0-43-gb20bf7f442"
+        "laravel": "v13.43.0-17-g1caec34a34"
     },
     "probes": [
         {
@@ -13,6 +13,11 @@
             "label": "fallback-is-set",
             "php": "t([], 'en', 'en')->getFallback()",
             "value": "en"
+        },
+        {
+            "label": "fallback-keeps-hyphen",
+            "php": "t([], 'en', 'pt-BR')->getFallback()",
+            "value": "pt-BR"
         }
     ]
 }

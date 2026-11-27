@@ -3,7 +3,7 @@ import * as Data from "@tolki/data";
 import * as Obj from "@tolki/obj";
 import { describe, expectTypeOf, it } from "vitest";
 
-import type { Row } from "./fixtures";
+import type { Row } from "./fixtures.js";
 import {
     abc,
     box,
@@ -16,7 +16,7 @@ import {
     rowsById,
     settings,
     unionItems,
-} from "./fixtures";
+} from "./fixtures.js";
 
 const byId = (row: Row): number => row.id;
 

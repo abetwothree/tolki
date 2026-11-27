@@ -9,7 +9,7 @@ import {
     isPlainObject,
     isString,
     isUndefined,
-} from "./guards";
+} from "./guards.js";
 
 /**
  * PHP has no `undefined`; this port uses it for the missing value `data_get` answers with null.

@@ -1,7 +1,7 @@
 import * as Arr from "@tolki/arr";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { booleanFlags, readonlyStrings, unknownArray } from "./fixtures";
+import { booleanFlags, readonlyStrings, unknownArray } from "./fixtures.js";
 
 describe("arr output type tests", () => {
     describe("query", () => {

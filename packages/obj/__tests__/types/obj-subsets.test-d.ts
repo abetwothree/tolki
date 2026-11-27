@@ -14,7 +14,7 @@ import {
     tree,
     unknownObject,
     user,
-} from "./fixtures";
+} from "./fixtures.js";
 
 declare const nullableKey: string | null;
 

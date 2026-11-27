@@ -13,7 +13,7 @@ import {
     profile,
     unknownObject,
     user,
-} from "./fixtures";
+} from "./fixtures.js";
 
 declare const maybeCount: number | undefined;
 

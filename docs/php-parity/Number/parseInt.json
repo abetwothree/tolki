@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.39.0-43-gb20bf7f442"
+        "laravel": "v13.43.0-17-g1caec34a34"
     },
     "probes": [
         {
@@ -23,6 +23,14 @@
             "label": "parseInt-php-int-max",
             "php": "(string) Number::parseInt((string) PHP_INT_MAX)",
             "value": "9223372036854775807"
+        },
+        {
+            "label": "parseInt-locale-spellings",
+            "php": "Number::parseInt('1.234,5', \u2026) for pt_BR and pt-BR",
+            "value": {
+                "pt_BR": 1234,
+                "pt-BR": 1234
+            }
         }
     ]
 }

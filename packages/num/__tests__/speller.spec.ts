@@ -1,4 +1,4 @@
-import { spell, spellOrdinal } from "@tolki/num";
+import { spell, spellOrdinal, useLocale } from "@tolki/num";
 import { describe, expect, it } from "vitest";
 
 describe("Num/Speller", () => {
@@ -69,8 +69,41 @@ describe("Num/Speller", () => {
             expect(await spell(42, "es-ES")).toBe("cuarenta y dos");
         });
 
-        it("falls back to en-US for unsupported locales", async () => {
-            expect(await spell(42, "xx-XX")).toBe("forty two");
+        it("rejects a locale ICU cannot read", async () => {
+            // docs/php-parity/Number/spell.json, "spell-locale-unknown"
+            await expect(spell(42, "xx")).rejects.toThrow(
+                new Error(
+                    'NumberFormatter::__construct(): Argument #1 ($locale) "xx" is invalid',
+                ),
+            );
+        });
+
+        it("falls back to en-US for a locale to-words has no words for", async () => {
+            // JS-only: ICU reads Welsh, but to-words ships no Welsh words.
+            expect(await spell(42, "cy")).toBe("forty two");
+        });
+
+        it("reads Laravel's locale spellings", async () => {
+            // docs/php-parity/Number/spell.json, "spell-locale-spellings"
+            expect(await spell(21, "pt_BR")).toBe("vinte e um");
+            expect(await spell(21, "pt-BR")).toBe("vinte e um");
+        });
+
+        it("formats with the given locale below `after`", async () => {
+            // docs/php-parity/Number/spell.json, "spell-after-uses-locale"
+            expect(await spell(1234.5, "pt_BR", 2000)).toBe("1.234,5");
+        });
+
+        it("spells in the default locale", async () => {
+            // docs/php-parity/Number/spell.json, "spell-uses-default-locale"
+            useLocale("pt_BR");
+
+            try {
+                expect(await spell(21)).toBe(await spell(21, "pt_BR"));
+                expect(await spell(21)).not.toBe(await spell(21, "en"));
+            } finally {
+                useLocale("en");
+            }
         });
 
         it("maps partial locale codes to supported ones", async () => {
@@ -102,6 +135,31 @@ describe("Num/Speller", () => {
         it("uses different locales", async () => {
             expect(await spellOrdinal(1, "fr-FR")).toBe("premier");
             expect(await spellOrdinal(42, "fr-FR")).toBe("quarante-deux");
+        });
+
+        it("rejects a locale ICU cannot read", async () => {
+            // docs/php-parity/Number/spellOrdinal.json, "spellOrdinal-locale-unknown"
+            await expect(spellOrdinal(2, "xx")).rejects.toThrow(
+                new Error(
+                    'NumberFormatter::__construct(): Argument #1 ($locale) "xx" is invalid',
+                ),
+            );
+        });
+
+        it("spells in the default locale", async () => {
+            // docs/php-parity/Number/spellOrdinal.json, "spellOrdinal-uses-default-locale"
+            useLocale("pt_BR");
+
+            try {
+                expect(await spellOrdinal(2)).toBe(
+                    await spellOrdinal(2, "pt_BR"),
+                );
+                expect(await spellOrdinal(2)).not.toBe(
+                    await spellOrdinal(2, "en"),
+                );
+            } finally {
+                useLocale("en");
+            }
         });
 
         it("As strings", async () => {

@@ -1,19 +1,19 @@
 import { isFunction, isInteger } from "@tolki/utils";
 
-import { ascii, slug } from "../ascii";
-import { fromBase64, toBase64 } from "../base64";
-import type { ConvertCaseMode } from "../convertcase";
-import { convertCase, title, upper } from "../convertcase";
-import type { MarkDownExtensions, MarkDownOptions } from "../markdown";
-import { inlineMarkdown, markdown } from "../markdown";
+import { ascii, slug } from "../ascii/index.js";
+import { fromBase64, toBase64 } from "../base64/index.js";
+import type { ConvertCaseMode } from "../convertcase/index.js";
+import { convertCase, title, upper } from "../convertcase/index.js";
+import type { MarkDownExtensions, MarkDownOptions } from "../markdown/index.js";
+import { inlineMarkdown, markdown } from "../markdown/index.js";
 import {
     counted,
     plural,
     pluralPascal,
     pluralStudly,
     singular,
-} from "../pluralizer";
-import { substr, substrCount, substrReplace } from "../replacer";
+} from "../pluralizer/index.js";
+import { substr, substrCount, substrReplace } from "../replacer/index.js";
 import {
     after,
     afterLast,
@@ -82,11 +82,11 @@ import {
     words,
     wordWrap,
     wrap,
-} from "../str";
-import { transliterate } from "../transliterate";
-import { ltrim, rtrim, trim } from "../trimmer";
-import { isUlid } from "../ulid";
-import { isUuid } from "../uuid";
+} from "../str.js";
+import { transliterate } from "../transliterate/index.js";
+import { ltrim, rtrim, trim } from "../trimmer/index.js";
+import { isUlid } from "../ulid/index.js";
+import { isUuid } from "../uuid/index.js";
 
 export type ConditionableValue =
     | string
@@ -341,6 +341,7 @@ export class Stringable {
      *
      * @param index - The index of the character to retrieve.
      * @returns The character at the specified index, or false if the index is out of bounds.
+     * @throws TypeError for a NaN index, as PHP's mb_substr() does.
      */
     charAt(index: number): string | false {
         return charAt(this._value, index);
@@ -521,13 +522,21 @@ export class Stringable {
      * @param pattern - The regex pattern or length to split the string by.
      * @param limit - The maximum number of splits to perform. Defaults to null (no limit).
      * @returns An array of strings obtained by splitting the original string.
+     * @throws Error If a length below 1 is given, as mb_str_split() does
      */
     split(pattern: string | number, limit: number | null = null) {
         if (isInteger(pattern)) {
             const length = Number(pattern);
+            if (length < 1) {
+                throw new Error(
+                    "mb_str_split(): Argument #2 ($length) must be greater than 0",
+                );
+            }
+
+            const points = Array.from(this._value);
             const result: string[] = [];
-            for (let i = 0; i < this._value.length; i += length) {
-                result.push(this._value.substr(i, length));
+            for (let i = 0; i < points.length; i += length) {
+                result.push(points.slice(i, i + length).join(""));
             }
 
             return result;
@@ -647,10 +656,12 @@ export class Stringable {
     /**
      * Limit the number of characters in a string.
      *
-     * @param limitValue - The maximum number of characters allowed.
+     * @param limitValue - The maximum display width, where emoji and CJK characters count as two.
      * @param end - The string to append if the original string exceeds the limit.
      * @param preserveWords - Whether to avoid cutting off in the middle of a word.
      * @returns A new Stringable instance with the limited string.
+     * @throws Error for a negative limit past the string's full width, as PHP's mb_strimwidth() throws its ValueError.
+     * @throws TypeError for a NaN limit, as PHP's mb_strimwidth() does.
      */
     limit(limitValue = 100, end = "...", preserveWords = false): Stringable {
         return new Stringable(
@@ -702,6 +713,7 @@ export class Stringable {
      * @param index - The starting index to begin masking.
      * @param length - The number of characters to mask. If null, masks to the end of the string.
      * @returns The masked string as a new Stringable instance.
+     * @throws TypeError for a NaN or infinite index or length, as mb_substr() does.
      */
     mask(
         character: string,
@@ -766,6 +778,8 @@ export class Stringable {
      * @param length - The desired total length of the string after padding.
      * @param pad - The string to use for padding. Defaults to a space.
      * @returns The padded string as a new Stringable instance.
+     * @throws Error for an empty pad string when the string needs padding, as mb_str_pad() does.
+     * @throws TypeError for a NaN or infinite length, as mb_str_pad() does.
      */
     padBoth(length: number, pad = " "): Stringable {
         return new Stringable(padBoth(this._value, length, pad));
@@ -777,6 +791,8 @@ export class Stringable {
      * @param length - The desired total length of the string after padding.
      * @param pad - The string to use for padding. Defaults to a space.
      * @returns The padded string as a new Stringable instance.
+     * @throws Error for an empty pad string when the string needs padding, as mb_str_pad() does.
+     * @throws TypeError for a NaN or infinite length, as mb_str_pad() does.
      */
     padLeft(length: number, pad = " "): Stringable {
         return new Stringable(padLeft(this._value, length, pad));
@@ -788,6 +804,8 @@ export class Stringable {
      * @param length - The desired total length of the string after padding.
      * @param pad - The string to use for padding. Defaults to a space.
      * @returns The padded string as a new Stringable instance.
+     * @throws Error for an empty pad string when the string needs padding, as mb_str_pad() does.
+     * @throws TypeError for a NaN or infinite length, as mb_str_pad() does.
      */
     padRight(length: number, pad = " "): Stringable {
         return new Stringable(padRight(this._value, length, pad));
@@ -845,6 +863,8 @@ export class Stringable {
      * @param needle - The substring to search for.
      * @param offset - The offset from which to start the search. Defaults to 0.
      * @returns The position of the first occurrence of the substring, or false if not found.
+     * @throws Error If the offset is outside the string, as mb_strpos() does.
+     * @throws TypeError If the offset is NaN or infinite, as mb_strpos() does.
      */
     position(needle: string, offset = 0): number | false {
         return position(this._value, needle, offset);
@@ -1224,6 +1244,7 @@ export class Stringable {
      * @param start - The starting position of the substring.
      * @param length - The length of the substring. If null, extracts to the end of the string.
      * @returns The extracted substring as a new Stringable instance.
+     * @throws TypeError for a NaN or infinite start or length, as mb_substr() does.
      */
     substr(start: number, length: number | null = null): Stringable {
         return new Stringable(substr(this._value, start, length));
@@ -1236,6 +1257,7 @@ export class Stringable {
      * @param offset - The offset to start searching from. Defaults to 0.
      * @param length - The length of the string to search within. If null, searches to the end of the string.
      * @returns The number of occurrences of the substring.
+     * @throws TypeError for a NaN or infinite offset or length, as mb_substr() does.
      */
     substrCount(
         needle: string,
@@ -1252,6 +1274,7 @@ export class Stringable {
      * @param offset - The starting position to begin replacing. If negative, it starts that many characters from the end of the string.
      * @param length - The number of characters to replace. If null, replaces to the end of the string. If negative, omits that many characters from the end.
      * @returns The updated Stringable instance.
+     * @throws TypeError for a NaN or infinite offset or length, as mb_substr() does.
      */
     substrReplace(
         replace: string | string[],
@@ -1278,6 +1301,7 @@ export class Stringable {
      *
      * @param limit - The number of characters to take. Positive for start, negative for end.
      * @returns The resulting substring as a new Stringable instance.
+     * @throws TypeError for a NaN or infinite limit, as Laravel's int $limit parameter does.
      */
     take(limit: number): Stringable {
         return new Stringable(take(this._value, limit));

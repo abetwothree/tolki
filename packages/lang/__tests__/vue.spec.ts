@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { VueLang } from "@tolki/lang/vue";
 import { createLang, useLang } from "@tolki/lang/vue";
 import { isUndefined } from "@tolki/utils";
@@ -13,8 +14,8 @@ import {
 } from "vue";
 
 import Greeting from "./fixtures/Greeting.vue";
-import { createDeferredLoader, LINES } from "./fixtures/lines";
-import { VUE_SSR_HTML } from "./fixtures/ssr-html";
+import { createDeferredLoader, LINES } from "./fixtures/lines.js";
+import { VUE_SSR_HTML } from "./fixtures/ssr-html.js";
 
 enableAutoUnmount(afterEach);
 

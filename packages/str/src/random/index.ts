@@ -1,4 +1,4 @@
-import { bytesToBase64 } from "../base64";
+import { bytesToBase64 } from "../base64/index.js";
 
 /**
  * Random utilities mirroring Laravel's Str::random and PHP's random_int.

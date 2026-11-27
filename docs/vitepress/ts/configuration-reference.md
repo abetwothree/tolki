@@ -98,18 +98,19 @@ A config file published before model metadata existed has no `model_metadata` bl
 
 ## Resources (`resources.*`)
 
-| Config Key                         | Type     | Default                        | Description                                                                                                              |
-| ---------------------------------- | -------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| `resources.enabled`                | `bool`   | `true`                         | Enable or disable resource publishing                                                                                    |
-| `resources.namespace`              | `string` | `'resources'`                  | Not used. The global declaration file names each namespace after the class's PHP namespace, such as `app.http.resources` |
-| `resources.template`               | `string` | `laravel-ts-publish::resource` | Blade template for resource TypeScript output                                                                            |
-| `resources.included`               | `array`  | `[]`                           | Only publish these resources (empty = all)                                                                               |
-| `resources.excluded`               | `array`  | `[]`                           | Exclude these resources from publishing                                                                                  |
-| `resources.additional_directories` | `array`  | `[]`                           | Extra directories to search for resources                                                                                |
-| `resources.collector_class`        | `string` | `ResourcesCollector`           | Discovers PHP resource classes                                                                                           |
-| `resources.generator_class`        | `string` | `ResourceGenerator`            | Orchestrates transforming and writing                                                                                    |
-| `resources.transformer_class`      | `string` | `ResourceTransformer`          | Converts PHP resource into TypeScript data                                                                               |
-| `resources.writer_class`           | `string` | `ResourceWriter`               | Writes TypeScript resource files                                                                                         |
+| Config Key                         | Type     | Default                        | Description                                                                                                                                          |
+| ---------------------------------- | -------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resources.enabled`                | `bool`   | `true`                         | Enable or disable resource publishing                                                                                                                |
+| `resources.namespace`              | `string` | `'resources'`                  | Not used. The global declaration file names each namespace after the class's PHP namespace, such as `app.http.resources`                             |
+| `resources.template`               | `string` | `laravel-ts-publish::resource` | Blade template for resource TypeScript output                                                                                                        |
+| `resources.discriminated_unions`   | `bool`   | `true`                         | Publish a resource whose keys follow another key's value as a union of variants. See [Discriminated Unions](./api-resources.md#discriminated-unions) |
+| `resources.included`               | `array`  | `[]`                           | Only publish these resources (empty = all)                                                                                                           |
+| `resources.excluded`               | `array`  | `[]`                           | Exclude these resources from publishing                                                                                                              |
+| `resources.additional_directories` | `array`  | `[]`                           | Extra directories to search for resources                                                                                                            |
+| `resources.collector_class`        | `string` | `ResourcesCollector`           | Discovers PHP resource classes                                                                                                                       |
+| `resources.generator_class`        | `string` | `ResourceGenerator`            | Orchestrates transforming and writing                                                                                                                |
+| `resources.transformer_class`      | `string` | `ResourceTransformer`          | Converts PHP resource into TypeScript data                                                                                                           |
+| `resources.writer_class`           | `string` | `ResourceWriter`               | Writes TypeScript resource files                                                                                                                     |
 
 ## Globals (`globals.*`)
 

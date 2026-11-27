@@ -252,6 +252,23 @@ export function isInteger(value: unknown): value is number {
 }
 
 /**
+ * Check if a value is an integer a JavaScript number holds exactly: a whole number from -(2^53 - 1) to 2^53 - 1.
+ *
+ * @param value - The value to check
+ * @returns True if the value is a safe integer, false past `Number.MAX_SAFE_INTEGER`, where integers lose digits
+ *
+ * @example
+ *
+ * isSafeInteger(2 ** 53 - 1); -> true
+ * isSafeInteger(2 ** 53); -> false
+ * isSafeInteger(1.5); -> false
+ */
+/* @__NO_SIDE_EFFECTS__ */
+export function isSafeInteger(value: unknown): value is number {
+    return Number.isSafeInteger(value);
+}
+
+/**
  * Check if a value is a float.
  *
  * @param value - The value to check

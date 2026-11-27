@@ -2,7 +2,7 @@
 
 The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) generates a TypeScript interface for each of your Laravel [API resources](https://laravel.com/docs/eloquent-resources), the `JsonResource` classes that shape your API's JSON. It reads each resource's `toArray()` method without calling it, and publishes the name, type, and optionality of every property the method returns.
 
-Use it when your frontend reads JSON from API resources. Each publish regenerates the interface from `toArray()`, so you don't maintain a second, hand-written type.
+Use it when your frontend reads JSON from API resources. Each publish regenerates the interface from `toArray()`, so you don't maintain a second, hand-written type. A resource whose keys follow the value of another key it sends publishes a type alias instead, as [Discriminated Unions](#discriminated-unions) describes.
 
 By default, the package looks for resources in the `app/Http/Resources` directory. To change that, see [Filtering & Excluding](#filtering-excluding).
 
@@ -78,7 +78,7 @@ The output shows how each kind of value is typed:
 
 ### Classes Sharing a Name Across Namespaces
 
-When two classes in different namespaces share a name, such as `App\Models\User` and `Crm\Models\User`, the generated file imports each one under its own alias. Every occurrence of the name inside a property's type uses the alias of the class it refers to, in source order:
+When two classes in different namespaces share a name, such as `App\Models\User` and `Crm\Models\User`, the generated file imports each one under its own alias. Every occurrence of the name inside a property's type uses the alias of the class it refers to, in source order. That holds for a model and an API resource that publish one name too, such as an `Address` model beside an `AddressResource` named `Address` with [`#[TsResource]`](#configuring-resource-generation-with-tsresource), and for two enums that share a name, as [`EnumResource`](#enum-properties-with-enumresource) shows:
 
 ```typescript
 import type { User as CrmUser } from "../../../crm/models";
@@ -549,7 +549,25 @@ roles: (AsEnum<typeof Role> | never[])[];
 role_list: (AsEnum<typeof Role> | null)[];
 ```
 
-A ternary that wraps only one of its arms keeps both shapes. The property publishes a union, with the import each side needs, even inside an inline array:
+A ternary, `match` or `when()` publishes each arm as Laravel sends it. A wrapped arm publishes `AsEnum<typeof X>` beside whatever the other arms send, with the import each side needs:
+
+```php
+'subject' => $request->boolean('role')
+    ? EnumResource::make($this->role)
+    : $this->status,
+'either_status' => $request->boolean('crm')
+    ? EnumResource::make($this->crm_status)
+    : EnumResource::make($this->status),
+```
+
+`subject` sends the `Role` object or the bare `Status` value. Two enums that share a class name, here `App\Enums\Status` and `App\Crm\Enums\Status`, each keep their own name:
+
+```typescript
+subject: AsEnum<typeof Role> | StatusType;
+either_status: AsEnum<typeof CrmStatus> | AsEnum<typeof EnumsStatus>;
+```
+
+The same holds inside an inline array, where a ternary that wraps only one of its arms keeps both shapes:
 
 ```php
 'audit' => [
@@ -762,6 +780,157 @@ Once the value is typed, an empty `[]` beside a list publishes the list alone. W
 A `@return` docblock that types the key, on `toArray()` or on a method it spreads, also types the value left out. The docblock's type takes that value's place beside the values the body types. Under `score: int|string|null`, a `score` whose body types `number | null` and leaves one more value out publishes `number | null | string`. `ts:publish` prints no warning for a value the docblock types. A value it doesn't type, such as one under a `mixed` entry or under a key the docblock doesn't name, still warns. [Return Branches and `@return` Shapes](#return-branches-and-return-shapes) shows an example.
 
 `ts:publish` doesn't analyze a class again while the [generation cache](./generating-cache.md) holds it. A class the cache serves prints none of these warnings, nor the first-class callable warning above, so run `php artisan ts:publish --fresh` to see every one.
+
+## Discriminated Unions
+
+When a key's value depends on another key the resource also sends, the package publishes one variant for each value of that key, and values that send the same types share one. Checking the key on the frontend then narrows the keys that follow it. Here `status` follows `is_draft`:
+
+```php
+final class PostResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'is_draft' => $this->is_draft,
+            'status' => $this->is_draft
+                ? new DraftStatusResource($this->draft_status)
+                : new PublishedStatusResource($this->status),
+        ];
+    }
+}
+```
+
+The resource publishes a type alias instead of an interface. The keys every variant shares come first, and each variant pairs a value of `is_draft` with the `status` it sends:
+
+```typescript
+import type { DraftStatusResource, PublishedStatusResource } from ".";
+
+export type PostResource = {
+  id: number;
+} & (
+  | { is_draft: true; status: DraftStatusResource }
+  | { is_draft: false; status: PublishedStatusResource }
+);
+```
+
+So a check on `is_draft` narrows `status`:
+
+```typescript
+if (!post.is_draft) {
+  post.status; // PublishedStatusResource
+}
+```
+
+### The Key Other Keys Follow
+
+The key that decides, the discriminant, is a key the array always sends, written once, whose value is a plain read with a finite set of values:
+
+- A boolean column or property, nullable or not, such as `$this->is_draft`.
+- An enum column read directly, such as `$this->priority`, or its `->value` or `->name`.
+- A value whose type is a union of literals, such as `'draft' | 'live'`.
+
+A string or number column has no finite set of values, so it never decides. Neither does an enum you wrap in `EnumResource::make()`, a cast such as `(bool) $this->is_draft`, a method call such as `$this->isDraft()`, or a key a conditional method can leave out.
+
+### The Forms That Follow It
+
+A key follows the discriminant when its value is a ternary, a `match`, or `$this->when()` or `$this->unless()` whose condition tests the discriminant. The short ternary `?:` doesn't count. A condition can compare the value with `===`, `!==`, `==`, or `!=` against literals, constants, and enum cases, negate it, join tests of it with `&&`, `||`, or `xor`, and call `is_null()`, `isset()`, `empty()`, or `in_array()` with a constant list. A ternary or `match` nested in an arm is read too.
+
+Here `Priority` is an int-backed enum whose cases run from `Low = 0` to `Critical = 3`, and `priority` is a nullable column cast to it:
+
+```php
+return [
+    'id' => $this->id,
+    'priority' => $this->priority,
+    'badge' => match ($this->priority) {
+        Priority::Low, Priority::Medium => null,
+        Priority::High => $this->title,
+        Priority::Critical => new UserResource($this->user),
+        null => [],
+    },
+    'escalated_at' => $this->when($this->priority === Priority::Critical, $this->updated_at),
+];
+```
+
+Values for which every key sends the same type share one variant, and each enum case is spelled by the value it sends:
+
+```typescript
+import type { UserResource } from "..";
+
+export type PostPriorityResource = {
+  id: number;
+} & (
+  | { priority: 0 | 1; badge: null; escalated_at?: never }
+  | { priority: 2; badge: string; escalated_at?: never }
+  | { priority: 3; badge: UserResource; escalated_at: string | null }
+  | { priority: null; badge: never[]; escalated_at?: never }
+);
+```
+
+A key a variant leaves out publishes as `escalated_at?: never`, so reading `post.escalated_at` before you narrow still compiles, as `string | null | undefined`. A value whose arm throws, or that a `match` has no arm for, is left out of the variants, because PHP throws there and the resource sends nothing.
+
+### Nested Arrays
+
+A nested array splits the same way, into a union of objects:
+
+```php
+'pin' => [
+    'pinned' => $this->is_pinned,
+    'until' => $this->when($this->is_pinned, $this->updated_at),
+],
+```
+
+The key publishes `pin: { pinned: true; until: string | null } | { pinned: false; until?: never }`. A nested array with two discriminants publishes each combination of their variants, up to 16 objects. Past 16, the later discriminant's keys stay flat.
+
+Nested arrays split everywhere the package reads one, such as Inertia page props and shared data, broadcast events, and [`analyze()`](./analyzer-api.md). Only an API resource's top level becomes a type alias. The top level of a page's props or of shared data stays one object type, because Vue's `defineProps<T>()` needs one. See [Inertia](./inertia.md).
+
+### What Keeps a Key Flat
+
+A flat key publishes one type for every value, as it would without discriminated unions. These cases keep one key flat, while the other keys that follow the discriminant still split:
+
+- Its arms send the same type for every value.
+- Its condition also tests something else, such as `$this->is_pinned && $this->title !== ''`.
+- The key and its condition spell the read differently, such as `$this->resource->is_pinned` in one and `$this->is_pinned` in the other.
+- A `merge()`, `mergeWhen()`, or spread writes the key.
+
+These cases keep every key that follows the discriminant flat:
+
+- The package can't type an arm of one of those keys, or leaves a value out of one, as [Values Left Out of a Union](#values-left-out-of-a-union) describes.
+- A `merge()`, `mergeWhen()`, or spread writes the discriminant, or the array merges a value the package can't read.
+- Code from the first key that reads the discriminant up to the last such key's condition may change the discriminant: a write, a by-reference argument, a mutator or property hook that writes it, a `get` hook on any property the discriminant reads, or a call that may change the model. Calls the package knows only read keep the split: Laravel's resource helpers, unless your resource overrides one they call, such as `when()`, with code that may change the model; Eloquent's own key, attribute, and relation reads such as `getKey()` and `relationLoaded()`, unless your model overrides a method they call with one that returns anything other than a literal, a constant, or an instance property your model declares without a `get` hook; `route()` and `url()`; the `Gate` facade's checks (`allows()`, `denies()`, `check()`, `any()`, and `none()`), which trust your gates and policies not to change the model; a nested resource; and your resource's own methods whose code only reads. Any other method of your model counts as a call that may change it, including a reader your model overrides itself, such as its own `getRouteKeyName()` called directly. Code above the first key that reads the discriminant, or below the last one, also keeps the split. The discriminant's own key is one of those keys.
+- The discriminant reads another object's property, such as `$this->settings->flag`, and `settings` is typed by an interface, or by a class that isn't `final` and whose `flag` is neither `readonly` nor `final`. That object's own class may give `flag` a `get` hook, so two reads may differ. To keep the split, type `settings` by a `final` class, or declare `flag` `readonly` or `final`. A model's attributes keep it.
+- `toArray()` builds its array across `return` branches, or in a variable it returns.
+- A subclass spreads its parent's array with `...parent::toArray($request)`, which publishes the parent's keys flat in the subclass.
+- The array holds an [interpolated key](#interpolated-keys).
+- A `#[TsCasts]` entry types the discriminant or a key that follows it, or a `@return` docblock on `toArray()` changes either one's type.
+
+To link keys the package can't read, write the union yourself and intersect the resource with it, as [`#[TsIntersect]`](./extending-interfaces.md#intersecting-a-resource-with-tsintersect) describes.
+
+### Turning It Off
+
+To publish every resource's keys flat, turn the setting off:
+
+```php
+// config/ts-publish.php
+
+'resources' => [
+    'discriminated_unions' => false,
+],
+```
+
+To turn it off for one resource, add `#[TsResource(discriminated: false)]`. `#[TsResource(discriminated: true)]` turns it on for one resource while the setting is off. Both change only the resource's top level, so a nested array still splits.
+
+PHP doesn't pass attributes down to a subclass. A subclass that inherits its parent's `toArray()` follows the config setting, so give it its own `#[TsResource(discriminated: false)]` too.
+
+### Using a Split Resource in Your Own Types
+
+An interface can't extend a union, so `interface Post extends PostResource {}` fails with TS2312, and so does a published interface whose `#[TsExtends]` names `PostResource`. Write `type Post = PostResource & { … }` instead, or [turn discriminated unions off](#turning-it-off) for the resource.
+
+An object you build as a `PostResource` must match one variant. `{ ...post, is_draft: false }` compiles only where `post` is already narrowed to a published post, because a draft's `status` doesn't fit the published variant.
+
+### Templates You Published
+
+A copy of the `resource` or `globals` template that you published from an earlier release prints only the shared keys, and leaves out the variants and any `#[TsIntersect]` types. Publish the templates again, as [Publishing and Editing Templates](./customizing-the-pipeline.md#publishing-and-editing-templates) describes.
 
 ## Method Calls, Variables, and Collections
 
@@ -3043,14 +3212,15 @@ related: { data: PostResource }[];
 
 ## Resource Attributes
 
-Four attributes configure how a resource is published:
+Five attributes configure how a resource is published:
 
-| Attribute       | Target                                              | Use it to                                                                                                           |
-| --------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `#[TsResource]` | Resource class                                      | Set the interface name, the backing model, or a description                                                         |
-| `#[TsCasts]`    | Resource class, `toArray()`, or a method it spreads | Override property types, or add properties                                                                          |
-| `#[TsExtends]`  | Resource class                                      | Extend the interface with your own TypeScript types, as [Extending Interfaces](./extending-interfaces.md) describes |
-| `#[TsExclude]`  | Resource class                                      | Leave the resource out of the output, as [Excluding Content](./excluding-content.md) describes                      |
+| Attribute        | Target                                              | Use it to                                                                                                                                                               |
+| ---------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#[TsResource]`  | Resource class                                      | Set the interface name, the backing model, or a description, or turn [discriminated unions](#discriminated-unions) on or off                                            |
+| `#[TsCasts]`     | Resource class, `toArray()`, or a method it spreads | Override property types, or add properties                                                                                                                              |
+| `#[TsExtends]`   | Resource class                                      | Extend the interface with your own TypeScript types, as [Extending Interfaces](./extending-interfaces.md) describes                                                     |
+| `#[TsIntersect]` | Resource class                                      | Intersect the resource's type with your own TypeScript type, as [Intersecting a Resource](./extending-interfaces.md#intersecting-a-resource-with-tsintersect) describes |
+| `#[TsExclude]`   | Resource class                                      | Leave the resource out of the output, as [Excluding Content](./excluding-content.md) describes                                                                          |
 
 ### Configuring Resource Generation With `#[TsResource]`
 
@@ -3067,13 +3237,14 @@ class UserResource extends JsonResource
 }
 ```
 
-The attribute takes three optional parameters:
+The attribute takes four optional parameters:
 
-| Parameter     | Type            | Default                | Description                         |
-| ------------- | --------------- | ---------------------- | ----------------------------------- |
-| `name`        | `?string`       | Class name             | The TypeScript interface name       |
-| `model`       | `?class-string` | Resolved automatically | The backing Eloquent model          |
-| `description` | `string`        | `''`                   | A JSDoc comment above the interface |
+| Parameter       | Type            | Default                | Description                                                                                                                                                                                  |
+| --------------- | --------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`          | `?string`       | Class name             | The TypeScript interface name                                                                                                                                                                |
+| `model`         | `?class-string` | Resolved automatically | The backing Eloquent model                                                                                                                                                                   |
+| `description`   | `string`        | `''`                   | A JSDoc comment above the interface                                                                                                                                                          |
+| `discriminated` | `?bool`         | `null`                 | `true` publishes this resource's [discriminated union](#discriminated-unions) and `false` publishes its keys flat, whatever `resources.discriminated_unions` says. `null` follows the config |
 
 ::: tip
 `name` also sets the output file's name. For example, `#[TsResource(name: 'Address')]` generates `address.ts` instead of `address-resource.ts`.

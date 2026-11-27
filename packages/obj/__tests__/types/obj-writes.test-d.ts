@@ -1,7 +1,7 @@
 import * as Obj from "@tolki/obj";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { abc, numberList, profile, unknownObject, user } from "./fixtures";
+import { abc, numberList, profile, unknownObject, user } from "./fixtures.js";
 
 declare const maybeKey: string | null;
 declare const maybeAge: "age" | undefined;

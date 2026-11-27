@@ -1,0 +1,37 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.43.0-17-g1caec34a34"
+    },
+    "probes": [
+        {
+            "label": "deduplicate-astral",
+            "php": "Str::deduplicate('\ud83d\ude00\ud83d\ude00\ud83d\ude00x', '\ud83d\ude00') and Str::deduplicate('a\ud83d\ude00\ud83d\ude00b  c', ['\ud83d\ude00', ' '])",
+            "value": [
+                "\ud83d\ude00x",
+                "a\ud83d\ude00b c"
+            ]
+        },
+        {
+            "label": "deduplicate-regex-characters",
+            "php": "Str::deduplicate() of 'a..b' by '.', 'a//b' by '/', 'a--b' by '-', 'a**b' by '*' and 'ab  ab' by 'ab '",
+            "value": [
+                "a.b",
+                "a/b",
+                "a-b",
+                "a*b",
+                "ab ab"
+            ]
+        },
+        {
+            "label": "deduplicate-empty-character",
+            "php": "@Str::deduplicate('abc', '')",
+            "value": null
+        },
+        {
+            "label": "deduplicate-dollar-character",
+            "php": "Str::deduplicate('a$$$$b', '$$')",
+            "value": "a$$b"
+        }
+    ]
+}

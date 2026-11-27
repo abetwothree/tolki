@@ -15,7 +15,7 @@ import {
     settings,
     stringList,
     unionItems,
-} from "./fixtures";
+} from "./fixtures.js";
 
 describe("data output type tests", () => {
     // Every function here answers `string` on both backings, so a return-type pin cannot

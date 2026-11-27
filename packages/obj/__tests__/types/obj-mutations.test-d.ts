@@ -11,7 +11,7 @@ import {
     numberMap,
     readonlyRecord,
     unknownObject,
-} from "./fixtures";
+} from "./fixtures.js";
 
 declare const nullableB: { b: number } | null;
 declare const maybeCount: number | undefined;

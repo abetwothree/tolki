@@ -17,7 +17,7 @@ import {
     rowsById,
     settings,
     unionItems,
-} from "./fixtures";
+} from "./fixtures.js";
 
 const double = (value: number): number => value * 2;
 const aboveOne = (value: number): boolean => value > 1;

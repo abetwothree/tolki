@@ -1,14 +1,14 @@
 import type { PathKey, SortSpec } from "@tolki/types";
 
-import { phpIntCast } from "./cast";
-import { compareValues } from "./equality";
+import { phpIntCast } from "./cast.js";
+import { compareValues } from "./equality.js";
 import {
     isArray,
     isBoolean,
     isFunction,
     isNumber,
     isUndefined,
-} from "./guards";
+} from "./guards.js";
 
 /**
  * Reads the value a sort descriptor's key names on one item.

@@ -320,6 +320,23 @@ describe("Stringable basic delegation", () => {
     });
 
     describe("split", () => {
+        it("splits by character, as mb_str_split does", () => {
+            // docs/php-parity/Stringable/split.json, "split-length-astral"
+            expect(Str.of("😀a😀").split(1)).toEqual(["😀", "a", "😀"]);
+            expect(Str.of("😀a😀b").split(2)).toEqual(["😀a", "😀b"]);
+            expect(Str.of("😀😀😀").split(2)).toEqual(["😀😀", "😀"]);
+            expect(Str.of("").split(1)).toEqual([]);
+        });
+
+        it("throws for a length below 1", () => {
+            // docs/php-parity/Stringable/split.json, "split-length-below-one"
+            const message =
+                "mb_str_split(): Argument #2 ($length) must be greater than 0";
+
+            expect(() => Str.of("abc").split(0)).toThrow(message);
+            expect(() => Str.of("abc").split(-1)).toThrow(message);
+        });
+
         it("test split by chunk length", () => {
             // Integer pattern splits string into chunks of specified length
             expect(Str.of("foobarbaz").split(3)).toEqual(["foo", "bar", "baz"]);
@@ -407,6 +424,13 @@ describe("Stringable basic delegation", () => {
         it("Laravel tests", () => {
             const input = "hello";
             expect(Str.position(input, "e")).toBe(Str.of(input).position("e"));
+        });
+
+        it("throws for an offset outside the string", () => {
+            // docs/php-parity/Str/position.json, "position-offset-bounds"
+            expect(() => Str.of("abc").position("a", 10)).toThrow(
+                "mb_strpos(): Argument #3 ($offset) must be contained in argument #1 ($haystack)",
+            );
         });
     });
 
@@ -1007,6 +1031,11 @@ describe("Stringable basic delegation", () => {
             );
         });
 
+        it("pads by character", () => {
+            // docs/php-parity/Str/padLeft.json, "padLeft-astral"
+            expect(Str.of("😀").padLeft(3, "-").toString()).toBe("--😀");
+        });
+
         it("padLeft with default pad parameter", () => {
             const s = Str.of("hi");
             expect(s.padLeft(4).toString()).toBe("  hi");
@@ -1019,6 +1048,13 @@ describe("Stringable basic delegation", () => {
             expectEqual(
                 Str.padRight(input, 8, "-"),
                 Str.of(input).padRight(8, "-"),
+            );
+        });
+
+        it("throws for an empty pad string", () => {
+            // docs/php-parity/Str/padRight.json, "padRight-empty-pad"
+            expect(() => Str.of("a").padRight(3, "")).toThrow(
+                "mb_str_pad(): Argument #3 ($pad_string) must not be empty",
             );
         });
 
@@ -1430,6 +1466,11 @@ describe("Stringable basic delegation", () => {
             const input = "Hello brave new world";
             expect(Str.of(input).length()).toBe(Str.length(input));
         });
+
+        it("counts an emoji as one character", () => {
+            // docs/php-parity/Str/length.json, "length-astral"
+            expect(Str.of("😀😀😀").length()).toBe(3);
+        });
     });
 
     describe("wordCount", () => {
@@ -1449,6 +1490,18 @@ describe("Stringable basic delegation", () => {
             // Tests default limitValue = 100 on line 536
             const shortString = "Short string";
             expect(Str.of(shortString).limit().toString()).toBe(shortString);
+        });
+
+        it("counts an emoji as two, as mb_strwidth does", () => {
+            // docs/php-parity/Str/limit.json, "limit-astral"
+            expect(Str.of("😀😀😀").limit(3).toString()).toBe("😀...");
+        });
+
+        it("throws for a negative limit past the full width", () => {
+            // docs/php-parity/Str/limit.json, "limit-negative-past-width"
+            expect(() => Str.of("abc").limit(-4)).toThrow(
+                "mb_strimwidth(): Argument #3 ($width) is out of range",
+            );
         });
     });
 

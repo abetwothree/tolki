@@ -19,7 +19,7 @@ import {
     settings,
     stringList,
     unionItems,
-} from "./fixtures";
+} from "./fixtures.js";
 
 describe("data guards type tests", () => {
     describe("dataExists", () => {

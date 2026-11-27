@@ -134,6 +134,12 @@ describe("Str tests", () => {
             expect(Str.beforeLast("laravel framework", " ")).toBe("laravel");
             expect(Str.beforeLast("yvette\tyv0et0te", "\t")).toBe("yvette");
         });
+
+        it("cuts before the last match when emoji come first", () => {
+            // docs/php-parity/Str/beforeLast.json, "beforeLast-astral"
+            expect(Str.beforeLast("😀a😀b", "b")).toBe("😀a😀");
+            expect(Str.beforeLast("😀a😀b", "😀")).toBe("😀a");
+        });
     });
 
     describe("between", () => {
@@ -152,6 +158,12 @@ describe("Str tests", () => {
             expect(Str.between("12345", 1, 5)).toBe("234");
             expect(Str.between("123456789", "123", "6789")).toBe("45");
             expect(Str.between("nothing", "foo", "bar")).toBe("nothing");
+        });
+
+        it("keeps the emoji between the markers", () => {
+            // docs/php-parity/Str/between.json, "between-astral"
+            expect(Str.between("😀a😀b😀", "😀", "😀")).toBe("a😀b");
+            expect(Str.between("😀a😀b😀", "a", "😀")).toBe("😀b");
         });
     });
 
@@ -212,6 +224,21 @@ describe("Str tests", () => {
     });
 
     describe("charAt", () => {
+        it("checks the bounds on the fractional index as given, as Laravel does", () => {
+            // docs/php-parity/Str/charAt.json, "charAt-fractional-bounds"
+            expect(Str.charAt("abc", 2.5)).toBe(false);
+            expect(Str.charAt("abc", -3.5)).toBe(false);
+        });
+
+        it("throws PHP's TypeError for a NaN index", () => {
+            // docs/php-parity/Str/charAt.json, "charAt-fractional-bounds"
+            expect(() => Str.charAt("abc", Number.NaN)).toThrow(
+                new TypeError(
+                    "mb_substr(): Argument #2 ($start) must be of type int, float given",
+                ),
+            );
+        });
+
         it("Laravel tests", () => {
             expect(Str.charAt("Привет, мир!", 1)).toBe("р");
             expect(Str.charAt("「こんにちは世界」", 4)).toBe("ち");
@@ -219,6 +246,27 @@ describe("Str tests", () => {
             expect(Str.charAt("「こんにちは世界」", -2)).toBe("界");
             expect(Str.charAt("「こんにちは世界」", -200)).toBe(false);
             expect(Str.charAt("Привет, мир!", 100)).toBe(false);
+        });
+
+        it("indexes by character, as mb_substr does", () => {
+            // docs/php-parity/Str/charAt.json, "charAt-astral"
+            expect(Str.charAt("😀a", 1)).toBe("a");
+            expect(Str.charAt("😀a", 0)).toBe("😀");
+            expect(Str.charAt("😀a", -2)).toBe("😀");
+            expect(Str.charAt("😀a", 2)).toBe(false);
+            expect(Str.charAt("😀a", -3)).toBe(false);
+            expect(Str.charAt("", 0)).toBe(false);
+        });
+
+        it("truncates a fractional index toward zero, as PHP's int cast does", () => {
+            // docs/php-parity/Str/charAt.json, "charAt-fractional"
+            expect(Str.charAt("abc", 1.5)).toBe("b");
+            expect(Str.charAt("abc", -2.5)).toBe("b");
+        });
+
+        it("returns a lone surrogate whole", () => {
+            // JS-only: a PHP string cannot hold half a surrogate pair.
+            expect(Str.charAt("a\uD83D", 1)).toBe("\uD83D");
         });
     });
 
@@ -555,6 +603,11 @@ describe("Str tests", () => {
             expect(Str.convertCase("HeLLo")).toBe("hello");
             expect(Str.convertCase("WoRLD")).toBe("world");
         });
+
+        it("title-cases a letter outside the Basic Multilingual Plane", () => {
+            // docs/php-parity/Str/convertCase.json, "convertCase-title-astral"
+            expect(Str.convertCase("𐐨𐐨 𐐨", CaseTypes.title)).toBe("𐐀𐐨 𐐀");
+        });
     });
 
     describe("deduplicate", () => {
@@ -575,6 +628,33 @@ describe("Str tests", () => {
         it("deduplicate with array of characters", () => {
             // Test deduplicate with array (covers isArray branch)
             expect(Str.deduplicate("aaa---bbb", ["a", "-"])).toBe("a-bbb");
+        });
+
+        it("collapses repeated emoji", () => {
+            // docs/php-parity/Str/deduplicate.json, "deduplicate-astral"
+            expect(Str.deduplicate("😀😀😀x", "😀")).toBe("😀x");
+            expect(Str.deduplicate("a😀😀b  c", ["😀", " "])).toBe("a😀b c");
+        });
+
+        it("reads the character literally, as preg_quote does", () => {
+            // docs/php-parity/Str/deduplicate.json, "deduplicate-regex-characters"
+            expect(Str.deduplicate("a..b", ".")).toBe("a.b");
+            expect(Str.deduplicate("a//b", "/")).toBe("a/b");
+            expect(Str.deduplicate("a--b", "-")).toBe("a-b");
+            expect(Str.deduplicate("a**b", "*")).toBe("a*b");
+            expect(Str.deduplicate("ab  ab", "ab ")).toBe("ab ab");
+        });
+
+        it("inserts a character holding $ literally", () => {
+            // docs/php-parity/Str/deduplicate.json, "deduplicate-dollar-character"
+            expect(Str.deduplicate("a$$$$b", "$$")).toBe("a$$b");
+            expect(Str.deduplicate("a$$$$b", ["$$"])).toBe("a$$b");
+        });
+
+        it("throws for an empty character", () => {
+            // JS-only: PHP's preg_replace() warns and returns null; a null would widen every call's return type.
+            // docs/php-parity/Str/deduplicate.json, "deduplicate-empty-character"
+            expect(() => Str.deduplicate("abc", "")).toThrow(SyntaxError);
         });
     });
 
@@ -944,6 +1024,12 @@ describe("Str tests", () => {
             expect(Str.unwrap("foo-bar-baz", "foo-", "-baz")).toBe("bar");
             expect(Str.unwrap('{some: "json"}', "{", "}")).toBe('some: "json"');
         });
+
+        it("unwraps emoji wrappers", () => {
+            // docs/php-parity/Str/unwrap.json, "unwrap-astral"
+            expect(Str.unwrap("😀x😀", "😀")).toBe("x");
+            expect(Str.unwrap("😀[x]😀", "😀[", "]😀")).toBe("x");
+        });
     });
 
     describe("is", () => {
@@ -1172,9 +1258,53 @@ describe("Str tests", () => {
             expect(Str.length("foo bar baz")).toBe(11);
             expect(Str.length("Hello こんにちは")).toBe(11);
         });
+
+        it("counts characters, not UTF-16 code units, as mb_strlen does", () => {
+            // docs/php-parity/Str/length.json, "length-astral"
+            expect(Str.length("😀😀😀")).toBe(3);
+            expect(Str.length("𝒳")).toBe(1);
+            expect(Str.length("e\u0301")).toBe(2);
+            expect(Str.length("\u{1F468}\u200D\u{1F469}\u200D\u{1F467}")).toBe(
+                5,
+            );
+            expect(Str.length("")).toBe(0);
+        });
+
+        it("counts a lone surrogate as one character", () => {
+            // JS-only: a PHP string cannot hold half a surrogate pair.
+            expect(Str.length("\uD83D")).toBe(1);
+        });
+
+        it("stays fast on a long string", () => {
+            expect(Str.length("😀".repeat(500_000))).toBe(500_000);
+        }, 2000);
     });
 
     describe("limit", () => {
+        it("reads a fractional negative limit as an int before it looks for a space", () => {
+            // docs/php-parity/Str/limit.json, "limit-fractional-preserve-words"
+            expect(Str.limit("ab cd ef", -2.5, "...", true)).toBe("ab...");
+        });
+
+        it("truncates a fractional limit toward zero, as PHP's int parameter does", () => {
+            // docs/php-parity/Str/limit.json, "limit-fractional-width"
+            expect(Str.limit("abc", -0.5)).toBe("...");
+            expect(Str.limit("abc", 2.5)).toBe("ab...");
+            expect(Str.limit("abc", -3.5)).toBe("...");
+            expect(Str.limit("ab c d", 2.5, "...", true)).toBe("ab...");
+            expect(Str.limit("😀😀😀", 3.5)).toBe("😀...");
+        });
+
+        it("throws PHP's TypeError for a NaN limit, and keeps the string for an infinite one", () => {
+            // docs/php-parity/Str/limit.json, "limit-non-finite-width"
+            expect(() => Str.limit("abc", Number.NaN)).toThrow(
+                new TypeError(
+                    "mb_strimwidth(): Argument #3 ($width) must be of type int, float given",
+                ),
+            );
+            expect(Str.limit("abc", Infinity)).toBe("abc");
+        });
+
         it("limit", () => {
             expect(
                 Str.limit(
@@ -1182,7 +1312,8 @@ describe("Str tests", () => {
                     10,
                 ),
             ).toBe("Laravel is...");
-            expect(Str.limit("这是一段中文", 3)).toBe("这是一...");
+            // StrTest::testLimit; docs/php-parity/Str/limit.json, "limit-laravel-cjk"
+            expect(Str.limit("这是一段中文", 6)).toBe("这是一...");
             expect(
                 Str.limit(
                     "Laravel is a free, open source PHP web application framework.",
@@ -1207,11 +1338,12 @@ describe("Str tests", () => {
                 "The PHP framework...",
             );
 
+            // StrTest::testLimit; docs/php-parity/Str/limit.json, "limit-laravel-cjk"
             const nonAsciiString = "这是一段中文";
-            expect(Str.limit(nonAsciiString, 3)).toBe("这是一...");
-            expect(Str.limit(nonAsciiString, 3, "...", true)).toBe("这是一...");
-            expect(Str.limit(nonAsciiString, 3, "")).toBe("这是一");
-            expect(Str.limit(nonAsciiString, 3, "", true)).toBe("这是一");
+            expect(Str.limit(nonAsciiString, 6)).toBe("这是一...");
+            expect(Str.limit(nonAsciiString, 6, "...", true)).toBe("这是一...");
+            expect(Str.limit(nonAsciiString, 6, "")).toBe("这是一");
+            expect(Str.limit(nonAsciiString, 6, "", true)).toBe("这是一");
 
             expect(Str.limit("The PHP", 5, "...", true)).toBe("The...");
             expect(Str.limit("Hello world", 5, "...", true)).toBe("Hello...");
@@ -1251,6 +1383,61 @@ describe("Str tests", () => {
             const shortString = "Short string";
             expect(Str.limit(shortString)).toBe(shortString);
         });
+
+        it("measures display width: emoji and CJK count two, as mb_strwidth does", () => {
+            // docs/php-parity/Str/limit.json, "limit-astral"
+            expect(Str.limit("😀😀😀", 1)).toBe("...");
+            expect(Str.limit("😀😀😀", 2)).toBe("😀...");
+            expect(Str.limit("😀😀😀", 3)).toBe("😀...");
+            expect(Str.limit("😀😀😀", 4)).toBe("😀😀...");
+            expect(Str.limit("😀😀😀", 6)).toBe("😀😀😀");
+            expect(Str.limit("a😀", 2)).toBe("a...");
+            expect(Str.limit("𝒳𝒳𝒳", 2)).toBe("𝒳𝒳...");
+            expect(Str.limit("héllo wörld", 7)).toBe("héllo w...");
+
+            // docs/php-parity/Str/limit.json, "limit-wide-cut-edges"
+            expect(Str.limit("a😀😀", 4)).toBe("a😀...");
+
+            // docs/php-parity/Str/limit.json, "limit-laravel-cjk"
+            expect(Str.limit("日本語テキスト", 4)).toBe("日本...");
+        });
+
+        it("keeps whole words by width", () => {
+            // docs/php-parity/Str/limit.json, "limit-preserve-words-astral"
+            expect(Str.limit("😀 😀 😀", 5, "...", true)).toBe("😀...");
+            expect(Str.limit("😀😀 x", 2, "...", true)).toBe("😀...");
+            expect(Str.limit("日本 語", 4, "...", true)).toBe("日本...");
+            expect(Str.limit("日本語 x", 2, "...", true)).toBe("日...");
+            expect(Str.limit("😀😀😀", 4, "", true)).toBe("😀😀");
+        });
+
+        it("follows PHP for a zero or negative limit", () => {
+            // docs/php-parity/Str/limit.json, "limit-zero-and-negative"
+            expect(Str.limit("abc", 0)).toBe("...");
+            expect(Str.limit("abc", -1)).toBe("ab...");
+            expect(Str.limit("😀😀😀", -1)).toBe("😀😀...");
+            expect(Str.limit("abc d", -1, "...", true)).toBe("abc...");
+        });
+
+        it("throws for a negative limit past the full width, as mb_strimwidth does", () => {
+            const message =
+                "mb_strimwidth(): Argument #3 ($width) is out of range";
+
+            // docs/php-parity/Str/limit.json, "limit-negative-past-width"
+            expect(Str.limit("abc", -3)).toBe("...");
+            expect(() => Str.limit("abc", -4)).toThrow(message);
+            expect(Str.limit("😀😀", -4)).toBe("...");
+            expect(() => Str.limit("😀😀", -5)).toThrow(message);
+            expect(() => Str.limit("abc d", -6, "...", true)).toThrow(message);
+            expect(Str.limit("ab c d", -2, "...", true)).toBe("ab c...");
+        });
+
+        it("stays fast on a long emoji string", () => {
+            // docs/php-parity/Str/limit.json, "limit-wide-cut-edges"
+            expect(Str.limit("😀".repeat(200_000), 100_000)).toBe(
+                `${"😀".repeat(50_000)}...`,
+            );
+        }, 2000);
     });
 
     describe("lower", () => {
@@ -1613,6 +1800,19 @@ describe("Str tests", () => {
     });
 
     describe("mask", () => {
+        it("reads a fractional index and length as PHP ints, as mb_substr does", () => {
+            // docs/php-parity/Str/mask.json, "mask-fractional"
+            expect(Str.mask("abcd", "*", 0, -0.5)).toBe("abcd");
+            expect(Str.mask("abcd", "*", 1.5)).toBe("a***");
+            expect(Str.mask("abcd", "*", -2.5)).toBe("a**d");
+            expect(Str.mask("abcd", "*", 1, 2.5)).toBe("a**d");
+            expect(() => Str.mask("abcd", "*", Number.NaN)).toThrow(
+                new TypeError(
+                    "mb_substr(): Argument #2 ($start) must be of type int, float given",
+                ),
+            );
+        });
+
         it("Laravel tests", () => {
             expect(Str.mask("taylor@email.com", "*", 3)).toBe(
                 "tay*************",
@@ -1683,6 +1883,20 @@ describe("Str tests", () => {
                 "***************",
             );
             expect(Str.mask("maria@email.com", "*", 0)).toBe("***************");
+        });
+
+        it("masks by character, as mb_substr does", () => {
+            // docs/php-parity/Str/mask.json, "mask-astral"
+            expect(Str.mask("😀😀😀😀", "*", 1, 2)).toBe("😀**😀");
+            expect(Str.mask("😀😀😀😀", "*", -2)).toBe("😀😀**");
+            expect(Str.mask("😀😀😀😀", "*", -9, 2)).toBe("**😀😀");
+            expect(Str.mask("😀😀", "*", 5)).toBe("😀😀");
+        });
+
+        it("masks with the first character of an emoji mask", () => {
+            // docs/php-parity/Str/mask.json, "mask-astral-character"
+            expect(Str.mask("abcd", "🔒", 1)).toBe("a🔒🔒🔒");
+            expect(Str.mask("ab", "😀🎉", 0)).toBe("😀😀");
         });
     });
 
@@ -1979,14 +2193,47 @@ describe("Str tests", () => {
     });
 
     describe("padBoth", () => {
+        it("truncates a fractional length toward zero, as PHP's int parameter does", () => {
+            // docs/php-parity/Str/padBoth.json, "padBoth-fractional-length"
+            expect(Str.padBoth("😀", 1.5, "")).toBe("😀");
+            expect(Str.padBoth("a", 2.5, "-")).toBe("a-");
+            expect(Str.padBoth("a", 3.9, "-")).toBe("-a-");
+            expect(Str.padBoth("a", -1.5, "")).toBe("a");
+        });
+
+        it("throws PHP's TypeError for a NaN or infinite length", () => {
+            // docs/php-parity/Str/padBoth.json, "padBoth-non-finite-length"
+            const error = new TypeError(
+                "mb_str_pad(): Argument #2 ($length) must be of type int, float given",
+            );
+            expect(() => Str.padBoth("a", Number.NaN, "-")).toThrow(error);
+            expect(() => Str.padBoth("a", Infinity, "-")).toThrow(error);
+        });
+
         it("Laravel tests", () => {
-            expect(Str.padBoth("Al", 10, "")).toBe("Al");
             expect(Str.padBoth("Alien", 10, "_")).toBe("__Alien___");
             expect(Str.padBoth("Alien", 10)).toBe("  Alien   ");
             expect(Str.padBoth("❤MultiByte☆", 16)).toBe("  ❤MultiByte☆   ");
             expect(Str.padBoth("❤MultiByte☆", 16, "❤☆")).toBe(
                 "❤☆❤MultiByte☆❤☆❤",
             );
+        });
+
+        it("pads by character, as mb_str_pad does", () => {
+            // docs/php-parity/Str/padBoth.json, "padBoth-astral"
+            expect(Str.padBoth("😀", 3, "-")).toBe("-😀-");
+            expect(Str.padBoth("😀", 4, "-")).toBe("-😀--");
+            expect(Str.padBoth("a", 5, "😀🎉")).toBe("😀🎉a😀🎉");
+            expect(Str.padBoth("a", 6, "😀🎉")).toBe("😀🎉a😀🎉😀");
+        });
+
+        it("throws for an empty pad string only when the value needs padding", () => {
+            // docs/php-parity/Str/padBoth.json, "padBoth-empty-pad"
+            expect(() => Str.padBoth("a", 3, "")).toThrow(
+                "mb_str_pad(): Argument #3 ($pad_string) must not be empty",
+            );
+            expect(Str.padBoth("abc", 2, "")).toBe("abc");
+            expect(Str.padBoth("abc", 3, "")).toBe("abc");
         });
 
         it("makePad with empty string", () => {
@@ -2001,15 +2248,50 @@ describe("Str tests", () => {
     });
 
     describe("padLeft", () => {
+        it("truncates a fractional length toward zero, as PHP's int parameter does", () => {
+            // docs/php-parity/Str/padLeft.json, "padLeft-fractional-length"
+            expect(Str.padLeft("😀", 1.5, "")).toBe("😀");
+            expect(Str.padLeft("a", 2.5, "-")).toBe("-a");
+            expect(Str.padLeft("a", 3.9, "-")).toBe("--a");
+            expect(Str.padLeft("a", -1.5, "")).toBe("a");
+        });
+
+        it("throws PHP's TypeError for a NaN or infinite length", () => {
+            // docs/php-parity/Str/padLeft.json, "padLeft-non-finite-length"
+            const error = new TypeError(
+                "mb_str_pad(): Argument #2 ($length) must be of type int, float given",
+            );
+            expect(() => Str.padLeft("a", Number.NaN, "-")).toThrow(error);
+            expect(() => Str.padLeft("a", Infinity, "-")).toThrow(error);
+        });
+
         it("Laravel Tests", () => {
-            expect(Str.padLeft("Al", 2, "")).toBe("Al");
-            expect(Str.padLeft("Al", 10, "")).toBe("Al");
             expect(Str.padLeft("Alien", 10, "-=")).toBe("-=-=-Alien");
             expect(Str.padLeft("Alien", 10)).toBe("     Alien");
             expect(Str.padLeft("❤MultiByte☆", 16)).toBe("     ❤MultiByte☆");
             expect(Str.padLeft("❤MultiByte☆", 16, "❤☆")).toBe(
                 "❤☆❤☆❤❤MultiByte☆",
             );
+        });
+
+        it("pads by character, as mb_str_pad does", () => {
+            // docs/php-parity/Str/padLeft.json, "padLeft-astral"
+            expect(Str.padLeft("😀", 3, "-")).toBe("--😀");
+            expect(Str.padLeft("a", 4, "😀🎉")).toBe("😀🎉😀a");
+        });
+
+        it("throws for an empty pad string only when the value needs padding", () => {
+            // docs/php-parity/Str/padLeft.json, "padLeft-empty-pad"
+            expect(() => Str.padLeft("a", 3, "")).toThrow(
+                "mb_str_pad(): Argument #3 ($pad_string) must not be empty",
+            );
+            expect(Str.padLeft("abc", 2, "")).toBe("abc");
+            expect(Str.padLeft("abc", -1, "")).toBe("abc");
+        });
+
+        it("pads a lone surrogate as one character", () => {
+            // JS-only: a PHP string cannot hold half a surrogate pair.
+            expect(Str.padLeft("\uD83D", 2, "-")).toBe("-\uD83D");
         });
 
         it("makePad with empty string", () => {
@@ -2024,9 +2306,24 @@ describe("Str tests", () => {
     });
 
     describe("padRight", () => {
+        it("truncates a fractional length toward zero, as PHP's int parameter does", () => {
+            // docs/php-parity/Str/padRight.json, "padRight-fractional-length"
+            expect(Str.padRight("😀", 1.5, "")).toBe("😀");
+            expect(Str.padRight("a", 2.5, "-")).toBe("a-");
+            expect(Str.padRight("a", 3.9, "-")).toBe("a--");
+            expect(Str.padRight("a", -1.5, "")).toBe("a");
+        });
+
+        it("throws PHP's TypeError for a NaN or infinite length", () => {
+            // docs/php-parity/Str/padRight.json, "padRight-non-finite-length"
+            const error = new TypeError(
+                "mb_str_pad(): Argument #2 ($length) must be of type int, float given",
+            );
+            expect(() => Str.padRight("a", Number.NaN, "-")).toThrow(error);
+            expect(() => Str.padRight("a", Infinity, "-")).toThrow(error);
+        });
+
         it("Laravel tests", () => {
-            expect(Str.padRight("Al", 2, "")).toBe("Al");
-            expect(Str.padRight("Al", 10, "")).toBe("Al");
             expect(Str.padRight("Alien", 10, "-=")).toBe("Alien-=-=-");
             expect(Str.padRight("Alien", 10)).toBe("Alien     ");
             expect(Str.padRight("❤MultiByte☆", 16)).toBe("❤MultiByte☆     ");
@@ -2037,6 +2334,21 @@ describe("Str tests", () => {
             // Test when length equals or is less than value length
             expect(Str.padRight("Alien", 5)).toBe("Alien");
             expect(Str.padRight("Alien", 3)).toBe("Alien");
+        });
+
+        it("pads by character, as mb_str_pad does", () => {
+            // docs/php-parity/Str/padRight.json, "padRight-astral"
+            expect(Str.padRight("😀", 3, "-")).toBe("😀--");
+            expect(Str.padRight("a", 4, "😀🎉")).toBe("a😀🎉😀");
+        });
+
+        it("throws for an empty pad string only when the value needs padding", () => {
+            // docs/php-parity/Str/padRight.json, "padRight-empty-pad"
+            expect(() => Str.padRight("a", 3, "")).toThrow(
+                "mb_str_pad(): Argument #3 ($pad_string) must not be empty",
+            );
+            expect(Str.padRight("abc", 2, "")).toBe("abc");
+            expect(Str.padRight("abc", -1, "")).toBe("abc");
         });
 
         it("makePad with empty string", () => {
@@ -2169,8 +2481,28 @@ describe("Str tests", () => {
     });
 
     describe("position", () => {
+        it("truncates a fractional offset toward zero, as PHP's int parameter does", () => {
+            // docs/php-parity/Str/position.json, "position-fractional-offset"
+            expect(Str.position("abc", "", 0.5)).toBe(0);
+            expect(Str.position("abc", "a", -3.5)).toBe(0);
+            expect(Str.position("abc", "", -3.5)).toBe(0);
+            expect(Str.position("abc", "c", 1.9)).toBe(2);
+            expect(Str.position("abc", "a", 3.5)).toBe(false);
+        });
+
+        it("throws PHP's TypeError for a NaN or infinite offset", () => {
+            // docs/php-parity/Str/position.json, "position-non-finite-offset"
+            const message =
+                "mb_strpos(): Argument #3 ($offset) must be of type int, float given";
+            expect(() => Str.position("abc", "a", Number.NaN)).toThrow(
+                new TypeError(message),
+            );
+            expect(() => Str.position("abc", "a", Infinity)).toThrow(
+                new TypeError(message),
+            );
+        });
+
         it("Laravel tests", () => {
-            expect(Str.position("Hello, World!", "")).toBe(false);
             expect(Str.position("Hello, World!", "W")).toBe(7);
             expect(Str.position("Hello, World!", "world!", 0)).toBe(false);
             expect(Str.position("This is a test string.", "test")).toBe(10);
@@ -2190,19 +2522,41 @@ describe("Str tests", () => {
             expect(Str.position("", "test")).toBe(false);
         });
 
-        it("position with offset beyond haystack length", () => {
-            // Test position when start >= haystack length
-            expect(Str.position("hello", "l", 10)).toBe(false);
-            expect(Str.position("hello", "l", 100)).toBe(false);
-            // Test position with negative offset
-            expect(Str.position("hello", "l", -2)).toBe(3);
+        it("counts by character", () => {
+            // docs/php-parity/Str/position.json, "position-astral"
+            expect(Str.position("😀a", "a")).toBe(1);
+            expect(Str.position("😀😀a", "a", -1)).toBe(2);
+            expect(Str.position("😀😀", "", 2)).toBe(2);
         });
 
-        it("position with various offsets", () => {
-            // Test position with start < 0 after calculation
-            expect(Str.position("hello", "l", -10)).toBe(2);
-            // Test position with start >= haystack.length
+        it("returns the offset for an empty needle, as mb_strpos does", () => {
+            // docs/php-parity/Str/position.json, "position-empty-needle"
+            expect(Str.position("Hello, World!", "")).toBe(0);
+            expect(Str.position("abc", "", -1)).toBe(2);
+            expect(Str.position("abc", "", 3)).toBe(3);
+            expect(Str.position("", "")).toBe(0);
+        });
+
+        it("throws for an offset outside the haystack, as mb_strpos does", () => {
+            const message =
+                "mb_strpos(): Argument #3 ($offset) must be contained in argument #1 ($haystack)";
+
+            // docs/php-parity/Str/position.json, "position-offset-bounds"
+            expect(Str.position("abc", "a", 3)).toBe(false);
+            expect(Str.position("abc", "c", -1)).toBe(2);
+            expect(Str.position("abc", "a", -3)).toBe(0);
             expect(Str.position("hello", "l", 5)).toBe(false);
+            expect(Str.position("", "a", 0)).toBe(false);
+            expect(() => Str.position("abc", "a", 10)).toThrow(message);
+            expect(() => Str.position("abc", "a", -4)).toThrow(message);
+            expect(() => Str.position("hello", "l", -10)).toThrow(message);
+            expect(() => Str.position("", "a", 1)).toThrow(message);
+            expect(() => Str.position("😀😀", "", 3)).toThrow(message);
+        });
+
+        it("finds a match from a negative offset inside the haystack", () => {
+            // docs/php-parity/Str/position.json, "position-offset-bounds"
+            expect(Str.position("hello", "l", -2)).toBe(3);
         });
     });
 
@@ -3440,6 +3794,12 @@ describe("Str tests", () => {
                 "Lorem Ipsum Dolor Sit Amet " + "Dolor Sit Amet ".repeat(999);
             expect(Str.title(longString)).toBe(expectedResult);
         });
+
+        it("capitalizes a letter outside the Basic Multilingual Plane", () => {
+            // docs/php-parity/Str/title.json, "title-astral"
+            expect(Str.title("𐐨𐐨 𐐨")).toBe("𐐀𐐨 𐐀");
+            expect(Str.title("😀foo bar")).toBe("😀Foo Bar");
+        });
     });
 
     describe("headline", () => {
@@ -3499,6 +3859,12 @@ describe("Str tests", () => {
 
             expect(Str.headline("❤_multiByte-☆")).toBe("❤ Multi Byte ☆");
             expect(Str.headline("laravel rocks!")).toBe("Laravel Rocks!");
+        });
+
+        it("capitalizes a letter outside the Basic Multilingual Plane", () => {
+            // docs/php-parity/Str/headline.json, "headline-astral"
+            expect(Str.headline("𐐨𐐨_𐐨")).toBe("𐐀𐐨 𐐀");
+            expect(Str.headline("😀FooBar")).toBe("😀 Foo Bar");
         });
     });
 
@@ -3962,6 +4328,22 @@ describe("Str tests", () => {
     });
 
     describe("take", () => {
+        it("truncates a fractional limit toward zero, as Laravel's int $limit does", () => {
+            // docs/php-parity/Str/take.json, "take-fractional"
+            expect(Str.take("abcd", -0.5)).toBe("");
+            expect(Str.take("abcd", 2.5)).toBe("ab");
+            expect(Str.take("abcd", -1.5)).toBe("d");
+        });
+
+        it("throws PHP's TypeError for a NaN limit", () => {
+            // docs/php-parity/Str/take.json, "take-non-finite"; the message drops PHP's namespace, as Collection's do.
+            expect(() => Str.take("abcd", Number.NaN)).toThrow(
+                new TypeError(
+                    "Str::take(): Argument #2 ($limit) must be of type int, float given",
+                ),
+            );
+        });
+
         it("Laravel tests", () => {
             expect(Str.take("abcdef", 2)).toBe("ab");
             expect(Str.take("abcdef", -2)).toBe("ef");
@@ -4594,6 +4976,11 @@ describe("Str tests", () => {
     });
 
     describe("makePad", () => {
+        it("repeats and cuts the pad by character", () => {
+            // JS-only: makePad has no Laravel counterpart; it repeats and cuts the pad as mb_str_pad does.
+            expect(Str.makePad("😀🎉", 3)).toBe("😀🎉😀");
+        });
+
         it("makePad with empty pad string", () => {
             // Empty pad string should return empty string
             expect(Str.makePad("", 10)).toBe("");

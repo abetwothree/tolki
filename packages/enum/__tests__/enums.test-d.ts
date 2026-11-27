@@ -10,7 +10,7 @@ import type {
 } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
-import * as Stubs from "./stubs";
+import * as Stubs from "./stubs/index.js";
 
 type StatusEnum = typeof Stubs.Status;
 type VisibilityEnum = typeof Stubs.Visibility;

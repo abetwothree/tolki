@@ -15,7 +15,7 @@ import {
     rowsById,
     tuplesByKey,
     unknownObject,
-} from "./fixtures";
+} from "./fixtures.js";
 
 /** A Collection-like row: a class instance whose items sit behind all(). */
 class Bag {

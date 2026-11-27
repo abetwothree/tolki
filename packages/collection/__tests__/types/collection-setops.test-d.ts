@@ -3,7 +3,7 @@ import * as Data from "@tolki/data";
 import type { JsonSerializable } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
-import type { ItemsOf } from "../helpers";
+import type { ItemsOf } from "../helpers.js";
 import {
     abc,
     ArrayableRecord,
@@ -16,7 +16,7 @@ import {
     SerializesRecord,
     SerializesScalar,
     Tagged,
-} from "./fixtures";
+} from "./fixtures.js";
 
 declare const strings: Collection<string, "a">;
 declare const dates: Map<"p" | "q", Date>;

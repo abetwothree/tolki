@@ -14,7 +14,7 @@ import {
     readonlyNumberList,
     settings,
     stringList,
-} from "./fixtures";
+} from "./fixtures.js";
 
 describe("data foundation type tests", () => {
     describe("dataFrom", () => {

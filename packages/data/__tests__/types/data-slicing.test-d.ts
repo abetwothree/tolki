@@ -14,7 +14,7 @@ import {
     readonlyNumberList,
     settings,
     unionItems,
-} from "./fixtures";
+} from "./fixtures.js";
 
 /** A depth the caller may leave out, which flattens every level. */
 declare const maybeDepth: number | undefined;

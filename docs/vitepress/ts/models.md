@@ -425,14 +425,36 @@ A specific return type or `Attribute<Get, Set>` generic is always read first, so
 - Calls something whose return type can't be determined
 - Reads another accessor that reads it back, in which case both publish `unknown`
 - Can only be typed as `null`, because one side of a `??` or a ternary couldn't be typed
-- Names two different classes or enums that share a short name, such as `$this->status ?? $this->author?->status` when each `status` is a different `Status` enum
 - Returns an API resource
 
 The `null` case keeps a getter from publishing a type that's plainly wrong: `fn ($value, array $attributes) => $attributes['title'] ?? null` publishes `unknown`, not `null`, because its real value is the title.
 
+A getter that returns either of two classes or enums that share a short name publishes both, each under its own alias. With `$this->status` an `App\Enums\Status` and `$this->author?->status` an `App\Crm\Enums\Status`, `$this->status ?? $this->author?->status` publishes `EnumsStatusType | CrmStatusType | null`.
+
 A getter closure with no native return type takes its type from a `@return` docblock written just before it, so `Attribute::get(/** @return int */ fn () => json_decode($this->stats_json))` publishes `number`. The package reads that docblock only when it can't type what the getter returns, and ignores a vague one, such as `@return mixed`.
 
 A getter that reads an attribute through `getAttribute()` or `getAttributeValue()` with a literal name takes the attribute's type, so `Attribute::get(fn () => $this->getAttribute('title'))` publishes `string`, as `fn () => $this->title` does.
+
+A getter that returns an [`EnumResource`](./enum-api-resource.md) publishes `AsEnum<typeof X>`, alone or inside the shape it builds, and the model file imports `AsEnum` and the enum's const. A wrap around a nullable column adds `| never[]`, because the model sends the empty resource as `[]`:
+
+```php
+protected function statusResource(): Attribute
+{
+    return Attribute::get(fn () => EnumResource::make($this->status));
+}
+
+protected function priorityResource(): Attribute
+{
+    return Attribute::get(fn () => EnumResource::make($this->priority));
+}
+```
+
+With `priority` nullable, the two accessors publish:
+
+```typescript
+status_resource: AsEnum<typeof Status>;
+priority_resource: AsEnum<typeof Priority> | never[];
+```
 
 Laravel runs an accessor's getter for a `NULL` column too, so an accessor on a nullable column publishes `| null` only where its getter can return `null`. A getter whose native return type is non-null, such as `fn (?string $value): array => …`, publishes no `| null`. One whose native return type allows `null`, such as `: ?array`, always publishes it, even when its `Attribute<…>` docblock leaves the `null` out.
 

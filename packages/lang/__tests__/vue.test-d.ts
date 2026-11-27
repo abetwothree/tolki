@@ -7,7 +7,7 @@ import type { VueLang } from "@tolki/lang/vue";
 import { describe, expectTypeOf, it } from "vitest";
 import type { ComponentCustomProperties, WritableComputedRef } from "vue";
 
-import { LINES } from "./fixtures/lines";
+import { LINES } from "./fixtures/lines.js";
 
 declare const typedReader: VueLang<typeof LINES>;
 declare const untypedReader: VueLang;

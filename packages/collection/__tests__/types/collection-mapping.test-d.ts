@@ -4,7 +4,7 @@ import { defineEnum } from "@tolki/enum";
 import type { PathKey, UndotObjectValue } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
-import type { ItemsOf } from "../helpers";
+import type { ItemsOf } from "../helpers.js";
 import {
     abc,
     generic,
@@ -18,7 +18,7 @@ import {
     type Row,
     rows,
     Tagged,
-} from "./fixtures";
+} from "./fixtures.js";
 
 declare const partial: Collection<number, "a" | "b", "partial">;
 declare const listOrKeyed: Collection<number, number, "list" | "keyed">;

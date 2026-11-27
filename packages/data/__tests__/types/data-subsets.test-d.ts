@@ -16,7 +16,7 @@ import {
     settings,
     stringList,
     unionItems,
-} from "./fixtures";
+} from "./fixtures.js";
 
 /** The key list a caller builds with `as const`, which a mutable `PathKeys` would reject. */
 const readonlyKeys = ["a", "b"] as const;
