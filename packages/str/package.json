@@ -55,78 +55,63 @@
         "types": "dist/index.d.ts",
         "exports": {
             ".": {
-                "import": "./dist/index.js",
-                "require": "./dist/index.js",
-                "types": "./dist/index.d.ts"
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
             },
             "./*": {
-                "import": "./dist/*",
-                "require": "./dist/*",
-                "types": "./dist/*"
+                "types": "./dist/*",
+                "default": "./dist/*"
             },
             "./ascii": {
                 "types": "./dist/ascii/index.d.ts",
-                "import": "./dist/ascii/index.js",
                 "default": "./dist/ascii/index.js"
             },
             "./base64": {
                 "types": "./dist/base64/index.d.ts",
-                "import": "./dist/base64/index.js",
                 "default": "./dist/base64/index.js"
             },
             "./convertcase": {
                 "types": "./dist/convertcase/index.d.ts",
-                "import": "./dist/convertcase/index.js",
                 "default": "./dist/convertcase/index.js"
             },
             "./markdown": {
                 "types": "./dist/markdown/index.d.ts",
-                "import": "./dist/markdown/index.js",
                 "default": "./dist/markdown/index.js"
             },
             "./pluralizer": {
                 "types": "./dist/pluralizer/index.d.ts",
-                "import": "./dist/pluralizer/index.js",
                 "default": "./dist/pluralizer/index.js"
             },
             "./random": {
                 "types": "./dist/random/index.d.ts",
-                "import": "./dist/random/index.js",
                 "default": "./dist/random/index.js"
             },
             "./replacer": {
                 "types": "./dist/replacer/index.d.ts",
-                "import": "./dist/replacer/index.js",
                 "default": "./dist/replacer/index.js"
             },
             "./str": {
                 "types": "./dist/str.d.ts",
-                "import": "./dist/str.js",
                 "default": "./dist/str.js"
             },
             "./stringable": {
                 "types": "./dist/stringable/index.d.ts",
-                "import": "./dist/stringable/index.js",
                 "default": "./dist/stringable/index.js"
             },
             "./transliterate": {
                 "types": "./dist/transliterate/index.d.ts",
-                "import": "./dist/transliterate/index.js",
                 "default": "./dist/transliterate/index.js"
             },
             "./trimmer": {
                 "types": "./dist/trimmer/index.d.ts",
-                "import": "./dist/trimmer/index.js",
                 "default": "./dist/trimmer/index.js"
             },
             "./ulid": {
                 "types": "./dist/ulid/index.d.ts",
-                "import": "./dist/ulid/index.js",
                 "default": "./dist/ulid/index.js"
             },
             "./uuid": {
                 "types": "./dist/uuid/index.d.ts",
-                "import": "./dist/uuid/index.js",
                 "default": "./dist/uuid/index.js"
             }
         }

@@ -16,7 +16,7 @@ import {
     rowsById,
     unknownObject,
     user,
-} from "./fixtures";
+} from "./fixtures.js";
 
 /**
  * Extracts the second slot of `SortSpec`'s `[key, direction]` tuple form.

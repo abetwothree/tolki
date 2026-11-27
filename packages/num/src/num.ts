@@ -1,7 +1,7 @@
 import { InvalidArgumentException } from "@tolki/utils";
 
-import { intlLocale, setLocaleNormalizer } from "./locale";
-import { formatOrdinal } from "./ordinal";
+import { intlLocale, setLocaleNormalizer } from "./locale/index.js";
+import { formatOrdinal } from "./ordinal/index.js";
 
 export { localeTag } from "@tolki/utils";
 

@@ -2,7 +2,7 @@ import { bindLang, createLang, normalizeLocale } from "@tolki/lang";
 import { InvalidArgumentException } from "@tolki/utils";
 import { describe, expect, it, vi } from "vitest";
 
-import { createDeferredLoader, LINES, syncLoad } from "./fixtures/lines";
+import { createDeferredLoader, LINES, syncLoad } from "./fixtures/lines.js";
 
 describe("createLang", () => {
     it("translates with the lines it was given", () => {

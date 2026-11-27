@@ -1,7 +1,7 @@
 import { isString, toLower } from "@tolki/utils";
 
-import { intlLocale } from "../locale";
-import { defaultLocale, format } from "../num";
+import { intlLocale } from "../locale/index.js";
+import { defaultLocale, format } from "../num.js";
 
 /**
  * Spell out the given number in the given locale.

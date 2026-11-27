@@ -16,7 +16,7 @@ import {
     scores,
     unknownObject,
     user,
-} from "./fixtures";
+} from "./fixtures.js";
 
 describe("obj foundation type tests", () => {
     describe("accessible", () => {

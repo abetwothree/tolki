@@ -4,9 +4,9 @@ import { flushSync, hydrate, unmount } from "svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import Greeting from "./fixtures/Greeting.svelte";
-import { createDeferredLoader, LINES } from "./fixtures/lines";
+import { createDeferredLoader, LINES } from "./fixtures/lines.js";
 import Root from "./fixtures/Root.svelte";
-import { SVELTE_SSR_HTML } from "./fixtures/ssr-html";
+import { SVELTE_SSR_HTML } from "./fixtures/ssr-html.js";
 
 /**
  * Read the paragraphs a rendered greeting shows.

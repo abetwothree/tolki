@@ -5,8 +5,8 @@ import { createSSRApp } from "vue";
 import { renderToString } from "vue/server-renderer";
 
 import Greeting from "./fixtures/Greeting.vue";
-import { syncLoad } from "./fixtures/lines";
-import { VUE_SSR_HTML } from "./fixtures/ssr-html";
+import { syncLoad } from "./fixtures/lines.js";
+import { VUE_SSR_HTML } from "./fixtures/ssr-html.js";
 
 describe("createLang", () => {
     it("renders the locale's lines on the server", async () => {

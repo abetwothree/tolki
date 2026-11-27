@@ -7,7 +7,7 @@ import {
     type OrdinalRule,
     ordinalRule,
     type OrdinalText,
-} from "./rules";
+} from "./rules.js";
 
 /**
  * The minus sign ICU's ordinal rules write, U+2212 rather than a hyphen.

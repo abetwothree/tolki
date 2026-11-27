@@ -4,13 +4,14 @@ import { pathToFileURL } from "node:url";
 
 import ts from "typescript";
 
+import { exportsBySubpath, importTarget } from "../lib/manifest.ts";
+import type { PackedPackage } from "../lib/pack.ts";
 import type { ExportEntry, SourceScan } from "../side-effects/scan.ts";
 import type { BundlerName } from "./bundlers.ts";
 import { BUNDLERS, isFrameworkPeer } from "./bundlers.ts";
 import type { Finding } from "./checks.ts";
 import type { KeptDrop } from "./expectations.ts";
 import { KEPT_DROPS } from "./expectations.ts";
-import type { PackageJson, StagedPackage } from "./stage.ts";
 
 export type CheckName =
     | "bare"
@@ -133,42 +134,6 @@ const SHAPES: Shape[] = [
     },
 ];
 
-const IMPORT_CONDITIONS = new Set(["node", "import", "module-sync", "default"]);
-
-/** The file Node's `import` conditions pick from an exports target. */
-function importTarget(target: unknown): string | null {
-    if (typeof target === "string") {
-        return target;
-    }
-
-    if (target === null || typeof target !== "object") {
-        return null;
-    }
-
-    for (const [condition, value] of Object.entries(target)) {
-        const found = IMPORT_CONDITIONS.has(condition)
-            ? importTarget(value)
-            : null;
-
-        if (found !== null) {
-            return found;
-        }
-    }
-
-    return null;
-}
-
-/** The exports field keyed by subpath, as `publishedSubpaths` reads it. */
-function exportsBySubpath(manifest: PackageJson): Record<string, unknown> {
-    const field = manifest.exports ?? manifest.main ?? "./index.js";
-
-    return typeof field === "object" &&
-        field !== null &&
-        Object.keys(field).some((key) => key.startsWith("."))
-        ? (field as Record<string, unknown>)
-        : { ".": field };
-}
-
 /** Whether a module, or a module it imports from its own package, imports a `node:` built-in. */
 function importsNodeBuiltin(file: string, seen = new Set<string>()): boolean {
     if (seen.has(file) || !existsSync(file)) {
@@ -255,21 +220,18 @@ async function declaringFiles(
 }
 
 /**
- * Reads the runtime export names of every staged subpath.
+ * Reads the runtime export names of every packed subpath.
  *
- * @param staged - The packages `stagePackages` wrote.
+ * @param packed - The packages `packWorkspace` extracted.
  * @param scan - The source scan; when given, each subpath also maps its names to their declaring files.
  * @returns One entry per subpath, names as `Object.keys` of the imported module.
  */
 export async function readSubpathExports(
-    staged: StagedPackage[],
+    packed: PackedPackage[],
     scan?: SourceScan,
 ): Promise<SubpathExports[]> {
-    const pending = staged.flatMap((pkg) => {
-        const manifest = JSON.parse(
-            readFileSync(join(pkg.root, "package.json"), "utf8"),
-        ) as PackageJson;
-        const targets = exportsBySubpath(manifest);
+    const pending = packed.flatMap((pkg) => {
+        const targets = exportsBySubpath(pkg.manifest);
         const declarations = new Map<string, string[]>();
 
         for (const { pkg: owner, name, file } of scan?.exports ?? []) {

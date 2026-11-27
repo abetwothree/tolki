@@ -6,7 +6,7 @@ import {
     readonlyStrings,
     unionElements,
     users,
-} from "./fixtures";
+} from "./fixtures.js";
 
 describe("arr mapping type tests", () => {
     describe("map", () => {

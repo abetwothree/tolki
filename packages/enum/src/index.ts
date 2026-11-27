@@ -1,2 +1,2 @@
-export * from "./enums";
-export * from "./php-enums";
+export * from "./enums.js";
+export * from "./php-enums.js";

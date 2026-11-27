@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
     increaseHeadingLevels,
     stripVitepressSyntax,
-} from "../../../scripts/readme-build";
+} from "../../../scripts/readme-build.ts";
 
 describe("increaseHeadingLevels", () => {
     it("shifts markdown headings down by one level", () => {

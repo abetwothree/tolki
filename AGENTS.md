@@ -25,6 +25,8 @@ The `@tolki` monorepo is a collection of packages that provide a JavaScript/Type
 - Run `pnpm run stubs:create-lists` to create function list file from PHP stubs
 - Run `pnpm run treeshake:check` after `pnpm run build` to bundle the built packages with five bundlers and check tree-shaking
   - Details: [docs/features/treeshake-check.md](docs/features/treeshake-check.md)
+- Run `pnpm run package:check` after `pnpm run build` to type-check, attw-check and load the packed packages as consumers do
+  - Details: [docs/features/package-check.md](docs/features/package-check.md)
 
 ## Use AI tools
 
@@ -88,6 +90,15 @@ Once added to the `@tolki/utils` package, they can be used in any other package 
 - Classes are exempt. Alias exports (`export const x = xImpl as ...`) take their mark from the same-file function.
 - Module scope: every call or `new` at module scope carries `/* @__PURE__ */`, nested calls too, and no argument is a spread.
 - Details: [docs/features/side-effect-annotations.md](docs/features/side-effect-annotations.md).
+
+## Build, publish and guards
+
+- Guards check what ships: `pnpm pack` tarballs (`scripts/lib/pack.ts`), never `src` or a hand-made copy.
+- Build and script inputs come from `package.json`: entries and externals through `definePackageConfig` in `vite.shared.ts`, the package list through `scripts/lib/workspace.ts`. Never keep a second hand-written list.
+- A runtime import must be in the package's `dependencies` or `peerDependencies`; the build fails otherwise.
+- Every guard has a negative control and refuses to pass on zero inputs.
+- A refactor of build tooling leaves `packages/*/dist` byte-identical, and its commit says so.
+- Script helpers used by more than one script live in `scripts/lib/`, with tests in `scripts/__tests__/`.
 
 ## Test structure
 
@@ -155,6 +166,7 @@ When using generics in parameter types, make sure to use the correct syntax for 
 - Use `const` and `let` instead of `var`
 - Use JSDoc comments for functions and classes
 - Use ES modules (import/export)
+- Relative imports name the file as it ships: `./obj.js`, `./ascii/index.js`; imports of `scripts/` files use `.ts`; JSON imports carry `with { type: "json" }`. The root tsconfig's `nodenext` rejects anything else, because declaration files keep these specifiers for consumers
 - Use `pnpm` as package manager
 - Use `prettier` for formatting
 - Use `oxlint` and `eslint` for linting

@@ -1,7 +1,7 @@
 import { localeTag } from "@tolki/utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { intlLocale, setLocaleNormalizer } from "../src/locale";
+import { intlLocale, setLocaleNormalizer } from "../src/locale/index.js";
 
 describe("intlLocale", () => {
     afterEach(() => {

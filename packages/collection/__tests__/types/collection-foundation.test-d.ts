@@ -5,7 +5,7 @@ import * as Str from "@tolki/str";
 import type { Arrayable, MapArrayKey } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { expectShape, type ItemsOf } from "../helpers";
+import { expectShape, type ItemsOf } from "../helpers.js";
 import {
     abc,
     ArrayableNumbers,
@@ -34,7 +34,7 @@ import {
     Tagged,
     unionItems,
     User,
-} from "./fixtures";
+} from "./fixtures.js";
 
 declare const partial: Collection<number, "a", "partial">;
 declare const anyShape: Collection<number, "a", CollectionShape>;

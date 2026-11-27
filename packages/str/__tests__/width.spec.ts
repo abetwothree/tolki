@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { strimWidth, strWidth, WIDE_RANGES } from "../src/width";
+import { strimWidth, strWidth, WIDE_RANGES } from "../src/width/index.js";
 
 interface Probe {
     label: string;

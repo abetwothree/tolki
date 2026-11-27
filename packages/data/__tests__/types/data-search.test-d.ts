@@ -7,7 +7,7 @@ import {
     readonlyNumberList,
     rowsById,
     unionItems,
-} from "./fixtures";
+} from "./fixtures.js";
 
 /** A record whose keys survive `phpArrayKey` differently: "10" becomes 10, "foo" does not. */
 const numericKeyedRecord = { "10": "x", foo: "y" };

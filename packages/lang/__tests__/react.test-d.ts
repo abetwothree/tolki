@@ -4,7 +4,7 @@ import { createLang, LangProvider } from "@tolki/lang/react";
 import type { ReactElement } from "react";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { LINES } from "./fixtures/lines";
+import { LINES } from "./fixtures/lines.js";
 
 declare const typedReader: ReactLang<typeof LINES>;
 declare const untypedReader: ReactLang;

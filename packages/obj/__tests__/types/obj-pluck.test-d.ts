@@ -8,7 +8,7 @@ import {
     type Row,
     rowsById,
     unknownObject,
-} from "./fixtures";
+} from "./fixtures.js";
 
 declare const nullableKey: string | null;
 

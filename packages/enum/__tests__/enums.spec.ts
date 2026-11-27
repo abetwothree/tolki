@@ -1,7 +1,7 @@
 import * as Enum from "@tolki/enum";
 import { describe, expect, it } from "vitest";
 
-import * as Stubs from "./stubs";
+import * as Stubs from "./stubs/index.js";
 
 describe("from", () => {
     it("resolves a numeric enum case with instance methods", () => {

@@ -13,7 +13,7 @@ import {
     scores,
     unknownObject,
     user,
-} from "./fixtures";
+} from "./fixtures.js";
 
 declare const opaque: unknown;
 // `declare`, not an initializer: a `const` narrows to its initializer's type, which would

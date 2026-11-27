@@ -11,3 +11,4 @@ How the repo's own tooling works. One line per file.
 - [arr-obj-data-collection-layering.md](./arr-obj-data-collection-layering.md): how `data` dispatches to `arr` and `obj`, the hand-written helpers, name differences and how `Collection` builds on it.
 - [side-effect-annotations.md](./side-effect-annotations.md): the `/* @__NO_SIDE_EFFECTS__ */` and `@sideEffects` rules every published export follows, and the scan that guards them.
 - [treeshake-check.md](./treeshake-check.md): `treeshake:check`, which bundles the staged packages with Rollup, Rolldown, esbuild, webpack and Rspack, its fixtures, control builds and debt file.
+- [package-check.md](./package-check.md): `package:check`, which packs every published package with pnpm and type-checks, attw-checks and loads it as node16, nodenext, CommonJS and bundler consumers do.

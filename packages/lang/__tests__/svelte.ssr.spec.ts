@@ -4,8 +4,8 @@ import { render } from "svelte/server";
 import { describe, expect, it } from "vitest";
 
 import Greeting from "./fixtures/Greeting.svelte";
-import { syncLoad } from "./fixtures/lines";
-import { SVELTE_SSR_HTML } from "./fixtures/ssr-html";
+import { syncLoad } from "./fixtures/lines.js";
+import { SVELTE_SSR_HTML } from "./fixtures/ssr-html.js";
 
 describe("langContext", () => {
     it("renders the locale's lines on the server", () => {

@@ -10,7 +10,7 @@ import {
     isPlainObject,
     isString,
     isUndefined,
-} from "./guards";
+} from "./guards.js";
 
 /**
  * Get a more specific type description for debugging purposes.

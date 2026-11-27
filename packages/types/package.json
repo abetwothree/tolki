@@ -64,7 +64,16 @@
             "types": "./src/path-resolve.d.ts"
         },
         "./responses": {
-            "types": "./src/responses.d.ts"
+            "types": "./src/resource-responses.d.ts"
+        },
+        "./resource-responses": {
+            "types": "./src/resource-responses.d.ts"
+        },
+        "./json-api": {
+            "types": "./src/json-api.d.ts"
+        },
+        "./routes": {
+            "types": "./src/routes.d.ts"
         },
         "./strings": {
             "types": "./src/strings.d.ts"

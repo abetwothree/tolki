@@ -1242,7 +1242,7 @@ test("Full Model", () => {
 // ProxyTarget: a top-level `this` alias never type-checked
 // -------------------------------------------------
 
-import type { ProxyTarget } from "../src/collections";
+import type { ProxyTarget } from "../src/collections.js";
 
 // A Proxy target must be an object; a top-level `this` alias never type-checked and skipLibCheck hid it.
 test("ProxyTarget", () => {
@@ -1256,7 +1256,7 @@ test("ProxyTarget", () => {
 import type {
     ArrayResolvePathOrDefault,
     ArrayResolvePathOrNull,
-} from "../src/path-resolve";
+} from "../src/path-resolve.js";
 
 type OptionalIntermediate = { a?: { b: string } }[];
 type RequiredIntermediate = { a: { b: string } }[];
@@ -1295,7 +1295,7 @@ test("ArrayResolvePathOrNull answers null through an optional segment", () => {
 // A key set may be read-only
 // -------------------------------------------------
 
-import type { PathKeys } from "../src/path-resolve";
+import type { PathKeys } from "../src/path-resolve.js";
 
 // `dataExcept(x, ["a", "b"] as const)` has to compile, so the array half of PathKeys is
 // read-only. A mutable array still fits, because every array extends its read-only twin.

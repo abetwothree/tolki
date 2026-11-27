@@ -19,6 +19,8 @@ import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 
+import { workspacePackages } from "./lib/workspace.ts";
+
 interface StubFile {
     fullPath: string;
     packageName: string;
@@ -28,22 +30,15 @@ interface StubFile {
 
 /**
  * Find all PHP files in stub folders within packages
+ *
+ * @param repoRoot - Absolute path of the repository root.
+ * @returns The stub files of every package that has a `stubs` directory.
  */
-function findStubFiles(): StubFile[] {
-    const packagesDir = path.join(process.cwd(), "packages");
+function findStubFiles(repoRoot: string = process.cwd()): StubFile[] {
     const stubFiles: StubFile[] = [];
 
-    if (!fs.existsSync(packagesDir)) {
-        throw new Error(`Packages directory not found: ${packagesDir}`);
-    }
-
-    const packages = fs.readdirSync(packagesDir).filter((item) => {
-        const packagePath = path.join(packagesDir, item);
-        return fs.statSync(packagePath).isDirectory();
-    });
-
-    for (const packageName of packages) {
-        const stubsDir = path.join(packagesDir, packageName, "stubs");
+    for (const { dirName: packageName, dir } of workspacePackages(repoRoot)) {
+        const stubsDir = path.join(dir, "stubs");
 
         if (fs.existsSync(stubsDir)) {
             const files = fs

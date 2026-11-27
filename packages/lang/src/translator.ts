@@ -34,9 +34,9 @@ import {
     phpTypeName,
 } from "@tolki/utils";
 
-import { assertLocale } from "./locale-guard";
-import { choose } from "./message-selector";
-import { makeReplacements } from "./replacements";
+import { assertLocale } from "./locale-guard.js";
+import { choose } from "./message-selector.js";
+import { makeReplacements } from "./replacements.js";
 
 /**
  * Determine if a value is a group: a PHP lang file's array.

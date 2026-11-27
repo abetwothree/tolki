@@ -38,7 +38,6 @@ describe("package exports", () => {
 
         expect(manifest.exports["./vite"]).toEqual({
             types: "./src/vite-plugin.ts",
-            import: "./src/vite-plugin.ts",
             default: "./src/vite-plugin.ts",
         });
     });
@@ -48,7 +47,6 @@ describe("package exports", () => {
 
         expect(manifest.publishConfig.exports["./enums"]).toEqual({
             types: "./dist/enums.d.ts",
-            import: "./dist/enums.js",
             default: "./dist/enums.js",
         });
     });
@@ -58,7 +56,6 @@ describe("package exports", () => {
 
         expect(manifest.publishConfig.exports["./vite"]).toEqual({
             types: "./dist/vite-plugin.d.ts",
-            import: "./dist/vite-plugin.js",
             default: "./dist/vite-plugin.js",
         });
     });

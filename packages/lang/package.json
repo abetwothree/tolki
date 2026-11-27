@@ -80,12 +80,16 @@
         "vue": "^3.5.44"
     },
     "peerDependencies": {
+        "@types/react": "^19.0.0",
         "react": "^19.0.0",
         "svelte": "^5.7.0",
         "vite": "^7.0.0||^8.0.0",
         "vue": "^3.5.0"
     },
     "peerDependenciesMeta": {
+        "@types/react": {
+            "optional": true
+        },
         "vue": {
             "optional": true
         },
@@ -108,58 +112,47 @@
         "types": "dist/index.d.ts",
         "exports": {
             ".": {
-                "import": "./dist/index.js",
-                "require": "./dist/index.js",
-                "types": "./dist/index.d.ts"
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
             },
             "./*": {
-                "import": "./dist/*",
-                "require": "./dist/*",
-                "types": "./dist/*"
+                "types": "./dist/*",
+                "default": "./dist/*"
             },
             "./helpers": {
                 "types": "./dist/helpers.d.ts",
-                "import": "./dist/helpers.js",
                 "default": "./dist/helpers.js"
             },
             "./locale": {
                 "types": "./dist/locale.d.ts",
-                "import": "./dist/locale.js",
                 "default": "./dist/locale.js"
             },
             "./message-selector": {
                 "types": "./dist/message-selector.d.ts",
-                "import": "./dist/message-selector.js",
                 "default": "./dist/message-selector.js"
             },
             "./replacements": {
                 "types": "./dist/replacements.d.ts",
-                "import": "./dist/replacements.js",
                 "default": "./dist/replacements.js"
             },
             "./translator": {
                 "types": "./dist/translator.d.ts",
-                "import": "./dist/translator.js",
                 "default": "./dist/translator.js"
             },
             "./vue": {
                 "types": "./dist/vue.d.ts",
-                "import": "./dist/vue.js",
                 "default": "./dist/vue.js"
             },
             "./react": {
                 "types": "./dist/react.d.ts",
-                "import": "./dist/react.js",
                 "default": "./dist/react.js"
             },
             "./svelte": {
                 "types": "./dist/svelte.d.ts",
-                "import": "./dist/svelte.js",
                 "default": "./dist/svelte.js"
             },
             "./vite-laravel": {
                 "types": "./dist/vite-laravel/index.d.ts",
-                "import": "./dist/vite-laravel/index.js",
                 "default": "./dist/vite-laravel/index.js"
             },
             "./client": {

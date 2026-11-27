@@ -27,7 +27,7 @@ export function buildEntries(
         extensions = [".ts"],
     } = options;
 
-    const files = glob.sync(pattern, { cwd: baseDir, ignore });
+    const files = glob.sync(pattern, { cwd: baseDir, ignore, posix: true });
 
     const entries: Record<string, string> = {};
     for (const rel of files) {
@@ -45,14 +45,4 @@ export function buildEntries(
         entries[key] = path.join(baseDir, rel);
     }
     return entries;
-}
-
-/** Convenience for vite configs inside a package directory. */
-export function buildPackageEntries(
-    pattern: string,
-    importMetaUrl: string,
-    options?: BuildEntriesOptions,
-) {
-    const baseDir = path.dirname(new URL(importMetaUrl).pathname);
-    return buildEntries(pattern, baseDir, options);
 }

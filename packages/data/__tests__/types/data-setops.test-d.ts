@@ -18,7 +18,7 @@ import {
     settings,
     stringList,
     unionItems,
-} from "./fixtures";
+} from "./fixtures.js";
 
 /** Not a fixture: the Set keeps its own type here, since the point is that a row takes one. */
 const numberSet = new Set([7, 8]);

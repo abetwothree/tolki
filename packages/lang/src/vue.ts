@@ -3,13 +3,13 @@ import { isNull } from "@tolki/utils";
 import type { App, InjectionKey, Plugin, WritableComputedRef } from "vue";
 import { computed, inject, shallowRef } from "vue";
 
-import { bindLang, createLang as createCoreLang } from "./lang";
+import { bindLang, createLang as createCoreLang } from "./lang.js";
 import type {
     Lang,
     LangReader,
     RegisteredLines,
     TranslationHelpers,
-} from "./types";
+} from "./types.js";
 
 declare module "vue" {
     interface ComponentCustomProperties {

@@ -9,10 +9,10 @@ import {
     useSyncExternalStore,
 } from "react";
 
-import { bindLang } from "./lang";
-import type { Lang, LangReader, RegisteredLines } from "./types";
+import { bindLang } from "./lang.js";
+import type { Lang, LangReader, RegisteredLines } from "./types.js";
 
-export { createLang } from "./lang";
+export { createLang } from "./lang.js";
 
 /** The props of the provider that hands a lang to the tree below it. */
 export interface LangProviderProps {

@@ -8,7 +8,7 @@ import {
     stringTuple,
     unionElements,
     unknownArray,
-} from "./fixtures";
+} from "./fixtures.js";
 
 describe("arr key-guard and typed-getter type tests", () => {
     describe("has", () => {

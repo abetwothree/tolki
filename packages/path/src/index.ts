@@ -1,2 +1,2 @@
-export * from "./path";
-export * from "./pluck";
+export * from "./path.js";
+export * from "./pluck.js";

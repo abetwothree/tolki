@@ -8,8 +8,8 @@ import type {
 } from "@tolki/types";
 import { isNull, isUndefined } from "@tolki/utils";
 
-import type { Translator } from "./translator";
-import type { TranslationHelpers } from "./types";
+import type { Translator } from "./translator.js";
+import type { TranslationHelpers } from "./types.js";
 
 /**
  * Create `__`, `trans` and `transChoice` bound to one translator.

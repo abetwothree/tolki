@@ -3,7 +3,7 @@ import type { SvelteLang } from "@tolki/lang/svelte";
 import { createLang, langContext } from "@tolki/lang/svelte";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { LINES } from "./fixtures/lines";
+import { LINES } from "./fixtures/lines.js";
 
 declare const reader: SvelteLang<typeof LINES>;
 declare const bareReader: SvelteLang;

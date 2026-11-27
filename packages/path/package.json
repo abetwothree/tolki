@@ -40,18 +40,15 @@
         "types": "dist/index.d.ts",
         "exports": {
             ".": {
-                "import": "./dist/index.js",
-                "require": "./dist/index.js",
-                "types": "./dist/index.d.ts"
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
             },
             "./path": {
                 "types": "./dist/path.d.ts",
-                "import": "./dist/path.js",
                 "default": "./dist/path.js"
             },
             "./pluck": {
                 "types": "./dist/pluck.d.ts",
-                "import": "./dist/pluck.js",
                 "default": "./dist/pluck.js"
             }
         }

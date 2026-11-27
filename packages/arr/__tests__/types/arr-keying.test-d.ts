@@ -10,7 +10,7 @@ import {
     readonlyStrings,
     unionElements,
     users,
-} from "./fixtures";
+} from "./fixtures.js";
 
 declare const untypedRows: unknown[];
 

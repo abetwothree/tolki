@@ -2,7 +2,7 @@ import { useLang } from "@tolki/lang/react";
 import type { ReactElement } from "react";
 import { createElement } from "react";
 
-import type { LINES } from "./lines";
+import type { LINES } from "./lines.js";
 
 /**
  * Render the welcome line, an apples plural and the locale.

@@ -6,7 +6,7 @@ import {
     readonlyNumbers,
     readonlyStrings,
     unknownArray,
-} from "./fixtures";
+} from "./fixtures.js";
 
 describe("arr slicing type tests", () => {
     describe("slice", () => {

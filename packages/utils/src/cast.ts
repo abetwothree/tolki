@@ -13,9 +13,14 @@ import {
     isUndefined,
     isWeakMap,
     isWeakSet,
-} from "./guards";
-import { defineKey, hasOwnToString, isPhpArrayKey, keyedEntries } from "./keys";
-import { phpDebugType } from "./reflect";
+} from "./guards.js";
+import {
+    defineKey,
+    hasOwnToString,
+    isPhpArrayKey,
+    keyedEntries,
+} from "./keys.js";
+import { phpDebugType } from "./reflect.js";
 
 /** PHP's default `precision` ini setting: the significant digits its `(string)` cast prints for a float. */
 const PHP_FLOAT_PRECISION = 14;

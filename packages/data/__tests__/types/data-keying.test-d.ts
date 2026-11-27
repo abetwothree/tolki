@@ -20,7 +20,7 @@ import {
     settings,
     unionItems,
     unionRows,
-} from "./fixtures";
+} from "./fixtures.js";
 
 /** A row whose list and record may be empty, which dot keeps whole as leaves. */
 interface Tagged {
