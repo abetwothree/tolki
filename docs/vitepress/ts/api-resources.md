@@ -767,10 +767,22 @@ App\Http\Resources\PostResource: The value on line 24 publishes `never[]`, an ar
 
 For a value left as `null`, the message reads "publishes `null`, as if it were always null", and for both, "publishes `null | never[]`, as if it were always null or an empty array".
 
-A ternary or a `??` that leaves out a value beside a typed one raises no warning. A value left out where a parameter's writes, a returned array's branches, a merge's two sides or a spread helper's returns join raises one, because the published type may not cover everything Laravel sends:
+A value left out beside a typed one raises a warning too, because the published type may not cover everything Laravel sends. That covers a ternary, a `??`, a `match` and a conditional method's default, and the joins of a parameter's writes, a returned array's branches, a merge's two sides and a spread helper's returns. Here `opaqueTitle()` declares no return type either:
+
+```php
+'title' => $this->is_published ? $this->opaqueTitle() : $this->title, // title: string
+```
+
+The warning names the value it left out:
 
 ```text
 App\Http\Resources\PostResource: The value on line 31 leaves out `$this->opaqueTitle()`, which could not be typed, so its published type may not admit every value it sends. Give what it reads a return type or a `@return` docblock.
+```
+
+Where a spread helper returns a variable that holds another method's array, the warning names the key and the variable instead:
+
+```text
+App\Http\Resources\PostResource: Key `label` leaves out what `$row` on line 42 holds there, which could not be typed beside the typed values it joins, so its published type may not admit every value it sends. Give what it reads a return type or a `@return` docblock.
 ```
 
 Give the method a return type or a `@return` docblock, and its value joins the union again. An inline [`@var`](#typing-a-variable-with-var) that types the variable also removes the warning. `--quiet` hides every warning.
@@ -2318,6 +2330,22 @@ A value one branch writes that the package can't type is left out of the key's t
 The package doesn't follow `$data[] = ...`, a key computed at runtime, such as `$data[$key]` where `$key` isn't a local holding one string literal, or a nested key such as `$data['meta']['label']`, whether written or passed to `unset()`. It also reads the method in one pass. A key written after an early `return $data;` publishes required when that write always runs, though the early return sends the array without it. A `continue` or `break` isn't followed either, so in a loop body, a write after an `if` that ends in `continue` replaces the `if`'s write, though Laravel can send the `if`'s value. In each case, return an array literal on each path, or list the keys with [`#[TsCasts]`](#overriding-property-types-with-tscasts), which can also mark a key optional.
 
 `+` publishes PHP's array union, where the left side's keys win and the right side adds the keys it lacks. That holds in a key's value, so `['code' => 'in'] + ['code' => 0, 'lane' => 2]` publishes `{ code: string; lane: number }`, and in a whole return, such as `return parent::toArray($request) + ['note' => 'none'];`. Either side can be a local holding an array: with `$defaults = ['note' => 'none', 'id' => 'x']`, `return ['id' => $this->id] + $defaults;` publishes `id: number` and `note: string`.
+
+`+=` fills a key that a branch may skip with the right side's value, because the array lacks the key when the branch doesn't run. So does `+` on a helper that writes the key in a branch, as in `return $this->base() + ['rank' => 'unranked'];`. The key is then required, with both types:
+
+```php
+$data = ['id' => $this->id];
+
+if ($this->is_active) {
+    $data['rank'] = $this->sort_order;
+}
+
+$data += ['rank' => 'unranked'];
+
+return $data;
+```
+
+On a `Category` resource, `rank` publishes `rank: number | string`. Writing `$data['rank'] = $data['rank'] ?? 'unranked';` in place of the `+=` publishes the same required key. A key that holds a `when()` value stays in the array until Laravel removes it, so `+` keeps that value: `['rank' => $this->when($this->is_active, 1)] + ['rank' => 'unranked']` publishes `rank?: number`.
 
 A helper that you pass the array to, and that returns it, keeps the array's keys and adds the keys it writes. A vague `@return array<string, mixed>` on the helper doesn't hide them:
 
